@@ -987,3 +987,15 @@ Idle with model loaded, answering nothing: **30.7-31.1 W**.
 | **180,224** | 23,729 | 22,882 | 478 | **847** | 56.58 |
 | 196,608 | 24,161 | 23,459 | 638 | 415 | 51.88 |
 | 212,992 | 24,296 | 24,163 | 744 | 280 | 49.20 |
+
+## 2026-08-23 - Agentic bucket (rule 22): gate ran, sweep skipped, anchor cited
+Pier/DeepSWE pipeline built and validated end-to-end on this machine (WSL2
+Ubuntu-24.04, docker 29.7.2; full log agentic/setup-log.md). One real task:
+9m36s wall, 22 LLM calls, 1,014,115 prompt / 21,736 completion tokens, F2P
+0/96, P2P 561/561 - plumbing PASS, task fail. Traps recorded in rule 22:
+--ak model_class=null, server on port 80 (squid Safe_ports), WSL host
+192.168.128.1, -c 131072 minimum (65,536 overflowed after 22 calls).
+Projection for 10 tasks x 3 efforts, runs completing naturally, -n 1: ~8.5 h
+> ~4 h gate -> SKIPPED. Published anchor cited in report section 12: 42.2 on
+the DeepSWE 1.1 leaderboard (base model, full precision). Key measured fact:
+agentic wall time is prompt-processing-bound on this harness.

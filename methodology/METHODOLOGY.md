@@ -176,6 +176,22 @@ a report says "unverified here" rather than staying silent.
     "local effort-sweep available but skipped for cost (projected ~N h);
     published anchor: ⟨score, conditions⟩". A cited anchor with a stated gap
     beats a sweep that never finishes.
+    **Validated plumbing (2026-08-23, reference machine; full log:
+    `agentic/setup-log.md`)** — reuse, don't rediscover: pass
+    `--ak model_class=null` or mini-swe-agent silently routes `openai/...`
+    names to the Responses API llama.cpp lacks; Pier's squid sidecar only
+    allows ports 80/443, so the llama-server must listen on **port 80**;
+    from WSL2 (NAT) the host is the vEthernet gateway (reference:
+    `192.168.128.1`) — never localhost; serve with `-c 131072` minimum
+    (a validation run overflowed 65,536 after just 22 calls — mini-swe-agent
+    never summarizes) and check the bigger KV still fits VRAM; DeepSWE wall
+    time is prompt-processing-bound (measured 1.01M prompt vs 21.7k
+    completion tokens per task), so judge cost by prefill speed; one server
+    restart per effort level (the knob is server-side); ~5 GB Docker image
+    per task, cached across efforts (~50 GB disk for the 10-task subset);
+    measure with `-n 1` — shared slots make per-task wall unattributable.
+    Reference gate outcome: single task 9m36s truncating at 65k → projected
+    ~8.5 h for a completing 10×3 sweep → gate says skip; anchor cited.
 23. **Frozen inputs, offline-first.** Apples-to-apples across machines requires
     identical inputs: the benchmark test cases live IN the repo
     (`scripts/bench/datasets-frozen/`, `corpora/`) and every scored run uses a

@@ -2113,6 +2113,26 @@ chrome --headless=new --disable-gpu --hide-scrollbars \
   this page confirms or contradicts them, and a 4-bit quantisation on a 24 GiB
   card is a different artefact from what they measured.</p>
 
+  <p><b>The agentic bucket ran its cost gate and lost.</b> A local
+  DeepSWE-via-Pier pipeline was built and validated end-to-end on this machine
+  on 2026-08-23 &mdash; one real sandboxed task, 22 LLM calls against this
+  served model, 9&nbsp;m&nbsp;36&nbsp;s wall &mdash; and the single-task run
+  projected <b>~8.5&nbsp;hours</b> for the smallest honest sweep (10
+  deterministic tasks &times; 3 effort levels, context raised so runs complete
+  rather than truncate). That exceeds the methodology&rsquo;s ~4-hour gate, so
+  per rule&nbsp;22: <b>local effort-sweep available but skipped for cost
+  (projected ~8.5&nbsp;h); published anchor: 42.2 for the base model on the
+  <a href="https://deepswe.datacurve.ai/">DeepSWE&nbsp;1.1 leaderboard</a></b>
+  <span class="cited">CITED</span> &mdash; full precision, the harness&rsquo;s
+  own serving stack; a local 4-bit score would read as a
+  &#10216;quant, machine, effort&#10217; delta against that anchor, and that
+  delta is the unmeasured part. The validation run itself yielded one
+  measured fact worth keeping: the task consumed <b>1.01&nbsp;M prompt tokens
+  against 21.7&nbsp;k completion tokens</b>, so agentic wall time on this
+  class of harness is prompt-processing-bound &mdash; prefill speed, not the
+  decode numbers this page spends most of its ink on, is what an agentic
+  buyer should scale by.</p>
+
   <p>What is measurable from here is the shape of the trade. This file is
   13.3&nbsp;GiB. A frontier model is one to two orders of magnitude larger and
   is not going to run on this card at any quantisation. The interesting
