@@ -51,6 +51,17 @@ which is input data, not a result).
    (and phase 2 vs phase 3 repeat probes agree to 0.7 %). Recipes therefore
    publish `--load-mode mmap`.
 
+   **What that verification does and does not cover.** Decode-neutrality was
+   checked and held. The *other* half of the `--load-mode none` argument — the
+   system-RAM footprint, roughly 15 GB of page cache held by the mapped weight
+   file, which is the reason the flag exists at all — **was never examined in
+   this campaign**. No system-RAM measurement was taken under either mode, so
+   nothing here says what mmap costs a RAM-tight machine, and the deviation is
+   only justified on the axis that was measured. A reader with 16 GB of system
+   RAM should treat the published `--load-mode mmap` as untested for their
+   case. Closing it is cheap: one `\Process(llama-server)\Working Set` and
+   system-wide available-MB reading per mode, no GPU time.
+
 9. **Two measurement steps were moved from PowerShell to Python** after
    PowerShell 5.1 failed at them: the vision request (`Invoke-RestMethod`
    cannot post the ~261 KB body a 1440p PNG data-URI produces - the request

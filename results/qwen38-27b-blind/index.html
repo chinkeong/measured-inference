@@ -799,7 +799,11 @@ RTX 3090 :  936 GB/s &divide; 14.25 GB = 65.7 t/s theoretical
   only stated difference is the projector, which &sect;02 elsewhere shows is a
   fixed <em>memory</em> cost; a ~15 % deep-decode cost for having it loaded
   would be a real finding, but it rests on one comparison and this campaign did
-  not isolate it. It is reported and not built on.</p>
+  not isolate it. It is reported and not built on.
+  <b>Measurement queued</b>: one paired probe at ~91k fill, mmproj on and off
+  with every other flag matched, settles it and promotes it from a loose end to
+  a measured row. It needs GPU time this campaign did not have left, not a new
+  idea.</p>
 
   <div class="callout warn">
     <span class="label">The trap, stated plainly</span>
@@ -862,7 +866,7 @@ RTX 3090 :  936 GB/s &divide; 14.25 GB = 65.7 t/s theoretical
       <tr>
         <td class="mono">--load-mode mmap</td>
         <td>Lets the OS page cache hold the weights between restarts.</td>
-        <td><b>Server ready in 6.0&ndash;10.6 s</b> across ~30 restarts once the 13.3 GiB file was in the page cache. <code>--load-mode none</code> was not separately timed here. With <code>-ngl 99</code> every weight ends in VRAM regardless, so load mode cannot affect decode &mdash; and repeat probes across phases agreed to 0.7 %, which is the check that says so.</td>
+        <td><b>Server ready in 6.0&ndash;10.6 s</b> across ~30 restarts once the 13.3 GiB file was in the page cache. <code>--load-mode none</code> was not separately timed here. With <code>-ngl 99</code> every weight ends in VRAM regardless, so load mode cannot affect decode &mdash; and repeat probes across phases agreed to 0.7 %, which is the check that says so. <b>That check covers decode and nothing else:</b> the system-RAM side of the trade &mdash; the ~15 GB of page cache the mapped file holds, which is the reason <code>--load-mode none</code> exists &mdash; was never measured here, so on a RAM-tight box this flag is untested rather than recommended.</td>
       </tr>
       <tr>
         <td class="mono">--jinja</td>
@@ -892,8 +896,9 @@ RTX 3090 :  936 GB/s &divide; 14.25 GB = 65.7 t/s theoretical
   298&nbsp;MiB out of 14.1&nbsp;GiB &mdash; and the server starts, loads and
   answers normally. The <em>only</em> signature is the speed. Use
   <code>-ngl 99</code> whenever the file fits in VRAM &mdash; which is every
-  card in &sect;07 except the 12&nbsp;GB one, where the weights do not fit at
-  all and partial offload is a different problem with different arithmetic.</p>
+  card in &sect;07 except the two 12&nbsp;GB ones, where the weights do not fit
+  at all and partial offload is a different problem with different
+  arithmetic.</p>
 
   <h3><span class="sigil">02</span>q8_0 KV costs 2 % of decode and buys 27 KiB a token</h3>
   <p><span class="measured">MEASURED</span> at <code>-c 32768</code>: fp16 KV
@@ -907,6 +912,20 @@ RTX 3090 :  936 GB/s &divide; 14.25 GB = 65.7 t/s theoretical
   &sect;05 closes this: quantising the cache moved perplexity from
   <b>6.5956 to 6.6160</b>, <b>+0.31 %</b> over 294,912 scored token positions.
   That is the whole quality cost of nearly doubling your context window.</p>
+
+  <div class="callout warn">
+    <span class="label">Do not take the next step down &mdash; and this one was not measured here</span>
+    <p><code>-ctk q4_0</code> halves the cache again and is the wrong trade at
+    exactly the long contexts that make you reach for it: the K cache is the
+    half that does not tolerate 4 bits, and the damage compounds with depth,
+    so the setting is worst precisely where it is supposed to help.
+    <span class="cited">MECHANISM PER REFERENCE CAMPAIGN &middot; UNMEASURED
+    HERE</span> &mdash; no <code>q4_0</code> arm was run in this campaign, so
+    treat this as a caution and not as a result. It is also the cheapest gap on
+    this page to close: one <code>llama-perplexity</code> pass at
+    <code>-ctk q4_0</code> against &sect;05's 6.5956 baseline turns it into a
+    number.</p>
+  </div>
 </section>
 
 <section id="effort">
@@ -1285,6 +1304,14 @@ RTX 3090 :  936 GB/s &divide; 14.25 GB = 65.7 t/s theoretical
   <b>accepted-tokens-per-target-pass is the quantity that sets your speed</b>
   &mdash; not the acceptance percentage everyone quotes.</p>
 
+  <p class="small"><b>Other drafters exist, and none of them were tried.</b> The
+  MTP head is the speculator that ships inside this GGUF, which is the entire
+  reason it is the only one on this page. External drafters &mdash; DFlash2 is
+  the current example &mdash; are a real alternative, and they were <b>out of
+  scope for a smoke tier</b>: a ~1.14&nbsp;GB download plus a source build off a
+  PR branch, against a four-hour measurement budget. Nothing here is evidence
+  about them either way. Read their absence as untested, not as a verdict.</p>
+
   <h3><span class="sigil">02</span>The tuning sweep</h3>
   <p>Eight configurations, fresh server each, the same novel-JS prompt at
   temp&nbsp;0. <code>accepted / pass</code> is
@@ -1459,31 +1486,66 @@ RTX 3090 :  936 GB/s &divide; 14.25 GB = 65.7 t/s theoretical
   <pre><code>derived t/s (no speculation) = bandwidth GB/s &divide; 14.25 GB &times; 0.649
 
 where 0.649 is THIS machine's measured ratio of achieved decode to
-raw bandwidth (42.61 &divide; 65.7). A different backend - Metal, Vulkan,
-a CPU build - will not have this efficiency, and the derived rows for
-non-CUDA hardware are correspondingly softer.</code></pre>
+raw bandwidth (42.61 &divide; 65.7).
+
+The constant is FORMAT-SPECIFIC. An IQ quant unpacks more expensively
+than a K-quant, and 0.649 is what this IQ4_XS file achieved on CUDA
+against the ~0.70 a K-quant is generally worth on the same backend
+(&sect;02). Scaling a K-quant file with 0.649 - or this file with 0.70 -
+is an ~8 % error before the hardware is even considered.
+
+A different backend - Metal, Vulkan, SYCL, a CPU build - will not
+have this efficiency either, and the derived rows for non-CUDA
+hardware are correspondingly softer.</code></pre>
 
   <div class="table-wrap"><table>
-    <caption>Bandwidth figures <span class="cited">CITED</span> to NVIDIA and Apple primary documents (&sect;14). Decode column: the 3090 row is <span class="measured">MEASURED</span>; every other row is <span class="derived">DERIVED</span> from the formula above. DDR figures are arithmetic: MT/s &times; 64 bit &times; 2 channels &divide; 8.</caption>
+    <caption>The full card roster, ordered by class. Decode column: the 3090 row is <span class="measured">MEASURED</span>; <b>every other row on this table is <span class="derived">DERIVED</span></b> from the formula above, and no other card was touched during this campaign. <b>Citation grades differ and are worth knowing.</b> The 3090, 4090, 5090, RTX 6000 Ada, A6000, 4060 Ti and both Apple parts are <span class="cited">CITED</span> to vendor primary documents (&sect;14) &mdash; including the two corrections that matter: the 3090 is 936, not 936.2, and the 4060 Ti's real peak is 288 GB/s, not the 554 that is NVIDIA's L2 <em>effective</em>-bandwidth argument. The 5080 / 4080 / 4070 Ti SUPER / 5060 Ti / 5070 figures are bus-width &times; data-rate arithmetic on published specifications (256-bit &times; 30 Gbps = 960 GB/s, and so on). The DGX Spark and Intel Arc figures are vendor-published values carried from the campaign template's fact-checked reference set. <b>Neither of those last two groups was re-verified against a live source during this campaign</b> &mdash; read them one citation grade softer than the linked rows, and re-check before quoting. DDR figures are arithmetic: MT/s &times; 64 bit &times; 2 channels &divide; 8.</caption>
     <thead><tr><th>Hardware</th><th class="num">Bandwidth</th><th class="num">Memory</th><th class="num">Decode t/s, no spec</th><th>Does the 13.3 GiB file fit, and how much window</th></tr></thead>
     <tbody>
+      <tr><td colspan="5" class="mono" style="background:var(--bg-soft);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint)">NVIDIA &mdash; 24 to 32 GB class</td></tr>
       <tr class="hi">
         <td><b>RTX 3090</b></td><td class="num">936 GB/s</td><td class="num">24 GB</td>
         <td class="num"><b>42.6</b> <span class="small">measured, no drafter</span></td>
         <td>Yes. 163,840 tokens resident with the projector loaded.</td>
       </tr>
       <tr><td>RTX 4090</td><td class="num">1008 GB/s</td><td class="num">24 GB</td><td class="num">~45.9</td><td>Yes, same window as the 3090 &mdash; same 24 GB.</td></tr>
-      <tr><td>RTX 5090</td><td class="num">1792 GB/s</td><td class="num">32 GB</td><td class="num">~81.6</td><td>Yes, and the extra 8 GB is ~190k more tokens: the full 262,144 window fits resident.</td></tr>
+      <tr><td>RTX 5090</td><td class="num">1792 GB/s</td><td class="num">32 GB</td><td class="num">~81.6</td><td>Yes, and the extra 8 GB is ~190k more tokens: the full 262,144 window fits resident &mdash; 27,540 MiB by &sect;02's model with both the drafter and the projector loaded, ~5 GiB spare.</td></tr>
+      <tr><td colspan="5" class="mono" style="background:var(--bg-soft);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint)">NVIDIA workstation &mdash; 48 GB</td></tr>
       <tr><td>RTX 6000 Ada</td><td class="num">960 GB/s</td><td class="num">48 GB</td><td class="num">~43.7</td><td>Yes, 262,144 resident with room to spare.</td></tr>
       <tr><td>RTX A6000</td><td class="num">768 GB/s</td><td class="num">48 GB</td><td class="num">~35.0</td><td>Yes, 262,144 resident.</td></tr>
-      <tr><td>RTX 4060 Ti 16 GB</td><td class="num">288 GB/s</td><td class="num">16 GB</td><td class="num">~13.1</td><td>The weights fit; the window barely does. <span class="derived">DERIVED</span> from &sect;02's constants on a 16,384 MiB board, before any desktop: <b>~29k tokens</b> text-only with the coding drafter, <b>~2.5k</b> with the projector as well (it does not fit in practice), and <b>~53k</b> with vision but no drafter. On 16 GB you pick one of speed and sight.</td></tr>
+      <tr><td colspan="5" class="mono" style="background:var(--bg-soft);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint)">NVIDIA &mdash; 16 GB class</td></tr>
+      <tr><td>RTX 5080</td><td class="num">960 GB/s</td><td class="num">16 GB</td><td class="num">~43.7</td><td>The weights fit; the window barely does, and this is the whole 16 GB story. <span class="derived">DERIVED</span> from &sect;02's constants on a 16,384 MiB board, before any desktop: <b>~29k tokens</b> text-only with the coding drafter, <b>~2.5k</b> with the projector as well (which is to say it does not fit in practice), and <b>~53k</b> with vision but no drafter. On 16 GB you pick one of speed and sight.</td></tr>
+      <tr><td>RTX 4080</td><td class="num">716.8 GB/s</td><td class="num">16 GB</td><td class="num">~32.6</td><td>Same 16 GB window arithmetic as the 5080 row.</td></tr>
+      <tr><td>RTX 4070 Ti SUPER</td><td class="num">672 GB/s</td><td class="num">16 GB</td><td class="num">~30.6</td><td>Same 16 GB window arithmetic.</td></tr>
+      <tr><td>RTX 5060 Ti 16 GB</td><td class="num">448 GB/s</td><td class="num">16 GB</td><td class="num">~20.4</td><td>Same 16 GB window arithmetic. The 128-bit bus, not the capacity, is what sets this row.</td></tr>
+      <tr><td>RTX 4060 Ti 16 GB</td><td class="num">288 GB/s</td><td class="num">16 GB</td><td class="num">~13.1</td><td>Same 16 GB window arithmetic, on the slowest bus in the class &mdash; and see &sect;14 for why 554 GB/s is the wrong number to put in this column.</td></tr>
+      <tr><td colspan="5" class="mono" style="background:var(--bg-soft);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint)">NVIDIA &mdash; 12 GB class</td></tr>
+      <tr><td>RTX 5070</td><td class="num">672 GB/s</td><td class="num">12 GB</td><td class="num">&mdash;</td><td><b>No.</b> Fast bus, wrong capacity: the weights alone are 13.3 GiB, so there is no window to budget before there is a fit problem. Partial offload puts the tail of the model on the system bus and the formula above stops applying.</td></tr>
       <tr><td>RTX 3060 12 GB</td><td class="num">360 GB/s</td><td class="num">12 GB</td><td class="num">&mdash;</td><td><b>No.</b> The weights alone are 13.3 GiB. Partial offload puts layers on a 51.2 GB/s DDR4 bus and the derived figure above stops applying entirely.</td></tr>
-      <tr><td>Apple M4 Max <span class="small">(16C/40C bin)</span></td><td class="num">546 GB/s</td><td class="num">unified, to 128 GB</td><td class="num">~24.9</td><td>Yes, and the window is bounded by the Metal working-set limit rather than a VRAM wall. Metal efficiency is not this card's; treat as an ordering only.</td></tr>
+      <tr><td colspan="5" class="mono" style="background:var(--bg-soft);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint)">NVIDIA DGX Spark</td></tr>
+      <tr><td>DGX Spark <span class="small">(GB10)</span></td><td class="num">273 GB/s</td><td class="num">unified, 128 GB</td><td class="num">~12.4</td><td>Yes, and all of it at once: the full 262,144 window with both the drafter and the projector is 27,540 MiB by &sect;02's model, which is nothing on 128 GB. Memory is not this machine's constraint &mdash; 273 GB/s is, and it lands this box below a 4060 Ti on decode. CUDA, so the efficiency constant is on firmer ground than the rows below; unified LPDDR5X is still not GDDR6X, and this is still arithmetic.</td></tr>
+      <tr><td colspan="5" class="mono" style="background:var(--bg-soft);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint)">Intel Arc Pro</td></tr>
+      <tr><td>Intel Arc Pro B70</td><td class="num">608 GB/s</td><td class="num">32 GB</td><td class="num">~27.7</td><td>Yes &mdash; 262,144 resident with drafter and projector (27,540 MiB of 32,768), ~5 GiB spare. Non-CUDA, so the efficiency constant is borrowed rather than measured; and whether <code>--spec-type draft-mtp</code> is even available on this backend was not checked here, which matters because &sect;06's speed-ups all depend on it.</td></tr>
+      <tr><td>Intel Arc Pro B50</td><td class="num">224 GB/s</td><td class="num">16 GB</td><td class="num">~10.2</td><td>Same 16 GB window arithmetic as the 5080 row, same backend caveats as the B70.</td></tr>
+      <tr><td colspan="5" class="mono" style="background:var(--bg-soft);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint)">Intel Arc iGPU</td></tr>
+      <tr><td>Intel Arc B390-class iGPU <span class="small">(Core Ultra)</span></td><td class="num">153.6 GB/s <span class="small">(LPDDR5X-9600, 2ch)</span></td><td class="num">shared, to 96 GB</td><td class="num">~7.0</td><td>Capacity is not the wall here &mdash; you can allot far more than the model needs. The bus is, and it is shared with everything else the CPU is doing. <b>A single-channel machine, or slower LPDDR5X, halves this row</b>, exactly as the callout below says for the CPU rows. Softest derived figure on the page: non-CUDA backend, borrowed efficiency, shared bandwidth.</td></tr>
+      <tr><td colspan="5" class="mono" style="background:var(--bg-soft);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint)">Apple silicon</td></tr>
+      <tr><td>Apple M4 Max <span class="small">(16C/40C bin)</span></td><td class="num">546 GB/s</td><td class="num">unified, to 128 GB</td><td class="num">~24.9</td><td>Yes, and the window is bounded by the Metal working-set limit rather than a VRAM wall. Metal efficiency is not this card's; treat as an ordering only. The lower M4 Max bin is 410 GB/s and scales to ~18.7 &mdash; &ldquo;up to 546&rdquo; is a ceiling across bins, not one machine's figure.</td></tr>
       <tr><td>Apple M4 Pro</td><td class="num">273 GB/s</td><td class="num">unified, to 64 GB</td><td class="num">~12.4</td><td>Yes, same caveat.</td></tr>
+      <tr><td colspan="5" class="mono" style="background:var(--bg-soft);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint)">No GPU at all</td></tr>
       <tr><td>CPU only, DDR5-6000 dual channel</td><td class="num">96 GB/s</td><td class="num">system RAM</td><td class="num">~4.4</td><td>Fits if you have the RAM. This is a different kind of usable &mdash; minutes per answer, not seconds.</td></tr>
       <tr><td>CPU only, DDR4-3200 dual channel <span class="small">(this box's RAM)</span></td><td class="num">51.2 GB/s</td><td class="num">system RAM</td><td class="num">~2.3</td><td>Same, halved. This is the bus a spilled KV cache is reading over &mdash; see &sect;02.</td></tr>
     </tbody>
   </table></div>
+
+  <p class="small">Two things the roster is for. First, <b>the cards this machine
+  cannot represent stay on the table as derived rows rather than being dropped</b>
+  &mdash; an absent row reads as &ldquo;unsupported&rdquo; when it only ever meant
+  &ldquo;not owned.&rdquo; Second, the ordering carries a result that the headline
+  numbers hide: a 128 GB DGX Spark lands within 6 % of a 16 GB 4060 Ti on
+  decode (~12.4 against ~13.1), and eight times the memory buys none of it,
+  because for a fully-resident model <em>capacity buys window and bandwidth
+  buys tokens</em> &mdash; and the two are not interchangeable.</p>
 
   <div class="callout warn">
     <span class="label">Channels, not just speed</span>
@@ -1503,19 +1565,28 @@ non-CUDA hardware are correspondingly softer.</code></pre>
   of thinking and 36.7k of HTML). Scaling that by each card's derived decode gives:</p>
 
   <div class="table-wrap"><table>
-    <caption>The 3090 row is <span class="measured">MEASURED</span>. Every other row is <span class="derived">DERIVED</span> twice over: once through the bandwidth formula, then again through this machine's <b>1.91&times;</b> drafting speed-up on this content.</caption>
+    <caption>Same roster, ranked by wall-clock. The 3090 row is <span class="measured">MEASURED</span>. Every other row is <span class="derived">DERIVED</span> twice over: once through the bandwidth formula, then again through this machine's <b>1.91&times;</b> drafting speed-up on this content. The non-CUDA rows are derived a third time, because they also assume the MTP speculator exists and behaves the same on a backend this campaign never ran. Rows that cannot hold the weights carry no time at all rather than a bad one.</caption>
     <thead><tr><th>Hardware</th><th class="num">Expected t/s, drafter on</th><th class="num">Wall for 17,321 tokens</th></tr></thead>
     <tbody>
       <tr class="hi"><td><b>RTX 3090</b></td><td class="num"><b>81.2</b> <span class="small">measured</span></td><td class="num"><b>3 m 35 s</b> <span class="small">measured</span></td></tr>
       <tr><td>RTX 5090</td><td class="num">~155</td><td class="num">~1 m 51 s</td></tr>
       <tr><td>RTX 4090</td><td class="num">~87</td><td class="num">~3 m 18 s</td></tr>
+      <tr><td>RTX 5080 <span class="small">(16 GB &mdash; ~29k window)</span></td><td class="num">~83</td><td class="num">~3 m 28 s</td></tr>
       <tr><td>RTX 6000 Ada</td><td class="num">~83</td><td class="num">~3 m 28 s</td></tr>
       <tr><td>RTX A6000</td><td class="num">~67</td><td class="num">~4 m 20 s</td></tr>
+      <tr><td>RTX 4080 <span class="small">(16 GB)</span></td><td class="num">~62</td><td class="num">~4 m 38 s</td></tr>
+      <tr><td>RTX 4070 Ti SUPER <span class="small">(16 GB)</span></td><td class="num">~58</td><td class="num">~4 m 56 s</td></tr>
+      <tr><td>Intel Arc Pro B70 <span class="small">(non-CUDA)</span></td><td class="num">~53</td><td class="num">~5 m 28 s</td></tr>
       <tr><td>Apple M4 Max (16C/40C)</td><td class="num">~48</td><td class="num">~6 m 5 s</td></tr>
+      <tr><td>RTX 5060 Ti 16 GB</td><td class="num">~39</td><td class="num">~7 m 25 s</td></tr>
       <tr><td>RTX 4060 Ti 16 GB</td><td class="num">~25</td><td class="num">~11 m 33 s</td></tr>
       <tr><td>Apple M4 Pro</td><td class="num">~24</td><td class="num">~12 m 13 s</td></tr>
+      <tr><td>DGX Spark (GB10)</td><td class="num">~24</td><td class="num">~12 m 13 s</td></tr>
+      <tr><td>Intel Arc Pro B50 <span class="small">(non-CUDA)</span></td><td class="num">~19</td><td class="num">~14 m 49 s</td></tr>
+      <tr><td>Intel Arc B390-class iGPU <span class="small">(non-CUDA, 2ch)</span></td><td class="num">~13</td><td class="num">~21 m 36 s</td></tr>
       <tr><td>CPU, DDR5-6000 dual channel</td><td class="num">~8</td><td class="num">~34 m</td></tr>
       <tr><td>CPU, DDR4-3200 dual channel</td><td class="num">~4</td><td class="num">~1 h 6 m</td></tr>
+      <tr><td>RTX 5070 / RTX 3060 <span class="small">(12 GB)</span></td><td class="num">&mdash;</td><td class="num">&mdash; <span class="small">weights do not fit</span></td></tr>
     </tbody>
   </table></div>
 
@@ -2174,6 +2245,25 @@ chrome --headless=new --disable-gpu --hide-scrollbars \
     technical specifications</a> &mdash; M4 Max at 410 or 546 GB/s depending on
     the bin, M4 Pro at 273 GB/s. &ldquo;Up to 546&rdquo; is a ceiling across
     bins, not a single machine's figure.</li>
+    <li><b>The roster rows without a link, and why they are softer.</b> &sect;07
+    carries the full card roster the report spec asks for, which means it names
+    hardware this campaign had no way to check. Two groups are weaker than the
+    ones above. The <b>RTX 5080 / 4080 / 4070 Ti SUPER / 5060 Ti / 5070</b>
+    bandwidths are bus-width &times; data-rate arithmetic on published
+    specifications (256-bit &times; 30 Gbps = 960 GB/s, 256-bit &times; 22.4 =
+    716.8, 256-bit &times; 21 = 672, 128-bit &times; 28 = 448, 192-bit &times; 28
+    = 672) rather than quotations from a whitepaper row. The <b>DGX Spark
+    (GB10, 128 GB unified, 273 GB/s)</b>, <b>Intel Arc Pro B70 (32 GB,
+    608 GB/s)</b>, <b>Arc Pro B50 (16 GB, 224 GB/s)</b> and <b>Arc B390-class
+    iGPU (shared to 96 GB, 153.6 GB/s at LPDDR5X-9600 &times; 2ch)</b> figures
+    are vendor-published values carried from the campaign template's
+    fact-checked reference set. <b>Neither group was re-verified against a live
+    source during this campaign</b> &mdash; specifications drift, and a figure
+    inherited from a previous fact-check is not the same object as a figure
+    read off a primary document today. They are printed because a missing row
+    reads as a verdict; they are flagged because the alternative is laundering
+    someone else's homework through a table that says
+    <span class="derived">DERIVED</span>.</li>
   </ul>
 
   <h3><span class="sigil">03</span>What was not measured</h3>
@@ -2190,7 +2280,15 @@ chrome --headless=new --disable-gpu --hide-scrollbars \
     <li><b>Blind quality judging.</b> &sect;04's quality note is one judge, not
     blind, at n=1.</li>
     <li><b>Other machines.</b> Every measured row is this RTX 3090. &sect;07's
-    other cards are labelled arithmetic.</li>
+    other cards are labelled arithmetic, and the roster rows without a primary
+    link are flagged softer again above.</li>
+    <li><b>A 4-bit K cache.</b> <code>-ctk q4_0</code> was never run. &sect;03
+    carries a caution about it, and a caution is all it is.</li>
+    <li><b>System RAM under either load mode.</b> <code>--load-mode mmap</code>
+    was verified decode-neutral; its ~15 GB page-cache footprint against
+    <code>--load-mode none</code> was not measured. &sect;03.</li>
+    <li><b>Any drafter but the built-in MTP head.</b> External speculators such
+    as DFlash2 were out of scope for the time budget. &sect;06.</li>
   </ul>
 
   <div class="callout">
