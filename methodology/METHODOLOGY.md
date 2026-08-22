@@ -49,14 +49,26 @@ measured failure.
     B70/B50, and the Arc B390-class iGPU with its RAM-channel caveat — each
     row marked measured or derived-by-bandwidth; cards the machine cannot
     represent stay as derived rows, never dropped.
-11. **Acceptance IS the speculative speedup.** Content decides acceptance; flags
-    only tune where you sit on one curve. Sweep drafting knobs on realistic
-    content; expect optima to shrink (shorter drafts) as acceptance falls.
+11. **Acceptance IS the speculative speedup — but MEAN DRAFT LENGTH is the
+    throughput predictor.** Content decides acceptance; flags only tune where
+    you sit on one curve. Refinement (measured 2026-08-23): the p-min gate
+    truncates the draft tree on uncertain tokens, so acceptance can sit
+    identical while throughput differs 1.69× (reasoning stream: accept 0.895,
+    draft len 2.99, 36.6 t/s; answer stream: accept 0.907, draft len 4.31,
+    62.0 t/s — same server, same 91k prompt, same flags). The
+    highest-acceptance config can be the slowest. Report mean draft length
+    beside acceptance, always. Sweep drafting knobs on realistic content;
+    acceptance is a property of the drafter head, not the quant (matched-pair
+    sweep: same optimum, acceptance within 1.6 pts across quants).
 12. **Depth costs**: decode declines with loaded context even with acceptance
     steady (KV reads/token grow); measure a depth series with server timings,
     never wall-clock that includes prefill. A depth series must DECLARE its
     parity: drafter on/off, projector on/off, and token regime — two series
     with mismatched parity are different experiments, not one curve.
+    **The clock-ramp trap**: a probe fired right after a long prefill reads
+    up to 45% low — the GPU's clocks are still ramping (prefill itself may
+    only reach ~65% of settled clocks); steady-state temperature moves decode
+    only ~1%. Discard the first post-prefill probe; time only settled probes.
     When a model ships more than one drafting mechanism (built-in MTP,
     DFlash-style heads, external draft models), name every one available and
     mark each measured or unmeasured — an unmeasured alternative silently
@@ -73,7 +85,9 @@ KV-cache quantization to q8_0 is recommended only when verified per model
 (reference: +0.23%/+0.31% PPL); **q4_0 K-cache is NOT a free next step** —
 it is known to disproportionately damage some architectures, so it may not
 be recommended without a measured per-model PPL check, and absent that check
-a report says "unverified here" rather than staying silent.
+a report says "unverified here" rather than staying silent (reference model
+measured: +0.693% PPL vs f16 — superlinear, more than double q8_0's
++0.309%, with 1-SE error-bar overlap).
 
 13. **Two ceilings, not one — and ceilings belong to configurations, not
     files**: fully-resident (VRAM fills; fast even when the window fills) vs

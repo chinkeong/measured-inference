@@ -999,3 +999,25 @@ Projection for 10 tasks x 3 efforts, runs completing naturally, -n 1: ~8.5 h
 > ~4 h gate -> SKIPPED. Published anchor cited in report section 12: 42.2 on
 the DeepSWE 1.1 leaderboard (base model, full precision). Key measured fact:
 agentic wall time is prompt-processing-bound on this harness.
+
+## 2026-08-23 - Follow-up probes (cooled protocol; full log work/followup-measurements.md)
+M1 MTP matched-pair re-sweep (-c 32768, thinking off, temp 0, code probe):
+n10/p0.5 wins BOTH quants - IQ4_XS 93.86 t/s (2.18x, accept 61.4%), Q4_K_M
+81.71 (2.04x, 60.0%); shipped n4/p0.75 = 83.50/69.82 (11-15% off peak).
+Acceptance within 1.6 pts per config across quants -> property of the MTP
+head, not the quant. The campaign-era 81.7 reproduces exactly: mislabeled
+token regime, not a phantom.
+M2 Projector at depth (90,862 tok, ABBA, byte-identical prompts): decode
+delta 0.04% (drafter off) / 0.09% (on) -> projector is decode-free; cost is
+1,138 MiB VRAM only. The 30.61 outlier = clock-ramp artifact: probe fired
+right after a ~105 s prefill reads 18.3-26.6 t/s (45% swing, clocks at
+900-990 MHz vs 1,455 settled); steady-state temp 57->82 C moves decode 1%.
+M3 q4_0 KV PPL 6.6413 +/-0.045 = +0.693% vs f16 (q8_0 +0.309%) -
+superlinear in bits; 1-SE overlap -> direction consistent, not resolved.
+M4 Repetition audit: 10/10 long greedy transcripts clean.
+NEW MECHANISM: mean draft length, not acceptance, predicts speculative
+throughput - identical acceptance (0.895/0.907), draft len 2.99 vs 4.31 ->
+36.62 vs 62.02 t/s (thinking on vs off, same server, same 91k prompt,
+1.69x). Corrected depth ladder (answer regime, n4/p0.75): 86.30 @ 1,458 ->
+80.20 @ 28,388 -> 64.76 @ 90,854. xhigh real speed at 91k depth: ~37-39
+t/s; n10/p0.5 recovers only 5.6% there vs 12% on shallow code.
