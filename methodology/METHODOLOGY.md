@@ -128,6 +128,14 @@ before any budget table; never carry another model's number forward.
     ranking. Agentic tasks are where per-step error compounding lives — this
     bucket is the empirical test of the scope-perspective section's
     predictions, and the place low effort is most expected to fail.
+    **Cost gate**: before committing to the sweep, run ONE task and project the
+    full subset sweep from its wall time. If the projection exceeds a few hours
+    (~4 h), do not run it — the bucket is then satisfied by citing the best
+    available published scores (the leaderboard anchor plus any community
+    local-quant results a search surfaces) and one honest line in the report:
+    "local effort-sweep available but skipped for cost (projected ~N h);
+    published anchor: ⟨score, conditions⟩". A cited anchor with a stated gap
+    beats a sweep that never finishes.
 23. **Frozen inputs, offline-first.** Apples-to-apples across machines requires
     identical inputs: the benchmark test cases live IN the repo
     (`scripts/bench/datasets-frozen/`, `corpora/`) and every scored run uses a
