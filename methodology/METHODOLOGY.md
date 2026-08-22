@@ -136,11 +136,22 @@ a report says "unverified here" rather than staying silent.
       endpoint is configured; otherwise speed + transcripts only (a model
       judging its own outputs is not a score — this is a scoring gate, the
       benchmark still RUNS and its transcripts are kept)
-    - HumanEval (`openai/openai_humaneval`) — sandboxed execution pass@1
-    - MeetingBank (`huuuyeah/meetingbank`) — ROUGE-L vs reference summaries
+    - HumanEval (`openai/openai_humaneval`) — execution pass@1 (isolated
+      subprocess: `python -I -E`, temp cwd, timeout — isolation, not a true
+      container sandbox; run untrusted-model code with `--no-exec` where that
+      matters)
+    - MeetingBank (`huuuyeah/meetingbank`) — ROUGE-L F1 vs reference
+      summaries (8,192-token prompt guard, head-truncation marked in-prompt)
     - MATH-500 — exact-match accuracy
-    - MBPP — sandboxed execution pass@1
-    - MT-Bench — judge-scored under the same judge rule as ALPACA
+    - MBPP — execution pass@1 (same isolation note; scored against the FULL
+      test list)
+    - MT-Bench — judge-scored under the same judge rule as ALPACA, **turn 1
+      only** (pinned — comparability requires every report to agree);
+      judge ratings normalize (r−1)/9 → 0–100
+    The harness is `scripts/bench/` (`--rule21` preset; explicit flags beat
+    the preset — `--rule21 --samples 200` is the escalation run); the
+    committed reference manifest is `scripts/bench/suites/rule21-n25.json`
+    (hash `1cdf54f8eb9d3f8f`, 175 prompts, `-c 32768`).
     **Optional**: only the agentic bucket (rule 22), because it alone carries
     an hours-to-days cost gate.
     **Mean** — the composite index: each *scored* benchmark normalized to

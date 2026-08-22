@@ -163,17 +163,12 @@ def render_runs(runs, out_path=None):
         cols = (["Accept. len", "Accept. rate", "Tok/s"] if run.get("speculative")
                 else ["Tok/s", "TTFT (s)", "Tokens"])
         if run.get("scored"):
-            cols = ["Tok/s", "Accuracy"]
+            cols = ["Tok/s", "Score"]
         rows = []
         for ds in datasets:
             m = run["results"][ds]
             if run.get("scored"):
-                if "accuracy" in m:
-                    tr = f", {m['truncated_n']} trunc" if m.get("truncated_n") else ""
-                    acc = f"{m['accuracy']*100:.0f}% ({m['graded_n']}{tr})"
-                else:
-                    acc = "—"
-                rows.append((ds, [f"{m['tok_s']:.1f}", acc]))
+                rows.append((ds, [f"{m['tok_s']:.1f}", _score_cell(m)]))
             elif run.get("speculative"):
                 al = f"{m['accept_len']:.2f}" if "accept_len" in m else "—"
                 ar = f"{m['accept_rate']*100:.1f}%" if "accept_rate" in m else "—"
@@ -181,10 +176,13 @@ def render_runs(runs, out_path=None):
             else:
                 rows.append((ds, [f"{m['tok_s']:.2f}", f"{m['ttft']:.2f}",
                                   f"{m['tokens']:.0f}"]))
-        keys = (["tok_s", "accuracy"] if run.get("scored")
-                else ["accept_len", "accept_rate", "tok_s"] if run.get("speculative")
-                else ["tok_s", "ttft", "tokens"])
-        rows.append(("Mean", [_mean_cell(run, datasets, k) for k in keys]))
+        if run.get("scored"):
+            rows.append((_mean_label(run), [_mean_cell(run, datasets, "tok_s"),
+                                            _composite_cell(run, datasets)]))
+        else:
+            keys = (["accept_len", "accept_rate", "tok_s"] if run.get("speculative")
+                    else ["tok_s", "ttft", "tokens"])
+            rows.append(("Mean", [_mean_cell(run, datasets, k) for k in keys]))
         title = run["model_label"]
         caption = _caption(run)
         out = out_path or os.path.join(HERE, "results", _slug(title) + ".png")
@@ -195,19 +193,58 @@ def render_runs(runs, out_path=None):
             cells = []
             for r in runs:
                 m = r["results"].get(ds)
-                v = m.get(metric_key) if m else None
-                if v is None:
+                if not m:
                     cells.append("—")
+                elif scored:
+                    cells.append(_score_cell(m, with_n=False))
                 else:
-                    cells.append(f"{v*100:.0f}%" if metric_key == "accuracy" else f"{v:.2f}")
+                    v = m.get(metric_key)
+                    cells.append("—" if v is None else f"{v:.2f}")
             rows.append((ds, cells))
-        rows.append(("Mean", [_mean_cell(r, datasets, metric_key) for r in runs]))
-        title = ("Accuracy" if scored else
+        if scored:
+            rows.append((_mean_label(*runs),
+                         [_composite_cell(r, datasets) for r in runs]))
+        else:
+            rows.append(("Mean", [_mean_cell(r, datasets, metric_key) for r in runs]))
+        title = ("Benchmark score (0-100)" if scored else
                  "Mean acceptance length" if spec else "Tokens per second")
         caption = _caption(runs[0], multi=True)
         out = out_path or os.path.join(HERE, "results", "comparison.png")
 
     render_table(title, cols, rows, caption, out)
+
+
+# scorers whose 0-100 number is a pass rate and reads correctly as a percentage;
+# None covers result files written before per-dataset scorers were recorded
+PCT_SCORERS = (None, "exact match", "execution pass@1")
+
+
+def _score_cell(m, with_n=True):
+    """One scored cell. A pass rate keeps its % sign; a continuous scorer
+    (ROUGE-L, judge rubric) shows the plain 0-100 index it actually is."""
+    if "accuracy" not in m:
+        return "—"
+    score = m.get("score", m["accuracy"] * 100)
+    cell = f"{score:.0f}%" if m.get("scorer") in PCT_SCORERS else f"{score:.1f}"
+    if with_n and "graded_n" in m:
+        tr = f", {m['truncated_n']} trunc" if m.get("truncated_n") else ""
+        cell += f" ({m['graded_n']}{tr})"
+    return cell
+
+
+def _mean_label(*runs):
+    """METHODOLOGY rule 21: the Mean is a composite index, never an accuracy —
+    say so in the row label whenever the run recorded one."""
+    return "Mean (composite)" if any(r.get("composite") for r in runs) else "Mean"
+
+
+def _composite_cell(run, datasets):
+    """The composite index over this run's *scored* benchmarks. Falls back to
+    the plain accuracy mean for result files written before rule 21."""
+    comp = run.get("composite")
+    if comp and comp.get("mean") is not None:
+        return f"{comp['mean']:.1f}"
+    return _mean_cell(run, datasets, "accuracy")
 
 
 def _mean_cell(run, datasets, key):
@@ -229,7 +266,8 @@ def _mean_cell(run, datasets, key):
 
 def _caption(run, multi=False):
     s = run["settings"]
-    what = ("Per-request mean acceptance length" if run.get("speculative")
+    what = ("Benchmark scores" if run.get("scored")
+            else "Per-request mean acceptance length" if run.get("speculative")
             else "Generation throughput")
     draft = f", draft model {run['draft_model']}" if run.get("draft_model") else ""
     seed = f", seed {s['seed']}" if "seed" in s else ""
@@ -241,10 +279,35 @@ def _caption(run, multi=False):
     engine = backend.get("engine", "llama.cpp via LM Studio's server")
     sa = backend.get("server_args")
     sa = f" [{sa}]" if sa else ""
+    ctx = f" -c {backend['ctx']}" if backend.get("ctx") else ""
+    protocol = f" {run['protocol']}." if run.get("protocol") else ""
     return (f"{what}. Sampling: temperature {s['temperature']}, top-p {s['top_p']}, "
             f"top-k {s['top_k']}, presence penalty {s['presence_penalty']}{seed}, "
             f"{s['samples']} samples/dataset, max {s['max_tokens']} tokens{draft}{suite}. "
-            f"Engine: {engine}{sa}{where}.")
+            f"Engine: {engine}{sa}{ctx}{where}.{protocol}{_scoring_note(run)}")
+
+
+def _scoring_note(run):
+    """Rule 21's labeling duty: what the Mean is, which benchmarks it left out,
+    and who did any judging."""
+    parts = []
+    comp = run.get("composite")
+    if comp:
+        parts.append(f" Mean is the {comp['label']}: each scored benchmark "
+                     f"normalized to 0-100 by its own scorer, then averaged "
+                     f"— not an accuracy.")
+        if comp.get("excluded"):
+            parts.append(" Excluded: " + "; ".join(
+                f"{d} ({why})" for d, why in comp["excluded"].items()) + ".")
+    scorers = run.get("scorers") or {}
+    if scorers:
+        parts.append(" Scorers: " + ", ".join(
+            f"{d} {how}" for d, how in scorers.items()) + ".")
+    j = run.get("judge")
+    if j:
+        flag = " [SELF-JUDGE — not an independent score]" if j.get("self_judge") else ""
+        parts.append(f" Judge: {j['model']} at {j['url']}{flag}.")
+    return "".join(parts)
 
 
 def _slug(s):
