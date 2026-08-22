@@ -152,9 +152,16 @@ sizes against the HF listing). Download nothing you won't measure.
 
 ### Phase 3 — speed: baseline, speculation, the acceptance curve
 - Baseline (no spec) at temp 0, short code probe → the **floor**.
-- Discover drafting options (built-in MTP head? companion draft model?). Sweep
-  n-max × p-min on a realistic code probe (~10 configs; reference:
+- Discover drafting options (built-in MTP head? companion draft model?
+  DFlash-style heads?). **Name every mechanism available and mark each
+  measured or unmeasured** — an omitted alternative reads as nonexistent.
+  Sweep n-max × p-min on a realistic code probe (~10 configs; reference:
   `spec-sweep.ps1`). Expect high p-min to win at real acceptance rates.
+- **Declare the token regime with every speed**: thinking tokens and answer
+  tokens decode at different rates under speculation (blind reproduction:
+  same file, same depth, 39 vs ~70 t/s across regimes; verbatim-copy answers
+  hit 148.7). A t/s number without its regime is a different measurement in
+  disguise.
 - **The acceptance demonstration**: same flags, novel-code probe vs
   copy-this-text-verbatim probe (reference: `accept-demo.ps1`). The spread IS the
   speed story; any published speedup without its acceptance rate is unfalsifiable.
@@ -165,11 +172,18 @@ sizes against the HF listing). Download nothing you won't measure.
 - **Ceiling sweep** (reference: `ctx-limit-sweep.ps1`, `iq4-ctx-sweep.ps1`): step
   `-c` upward with short probes + VRAM readings. Report BOTH ceilings: fully
   resident (dedicated VRAM fills) and shallow-safe (probes stay fast on
-  overcommitted windows), plus the collapse point. Label per file and per
-  mmproj-on/off; state the desktop-slack rule **using this model's computed KV
-  cost from Phase 2**, not a remembered constant (reference model: each 32k of
-  q8 window ≈ 1 GiB, projector ≈ 0.9 GiB ≈ 27k tokens — reference finding,
-  recompute per model).
+  overcommitted windows), plus the collapse point. Label per file, per
+  mmproj-on/off, AND per drafter-on/off — a ceiling belongs to a
+  configuration, not a file. **Measure the drafter's VRAM bill as an on/off
+  pair** (reference: 1,008 MiB fixed + 5,120 B per window token + 898 MiB at
+  n-max 10 vs 4 — the reference guide's "no VRAM cost" was a published error
+  a blind run caught). **No window is labeled resident/safe without at least
+  one deep-fill probe near its top** — a shallow probe on an overcommitted
+  window reads fast right up until deep pages are touched (measured collapse:
+  8.0 t/s at 91k fill). State the desktop-slack rule **using this model's
+  computed KV cost from Phase 2**, not a remembered constant (reference
+  model: each 32k of q8 window ≈ 1 GiB, projector ≈ 0.9 GiB ≈ 27k tokens —
+  reference finding, recompute per model).
 - Ship desktop-safe defaults; fence bare-desktop configs loudly (a browser UI
   once pushed the Windows compositor to 3.6 GiB and halved a "fitting" config).
 
@@ -177,12 +191,20 @@ sizes against the HF listing). Download nothing you won't measure.
 Depth/prefill series (reference: `nuance-suite.ps1` part 1): fixed probes at
 increasing prompt depths; report decode and prefill vs depth with acceptance
 shown steady (or not). Use server timings, never wall-clock-including-prefill.
+Declare the series' parity (drafter on/off, projector on/off, token regime) —
+two series with mismatched parity are different experiments, not one curve.
 
 ### Phase 6 — quality: rank with perplexity, smoke-test with accuracy
 - **Perplexity ranks quants** (METHODOLOGY rule 6 — the wikitext-2-raw test
-  split, ~330k token positions; reference: `ppl-compare.ps1`, resumable, one
-  model per invocation if the platform kills long tasks). Verify the KV-quant
-  claim while here (fp16 vs q8_0 cache).
+  split, 294,912 token positions = 36 × 8,192-token chunks; reference:
+  `ppl-compare.ps1`, resumable, one model per invocation if the platform
+  kills long tasks). Verify the KV-quant claim while here (fp16 vs q8_0
+  cache). **q4_0 K-cache is not a free next step** — never recommend it
+  without its own measured PPL check; absent the check, say "unverified
+  here".
+- **Spot-read long greedy transcripts for repetition loops** before trusting
+  their tokens or timings — greedy makes a loop deterministic, and a looping
+  transcript inflates t/s and token counts with garbage.
 - **Accuracy smoke-tests** (scripts/bench/bench.py, `--greedy --score`): n=200 on
   a checkable dataset for the chosen quants. Statistics law: n≤25 detects only
   ~20-pt collapses; 1–3-pt quant gaps need thousands — never present small-n

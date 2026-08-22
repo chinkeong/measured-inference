@@ -11,7 +11,7 @@ measured failure.
    cases, with the condition that produced them.
 3. **A number without its conditions is unfalsifiable.** Speculative speedups
    need their acceptance rate; benchmark scores need their max_tokens cap and
-   truncation count; decode speeds need content, depth, and desktop state;
+   truncation count; decode speeds need content, TOKEN REGIME (thinking vs answer tokens - a blind reproduction measured the same file at 39 vs 70 t/s at equal depth across regimes), depth, and desktop state;
    offload/iGPU speeds need RAM type and channel count.
 4. **Two independent cheap metrics agreeing beats one expensive one.**
 5. **When a claim dies, keep it as a dated case study** — how a clean benchmark
@@ -22,10 +22,10 @@ measured failure.
 6. **Sample-size law**: accuracy at n≤25 is a smoke test (detects ~20-pt
    collapses only). Detecting a gap of G points needs roughly (paired, 95%/80%):
    20 pts → ~25; 10 → ~100–150; 5 → ~300–500; 1–3 → thousands. Perplexity/KLD
-   over ~330k token positions (the wikitext-2-raw test split the reference
+   over 294,912 token positions (36 x 8,192-token chunks of the frozen wikitext-2-raw test corpus - the reference
    campaign scored) is how healthy quants are actually ranked.
 7. **The budget rule**: thinking models must run with a cap the longest thought
-   cannot hit; report truncations; on truncation, raise the cap and rerun the
+   cannot hit - clearing the appetite DISTRIBUTION's upper tail, not its median (a generous-looking cap near the median is a truncation machine); report truncations; on truncation, raise the cap and rerun the
    affected arm only (greedy determinism makes other arms byte-identical).
    **Never filter to non-truncating questions** — that selects the test set on
    one arm's behavior and drops exactly the hard items.
@@ -37,15 +37,30 @@ measured failure.
    effect is the mechanism to name if the lean persists.
 
 ## Speed
-10. **Decode is bandwidth ÷ bytes-per-token**: floor ≈ GB/s ÷ file GB × 0.7.
-    Smaller equal-quality files are faster; this is why quality and speed often
-    point at the same file.
+10. **Decode is bandwidth ÷ bytes-per-token**: floor ≈ GB/s ÷ file GB × 0.7
+    (the 0.7 efficiency constant is format-dependent — K-quants ran ~0.70,
+    IQ formats ~0.65 in the reference campaign; re-derive per file from one
+    measured point). Smaller equal-quality files are faster; this is why
+    quality and speed often point at the same file. **Roster mandate**: any
+    report that scales its measured decode to other cards ("scaling that by
+    each card's derived decode gives…") must cover the FULL minimum card
+    roster in `templates/REPORT-SPEC.md` §7 — the NVIDIA 24–32/16/12 GB
+    classes, **DGX Spark (GB10, 128 GB unified, 273 GB/s)**, Intel Arc Pro
+    B70/B50, and the Arc B390-class iGPU with its RAM-channel caveat — each
+    row marked measured or derived-by-bandwidth; cards the machine cannot
+    represent stay as derived rows, never dropped.
 11. **Acceptance IS the speculative speedup.** Content decides acceptance; flags
     only tune where you sit on one curve. Sweep drafting knobs on realistic
     content; expect optima to shrink (shorter drafts) as acceptance falls.
 12. **Depth costs**: decode declines with loaded context even with acceptance
     steady (KV reads/token grow); measure a depth series with server timings,
-    never wall-clock that includes prefill.
+    never wall-clock that includes prefill. A depth series must DECLARE its
+    parity: drafter on/off, projector on/off, and token regime — two series
+    with mismatched parity are different experiments, not one curve.
+    When a model ships more than one drafting mechanism (built-in MTP,
+    DFlash-style heads, external draft models), name every one available and
+    mark each measured or unmeasured — an unmeasured alternative silently
+    omitted reads as nonexistent.
 
 ## Memory
 *Every memory rule below is built on one arithmetic:*
@@ -54,11 +69,24 @@ bytes-per-element (cache dtype)** — the 2 is K and V; count only
 full-attention layers (linear/gated-delta/sliding-window layers cost less or
 nothing); bytes-per-element is 2 for fp16, 1 for q8_0. Compute it per model
 before any budget table; never carry another model's number forward.
+KV-cache quantization to q8_0 is recommended only when verified per model
+(reference: +0.23%/+0.31% PPL); **q4_0 K-cache is NOT a free next step** —
+it is known to disproportionately damage some architectures, so it may not
+be recommended without a measured per-model PPL check, and absent that check
+a report says "unverified here" rather than staying silent.
 
-13. **Two ceilings, not one**: fully-resident (VRAM fills; fast even when the
-    window fills) vs shallow-safe (overcommitted but fast until deep pages are
-    touched), plus the collapse point. Report both, per file, per
-    projector-on/off.
+13. **Two ceilings, not one — and ceilings belong to configurations, not
+    files**: fully-resident (VRAM fills; fast even when the window fills) vs
+    shallow-safe (overcommitted but fast until deep pages are touched), plus
+    the collapse point. A ceiling is scoped to ⟨file + drafter on/off +
+    projector on/off + desktop state⟩ — a blind reproduction showed a window
+    labeled "fully resident" collapsing to 8 t/s at deep fill once the
+    drafter's VRAM bill was on board. Therefore: (a) measure the VRAM
+    footprint as a drafter-on/off PAIR (the reference drafter cost 1,008 MiB
+    fixed + 5,120 B per window token + 898 MiB more at n-max 10 vs 4 —
+    "no VRAM cost" was a published error this rule exists to prevent);
+    (b) no window is labeled resident/safe without at least one deep-fill
+    probe near its top.
 14. **Slack is the anti-spill budget**: ~1 GiB slack does not survive a desktop.
     Ship desktop-safe defaults; fence bare-desktop configs loudly. The window
     and projector costs are model-specific — derive them from this model's
@@ -88,7 +116,11 @@ before any budget table; never carry another model's number forward.
 ## Operations
 20. Detach long jobs; make scripts resumable; parse-check before detaching;
     checkpoint-commit each phase; one GPU job at a time; keep a campaign log
-    that survives session restarts.
+    that survives session restarts. **Greedy repetition check**: any long
+    greedy generation whose tokens or timings feed a claim must be spot-read
+    for degenerate repetition loops first — a looping transcript inflates
+    t/s and token counts with garbage, and greedy decoding makes the loop
+    deterministic, not rare.
 
 ## The standard benchmark protocol
 21. **Every reasoning-effort sweep runs the standard suite** under fixed
