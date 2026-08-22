@@ -793,25 +793,53 @@ RTX 3090 :  936 GB/s &divide; 14.25 GB = 65.7 t/s theoretical
   This is the KV cache being read across PCIe instead of out of VRAM. Prefill
   collapses with it, from 1,085 to 408&nbsp;t/s.</p>
 
-  <p class="small">One loose end, left loose. The resident column here reads
+  <p class="small">One loose end, now closed. The resident column here reads
   30.61&nbsp;t/s at 90.9k while the projector-less series above reads 35.81 at
   92.7k &mdash; slower at a shallower depth, on otherwise identical flags. The
-  only stated difference is the projector, which &sect;02 elsewhere shows is a
-  fixed <em>memory</em> cost; a ~15 % deep-decode cost for having it loaded
-  would be a real finding, but it rests on one comparison and this campaign did
-  not isolate it. It is reported and not built on.
-  <b>Measurement queued</b>: one paired probe at ~91k fill, mmproj on and off
-  with every other flag matched, settles it and promotes it from a loose end to
-  a measured row. It needs GPU time this campaign did not have left, not a new
-  idea.</p>
+  only stated difference was the projector, and a ~15 % deep-decode cost for
+  having it loaded would have been a real finding. <b>It was not the
+  projector.</b> A follow-up round on 2026-08-23 ran exactly the probe this note
+  asked for: byte-identical prompts filling <b>90,862 tokens</b>, ABBA-ordered
+  loads, the post-prefill probe recorded but discarded, 45&nbsp;s of cooldown
+  before each measured one. With the drafter off, WITH-mmproj pooled
+  <b>26.965&nbsp;t/s</b> against NO-mmproj <b>26.975</b> (n=10 each) &mdash;
+  <b>0.04 %</b> apart, against a within-arm spread of 0.4 %. Repeated with the
+  MTP drafter on: <b>62.71</b> against <b>62.655</b> (n=8 each), <b>0.09 %</b>
+  apart, with draft acceptance matching probe for probe. The projector's entire
+  cost is the memory &sect;02 already books: 19,376 &minus; 18,238&nbsp;MiB in
+  the first pair, 21,034 &minus; 19,896 in the second &mdash; <b>1,138&nbsp;MiB
+  twice more, and 0 % of decode</b>.</p>
+
+  <p class="small">What produced the 30.61 was the measurement, not the
+  configuration. Every cell in the table above is a <em>single</em> decode probe
+  fired immediately after a ~105-second prefill, which is the one moment this
+  card is not at its boost clock. Four runs of one identical configuration read
+  <b>18.27, 18.82, 19.21 and 26.60&nbsp;t/s</b> &mdash; a 45 % swing set by
+  nothing but what the GPU had been doing beforehand. A session's first load
+  starts on a genuinely idle card (56&nbsp;&deg;C, 225&nbsp;MHz, 34&nbsp;W) and
+  its prefill reaches a 1,455&nbsp;MHz boost; every later load starts while the
+  card is still winding down from the previous server's teardown (63&ndash;66
+  &deg;C, 315&ndash;435&nbsp;MHz, 62&ndash;136&nbsp;W at 1 % utilisation) and its
+  prefill reaches only 900&ndash;990&nbsp;MHz. Steady-state heat is not the
+  mechanism: inside one cooled load, five probes ran 57&nbsp;&deg;C to
+  82&nbsp;&deg;C and decode moved <b>1.0 %</b>. Under the cooled protocol
+  phase5's 35.81 reproduces (36.62) and this table's 30.61 does not &mdash; it
+  is the noisy one, ~16 % low. <b>Read every single-probe level on this page as
+  carrying about &plusmn;25 % of clock-state noise; the shapes and the ratios
+  are what survive it, and the collapse measured here is an order of magnitude
+  larger than the band.</b> The fix costs a minute per point: discard the
+  post-prefill probe, cool 45&nbsp;s, take several probes off the cached prefix
+  and report the median.</p>
 
   <div class="callout warn">
     <span class="label">The trap, stated plainly</span>
     <p>A reader who set <code>-c 262144</code> because it loaded and answered
-    quickly would get <b>26 % of what the resident window gives</b> the first
-    time they pasted a 90k-token document into it &mdash; 8.0&nbsp;t/s against
-    30.6 for the identical prompt at <code>-c 131072</code> &mdash; and nothing
-    in the logs would say why. That is the entire reason this page reports two ceilings and ships
+    quickly would get roughly <b>a quarter of what the resident window
+    gives</b> the first time they pasted a 90k-token document into it &mdash;
+    8.0&nbsp;t/s against 30.6 for the identical prompt at <code>-c 131072</code>
+    &mdash; and nothing in the logs would say why. (Both of those are
+    single post-prefill probes, so read the exact ratio as approximate; the
+    collapse is far too large to be clock noise.) That is the entire reason this page reports two ceilings and ships
     the smaller one.</p>
   </div>
 
@@ -914,17 +942,31 @@ RTX 3090 :  936 GB/s &divide; 14.25 GB = 65.7 t/s theoretical
   That is the whole quality cost of nearly doubling your context window.</p>
 
   <div class="callout warn">
-    <span class="label">Do not take the next step down &mdash; and this one was not measured here</span>
-    <p><code>-ctk q4_0</code> halves the cache again and is the wrong trade at
-    exactly the long contexts that make you reach for it: the K cache is the
-    half that does not tolerate 4 bits, and the damage compounds with depth,
-    so the setting is worst precisely where it is supposed to help.
-    <span class="cited">MECHANISM PER REFERENCE CAMPAIGN &middot; UNMEASURED
-    HERE</span> &mdash; no <code>q4_0</code> arm was run in this campaign, so
-    treat this as a caution and not as a result. It is also the cheapest gap on
-    this page to close: one <code>llama-perplexity</code> pass at
-    <code>-ctk q4_0</code> against &sect;05's 6.5956 baseline turns it into a
-    number.</p>
+    <span class="label">The next step down now has a number: q4_0 costs 0.69 %</span>
+    <p>This callout used to say the <code>q4_0</code> cache was the wrong trade
+    and admit that no <code>q4_0</code> arm had been run. The follow-up round on
+    2026-08-23 ran it &mdash; same corpus, same flags, on a
+    <code>wiki.test.raw</code> whose SHA256 was verified identical to the one
+    the fp16 and q8_0 baselines used. <span class="measured">MEASURED</span>:
+    <code>-ctk q4_0 -ctv q4_0</code> scores <b>6.6413 &plusmn; 0.045</b>, which
+    is <b>+0.693 %</b> over fp16's 6.5956 and <b>+0.383 %</b> over q8_0's
+    6.6160. Three things follow. The damage is <b>super-linear in bits</b>
+    &mdash; halving the cache a second time costs slightly more than the first
+    halving did. It is nonetheless <b>small next to the model quantisation</b>:
+    0.69 % is less than the gap between two respectable 4-bit weight files. And
+    the <b>error bars overlap</b>: at &plusmn;0.045 per estimate the fp16 &rarr;
+    q4_0 difference of 0.0457 sits at one standard error, so the direction is
+    consistent with the q8_0 point and with theory and a single 36-chunk run
+    resolves nothing more than that. Two limits on how far to carry it. The run
+    was at <code>-c 8192</code>, so it does not test the long-context retrieval
+    failure that is the actual argument against a 4-bit K cache at 200k+
+    &mdash; <span class="cited">MECHANISM PER REFERENCE CAMPAIGN &middot;
+    UNMEASURED HERE</span> still applies to <em>that</em> claim. And
+    <code>q4_0</code> was not faster in any way that matters: 266&nbsp;s against
+    298&nbsp;s of perplexity wall-clock is a bandwidth effect on a
+    prefill-shaped workload, not a decode result. <b>Nothing here argues for
+    changing the default</b>; q8_0 already buys the ceilings this page
+    publishes. It argues for quoting the price instead of the prohibition.</p>
   </div>
 </section>
 
@@ -1043,7 +1085,11 @@ RTX 3090 :  936 GB/s &divide; 14.25 GB = 65.7 t/s theoretical
   <b>160,919 characters of thinking</b> &mdash; roughly 40,000 tokens &mdash;
   then began the file and ran into the 65,536-token cap 8,557 characters in.
   <code>finish_reason</code> came back <code>length</code>, and no complete
-  <code>&lt;html&gt;</code> document could be extracted.</p>
+  <code>&lt;html&gt;</code> document could be extracted. A later audit of this
+  transcript and nine other long greedy generations found no degenerate
+  repetition in any of them (&sect;14): the cut is a budget cut, not a loop, and
+  sampling this file's reasoning at 55 %, 80 % and 97 % shows it still doing new
+  work when the cap arrived.</p>
 
   <p>There is a small irony in where the cut landed. The 8,557 characters that
   did arrive end mid-way through a <code>reflow()</code> function that clamps
@@ -2224,6 +2270,18 @@ chrome --headless=new --disable-gpu --hide-scrollbars \
     <li><b>Raw material:</b> scripts in <code>work/</code>, logs and generated
     artefacts in <code>data/</code>, decisions and timestamps in
     <code>campaign.md</code>, all beside this file.</li>
+    <li><b>The follow-up round (2026-08-23, 02:48&ndash;04:29):</b> same
+    machine, same build, one GPU job at a time, the card verified idle before
+    the first and released after the last. Its speed numbers use a
+    <b>cooled-probe protocol</b> the campaign itself did not: the probe fired
+    immediately after a prefill is recorded and then discarded, a
+    30&ndash;45&nbsp;s cooldown follows, and three to five probes are taken off the cached
+    prefix and reported as a median. That protocol is what makes a 0.04 %
+    difference measurable at all &mdash; and its absence is what puts roughly
+    &plusmn;25 % of clock-state noise on this page's single-probe levels
+    (&sect;02). Scripts <code>work/followup-m*.ps1</code>, logs
+    <code>data/followup/</code>, write-up
+    <code>work/followup-measurements.md</code>.</li>
   </ul>
 
   <h3><span class="sigil">02</span>External sources</h3>
@@ -2302,8 +2360,26 @@ chrome --headless=new --disable-gpu --hide-scrollbars \
     <li><b>Other machines.</b> Every measured row is this RTX 3090. &sect;07's
     other cards are labelled arithmetic, and the roster rows without a primary
     link are flagged softer again above.</li>
-    <li><b>A 4-bit K cache.</b> <code>-ctk q4_0</code> was never run. &sect;03
-    carries a caution about it, and a caution is all it is.</li>
+    <li><b>A 4-bit K cache &mdash; measured in the follow-up round, no longer
+    an omission.</b> <code>-ctk q4_0 -ctv q4_0</code> was never run during the
+    campaign itself; it was run on 2026-08-23 against the same corpus and
+    scores <b>6.6413, +0.693 % over fp16</b> (&sect;03). What remains unmeasured
+    is the mechanism the caution rests on: a perplexity pass at
+    <code>-c 8192</code> cannot see a retrieval failure at 200k.</li>
+    <li><b>Degenerate repetition in the long greedy transcripts &mdash; audited
+    in the follow-up round.</b> This page's speed and effort phases generated
+    tens of thousands of words at <code>temperature 0, top_k 1</code>, and
+    nothing on the page had confirmed that greedy decoding was not looping. A
+    lexical audit of 10 long transcripts (immediate n-gram cycling, tail n-gram
+    clustering, global block repeats, repeated line blocks, plus a
+    duplicate-sentence scan of every <code>THINKING</code> section, with manual
+    adjudication of every flag) came back <b>10 of 10 clean</b>. The single
+    detector flag was a false positive &mdash; three sequential loops over three
+    different arrays in one page's <code>nearFish()</code>. The one incomplete
+    file is <code>effort-xhigh.txt</code>, and it is incomplete because it hit
+    <code>finish=length</code> at the 65,536-token cap (&sect;04), not because
+    it looped: sampled at 55 %, 80 % and 97 % of its reasoning, the work is
+    monotonically productive throughout.</li>
     <li><b>System RAM under either load mode.</b> <code>--load-mode mmap</code>
     was verified decode-neutral; its ~15 GB page-cache footprint against
     <code>--load-mode none</code> was not measured. &sect;03.</li>
@@ -2416,6 +2492,15 @@ chrome --headless=new --disable-gpu --hide-scrollbars \
       <code>data/</code>; every decision, dead end and self-correction is in
       <code>campaign.md</code>, including one operator error that cost a
       re-run.</p>
+      <p>A <b>follow-up round the same morning (02:48&ndash;04:29)</b> closed
+      three of the gaps this page had reported as gaps: the projector-at-depth
+      pair (&sect;02, settled &mdash; 0.04&ndash;0.09 %, and the 30.61 that
+      raised the question was a post-prefill clock artefact), the
+      <code>q4_0</code> K/V perplexity arm (&sect;03, +0.693 %), and a
+      repetition audit of the long greedy transcripts (&sect;14, 10 of 10
+      clean). Its logs are in <code>data/followup/</code> and its write-up in
+      <code>work/followup-measurements.md</code>. Nothing else on this page was
+      re-measured, and the rows it did not touch stand as first published.</p>
     </div>
     <div>
       <h5>Configuration</h5>
