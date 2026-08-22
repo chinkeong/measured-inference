@@ -96,19 +96,22 @@ before any budget table; never carry another model's number forward.
     decoding, `max_tokens 16384` (rule 7 applies: report truncations; if any
     arm truncates, raise the cap and rerun that arm). Server `-c` must exceed
     the suite's longest prompt + 16,384 — MeetingBank transcripts are long.
-    The suite (HuggingFace ids):
+    **Must-run core (every effort sweep, no exceptions)**:
     - GSM8K (`gsm8k/gsm8k`) — exact-match accuracy
-    - MATH-500 — exact-match accuracy
-    - HumanEval (`openai/openai_humaneval`) — sandboxed execution pass@1
-    - MBPP — sandboxed execution pass@1
     - ALPACA (`tatsu-lab/alpaca`) — judge-scored when an independent judge
       endpoint is configured; otherwise speed + transcripts only (a model
       judging its own outputs is not a score)
+    - HumanEval (`openai/openai_humaneval`) — sandboxed execution pass@1
     - MeetingBank (`huuuyeah/meetingbank`) — ROUGE-L vs reference summaries
+    **Optional extensions (run when the time budget allows)**:
+    - MATH-500 — exact-match accuracy
+    - MBPP — sandboxed execution pass@1
     - MT-Bench — judge-scored under the same judge rule as ALPACA
-    - **Mean** — the composite index: each *scored* benchmark normalized to
-      0–100 by its own scorer, then averaged; always labeled "composite
-      index over ⟨list⟩", never presented as an accuracy.
+    - the agentic bucket (rule 22, with its own cost gate)
+    **Mean** — the composite index: each *scored* benchmark actually run,
+    normalized to 0–100 by its own scorer, then averaged; always labeled
+    "composite index over ⟨list⟩", never presented as an accuracy. Reports
+    state which benchmarks ran and which were skipped for time.
     **Interpretation guardrails**: a single N=25 cell is a smoke test
     (±~16 pts) — never rank efforts by one cell. The cross-suite Mean
     aggregates ~175 samples per effort and carries near-n=200 power; it and
