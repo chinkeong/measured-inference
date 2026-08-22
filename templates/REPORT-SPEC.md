@@ -33,6 +33,20 @@ complete real instance; match its craft, not its model.
    demonstration; the one-curve callout.
 7. **Hardware matrix** — wall-clock for the reference run per card class,
    derived rows condition-labeled (RAM channels!), measured rows marked.
+   **Minimum card roster** (RULE — any report that scales measured decode to
+   other hardware must cover ALL of these, marking each row measured or
+   derived-by-bandwidth):
+   - NVIDIA: 24–32 GB class (3090 / 4090 / 5090), 16 GB class
+     (5080 / 4080 / 4070 Ti S / 5060 Ti), 12 GB class (3060 / 5070)
+   - DGX Spark (GB10, 128 GB unified, 273 GB/s)
+   - Intel Arc Pro B70 (32 GB, 608 GB/s) and Arc Pro B50 (16 GB, 224 GB/s)
+   - Intel Arc B390-class iGPU (Core Ultra): shared memory ≤96 GB,
+     153.6 GB/s — stated as "(LPDDR5X-9600, 2ch)" with the single-channel /
+     slower-RAM halving caveat attached
+   Verify each roster card's bandwidth/VRAM against current online sources at
+   campaign time (specs drift; the figures above are the reference campaign's
+   fact-checked values). Cards the machine cannot represent stay derived rows —
+   never dropped.
 8. **Recipes per card class** — copy-paste blocks with prominent titles; one
    recipe per class except where two measured winners split by use (then a
    choosing rule up front); vision flags printed, not hinted; a measured menu
