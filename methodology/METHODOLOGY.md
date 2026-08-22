@@ -115,3 +115,16 @@ before any budget table; never carry another model's number forward.
     categorical collapses are the interpretable results. Any suspicious cell
     escalates to n=200 on that benchmark before being claimed. Expect the
     full sweep to cost ~4–8 h per model at max effort on a 24 GB card.
+22. **The agentic bucket (optional, DeepSWE via Pier)**: when sandboxing is
+    available (Docker; Pier from datacurve-ai), sweep effort levels on the
+    deterministic DeepSWE subset `--n-tasks 10 --sample-seed 0` with
+    `mini-swe-agent` against the local server (one server per effort — the
+    effort knob is server-side). **Search for published results first**: cite
+    the official leaderboard score for the base model as the anchor, and
+    present local scores as ⟨quant, machine, effort⟩ deltas against it — the
+    unpublished part is exactly that delta. Interpretation: n=10 is
+    categorical-only (±~30 pts) — collapses and large effort gaps are claims,
+    small differences are not; escalate to more tasks before claiming a
+    ranking. Agentic tasks are where per-step error compounding lives — this
+    bucket is the empirical test of the scope-perspective section's
+    predictions, and the place low effort is most expected to fail.
