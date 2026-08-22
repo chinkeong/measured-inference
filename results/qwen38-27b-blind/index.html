@@ -1,0 +1,2330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Qwen3.8-27B on one RTX 3090 &mdash; a measured field guide</title>
+<meta name="description" content="Every setting for Qwen3.8-27B UD-IQ4_XS on a 24 GiB RTX 3090, with the measurement that justifies it. Measured 2026-08-23.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Inter+Tight:wght@400;500;600;700;800&family=Intel+One+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blue:#0068B5; --blue-deep:#00377C; --energy:#00C7FD; --energy-soft:#B3EFFF;
+  --bg:#ffffff; --bg-soft:#f5f7f9; --bg-blue:#eef6fc; --bg-blue-deep:#003C71;
+  --ink:#131517; --ink-mid:#3b4145; --ink-muted:#5b6770; --ink-faint:#8b969c;
+  --rule:#d9dee2; --rule-faint:#eef0f2;
+  --code-bg:#f4f6f8; --code-ink:#131517;
+  --warn:#c8410b; --good:#2c8a4a;
+  --display:'Inter Tight','Inter','Helvetica Neue',Arial,sans-serif;
+  --sans:'Inter','Helvetica Neue',Arial,sans-serif;
+  --mono:'Intel One Mono','JetBrains Mono','SF Mono',Menlo,monospace;
+  --col:730px; --gap:52px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0a0e13; --bg-soft:#131820; --bg-blue:#0e1b2c;
+    --ink:#f1f4f7; --ink-mid:#c8cfd5; --ink-muted:#98a3ab; --ink-faint:#5b6770;
+    --rule:#1f2730; --rule-faint:#161c24;
+    --code-bg:#131820; --code-ink:#f1f4f7; --blue:#2a8fd9;
+    --warn:#ff8a5c; --good:#5ac77f;
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; scroll-padding-top:84px; -webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+  font-size:16.5px;line-height:1.65;font-weight:400;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* utility band */
+.uband{background:var(--bg-blue-deep);color:#cfe6f7;font-family:var(--mono);
+  font-size:11px;letter-spacing:.09em;text-transform:uppercase}
+.uband .in{max-width:1320px;margin:0 auto;padding:7px 32px;display:flex;
+  justify-content:space-between;gap:16px;align-items:center}
+.uband .tag{color:var(--energy)}
+@media (max-width:700px){.uband .tag{display:none}}
+
+/* nav */
+nav.top{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.86);
+  backdrop-filter:blur(10px);border-bottom:1px solid var(--rule)}
+@media (prefers-color-scheme: dark){nav.top{background:rgba(10,14,19,.88)}}
+nav.top .in{max-width:1320px;margin:0 auto;padding:12px 32px;display:flex;
+  align-items:center;gap:14px}
+.mark{width:28px;height:28px;background:var(--blue);color:#fff;display:grid;
+  place-items:center;font-family:var(--mono);font-weight:700;font-size:14px;flex:0 0 auto}
+.brand{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:-.01em}
+.brand span{color:var(--ink-faint);font-weight:500}
+nav.top .links{margin-left:auto;display:flex;gap:20px;align-items:center;
+  font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:.07em}
+nav.top .links a{color:var(--ink-muted)}
+nav.top .links a:hover{color:var(--blue);text-decoration:none}
+.cta{background:var(--blue);color:#fff !important;border-radius:999px;
+  padding:6px 15px;font-weight:600}
+@media (max-width:820px){nav.top .links a:not(.cta){display:none}}
+
+/* hero */
+header.hero{position:relative;border-bottom:1px solid var(--rule);overflow:hidden}
+header.hero::before{content:"";position:absolute;inset:0;
+  background:radial-gradient(760px 420px at 88% -8%, rgba(0,199,253,.20), transparent 62%),
+             radial-gradient(700px 460px at 4% 108%, rgba(0,104,181,.16), transparent 60%);
+  pointer-events:none}
+.hero .in{position:relative;max-width:1320px;margin:0 auto;padding:64px 32px 56px;
+  display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:56px;align-items:end}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--rule);
+  border-radius:999px;padding:5px 13px;font-family:var(--mono);font-size:11px;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--ink-muted);background:var(--bg)}
+.eyebrow::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--energy)}
+h1{font-family:var(--display);font-size:clamp(38px,5.4vw,62px);line-height:1.02;
+  letter-spacing:-.033em;font-weight:800;margin:22px 0 0;max-width:15ch}
+h1 .accent{position:relative;white-space:nowrap}
+h1 .accent::after{content:"";position:absolute;left:0;right:0;bottom:.06em;height:.14em;
+  background:var(--energy);opacity:.55;z-index:-1}
+.lede{margin:20px 0 0;max-width:52ch;color:var(--ink-muted);font-size:17.5px}
+.hero-stats{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule);
+  border:1px solid var(--rule);margin:0}
+.hero-stat{background:var(--bg);padding:16px 18px}
+.hero-stat dt{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink-faint);margin:0 0 5px}
+.hero-stat dd{margin:0;font-family:var(--display);font-weight:700;font-size:26px;
+  letter-spacing:-.02em;line-height:1.1}
+.hero-stat dd span{font-size:12px;font-family:var(--mono);font-weight:500;
+  color:var(--ink-muted);margin-left:5px;letter-spacing:.02em}
+@media (max-width:1000px){.hero .in{grid-template-columns:1fr;gap:34px;padding:48px 24px 44px}}
+
+/* spec strip */
+.specstrip{background:var(--bg-soft);border-bottom:1px solid var(--rule)}
+.specstrip .in{max-width:1320px;margin:0 auto;padding:18px 32px;display:flex;
+  flex-wrap:wrap;gap:14px 42px;align-items:baseline;font-family:var(--mono);font-size:12.5px}
+.specstrip b{font-family:var(--display);font-size:17px;letter-spacing:-.01em}
+.specstrip .k{color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;
+  font-size:10.5px;display:block;margin-bottom:2px}
+.specstrip .cond{color:var(--ink-muted)}
+@media (max-width:1000px){.specstrip .in{padding:16px 24px;gap:12px 26px}}
+
+/* page grid */
+.page{max-width:1320px;margin:0 auto;padding:64px 32px 110px;display:grid;
+  grid-template-columns:210px var(--col) 1fr;gap:var(--gap)}
+nav.toc{position:sticky;top:84px;align-self:start}
+nav.toc .h{font-family:var(--mono);font-size:10.5px;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--ink-faint);padding-bottom:9px;
+  border-bottom:1px solid var(--rule);margin-bottom:11px}
+nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+nav.toc li{counter-increment:toc;margin:0 0 7px}
+nav.toc a{display:block;font-size:13px;line-height:1.35;color:var(--ink-muted);
+  padding-left:26px;position:relative}
+nav.toc a::before{content:counter(toc,decimal-leading-zero);position:absolute;left:0;
+  font-family:var(--mono);font-size:10.5px;color:var(--ink-faint)}
+nav.toc a:hover{color:var(--blue);text-decoration:none}
+main{min-width:0;max-width:var(--col)}
+aside.margin{align-self:start;padding-top:6px;min-width:0}
+@media (max-width:1160px){
+  .page{grid-template-columns:1fr;gap:30px;padding:48px 24px 76px}
+  nav.toc{position:relative;top:0}
+  nav.toc ol{columns:2;column-gap:22px}
+  aside.margin{display:none}
+}
+@media (max-width:700px){nav.toc ol{columns:1}}
+
+/* narrow screens: nothing may push the page wider than the viewport */
+@media (max-width:760px){
+  body{overflow-wrap:break-word;font-size:16px}
+  .uband .in{padding:7px 18px}
+  nav.top .in{padding:10px 18px;gap:10px}
+  .brand{font-size:13.5px}
+  .brand span{display:none}
+  .hero .in{padding:36px 18px 34px;gap:26px}
+  h1{font-size:clamp(27px,7.6vw,38px);max-width:none}
+  .lede{font-size:15.5px;max-width:none}
+  .hero-stat{padding:12px 13px}
+  .hero-stat dd{font-size:21px}
+  .specstrip .in{padding:14px 18px;gap:10px 20px}
+  .specstrip b{font-size:15px}
+  .page{padding:36px 18px 56px}
+  h2{font-size:23px;max-width:none}
+  h3{font-size:17.5px}
+  .feature{padding:22px 20px}
+  .feature p{font-size:19px}
+  .callout{padding:12px 14px}
+  pre{font-size:11.5px;padding:12px 13px}
+  .mathgrid{grid-template-columns:repeat(2,1fr)}
+  footer .in{padding:34px 18px 16px}
+  .footer-bottom{padding:14px 18px 24px}
+}
+
+/* sections */
+section{margin:0 0 66px;scroll-margin-top:84px}
+.section-tag{display:flex;align-items:center;gap:10px;font-family:var(--mono);
+  font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-muted);
+  margin-bottom:14px}
+.section-tag .num{background:var(--blue);color:#fff;padding:3px 8px;font-weight:600;
+  letter-spacing:.06em}
+h2{font-family:var(--display);font-size:clamp(25px,3.1vw,33px);line-height:1.17;
+  letter-spacing:-.025em;font-weight:700;margin:0 0 18px;max-width:22ch}
+h2 .em{color:var(--blue)}
+h3{font-family:var(--display);font-size:19.5px;letter-spacing:-.015em;font-weight:700;
+  margin:34px 0 12px;display:flex;align-items:baseline;gap:10px}
+.sigil{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--blue);
+  background:var(--bg-blue);padding:2px 7px;flex:0 0 auto}
+h4{font-family:var(--display);font-size:15.5px;font-weight:700;margin:24px 0 8px}
+p{margin:0 0 15px}
+main ul,main ol{margin:0 0 15px;padding-left:22px}
+main li{margin:0 0 7px}
+code{font-family:var(--mono);font-size:.87em;background:var(--code-bg);
+  border:1px solid var(--rule-faint);border-radius:3px;padding:1px 5px;color:var(--code-ink)}
+pre{font-family:var(--mono);font-size:12.5px;line-height:1.6;background:var(--code-bg);
+  border-left:3px solid var(--blue);padding:15px 17px;overflow-x:auto;margin:0 0 18px;
+  color:var(--code-ink)}
+pre code{background:none;border:none;padding:0;font-size:inherit}
+.small{font-size:13.5px;color:var(--ink-muted)}
+
+/* callouts */
+.callout{background:var(--bg-blue);border-left:3px solid var(--blue);padding:14px 17px;
+  margin:0 0 20px}
+.callout.warn{background:rgba(200,65,11,.07);border-left-color:var(--warn)}
+.callout.good{background:rgba(44,138,74,.08);border-left-color:var(--good)}
+.callout .label{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--blue);margin-bottom:6px;font-weight:600}
+.callout.warn .label{color:var(--warn)}
+.callout.good .label{color:var(--good)}
+.callout p:last-child{margin-bottom:0}
+
+/* feature stripe */
+.feature{background:linear-gradient(120deg,var(--blue-deep),var(--blue));color:#fff;
+  padding:32px 34px;margin:34px 0}
+.feature p{font-family:var(--display);font-size:24px;line-height:1.28;font-weight:600;
+  letter-spacing:-.02em;margin:0}
+.feature .em{color:var(--energy)}
+
+/* tables */
+.table-wrap{overflow-x:auto;border:1px solid var(--rule);border-radius:4px;margin:0 0 20px}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:520px}
+thead th{background:var(--blue);color:#fff;font-family:var(--mono);font-size:10.5px;
+  letter-spacing:.07em;text-transform:uppercase;text-align:left;padding:9px 12px;font-weight:600}
+tbody td{padding:8px 12px;border-top:1px solid var(--rule-faint);vertical-align:top}
+tbody tr:hover{background:var(--bg-soft)}
+td.num,th.num{text-align:right;font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+td.mono{font-family:var(--mono);font-size:12px}
+tbody tr.hi{background:rgba(0,199,253,.10)}
+tbody tr.hi:hover{background:rgba(0,199,253,.16)}
+caption{caption-side:bottom;text-align:left;font-size:12.5px;color:var(--ink-muted);
+  padding:9px 12px;font-family:var(--sans)}
+
+/* math grid */
+.mathgrid{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--rule);
+  margin:0 0 20px}
+.math-item{padding:15px 14px;border-right:1px solid var(--rule-faint)}
+.math-item:last-child{border-right:none}
+.math-item .num{font-family:var(--display);font-size:27px;font-weight:700;color:var(--blue);
+  letter-spacing:-.02em;line-height:1.1}
+.math-item .num .tilde{color:var(--energy)}
+.math-item .lbl{font-family:var(--mono);font-size:10px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--ink-muted);margin-top:5px;line-height:1.35}
+@media (max-width:700px){.mathgrid{grid-template-columns:repeat(2,1fr)}
+  .math-item{border-bottom:1px solid var(--rule-faint)}}
+
+/* split */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:0 0 20px}
+.split .card{border:1px solid var(--rule);border-top:3px solid var(--ink-faint);padding:15px 16px}
+.split .card.yes{border-top-color:var(--good)}
+.split .card h4{margin-top:0}
+.split .card p:last-child{margin-bottom:0}
+@media (max-width:700px){.split{grid-template-columns:1fr}}
+
+/* phases */
+.phases{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:0 0 20px}
+.phase{border:1px solid var(--rule);border-top:3px solid var(--blue);padding:14px 15px}
+.phase:nth-child(2){border-top-color:var(--energy)}
+.phase:nth-child(3){border-top-color:var(--good)}
+.phase .k{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-faint);margin-bottom:6px}
+.phase h4{margin:0 0 6px}
+.phase p{margin:0;font-size:13.5px;color:var(--ink-muted)}
+@media (max-width:820px){.phases{grid-template-columns:1fr}}
+
+/* anti-patterns */
+.anti{display:grid;grid-template-columns:32px 1fr;gap:12px 14px;margin:0 0 8px;
+  align-items:start}
+.anti .x{width:26px;height:26px;background:rgba(200,65,11,.12);color:var(--warn);
+  display:grid;place-items:center;font-weight:700;font-size:14px}
+.anti h4{margin:0 0 4px}
+.anti p{margin:0 0 14px;font-size:14px;color:var(--ink-muted)}
+
+/* marginalia */
+.sidenote{border-top:1px solid var(--rule);padding-top:11px;margin-bottom:34px}
+.sidenote .lbl{font-family:var(--mono);font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--blue);margin-bottom:6px}
+.sidenote p{font-size:13px;line-height:1.55;color:var(--ink-muted);margin:0 0 9px}
+.sidenote em{font-style:normal;color:var(--ink);font-weight:500}
+
+/* chart */
+.chart{border:1px solid var(--rule);background:var(--bg-soft);padding:18px;margin:0 0 20px;
+  overflow-x:auto}
+.chart svg{display:block;max-width:100%;height:auto}
+.caption{font-family:var(--mono);font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--ink-muted);margin-top:10px}
+.caption b{color:var(--blue)}
+
+details{border:1px solid var(--rule);padding:12px 15px;margin:0 0 20px;background:var(--bg-soft)}
+summary{cursor:pointer;font-family:var(--mono);font-size:12px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--blue);font-weight:600}
+details[open] summary{margin-bottom:12px}
+details pre{background:var(--bg)}
+
+.tagrow{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 18px}
+.tagrow span{font-family:var(--mono);font-size:11px;border:1px solid var(--rule);
+  padding:3px 9px;color:var(--ink-muted)}
+.measured{color:var(--good);font-weight:600}
+.derived{color:var(--blue);font-weight:600}
+.cited{color:var(--ink-muted);font-weight:600}
+
+/* footer */
+footer{background:var(--bg-blue-deep);color:#dceaf6;margin-top:40px}
+footer .in{max-width:1320px;margin:0 auto;padding:52px 32px 22px;display:grid;
+  grid-template-columns:2fr 1fr 1fr;gap:40px}
+footer h5{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--energy);margin:0 0 12px;font-weight:600}
+footer p{font-size:14px;color:#b9d2e6;margin:0 0 12px}
+footer ul{list-style:none;margin:0;padding:0;font-size:13.5px}
+footer li{margin:0 0 7px;color:#b9d2e6}
+footer a{color:#dceaf6;text-decoration:underline;text-underline-offset:2px}
+.footer-bottom{max-width:1320px;margin:0 auto;padding:16px 32px 30px;
+  border-top:1px solid rgba(255,255,255,.14);font-family:var(--mono);font-size:10.5px;
+  letter-spacing:.09em;text-transform:uppercase;color:#7fa8c8}
+@media (max-width:820px){footer .in{grid-template-columns:1fr;gap:26px;padding:40px 24px 18px}
+  .footer-bottom{padding:16px 24px 26px}}
+</style>
+</head>
+<body>
+
+<div class="uband"><div class="in">
+  <div>Measured-inference field guide &nbsp;/&nbsp; blind reproduction run</div>
+  <div class="tag">RTX 3090 24 GiB &middot; Windows 11 &middot; 2026-08-23</div>
+</div></div>
+
+<nav class="top"><div class="in">
+  <div class="mark">Q</div>
+  <div class="brand">Qwen3.8-27B <span>/ UD-IQ4_XS</span></div>
+  <div class="links">
+    <a href="#physics">Physics</a>
+    <a href="#speculation">Speculation</a>
+    <a href="#effort">Effort</a>
+    <a href="#recipes" class="cta">Recipes</a>
+  </div>
+</div></nav>
+
+<header class="hero"><div class="in">
+  <div>
+    <span class="eyebrow">One model, one card, one night</span>
+    <h1>Every setting, with the <span class="accent">number</span> that justifies it.</h1>
+    <p class="lede">Qwen3.8-27B <code>UD-IQ4_XS</code> served by llama.cpp
+    (build 10502) on a single 24&nbsp;GiB RTX&nbsp;3090. Every measured figure
+    was produced on this machine on the night of 2026-08-23, and nothing is
+    carried over from another model or another run. The three things here that
+    are <em>not</em> measurements &mdash; the arithmetic in &sect;02, the other
+    cards in &sect;07, the vendor's claims in &sect;12 &mdash; say so where they
+    stand.</p>
+  </div>
+  <dl class="hero-stats">
+    <div class="hero-stat"><dt>Floor &mdash; no drafter, any content</dt><dd>41.5<span>t/s</span></dd></div>
+    <div class="hero-stat"><dt>Writing prose &rarr; code, 32k, drafter on</dt><dd>44&ndash;95<span>t/s</span></dd></div>
+    <div class="hero-stat"><dt>Resident window, vision on, bare desktop</dt><dd>163,840<span>tokens</span></dd></div>
+    <div class="hero-stat"><dt>One HTML page, low &rarr; xhigh effort, n=1</dt><dd>21&ndash;120<span>Wh</span></dd></div>
+  </dl>
+</div></header>
+
+<div class="specstrip"><div class="in">
+  <div><span class="k">Floor &mdash; no speculation</span><b>41.5&ndash;42.8 t/s</b>
+    <span class="cond">&nbsp;any content, any stream, 32k, q8_0 KV</span></div>
+  <div><span class="k">Real-work band &mdash; MTP on</span><b>44&ndash;95 t/s</b>
+    <span class="cond">&nbsp;prose &rarr; code, answer tokens</span></div>
+  <div><span class="k">Ceiling</span><b>148.7 t/s</b>
+    <span class="cond">&nbsp;copying supplied code, answers, 32k, 99 % accepted</span></div>
+  <div><span class="k">Deep-context decode</span><b>70.1 t/s</b>
+    <span class="cond">&nbsp;at 90.9k tokens, the shipped recipe, answers</span></div>
+</div></div>
+
+<div class="page">
+
+<nav class="toc">
+  <div class="h">Contents</div>
+  <ol>
+    <li><a href="#facts">The model, in seven facts</a></li>
+    <li><a href="#physics">The physics</a></li>
+    <li><a href="#universal">Universal flags</a></li>
+    <li><a href="#effort">Effort</a></li>
+    <li><a href="#which-file">Which file</a></li>
+    <li><a href="#speculation">Speculative decoding</a></li>
+    <li><a href="#hardware">Hardware matrix</a></li>
+    <li><a href="#recipes">Recipes &amp; energy</a></li>
+    <li><a href="#statistics">Sample size</a></li>
+    <li><a href="#trouble">Troubleshooting</a></li>
+    <li><a href="#vision">Vision</a></li>
+    <li><a href="#scope">Scope</a></li>
+    <li><a href="#agents">Coding agents</a></li>
+    <li><a href="#sources">Sources</a></li>
+  </ol>
+</nav>
+
+<main>
+<div class="tagrow">
+  <span><b class="measured">MEASURED</b> &mdash; run on this machine, dated</span>
+  <span><b class="derived">DERIVED</b> &mdash; arithmetic from a measured number</span>
+  <span><b class="cited">CITED</b> &mdash; linked to a source</span>
+</div>
+<p>Those three labels are the whole contract. Nothing on this page is a fourth
+thing. Where a phase was skipped for time, the page says the phase was skipped
+rather than filling the hole with a plausible number &mdash; and where a result
+rests on a single sample, it says <code>n=1</code> next to the number.</p>
+
+<div class="callout warn">
+  <span class="label">Read this first &mdash; this is a smoke-tier campaign</span>
+  <p>Two hours of measurement on one card. <b>One quantisation was measured, so
+  nothing here ranks quants.</b> No accuracy benchmark was run at all &mdash;
+  not a small one, because a small one would be worse than none. The effort
+  comparison in &sect;04 is one run per level (two for <code>xhigh</code>),
+  judged by one judge who could see the labels. Speed, memory, energy and image
+  cost are solid; anything labelled quality is a first look.</p>
+  <p>It corrected itself four times while running &mdash; about what its own
+  speed probes were timing, about which drafting flags win, about how much VRAM
+  the shipped recipe needs, and about where the effort ceiling sits. Every
+  correction is left in with the wrong version still shown, because how a clean
+  measurement misleads is the most transferable thing here.</p>
+</div>
+
+<section id="facts">
+  <div class="section-tag"><span class="num">01</span>The model</div>
+  <h2>Seven facts that decide every flag you will type.</h2>
+
+  <p>Qwen3.8-27B is not a plain transformer, and almost every surprising number
+  further down this page traces back to that. Its 64 layers repeat a four-layer
+  block: three Gated-DeltaNet linear-attention layers, then one gated full
+  attention layer.<span class="small"> (<span class="cited">CITED</span>
+  &mdash; <a href="https://huggingface.co/Qwen/Qwen3.8-27B">model card</a>:
+  &ldquo;16 &times; (3 &times; (Gated DeltaNet &rarr; FFN) &rarr; 1 &times;
+  (Gated Attention &rarr; FFN))&rdquo;; confirmed against the
+  <code>layer_types</code> array in the base repo's
+  <code>config.json</code>, fetched during this run.)</span></p>
+
+  <div class="chart">
+  <svg viewBox="0 0 700 132" role="img" aria-label="Layer block diagram: three Gated DeltaNet layers then one full attention layer, repeated sixteen times">
+    <g font-family="Intel One Mono, monospace" font-size="11">
+      <rect x="6" y="34" width="86" height="46" fill="var(--bg)" stroke="var(--ink-faint)" stroke-width="1.2" stroke-dasharray="4 3"/>
+      <rect x="98" y="34" width="86" height="46" fill="var(--bg)" stroke="var(--ink-faint)" stroke-width="1.2" stroke-dasharray="4 3"/>
+      <rect x="190" y="34" width="86" height="46" fill="var(--bg)" stroke="var(--ink-faint)" stroke-width="1.2" stroke-dasharray="4 3"/>
+      <rect x="282" y="30" width="96" height="54" fill="var(--bg-blue)" stroke="var(--blue)" stroke-width="2"/>
+      <rect x="282" y="30" width="96" height="3" fill="var(--energy)"/>
+      <text x="49" y="53" text-anchor="middle" fill="var(--ink-muted)" font-weight="600">DeltaNet</text>
+      <text x="49" y="68" text-anchor="middle" fill="var(--ink-faint)" font-size="10">flat state</text>
+      <text x="141" y="53" text-anchor="middle" fill="var(--ink-muted)" font-weight="600">DeltaNet</text>
+      <text x="141" y="68" text-anchor="middle" fill="var(--ink-faint)" font-size="10">flat state</text>
+      <text x="233" y="53" text-anchor="middle" fill="var(--ink-muted)" font-weight="600">DeltaNet</text>
+      <text x="233" y="68" text-anchor="middle" fill="var(--ink-faint)" font-size="10">flat state</text>
+      <text x="330" y="53" text-anchor="middle" fill="var(--blue)" font-weight="700">ATTENTION</text>
+      <text x="330" y="68" text-anchor="middle" fill="var(--ink-muted)" font-size="10">KV grows</text>
+      <text x="400" y="60" fill="var(--ink-muted)" font-size="13">&times; 16 blocks = 64 layers</text>
+      <text x="6" y="20" fill="var(--ink-faint)" font-size="10" letter-spacing="1">ONE REPEATING BLOCK</text>
+      <text x="6" y="112" fill="var(--ink-muted)" font-size="11">48 layers carry a fixed ~151 MiB total &mdash; only the 16 blue ones pay per token.</text>
+    </g>
+  </svg>
+  <div class="caption">Architecture &mdash; <b>16 of 64 layers</b> keep a KV cache</div>
+  </div>
+
+  <h3><span class="sigil">01</span>Only 16 layers pay rent per token</h3>
+  <p>Cache arithmetic counts full-attention layers only:
+  <code>2 &times; layers &times; n_kv_heads &times; head_dim &times; bytes</code>.
+  With 16 full-attention layers, 4 KV heads and a 256-wide head, that is
+  <b>65,536&nbsp;B/token at fp16</b> and <b>32,768&nbsp;B/token at q8_0</b>
+  nominal &mdash; 34,816&nbsp;B once q8_0's per-block fp16 scale is counted.
+  <span class="derived">DERIVED</span> from the fetched
+  <code>config.json</code>.</p>
+
+  <h3><span class="sigil">02</span>The other 48 layers are free as the window grows</h3>
+  <p>Each Gated-DeltaNet layer holds a fixed recurrent state
+  (<code>48&nbsp;&times;&nbsp;128&nbsp;&times;&nbsp;128</code> fp32) plus a
+  4-tap convolution state &mdash; 3.16&nbsp;MiB per layer,
+  <b>~151&nbsp;MiB for all 48, no matter how long the context is</b>.
+  <span class="derived">DERIVED</span>. This is the entire reason a 27B model
+  can hold a 262k window on a 24&nbsp;GiB consumer card.</p>
+
+  <h3><span class="sigil">03</span>A window token really costs 44 KiB, not 34</h3>
+  <p><span class="measured">MEASURED</span>: stepping <code>-c</code> from
+  32,768 to 163,840 moved llama-server's dedicated VRAM in exact
+  <b>1,408&nbsp;MiB steps per 32,768 tokens</b> &mdash; <b>45,056&nbsp;B per
+  token of window</b> with the MTP drafter on. (The projector was loaded for
+  that sweep too, but it is a fixed cost, not a per-token one, so it does not
+  enter the slope.)
+  Budget with the measured figure, not the arithmetic one: the arithmetic is a
+  floor.</p>
+  <p>A control pair with <code>--spec-type none</code> at the same two contexts
+  splits that figure: <b>39,936&nbsp;B/token</b> for the cache alone, and
+  <b>5,120&nbsp;B/token more</b> once the MTP drafter is on, because the draft
+  path keeps its own cache. <span class="measured">MEASURED</span>. The full
+  bill for speculation is <b>1,008&nbsp;MiB fixed plus 5,120&nbsp;B per window
+  token</b> &mdash; <b>1,808&nbsp;MiB</b> at a 163,840-token setting &mdash; and
+  a further <b>898&nbsp;MiB</b> if you raise the draft depth from 4 to the
+  10 the coding recipe ships.</p>
+
+  <h3><span class="sigil">04</span>The speculative drafter is inside the file</h3>
+  <p>The GGUF carries a trained multi-token-prediction head as
+  <code>blk.64.nextn.*</code>. With <code>--spec-type none</code> the server
+  logs <code>model has unused tensor blk.64.* -- ignoring</code> and skips it;
+  turn it on and, writing a JavaScript class at <code>-c 32768</code> and
+  temp&nbsp;0, you get <b>2.26&times; decode</b> &mdash; 42.17 to
+  95.35&nbsp;t/s of <em>answer</em> tokens &mdash; for about
+  <b>335&nbsp;MiB</b> of weights <span class="derived">DERIVED</span> from the
+  tensor byte sizes the server printed while ignoring them. No companion draft
+  model is needed or wanted.</p>
+
+  <h3><span class="sigil">05</span>Thinking depth is a load-time or per-request knob</h3>
+  <p>The chat template accepts <code>reasoning_effort</code> in
+  <code>low</code>&nbsp;|&nbsp;<code>medium</code>&nbsp;|&nbsp;<code>xhigh</code>,
+  <b>defaults to <code>xhigh</code></b>, silently aliases <code>high</code> to
+  <code>xhigh</code>, and raises on anything else.
+  <span class="measured">MEASURED</span> by reading the template shipped in the
+  GGUF metadata. Only <code>low</code> and <code>xhigh</code> inject an
+  instruction line; <code>medium</code> injects none.</p>
+
+  <h3><span class="sigil">06</span>An image costs one token per 32&times;32 pixels</h3>
+  <p>Patch size 16 with <code>spatial_merge_size 2</code> means the vision
+  tower emits one token per 32&times;32-pixel block before any resize policy.
+  <span class="derived">DERIVED</span> from <code>vision_config</code>;
+  measured against a real screenshot in &sect;11.</p>
+
+  <h3><span class="sigil">07</span>262,144 tokens native &mdash; and your card decides how many you get</h3>
+  <p>The model supports 262,144 natively
+  <span class="cited">CITED</span>
+  (<a href="https://huggingface.co/Qwen/Qwen3.8-27B">model card</a>).
+  On this 3090 the fully-resident ceiling measured
+  <b>163,840</b>. The gap between those two numbers is &sect;02.</p>
+
+  <div class="mathgrid">
+    <div class="math-item"><div class="num">64</div><div class="lbl">layers<br>total</div></div>
+    <div class="math-item"><div class="num">16</div><div class="lbl">that keep<br>a KV cache</div></div>
+    <div class="math-item"><div class="num">44<span class="tilde">&nbsp;KiB</span></div><div class="lbl">measured cost<br>per window token</div></div>
+    <div class="math-item"><div class="num">2.26&times;</div><div class="lbl">drafter, writing JS<br>32k, temp 0, answers</div></div>
+  </div>
+</section>
+
+<section id="physics">
+  <div class="section-tag"><span class="num">02</span>The physics</div>
+  <h2>Decode is a bandwidth problem; context is a real-estate problem.</h2>
+
+  <p>Every token of decode reads the whole weight file out of VRAM. That gives
+  a hard ceiling before any software is involved:</p>
+
+  <pre><code>decode t/s  &asymp;  memory bandwidth  &divide;  file size  &times;  efficiency
+
+RTX 3090 :  936 GB/s &divide; 14.25 GB = 65.7 t/s theoretical
+                                &times; 0.70 rule of thumb = 46.0 t/s expected
+                                MEASURED, no speculation = 42.6 t/s (0.65)</code></pre>
+  <p class="small">936 GB/s is NVIDIA's own figure for the RTX 3090
+  <span class="cited">CITED</span>
+  (<a href="https://images.nvidia.com/aem-dam/en-zz/Solutions/geforce/ampere/pdf/NVIDIA-ampere-GA102-GPU-Architecture-Whitepaper-V1.pdf">GA102
+  architecture whitepaper</a>: 384-bit &times; 19.5&nbsp;Gbps). Third-party
+  databases quote 936.2, derived from the unrounded memory clock; the
+  difference is 0.02 % and the rounder number is the one with a primary
+  source.</p>
+
+  <p><span class="measured">MEASURED</span> 42.61&nbsp;t/s with
+  <code>--spec-type none</code>, <code>-c 32768</code>, q8_0 KV, temp&nbsp;0,
+  an 83-token prompt and 700 predicted tokens on an idle desktop. Landing at
+  0.65 of raw bandwidth is the signature of a correctly, fully offloaded model.
+  Landing at 0.45 is the signature of &sect;10's first failure mode.</p>
+
+  <p>The floor is also the most <em>stable</em> number on this page. Repeated
+  across four content types and both token streams &mdash; code, prose, copying,
+  reasoning and answering &mdash; eight no-speculation measurements at q8_0 KV
+  landed between <b>41.46 and 42.81&nbsp;t/s</b>, a 3 % spread. Without a
+  drafter, what you are generating simply is not a variable. (An fp16 cache
+  lifts the same probe to 43.19; the band above is for the q8_0 cache every
+  recipe ships.)</p>
+
+  <div class="callout">
+    <span class="label">Why the floor matters more than the ceiling</span>
+    <p>41.5&ndash;42.8&nbsp;t/s is what this model does when speculation cannot
+    help it &mdash; eight measurements across four content types and both token
+    streams span 3 %. Every faster number on this page is a speculation result
+    and carries an acceptance rate. If you plan capacity on the fast numbers you
+    will be wrong on the day your workload changes shape.</p>
+  </div>
+
+  <h3><span class="sigil">01</span>Depth costs, and acceptance is not the reason</h3>
+  <p>Decode declines as context fills because each token must read more KV.
+  Measured with the server's own <code>timings</code> fields (never wall-clock
+  including prefill), one server at <code>-c 131072</code>, MTP n4/p0.75,
+  identical 300-token generations, each prompt prefixed with a fresh GUID so no
+  prefix cache could be reused:</p>
+
+  <div class="chart">
+  <svg viewBox="0 0 700 228" role="img" aria-label="Decode speed falls from 51.2 to 35.8 tokens per second as context depth grows from 1.5k to 93k tokens, while draft acceptance rises from 80 to 86 percent">
+    <g font-family="Intel One Mono, monospace" font-size="10">
+      <line x1="60" y1="20" x2="660" y2="20" stroke="var(--rule)" stroke-width="1"/>
+      <line x1="60" y1="60" x2="660" y2="60" stroke="var(--rule)" stroke-width="1"/>
+      <line x1="60" y1="100" x2="660" y2="100" stroke="var(--rule)" stroke-width="1"/>
+      <line x1="60" y1="140" x2="660" y2="140" stroke="var(--rule)" stroke-width="1"/>
+      <line x1="60" y1="180" x2="660" y2="180" stroke="var(--ink-faint)" stroke-width="1.2"/>
+      <text x="52" y="24" text-anchor="end" fill="var(--ink-faint)">60</text>
+      <text x="52" y="64" text-anchor="end" fill="var(--ink-faint)">45</text>
+      <text x="52" y="104" text-anchor="end" fill="var(--ink-faint)">30</text>
+      <text x="52" y="144" text-anchor="end" fill="var(--ink-faint)">15</text>
+      <text x="52" y="184" text-anchor="end" fill="var(--ink-faint)">0</text>
+      <text x="14" y="104" text-anchor="middle" fill="var(--blue)" font-weight="600" transform="rotate(-90 14 104)">DECODE t/s</text>
+      <text x="668" y="24" fill="var(--ink-faint)">100%</text>
+      <text x="668" y="184" fill="var(--ink-faint)">0%</text>
+      <text x="60" y="200" text-anchor="middle" fill="var(--ink-faint)">0</text>
+      <text x="210" y="200" text-anchor="middle" fill="var(--ink-faint)">25k</text>
+      <text x="360" y="200" text-anchor="middle" fill="var(--ink-faint)">50k</text>
+      <text x="510" y="200" text-anchor="middle" fill="var(--ink-faint)">75k</text>
+      <text x="660" y="200" text-anchor="middle" fill="var(--ink-faint)">100k</text>
+      <text x="360" y="218" text-anchor="middle" fill="var(--ink-muted)" font-size="11">LOADED CONTEXT (TOKENS)</text>
+
+      <polyline points="69,52.7 124,38.1 231,32.3 401,34.3 616,42.6"
+        fill="none" stroke="var(--energy)" stroke-width="2" stroke-dasharray="5 3"/>
+      <polyline points="69,43.6 124,45.8 231,54.5 401,70.5 616,84.5"
+        fill="none" stroke="var(--blue)" stroke-width="2.4"/>
+      <g fill="var(--blue)">
+        <circle cx="69" cy="43.6" r="4"/><circle cx="124" cy="45.8" r="4"/>
+        <circle cx="231" cy="54.5" r="4"/><circle cx="401" cy="70.5" r="4"/>
+        <circle cx="616" cy="84.5" r="4"/>
+      </g>
+      <g fill="var(--ink)" font-size="10.5" font-weight="600">
+        <text x="69" y="35" text-anchor="middle">51.2</text>
+        <text x="124" y="37" text-anchor="middle">50.3</text>
+        <text x="231" y="46" text-anchor="middle">47.1</text>
+        <text x="401" y="62" text-anchor="middle">41.1</text>
+        <text x="616" y="76" text-anchor="middle">35.8</text>
+      </g>
+      <g fill="var(--ink-muted)" font-size="9.5">
+        <text x="69" y="66" text-anchor="middle">80%</text>
+        <text x="124" y="30" text-anchor="middle">89%</text>
+        <text x="231" y="24" text-anchor="middle">92%</text>
+        <text x="401" y="27" text-anchor="middle">91%</text>
+        <text x="616" y="35" text-anchor="middle">86%</text>
+      </g>
+    </g>
+  </svg>
+  <div class="caption">Solid = decode t/s &middot; dashed = <b>draft acceptance</b> &middot; measured 2026-08-23</div>
+  </div>
+
+  <div class="table-wrap"><table>
+    <caption><span class="measured">MEASURED</span> &mdash; one server, <code>-c 131072</code>, IQ4_XS, <code>-ngl 99</code>, q8_0 KV, MTP n-max 4 / p-min 0.75, no projector, temp 0 / top_k 1, 300 predicted tokens per row, fresh GUID prefix per prompt. The last column is what you get if you divide completion tokens by wall time; it is not decode speed and it is not anything else either. The generated tokens here are reasoning tokens (the model thinks by default at <code>xhigh</code>) &mdash; that affects the absolute level, not the shape of the decline, because every row generates the same kind of token.</caption>
+    <thead><tr><th class="num">Depth (prompt tokens)</th><th class="num">Prefill t/s</th><th class="num">Prefill wall</th><th class="num">Decode t/s</th><th class="num">Acceptance</th><th class="num">Naive tok&divide;wall</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1,533</td><td class="num">1,082</td><td class="num">1.4 s</td><td class="num">51.15</td><td class="num">79.6 %</td><td class="num">41.3</td></tr>
+      <tr><td class="num">10,658</td><td class="num">1,198</td><td class="num">8.9 s</td><td class="num">50.32</td><td class="num">88.7 %</td><td class="num">20.0</td></tr>
+      <tr><td class="num">28,423</td><td class="num">1,097</td><td class="num">25.9 s</td><td class="num">47.07</td><td class="num">92.3 %</td><td class="num">9.2</td></tr>
+      <tr><td class="num">56,840</td><td class="num">951</td><td class="num">59.8 s</td><td class="num">41.07</td><td class="num">91.1 %</td><td class="num">4.4</td></tr>
+      <tr><td class="num">92,679</td><td class="num">816</td><td class="num">113.6 s</td><td class="num">35.81</td><td class="num">85.9 %</td><td class="num">2.4</td></tr>
+    </tbody>
+  </table></div>
+
+  <p>Decode fell <b>30 %</b> from 1.5k to 93k tokens of loaded context while
+  draft acceptance <em>rose</em> from 79.6 % to a peak of 92.3 %. The decline is
+  KV read cost, not a drafting failure &mdash; which is exactly why a speed
+  number without its depth is unfalsifiable, and why the rightmost column of
+  that table exists as a warning.</p>
+
+  <h4>The same series for the configuration you will actually run</h4>
+  <p>That series used the conservative drafter, no projector, and (at the
+  model's default effort) reasoning tokens. Here is the one a Recipe 2 user
+  gets: projector loaded, the coding drafter, thinking disabled so every timed
+  token is part of the deliverable.</p>
+
+  <div class="table-wrap"><table>
+    <caption><span class="measured">MEASURED</span> &mdash; <code>-c 131072</code>, projector loaded, MTP n-max 10 / p-min 0.5, <code>enable_thinking:false</code>, temp 0 / top_k 1, 400 predicted tokens per row, fresh GUID prefix per prompt. This is the table to plan against.</caption>
+    <thead><tr><th class="num">Depth (prompt tokens)</th><th class="num">Prefill t/s</th><th class="num">Prefill wall</th><th class="num">Decode t/s</th><th class="num">Acceptance</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1,488</td><td class="num">964</td><td class="num">1.5 s</td><td class="num"><b>94.49</b></td><td class="num">60.0 %</td></tr>
+      <tr><td class="num">29,841</td><td class="num">1,084</td><td class="num">27.5 s</td><td class="num"><b>80.96</b></td><td class="num">60.9 %</td></tr>
+      <tr class="hi"><td class="num">90,887</td><td class="num">814</td><td class="num">111.7 s</td><td class="num"><b>70.09</b></td><td class="num">64.7 %</td></tr>
+    </tbody>
+  </table></div>
+
+  <p>Decode falls <b>26 %</b> across that span &mdash; the same shape as the
+  first series, at nearly twice the level. Two things follow. The decline with
+  depth is a property of the cache, not of the drafter or the token stream, and
+  it is worth about a quarter of your speed over a 90k window. And
+  <b>acceptance rises again</b> (60.0 &rarr; 64.7 %), which is the second
+  independent confirmation that depth and acceptance are unrelated axes.</p>
+
+  <h3><span class="sigil">02</span>Prefill decays gently</h3>
+  <p><span class="measured">MEASURED</span> prefill ran 1,082&nbsp;t/s at 1.5k
+  and 816&nbsp;t/s at 92.7k &mdash; a 25 % decline across a 60&times; increase in
+  prompt length, peaking at 1,198&nbsp;t/s in the middle. Budget roughly
+  <b>one second per 1,000 tokens</b> of <em>fresh</em> prompt on this card;
+  llama.cpp reuses a cached prefix, so an agent that appends rather than
+  rewrites pays it once. A 90k-token document costs about two minutes to read
+  and then nothing.</p>
+
+  <h3><span class="sigil">03</span>The VRAM budget, measured</h3>
+  <p>Dedicated VRAM grew in exact 1,408&nbsp;MiB steps per 32,768 tokens across
+  five loads. The table below is that measurement, not an estimate. Board total
+  is 24,576&nbsp;MiB, of which the desktop held a steady 1,162&nbsp;MiB
+  throughout this sweep &mdash; a figure that is <em>not</em> stable across the
+  night, and the next callout is about that.</p>
+  <p class="small">Three words appear in the verdict column and they mean
+  different things. <b>Resident</b>: the whole allocation is in dedicated VRAM.
+  <b>Overcommitted</b>: dedicated has stopped growing with <code>-c</code>
+  because the board is full, so something has been placed elsewhere.
+  <b>Spilling</b>: shared (system-RAM) usage has jumped by gigabytes. The small
+  64&nbsp;MiB-per-step creep visible in the resident rows is the projector's
+  host-side allocation, not a spill.</p>
+
+  <div class="table-wrap"><table>
+    <caption><span class="measured">MEASURED</span> &mdash; fresh server per row, IQ4_XS + BF16 projector, <code>-ngl 99</code>, q8_0 KV, MTP n4/p0.75, <code>--parallel 1</code>, a deliberately <em>shallow</em> 20-token probe. Dedicated / shared are llama-server's own <code>GPU Process Memory</code> counters; board is nvidia-smi total. Across all nine rows the gap between them was a constant <b>1,162 MiB</b> &mdash; the desktop, holding still for the duration of the sweep. <b>Resident</b> = shared usage grows only with the fixed per-step creep. <b>Overcommitted</b> = dedicated has stopped tracking <code>-c</code> because the board is full. <b>Spilling</b> = shared usage has jumped by GiB.</caption>
+    <thead><tr><th class="num">-c</th><th class="num">Board MiB</th><th class="num">Server dedicated</th><th class="num">Server <em>shared</em></th><th class="num">Shallow decode</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr><td class="num">32,768</td><td class="num">17,978</td><td class="num">16,816</td><td class="num">190</td><td class="num">63.63</td><td>resident</td></tr>
+      <tr><td class="num">65,536</td><td class="num">19,356</td><td class="num">18,194</td><td class="num">254</td><td class="num">64.06</td><td>resident</td></tr>
+      <tr><td class="num">98,304</td><td class="num">20,764</td><td class="num">19,602</td><td class="num">318</td><td class="num">63.80</td><td>resident</td></tr>
+      <tr><td class="num">131,072</td><td class="num">22,172</td><td class="num">21,010</td><td class="num">382</td><td class="num">63.84</td><td>resident, comfortable</td></tr>
+      <tr class="hi"><td class="num">163,840</td><td class="num">23,580</td><td class="num">22,418</td><td class="num">446</td><td class="num">63.74</td><td><b>last fully resident step</b></td></tr>
+      <tr><td class="num">196,608</td><td class="num">24,132</td><td class="num">23,637</td><td class="num">700</td><td class="num">59.72</td><td>overcommitted</td></tr>
+      <tr><td class="num">229,376</td><td class="num">24,145</td><td class="num">23,716</td><td class="num">2,096</td><td class="num">60.44</td><td>spilling</td></tr>
+      <tr><td class="num">262,144</td><td class="num">24,162</td><td class="num">23,784</td><td class="num">3,502</td><td class="num">59.06</td><td>native max, 3.5 GiB in RAM</td></tr>
+      <tr><td class="num">262,144 <span class="small">no projector</span></td><td class="num">24,162</td><td class="num">23,782</td><td class="num">2,364</td><td class="num">58.85</td><td>projector = 1,138 MiB</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout warn">
+    <span class="label">Two things the board total hides</span>
+    <p><b>The drafter's depth is not free.</b> Every row above ran with MTP
+    <code>n-max 4 / p-min 0.75</code>; the coding recipe ships
+    <code>n-max 10 / p-min 0.5</code>, which needs bigger draft buffers and
+    costs a further <b>898&nbsp;MiB</b> at any window. The fully-resident
+    ceiling is a property of the <em>whole</em> configuration, not of
+    <code>-c</code> alone.</p>
+    <p><b>And the desktop moves under you.</b> Across the night, the difference
+    between the board total and llama-server's own dedicated usage ranged from
+    <b>133 to 1,181&nbsp;MiB</b> across 26 loads &mdash; nothing but what else
+    was on screen.
+    The same Recipe 1 configuration read 23,565&nbsp;MiB of board on a quiet
+    desktop and 24,039 on a busy one, while its <em>server</em> figure moved by
+    only 127&nbsp;MiB. Budget with the server number and leave the desktop
+    1.2&nbsp;GiB, which is what this one wanted at its heaviest.</p>
+  </div>
+
+  <p>Two numbers fall straight out of that table.
+  <b>The projector costs 1,138&nbsp;MiB</b> &mdash; measured twice
+  independently, as the mmproj-on/off difference at 262,144 and as the
+  difference between a projector-less 32k load and a projector-loaded one. At
+  45,056&nbsp;B/token that is <b>~26,500 tokens of window</b>: turning vision off
+  buys you 26k more context. And <b>speculation costs 1,008&nbsp;MiB flat plus
+  5,120&nbsp;B per window token</b> &mdash; 1,808&nbsp;MiB at 163,840 &mdash;
+  which is the price of roughly doubling decode on code.</p>
+
+  <h3><span class="sigil">04</span>The budget table</h3>
+  <p>Two constants per configuration &mdash; a fixed cost and a per-token cost
+  &mdash; reproduce <b>every fully-resident VRAM measurement in this
+  campaign</b>: 17 server loads, most to the megabyte, worst residual
+  127&nbsp;MiB. The per-token cost is 45,056&nbsp;B with the drafter on and
+  39,936&nbsp;B without; the fixed cost is what the four numbers below add up
+  to.</p>
+
+  <div class="mathgrid">
+    <div class="math-item"><div class="num">1,138</div><div class="lbl">MiB &mdash; the<br>vision projector</div></div>
+    <div class="math-item"><div class="num">1,008</div><div class="lbl">MiB &mdash; turning<br>the drafter on</div></div>
+    <div class="math-item"><div class="num">898</div><div class="lbl">MiB &mdash; n-max 10<br>instead of 4</div></div>
+    <div class="math-item"><div class="num">13,232</div><div class="lbl">MiB &mdash; weights<br>and nothing else</div></div>
+  </div>
+
+<div class="table-wrap"><table>
+    <caption><span class="derived">DERIVED</span> &mdash; llama-server's own <b>dedicated</b> VRAM, from two measured constants per column. Brackets are what is left of the 24,576 MiB board for the desktop and for slack. Orange = under 1,200 MiB left, which is less than this desktop wanted at its heaviest (1,181 MiB). <b>Validated against every fully-resident load in the campaign</b> &mdash; 17 of them, spanning both drafters, both KV widths and projector on and off. Most are predicted to the megabyte; the residual never exceeds 127 MiB, and the four loads that carry that 127 MiB all came from a single pass, which is an offset this campaign did not chase down. Spilled loads are outside the model by construction: once the board is full, dedicated stops tracking <code>-c</code> at all.</caption>
+    <thead><tr><th class="num">Window</th><th class="num">no MTP<br><span class="small">text only</span></th><th class="num">no MTP<br><span class="small">+ vision</span></th><th class="num">MTP n4<br><span class="small">+ vision</span></th><th class="num">MTP n10<br><span class="small">text only</span></th><th class="num">MTP n10<br><span class="small">+ vision</span></th></tr></thead>
+    <tbody>
+      <tr><td class="num">32,768</td><td class="num">14,480 <span class="small">(10,096)</span></td><td class="num">15,618 <span class="small">(8,958)</span></td><td class="num">16,786 <span class="small">(7,790)</span></td><td class="num">16,546 <span class="small">(8,030)</span></td><td class="num">17,684 <span class="small">(6,892)</span></td></tr>
+      <tr><td class="num">65,536</td><td class="num">15,728 <span class="small">(8,848)</span></td><td class="num">16,866 <span class="small">(7,710)</span></td><td class="num">18,194 <span class="small">(6,382)</span></td><td class="num">17,954 <span class="small">(6,622)</span></td><td class="num">19,092 <span class="small">(5,484)</span></td></tr>
+      <tr><td class="num">98,304</td><td class="num">16,976 <span class="small">(7,600)</span></td><td class="num">18,114 <span class="small">(6,462)</span></td><td class="num">19,602 <span class="small">(4,974)</span></td><td class="num">19,362 <span class="small">(5,214)</span></td><td class="num">20,500 <span class="small">(4,076)</span></td></tr>
+      <tr class="hi"><td class="num">131,072</td><td class="num">18,224 <span class="small">(6,352)</span></td><td class="num">19,362 <span class="small">(5,214)</span></td><td class="num">21,010 <span class="small">(3,566)</span></td><td class="num">20,770 <span class="small">(3,806)</span></td><td class="num">21,908 <span class="small">(2,668)</span></td></tr>
+      <tr><td class="num">163,840</td><td class="num">19,472 <span class="small">(5,104)</span></td><td class="num">20,610 <span class="small">(3,966)</span></td><td class="num">22,418 <span class="small">(2,158)</span></td><td class="num">22,178 <span class="small">(2,398)</span></td><td class="num">23,316 <span class="small">(1,260)</span></td></tr>
+      <tr><td class="num">196,608</td><td class="num">20,720 <span class="small">(3,856)</span></td><td class="num">21,858 <span class="small">(2,718)</span></td><td class="num" style="color:var(--warn)">23,826 <span class="small">(750 left)</span></td><td class="num" style="color:var(--warn)">23,586 <span class="small">(990 left)</span></td><td class="num" style="color:var(--warn)">24,724 &mdash; will not fit</td></tr>
+      <tr><td class="num">229,376</td><td class="num">21,968 <span class="small">(2,608)</span></td><td class="num">23,106 <span class="small">(1,470)</span></td><td class="num" style="color:var(--warn)">25,234 &mdash; will not fit</td><td class="num" style="color:var(--warn)">24,994 &mdash; will not fit</td><td class="num" style="color:var(--warn)">26,132 &mdash; will not fit</td></tr>
+      <tr><td class="num">262,144</td><td class="num">23,216 <span class="small">(1,360)</span></td><td class="num" style="color:var(--warn)">24,354 <span class="small">(222 left)</span></td><td class="num" style="color:var(--warn)">26,642 &mdash; will not fit</td><td class="num" style="color:var(--warn)">26,402 &mdash; will not fit</td><td class="num" style="color:var(--warn)">27,540 &mdash; will not fit</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout good">
+    <span class="label">The trade the table makes visible</span>
+    <p>The full native 262,144-token window <em>does</em> fit on this card
+    &mdash; but only by giving up both the drafter and the projector, and with
+    no slack left for the desktop. You are choosing between
+    <b>up to 2.26&times; decode speed</b>, <b>the ability to send images</b>, and
+    <b>the last 100k tokens of window</b>. You cannot have all three on
+    24&nbsp;GiB.</p>
+  </div>
+
+  <h3><span class="sigil">05</span>Two ceilings, and only one of them is safe</h3>
+  <div class="split">
+    <div class="card yes">
+      <h4>Fully resident &mdash; 163,840 tokens</h4>
+      <p>llama-server takes 22,418&nbsp;MiB <b>at MTP n4/p0.75</b>, leaving
+      2,158 of the board. Shallow decode 63.7&nbsp;t/s, and it stays that way
+      when the window actually fills. The coding drafter's deeper draft adds
+      898&nbsp;MiB and cuts that headroom to 1,260.</p>
+    </div>
+    <div class="card">
+      <h4>Shallow-safe &mdash; 262,144 tokens</h4>
+      <p>Loads fine. Answers a short prompt at 59.1&nbsp;t/s. Has
+      <b>3.5&nbsp;GiB living in system RAM</b>. Looks like a free extra 98k
+      tokens right up until something reads them.</p>
+    </div>
+  </div>
+
+<p>The difference between those two settings is not visible from a short
+  prompt, which is exactly what makes it dangerous. Same prompts, same flags,
+  same projector &mdash; only <code>-c</code> differs. (The comparison below
+  uses 131,072 rather than the 163,840 ceiling because that is the window the
+  default recipe ships; 163,840 was never itself probed at depth.)</p>
+
+  <div class="table-wrap"><table>
+    <caption><span class="measured">MEASURED</span> &mdash; decode t/s from server timings, identical prompts and flags (projector on, MTP n4/p0.75, q8_0 KV, <code>-ngl 99</code>), 300 predicted tokens per cell. Only <code>-c</code> differs.</caption>
+    <thead><tr><th class="num">Prompt depth</th><th class="num">-c 131072 resident</th><th class="num">-c 262144 spilled</th><th class="num">Penalty</th><th class="num">Prefill, resident</th><th class="num">Prefill, spilled</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1,530</td><td class="num">53.48</td><td class="num">42.92</td><td class="num">1.25&times;</td><td class="num">914</td><td class="num">755</td></tr>
+      <tr><td class="num">29,837</td><td class="num">47.30</td><td class="num">18.64</td><td class="num">2.54&times;</td><td class="num">1,085</td><td class="num">408</td></tr>
+      <tr class="hi"><td class="num">90,885</td><td class="num">30.61</td><td class="num"><b>8.02</b></td><td class="num"><b>3.82&times;</b></td><td class="num">819</td><td class="num"><b>183</b></td></tr>
+    </tbody>
+  </table></div>
+
+  <p>Draft acceptance is <em>unchanged</em> between the two columns
+  (0.903 against 0.895 at 29.8k), which rules out any drafting explanation.
+  This is the KV cache being read across PCIe instead of out of VRAM. Prefill
+  collapses with it, from 1,085 to 408&nbsp;t/s.</p>
+
+  <p class="small">One loose end, left loose. The resident column here reads
+  30.61&nbsp;t/s at 90.9k while the projector-less series above reads 35.81 at
+  92.7k &mdash; slower at a shallower depth, on otherwise identical flags. The
+  only stated difference is the projector, which &sect;02 elsewhere shows is a
+  fixed <em>memory</em> cost; a ~15 % deep-decode cost for having it loaded
+  would be a real finding, but it rests on one comparison and this campaign did
+  not isolate it. It is reported and not built on.</p>
+
+  <div class="callout warn">
+    <span class="label">The trap, stated plainly</span>
+    <p>A reader who set <code>-c 262144</code> because it loaded and answered
+    quickly would get <b>26 % of what the resident window gives</b> the first
+    time they pasted a 90k-token document into it &mdash; 8.0&nbsp;t/s against
+    30.6 for the identical prompt at <code>-c 131072</code> &mdash; and nothing
+    in the logs would say why. That is the entire reason this page reports two ceilings and ships
+    the smaller one.</p>
+  </div>
+
+  <div class="feature">
+    <p>A short prompt will tell you whether a window <span class="em">fits</span>.
+    It will never tell you whether it is <span class="em">fast</span>.</p>
+  </div>
+
+  <h3><span class="sigil">06</span>Slack is the anti-spill budget</h3>
+  <p>At this model's measured 45,056&nbsp;B per window token, <b>1&nbsp;GiB of
+  headroom is 23,800 tokens</b> <span class="derived">DERIVED</span>. That is the
+  unit to think in when someone opens a browser. This desktop's own share of the
+  board measured anywhere from 133 to 1,181&nbsp;MiB depending on what was open,
+  and a compositor under real load can take several GiB more. Recipe 1 leaves
+  1,260&nbsp;MiB for all of that; Recipe 2 leaves 2,668. Dropping one step of
+  <code>-c</code> buys back 1,408&nbsp;MiB, which is the whole argument for
+  making 131,072 the default.</p>
+</section>
+
+<section id="universal">
+  <div class="section-tag"><span class="num">03</span>Universal flags</div>
+  <h2>Seven flags to set, and what each one is worth here.</h2>
+
+  <div class="table-wrap"><table>
+    <thead><tr><th>Flag</th><th>Why</th><th>The measurement</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="mono">-ngl 99</td>
+        <td>llama.cpp counts the output projection as layer <em>n</em>+1, so <code>-ngl 64</code> silently leaves it on the CPU.</td>
+        <td><b>42.31 vs 29.84 t/s</b> &mdash; the off-by-one costs 29.5 % of decode and is invisible in VRAM.</td>
+      </tr>
+      <tr>
+        <td class="mono">--spec-type draft-mtp<br>--spec-draft-n-max 10<br>--spec-draft-p-min 0.5</td>
+        <td>The drafter is already inside the GGUF. Nothing to download, no second model to fit.</td>
+        <td>On answer tokens: <b>42.17 &rarr; 95.35 t/s (2.26&times;)</b> emitting a JS class, <b>41.55 &rarr; 43.80 (1.16&times;)</b> writing prose, <code>-c 32768</code>, temp 0. Costs 1,008 MiB + 5,120 B/token, plus 898 MiB for n-max 10.</td>
+      </tr>
+      <tr>
+        <td class="mono">-ctk q8_0 -ctv q8_0</td>
+        <td>Halves the per-token cache so the window roughly doubles.</td>
+        <td><b>&minus;2.0 % decode</b> (43.19 &rarr; 42.31 t/s, same 700-token code probe at <code>-c 32768</code>, temp 0) and <b>&minus;874 MiB at 32k</b>. Quality cost, measured over 294,912 token positions: <b>+0.31 %</b> perplexity (&sect;05).</td>
+      </tr>
+      <tr>
+        <td class="mono">--parallel 1</td>
+        <td>Slots divide the window. Two slots at <code>-c 131072</code> give each request 65,536 tokens, not 131,072.</td>
+        <td>Not separately benchmarked in this campaign; the arithmetic is in llama-server's own <code>n_ctx_slot</code> line, which reported <code>n_ctx_slot = 32768</code> for <code>-c 32768 --parallel 1</code>.</td>
+      </tr>
+      <tr>
+        <td class="mono">--reasoning-preserve</td>
+        <td>Keeps each turn's thinking in the conversation, which is what makes multi-turn agentic work coherent &mdash; and what makes &sect;04's turns-per-window budget the number that matters.</td>
+        <td>Structural, not benchmarked. Its cost is visible in &sect;04: at <code>xhigh</code> a single turn is <b>&ge; 67,237 tokens</b>, so a 131,072-token window holds one.</td>
+      </tr>
+      <tr>
+        <td class="mono">--load-mode mmap</td>
+        <td>Lets the OS page cache hold the weights between restarts.</td>
+        <td><b>Server ready in 6.0&ndash;10.6 s</b> across ~30 restarts once the 13.3 GiB file was in the page cache. <code>--load-mode none</code> was not separately timed here. With <code>-ngl 99</code> every weight ends in VRAM regardless, so load mode cannot affect decode &mdash; and repeat probes across phases agreed to 0.7 %, which is the check that says so.</td>
+      </tr>
+      <tr>
+        <td class="mono">--jinja</td>
+        <td>Required for the model's own chat template, and therefore for <code>reasoning_effort</code> to exist at all.</td>
+        <td>Without it there is no effort knob and no <code>reasoning_content</code> field. Structural, not benchmarked.</td>
+      </tr>
+    </tbody>
+  </table></div>
+
+  <h3><span class="sigil">01</span>The one that silently costs you 30 %</h3>
+  <p>llama.cpp counts the output projection as layer <em>n</em>+1. This model
+  has 64 layers, so <code>-ngl 64</code> looks exactly right and is wrong.
+  <span class="measured">MEASURED</span> on identical prompts and settings:</p>
+
+  <div class="mathgrid">
+    <div class="math-item"><div class="num">42.31</div><div class="lbl">t/s with<br>-ngl 99</div></div>
+    <div class="math-item"><div class="num">29.84</div><div class="lbl">t/s with<br>-ngl 64</div></div>
+    <div class="math-item"><div class="num">1.42&times;</div><div class="lbl">cost of the<br>off-by-one</div></div>
+    <div class="math-item"><div class="num">298</div><div class="lbl">MiB VRAM<br>difference</div></div>
+  </div>
+  <p class="small">Conditions for all four: <code>-c 32768</code>, q8_0 KV,
+  <code>--spec-type none</code>, temp 0 / top_k 1, an 83-token code prompt and
+  700 predicted tokens, idle desktop. Both arms generated the identical token
+  stream, so the only variable is the flag.</p>
+
+  <p>Note the last cell. The failure is nearly invisible in VRAM &mdash;
+  298&nbsp;MiB out of 14.1&nbsp;GiB &mdash; and the server starts, loads and
+  answers normally. The <em>only</em> signature is the speed. Use
+  <code>-ngl 99</code> whenever the file fits in VRAM &mdash; which is every
+  card in &sect;07 except the 12&nbsp;GB one, where the weights do not fit at
+  all and partial offload is a different problem with different arithmetic.</p>
+
+  <h3><span class="sigil">02</span>q8_0 KV costs 2 % of decode and buys 27 KiB a token</h3>
+  <p><span class="measured">MEASURED</span> at <code>-c 32768</code>: fp16 KV
+  decoded 43.19&nbsp;t/s using 15,354&nbsp;MiB; q8_0 KV decoded 42.31&nbsp;t/s
+  using 14,480&nbsp;MiB. So the quantised cache is <b>2.0 % slower</b> and
+  saves <b>874&nbsp;MiB at 32k</b>. That is 27,968&nbsp;B/token saved &mdash; the arithmetic predicted 30,720, so
+  the measurement comes in 9 % under. Against the measured q8_0 slope of
+  39,936&nbsp;B/token that puts fp16 at 67,904 <span class="derived">DERIVED</span>,
+  i.e. <b>1.70&times; the window</b> for 2 % of the speed. Take the trade every time.
+   The perplexity check in
+  &sect;05 closes this: quantising the cache moved perplexity from
+  <b>6.5956 to 6.6160</b>, <b>+0.31 %</b> over 294,912 scored token positions.
+  That is the whole quality cost of nearly doubling your context window.</p>
+</section>
+
+<section id="effort">
+  <div class="section-tag"><span class="num">04</span>Effort</div>
+  <h2>What the thinking knob actually costs, at n=1.</h2>
+<p>Qwen3.8 exposes <code>reasoning_effort</code> with three settings and
+  defaults to the most expensive one. Anything that talks to this server and
+  does not set the knob is paying for <code>xhigh</code>, whether or not the
+  task needs it.</p>
+
+  <pre><code># at load time, for the whole server
+--chat-template-kwargs "{\"reasoning_effort\":\"medium\"}"
+
+# or per request, in the JSON body
+"chat_template_kwargs": {"reasoning_effort": "medium"}</code></pre>
+
+  <div class="callout warn">
+    <span class="label">n=1, and one non-blind judge</span>
+    <p>The methodology this campaign follows asks for two runs per level and
+    independent blind subagent judges. The time budget bought <b>one run per
+    level</b>, scored by a single judge who could see which was which. The cost
+    figures below are real single samples at temperature 1.0 &mdash; a
+    non-deterministic setting, so a second run would land somewhere else. The
+    quality column is a first look, not a ranking, and no level is crowned.</p>
+  </div>
+
+  <h3><span class="sigil">01</span>What each level costs</h3>
+  <p>Identical prompt (the aquarium task &mdash; one self-contained HTML file, a
+  mandated CONFIG object, and a long checkable requirement list), identical
+  server flags, the model card's recommended thinking sampling
+  (<code>temperature 1.0, top_p 0.95, top_k 20</code>), and a 65,536-token cap
+  &mdash; which turned out not to be enough.</p>
+
+  <div class="table-wrap"><table>
+    <caption><span class="measured">MEASURED</span> <b>n=1 per level</b> &mdash; <code>-c 131072</code>, IQ4_XS, <code>-ngl 99</code>, q8_0 KV, MTP n-max 4 / p-min 0.75, no projector, <code>--reasoning-preserve</code>, temp 1.0 / top_p 0.95 / top_k 20, 65,536-token cap. <b><code>low</code> and <code>medium</code> finished; <code>xhigh</code> hit the cap and its row is a lower bound.</b></caption>
+    <thead><tr><th>Level</th><th class="num">prompt tokens</th><th class="num">completion tokens</th><th class="num">decode t/s</th><th class="num">acceptance</th><th class="num">wall</th><th>finish</th><th class="num">answer bytes</th></tr></thead>
+    <tbody>
+      <tr><td><code>low</code></td><td class="num">1,689</td><td class="num">17,321</td><td class="num">81.21</td><td class="num">91.0 %</td><td class="num">3 m 35 s</td><td>stop</td><td class="num">36,680</td></tr>
+      <tr><td><code>medium</code></td><td class="num">1,659</td><td class="num">24,973</td><td class="num">66.75</td><td class="num">88.2 %</td><td class="num">6 m 16 s</td><td>stop</td><td class="num">40,838</td></tr>
+      <tr class="hi"><td><code>xhigh</code> <span class="small">(default)</span></td><td class="num">1,701</td><td class="num"><b>65,536</b><br><span class="small">= the cap</span></td><td class="num">51.34</td><td class="num">83.6 %</td><td class="num">21 m 18 s</td><td><b style="color:var(--warn)">length</b><br><span class="small">truncated</span></td><td class="num">8,557<br><span class="small">incomplete</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout good">
+    <span class="label">The cheap check that the knob is real</span>
+    <p>Notice the prompt-token column: 1,689 for <code>low</code> and 1,659 for
+    <code>medium</code>, from the identical user message. The chat template
+    injects a reasoning-instruction system line for <code>low</code> and
+    <code>xhigh</code> but not for <code>medium</code>, so a differing
+    <code>prompt_n</code> is proof that
+    <code>--chat-template-kwargs</code> reached the template instead of being
+    silently ignored. Check this before believing any effort comparison,
+    including this one.</p>
+  </div>
+
+  <p>Decode <em>falls</em> as effort rises &mdash; 81.2 &rarr; 66.8&nbsp;t/s
+  &mdash; and that is not the model getting slower. It is the token mix
+  changing. <code>low</code> spent 4,827 characters thinking and the rest
+  emitting HTML, which the drafter predicts extremely well (91.0 % acceptance);
+  <code>medium</code> spent 20,906 characters thinking, and prose reasoning is
+  harder to draft. <b>Higher effort costs you twice</b>: more tokens, each
+  arriving more slowly.</p>
+
+  <h3><span class="sigil">02</span>What each level produced</h3>
+
+  <p>Each answer was checked mechanically against the task's numbered
+  requirements, then rendered headless in Chrome at 1280&times;720 and looked at.
+  One judge, not blind, n=1 &mdash; so what follows is reported as
+  <em>categorical</em> findings (does it work, does it violate a stated
+  requirement), which are meaningful at n=1, and <b>not</b> as a score, which
+  is not.</p>
+
+  <div class="split">
+    <div class="card yes">
+      <h4><code>low</code> &mdash; works</h4>
+      <p>20 CONFIG constants, all seven mandated ones present, and every one of
+      the twenty actually referenced in the code. 17 draw functions. No external
+      references of any kind. <code>requestAnimationFrame</code> with delta
+      time and a resize listener. Renders correctly; creatures distributed
+      across the tank.</p>
+      <p class="small">Missing: no <code>devicePixelRatio</code> handling, so it
+      is soft on a HiDPI display.</p>
+    </div>
+    <div class="card">
+      <h4><code>medium</code> &mdash; better code, real bug</h4>
+      <p>21 draw functions including unprompted extras (a treasure chest,
+      clownfish, caustics, motes), <code>devicePixelRatio</code> handled, and
+      scenery stored in <em>normalised</em> coordinates so it survives a resize
+      &mdash; architecturally the better file.</p>
+      <p class="small">And it ships broken. See below.</p>
+    </div>
+  </div>
+
+  <h4>The bug, found by reading and confirmed by running</h4>
+  <p>In the <code>medium</code> file, <code>let W = 0, H = 0, FLOOR = 0;</code>
+  is on line 42 and <code>resize()</code> is not called until line 1270 &mdash;
+  after every creature array has been built. So each mobile creature is spawned
+  with:</p>
+  <pre><code>x: rand(W * 0.1, W * 0.9)   // W is still 0 here
+                            // -&gt; rand(0, 0) -&gt; 0</code></pre>
+  <p>Every fish, jellyfish, crab, the lobster, the starfish, the seahorse and
+  the turtle spawn stacked in the top-left corner. The static scenery is fine,
+  because scenery uses normalised coordinates resolved at draw time &mdash;
+  which is why the floor looks correctly populated while the tank is empty.
+  Rendered at 9 and at 30 seconds of animation, the creatures are still bunched
+  against the left edge. This directly violates the task's
+  &ldquo;Creatures should not cluster in one area. Distribute them across the
+  tank.&rdquo;</p>
+  <p><code>low</code> does not have the bug: it calls <code>resize()</code> on
+  line 48, before the first spawn on line 79. Same model, same prompt, same
+  sampling &mdash; one line of ordering apart.</p>
+
+  <h4><code>xhigh</code> &mdash; no deliverable at all</h4>
+  <p>The default effort level did not produce an answer to judge. It spent
+  <b>160,919 characters of thinking</b> &mdash; roughly 40,000 tokens &mdash;
+  then began the file and ran into the 65,536-token cap 8,557 characters in.
+  <code>finish_reason</code> came back <code>length</code>, and no complete
+  <code>&lt;html&gt;</code> document could be extracted.</p>
+
+  <p>There is a small irony in where the cut landed. The 8,557 characters that
+  did arrive end mid-way through a <code>reflow()</code> function that clamps
+  every creature's position into the current canvas bounds &mdash; precisely the
+  guard whose absence broke the <code>medium</code> file. The most expensive run
+  was writing the fix the cheaper run needed, and ran out of budget before it
+  could hand it over.</p>
+
+  <p>That is not a quality result. It is the memory result from &sect;02
+  arriving in a different disguise: <b>a level whose thinking appetite exceeds
+  the budget does not produce a worse answer, it produces no answer</b>. The
+  methodology's response to a truncated arm is to raise the cap and re-run that
+  arm alone; the largest cap that still fits inside this recipe's window is
+  120,000 tokens. That re-run was scheduled as the <em>last</em> GPU job of the
+  campaign on purpose: if it overran the time budget, everything else was
+  already measured and this page could ship the truncation as the finding
+  rather than wait on it. It finished, and the result is the
+  most interesting number in this section.</p>
+
+  <h4>The re-run: the ceiling is a distribution, not a number</h4>
+  <div class="table-wrap"><table>
+    <caption><span class="measured">MEASURED</span> &mdash; identical prompt, flags and sampling; the cap is the only difference. Temperature 1.0, so these are two independent samples, not a repeat.</caption>
+    <thead><tr><th><code>xhigh</code> run</th><th class="num">Cap</th><th class="num">Tokens used</th><th class="num">decode t/s</th><th class="num">wall</th><th>finish</th><th class="num">Wh</th><th>Deliverable</th></tr></thead>
+    <tbody>
+      <tr><td>first</td><td class="num">65,536</td><td class="num">65,536</td><td class="num">51.34</td><td class="num">21 m 18 s</td><td><b style="color:var(--warn)">length</b></td><td class="num">120.2</td><td>none &mdash; cut mid-file</td></tr>
+      <tr class="hi"><td>re-run</td><td class="num">120,000</td><td class="num"><b>61,476</b></td><td class="num">55.76</td><td class="num">18 m 24 s</td><td><b>stop</b></td><td class="num">104.9</td><td>complete, and the best of the three</td></tr>
+    </tbody>
+  </table></div>
+
+  <p>The second sample wanted <b>61,476</b> tokens &mdash; <em>fewer</em> than
+  the cap the first sample hit. At temperature 1.0, <code>xhigh</code>'s
+  appetite straddles 65,536: one run spent 160,919 characters thinking and ran
+  out of room, the next spent 114,081 and finished, with 41,376 characters of
+  HTML to show for it. <b>The effort ceiling is not a number, it is a
+  distribution</b> &mdash; and a cap set near the median truncates a good
+  fraction of your runs while looking generous on paper.</p>
+
+  <p>The completed file is also the strongest of the three. Rendered, it spreads
+  creatures across the full width, adds a clownfish in the anemone, a treasure
+  chest and a title card, caps <code>devicePixelRatio</code>, and has none of
+  <code>medium</code>'s initialisation bug: 25 draw functions, 18 CONFIG
+  constants, no external references. <b>n=1, judged by one judge who could see
+  the label</b> &mdash; but the categorical part is solid: it works, and
+  <code>medium</code> does not.</p>
+
+  <div class="callout warn">
+    <span class="label">What this is and is not evidence of</span>
+    <p>At n=1 and temperature 1.0, this is <b>not</b> evidence that
+    <code>medium</code> is worse than <code>low</code>. It is evidence that this
+    model, at this size, on this task, will ship an initialisation-order bug
+    that a browser does not complain about &mdash; and that reading the output
+    matters more than the effort setting you chose. A second run of either level
+    could land the other way.</p>
+  </div>
+
+  <div class="callout warn">
+    <span class="label">Accuracy per effort level: not measured</span>
+    <p>The methodology asks for a scored benchmark at each effort level, with a
+    token cap high enough that no arm truncates and a truncation count reported
+    beside every score. <b>That was not run</b> &mdash; see &sect;09 for why a
+    small-n substitute would have been worse than nothing. What the cap
+    discipline <em>did</em> catch is the truncation itself:
+    <code>low</code> and <code>medium</code> returned
+    <code>finish_reason=stop</code> and are complete answers, while
+    <code>xhigh</code> returned <code>length</code> and is not. Its row is
+    reported as a <b>lower bound</b> everywhere it appears, and no quality
+    judgement is drawn from it.</p>
+  </div>
+
+  <h3><span class="sigil">03</span>Energy per level</h3>
+  <p>The GPU's own <code>power.draw</code> counter was logged at 1&nbsp;Hz for
+  the whole phase and integrated over each generation's recorded start and end
+  timestamps. <b>Gross draw, idle not subtracted</b> &mdash; a reader's marginal
+  cost sits between these figures and these figures minus idle, and an
+  unlabelled number would be unfalsifiable.</p>
+
+  <div class="table-wrap"><table>
+    <caption><span class="measured">MEASURED</span> n=1 &mdash; 1 Hz <code>nvidia-smi --query-gpu=power.draw</code>, integrated as mean watts &times; wall seconds &divide; 3,600 for the Wh column (&divide; 3.6e6 for kWh), over the generation window only. Gross GPU draw; whole-system draw is higher. Board idle with no server loaded measured <b>33.2 W</b> at the start of the campaign and <b>34.6 W</b> (n=15) 83 minutes later &mdash; call it 33&ndash;35 W.</caption>
+    <thead><tr><th>Level</th><th class="num">Samples</th><th class="num">Mean W</th><th class="num">Peak W</th><th class="num">Wh per answer</th><th class="num">Wh per 1k tokens</th></tr></thead>
+    <tbody>
+      <tr><td><code>low</code></td><td class="num">212</td><td class="num">344.1</td><td class="num">349.8</td><td class="num"><b>20.6</b></td><td class="num">1.19</td></tr>
+      <tr><td><code>medium</code></td><td class="num">372</td><td class="num">344.3</td><td class="num">349.6</td><td class="num"><b>36.0</b></td><td class="num">1.44</td></tr>
+      <tr class="hi"><td><code>xhigh</code></td><td class="num">1,264</td><td class="num">338.6</td><td class="num">349.4</td><td class="num"><b style="color:var(--warn)">120.2</b></td><td class="num">1.83</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="feature">
+    <p>The default effort level burned <span class="em">120 watt-hours</span>
+    and returned <span class="em">no usable file</span>.</p>
+  </div>
+
+  <p>Two things are worth separating there. The first is the obvious one:
+  <code>xhigh</code> cost <b>5.8&times;</b> the energy of <code>low</code> on
+  the same prompt and, on this run, produced nothing you could open in a
+  browser. The second is quieter &mdash; <b>watt-hours per thousand tokens rises
+  with effort</b>, 1.19 &rarr; 1.44 &rarr; 1.83, because the board draws the
+  same ~344&nbsp;W whatever it is generating while decode speed falls from 81 to
+  51&nbsp;t/s. Slower tokens are more expensive tokens.</p>
+
+  <h3><span class="sigil">04</span>The window sets the effort ceiling</h3>
+
+  <p>A thinking model's effort setting is only available to you if the
+  window can hold what it wants to think. The vendor's own guidance for this
+  model, on a 1M-token deployment, is to allow <b>262,144 tokens for reasoning
+  content and 131,072 for the final response</b>
+  <span class="cited">CITED</span>
+  (<a href="https://huggingface.co/Qwen/Qwen3.8-27B">model card</a>,
+  &ldquo;Adequate Output Length&rdquo;).</p>
+
+  <p>That is the whole point of this section. <b>The reasoning budget the vendor
+  recommends is larger than the entire context window this card can hold.</b>
+  The largest fully-resident window measured here is 163,840 tokens &mdash; less
+  than two thirds of the recommended reasoning allowance alone. On a 24&nbsp;GiB
+  card the effort knob is not a quality dial you turn freely; it is bounded by
+  memory, and the binding constraint is the card, not the model.</p>
+
+  <p>A caution before the table: with <code>--reasoning-preserve</code> on
+  (which is what makes multi-turn agentic work coherent), <b>every turn's
+  thinking stays in the context</b> for the rest of the conversation. So the
+  question is not &ldquo;does one answer fit&rdquo; but &ldquo;how many turns
+  before the window is full&rdquo;.</p>
+
+  <div class="table-wrap"><table>
+    <caption><span class="measured">MEASURED</span> tokens per turn, n=1 &mdash; the same task at each level, prompt plus completion. Turn counts are <span class="derived">DERIVED</span> by division and assume every turn is this expensive, which is pessimistic for short exchanges and optimistic for harder ones.</caption>
+    <thead><tr><th>Level</th><th class="num">Tokens per turn</th><th class="num">Turns in 131,072<br><span class="small">Recipe 2</span></th><th class="num">Turns in 163,840<br><span class="small">Recipe 1</span></th><th class="num">Turns in 262,144<br><span class="small">not resident here</span></th></tr></thead>
+    <tbody>
+      <tr><td><code>low</code></td><td class="num">19,010</td><td class="num">6</td><td class="num">8</td><td class="num">13</td></tr>
+      <tr><td><code>medium</code></td><td class="num">26,632</td><td class="num">4</td><td class="num">6</td><td class="num">9</td></tr>
+      <tr class="hi"><td><code>xhigh</code></td><td class="num">63,177 and &gt;67,237<br><span class="small">n=2</span></td><td class="num">1</td><td class="num">2</td><td class="num">3&ndash;4</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout">
+    <span class="label">The practical consequence on 24 GiB</span>
+    <p>On this card, effort is not a free quality dial &mdash; it is a
+    turns-per-conversation budget. Raising effort does not degrade the answer
+    when the window runs out; it truncates it, which looks like the model
+    getting worse and is actually the card getting full.</p>
+  </div>
+
+  <h3><span class="sigil">05</span>Guidance</h3>
+
+  <div class="table-wrap"><table>
+    <caption><span class="measured">MEASURED</span> at <b>n=1 per level</b> on one generative task. Cost is solid; the &ldquo;use it when&rdquo; column is judgement informed by one sample, and is labelled as such rather than dressed up as a finding.</caption>
+    <thead><tr><th>Level</th><th class="num">Measured cost, this task</th><th>Use it when</th><th>Do not use it when</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>low</code></td>
+        <td class="num">17,321 tok<br>3 m 35 s<br>20.6 Wh</td>
+        <td>The task is well specified and the shape of the answer is obvious. On this run it produced a complete, working deliverable in the least time and the least energy of the three.</td>
+        <td>The task needs the model to notice something you did not tell it.</td>
+      </tr>
+      <tr>
+        <td><code>medium</code></td>
+        <td class="num">24,973 tok<br>6 m 16 s<br>36.0 Wh</td>
+        <td>You want the extra architecture &mdash; this run volunteered HiDPI handling, resize-safe coordinates and unprompted extras.</td>
+        <td>You will not read the output. It shipped a bug a browser reports as nothing at all.</td>
+      </tr>
+      <tr>
+        <td><code>xhigh</code> <span class="small">(the default)</span></td>
+        <td class="num">61,476&ndash;&gt;65,536 tok<br>18&ndash;21 min<br><b style="color:var(--warn)">105&ndash;120 Wh</b></td>
+        <td>The one run that completed produced the best file of the three. If you can afford 18 minutes and 105 Wh for one answer, and you set a cap it cannot hit, it earns its place.</td>
+        <td>Your cap is anywhere near 65,536. At n=2 its appetite landed on both sides of that line, and the run that crossed it returned <b>nothing usable at all</b> after 21 minutes and 120 Wh.</td>
+      </tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout">
+    <span class="label">The default is the expensive one</span>
+    <p>Every client that does not set <code>reasoning_effort</code> gets
+    <code>xhigh</code>. If your agent, IDE plugin or script has no effort
+    setting, that is what you are paying &mdash; in tokens, in seconds, and in
+    the watt-hours measured just above. Setting it explicitly is the single
+    highest-leverage line in the whole configuration &mdash; and the
+    watt-hours it moves are in &sect;04.03 above.</p>
+  </div>
+</section>
+
+<section id="which-file">
+  <div class="section-tag"><span class="num">05</span>Which file</div>
+  <h2>One quant was measured, so this section cannot rank quants.</h2>
+<p>The campaign brief was one quantisation:
+  <code>unsloth/Qwen3.8-27B-GGUF &rarr; Qwen3.8-27B-UD-IQ4_XS.gguf</code>,
+  14,252,845,984 bytes on disk (13.27&nbsp;GiB). A ranking needs at least two
+  files measured under identical conditions. <b>This campaign measured one, so
+  it publishes no ranking and no comparison &mdash; not even a hedged one.</b></p>
+
+  <p>What one file <em>can</em> establish is an absolute quality reference and
+  a sanity check that the quantisation is not broken. That is what perplexity
+  over a large corpus is for: it scores every token position rather than a few
+  hundred all-or-nothing answers (&sect;09).</p>
+
+  <div class="table-wrap"><table>
+    <caption><span class="measured">MEASURED</span> &mdash; <code>llama-perplexity -m Qwen3.8-27B-UD-IQ4_XS.gguf -f wiki.test.raw -ngl 99 -c 8192 -fa on</code>, wikitext-2-raw <b>test</b> split, <b>36 chunks &times; 8,192 = 294,912 token positions</b> per arm, 8.2&ndash;9.0 s per pass, ~5 minutes wall each.</caption>
+    <thead><tr><th>KV cache</th><th class="num">Perplexity</th><th class="num">vs fp16</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td><code>-ctk f16 -ctv f16</code></td><td class="num">6.5956 &plusmn; 0.04453</td><td class="num">&mdash;</td><td>The reference.</td></tr>
+      <tr class="hi"><td><code>-ctk q8_0 -ctv q8_0</code></td><td class="num">6.6160 &plusmn; 0.04483</td><td class="num"><b>+0.31 %</b></td><td>What every recipe on this page ships.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout">
+    <span class="label">What you can take from a single perplexity number</span>
+    <p>On its own it says the file is coherent and the loader is configured
+    correctly &mdash; a broken quantisation or a mismatched tokeniser shows up
+    here as an obviously wrong figure, not a subtle one. It says nothing about
+    whether a different Q4-class file would be better, and the honest gap
+    between healthy Q4 variants is small enough that &sect;09's arithmetic
+    applies: you would need the second file measured under exactly these
+    conditions to say anything at all.</p>
+  </div>
+
+  <h3><span class="sigil">01</span>Why this file, given no ranking was possible</h3>
+  <p>The choice rests on physics rather than on a quality measurement, and the
+  physics is directional and reliable: <b>decode speed is bandwidth divided by
+  file size</b>. IQ4_XS is the smallest Q4-class file in the repository, so on
+  a fixed card it is both the fastest and the one that leaves the most VRAM for
+  context. On this card the difference is concrete &mdash; every GiB of file
+  not spent on weights is <b>~23,800 more tokens of window</b> at the measured
+  45,056&nbsp;B/token.</p>
+  <p>That is an argument for measuring IQ4_XS <em>first</em>, not proof that it
+  is as accurate as a larger Q4. If accuracy at the margin matters to you, the
+  missing measurement is a perplexity run on a second file under these exact
+  conditions, and it costs one evening.</p>
+</section>
+
+<section id="speculation">
+  <div class="section-tag"><span class="num">06</span>Speculative decoding</div>
+  <h2>The largest free speed-up on this page, and the easiest to over-tune.</h2>
+
+  <p>Start zoomed out. This is the whole speed story in one table &mdash; same
+  card, same file, same 700-token generations at temp&nbsp;0, differing only in
+  content and drafting flags.</p>
+
+  <div class="table-wrap"><table>
+    <caption>All rows <span class="measured">MEASURED</span> 2026-08-23, RTX 3090, IQ4_XS, q8_0 KV, <code>-ngl 99</code>, <code>--parallel 1</code>, temp 0 / top_k 1, 700-token cap, idle desktop. <b>The token-stream column matters</b>: this model thinks by default at <code>xhigh</code>, so a 700-token cap on a hard task returns 700 reasoning tokens and an empty answer. See &sect;06.04.</caption>
+    <thead><tr><th>Band</th><th class="num">t/s</th><th>Token stream</th><th>Condition that produces it</th></tr></thead>
+    <tbody>
+      <tr><td><b>Floor</b></td><td class="num">41.5&ndash;42.8</td><td>either</td><td><code>--spec-type none</code>. Eight measurements across four contents and both token streams span 3 % &mdash; without speculation, content does not exist as a variable.</td></tr>
+      <tr><td>Prose task, MTP on</td><td class="num">48.4&ndash;51.7</td><td>reasoning</td><td>Thinking about a 500-word explainer. Acceptance 43&ndash;80 %.</td></tr>
+      <tr><td>Python task, MTP on</td><td class="num">56.4&ndash;63.1</td><td>reasoning</td><td>Thinking about a module with unit tests. Acceptance 57&ndash;87 %.</td></tr>
+      <tr><td>JS task, MTP on</td><td class="num">80.2&ndash;89.1</td><td>reasoning</td><td>Thinking about a red-black tree. Acceptance 47&ndash;90 %.</td></tr>
+      <tr><td>Prose, answering</td><td class="num">43.8&ndash;48.4</td><td><b>answer</b></td><td>Writing the explainer, not thinking about it. Speculation buys 1.16&times; here and no more.</td></tr>
+      <tr><td>Python, answering</td><td class="num">75.1&ndash;79.1</td><td><b>answer</b></td><td>Emitting the module. Acceptance 59&ndash;92 %.</td></tr>
+      <tr><td>JavaScript, answering</td><td class="num">84.5&ndash;95.4</td><td><b>answer</b></td><td>Emitting the class. Acceptance 67&ndash;92 %.</td></tr>
+      <tr class="hi"><td><b>Ceiling</b></td><td class="num">148.7</td><td><b>answer</b></td><td>Reproducing a supplied snippet at 99.0 % acceptance &mdash; the most predictable content there is, and not a working number.</td></tr>
+      <tr><td>Deep context, shipped recipe</td><td class="num">70.1&ndash;94.5</td><td><b>answer</b></td><td>1.5k to 90.9k loaded, projector on, n10/p0.5 &mdash; a 26 % decline, &sect;02.</td></tr>
+      <tr><td>Deep context, spilled</td><td class="num">8.0</td><td>reasoning</td><td>90.9k loaded at <code>-c 262144</code>, where 3.5 GiB of the cache is in system RAM. The failure mode, not a setting.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3><span class="sigil">01</span>How it works here</h3>
+  <p>Qwen3.8 ships a trained multi-token-prediction head. Each round the head
+  drafts up to <code>--spec-draft-n-max</code> tokens, stopping early when its
+  own probability drops below <code>--spec-draft-p-min</code>; the full model
+  then verifies the batch in one pass and keeps the longest correct prefix. One
+  target pass therefore emits <em>one plus the accepted draft tokens</em>, and
+  <b>accepted-tokens-per-target-pass is the quantity that sets your speed</b>
+  &mdash; not the acceptance percentage everyone quotes.</p>
+
+  <h3><span class="sigil">02</span>The tuning sweep</h3>
+  <p>Eight configurations, fresh server each, the same novel-JS prompt at
+  temp&nbsp;0. <code>accepted / pass</code> is
+  <span class="derived">DERIVED</span> as
+  <code>draft_n_accepted &divide; (predicted_n &minus; draft_n_accepted)</code>.</p>
+
+  <div class="table-wrap"><table>
+    <caption><span class="measured">MEASURED</span> &mdash; 700 predicted tokens each, one 83-token novel-JS prompt, temp 0 / top_k 1, <code>-c 32768</code>.</caption>
+    <thead><tr><th>Config</th><th class="num">t/s</th><th class="num">vs floor</th><th class="num">acceptance</th><th class="num">accepted / pass</th><th class="num">drafted / pass</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">--spec-type none</td><td class="num">42.61</td><td class="num">1.00&times;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td></tr>
+      <tr><td class="mono">n-max 3, p-min 0</td><td class="num">81.97</td><td class="num">1.92&times;</td><td class="num">87.1 %</td><td class="num">2.59</td><td class="num">2.97</td></tr>
+      <tr><td class="mono">n-max 4, p-min 0.75</td><td class="num">80.99</td><td class="num">1.90&times;</td><td class="num">89.9 %</td><td class="num">2.65</td><td class="num">2.94</td></tr>
+      <tr><td class="mono">n-max 6, p-min 0.5</td><td class="num">80.18</td><td class="num">1.88&times;</td><td class="num">69.0 %</td><td class="num">3.61</td><td class="num">5.22</td></tr>
+      <tr><td class="mono">n-max 10, p-min 0</td><td class="num">87.31</td><td class="num">2.05&times;</td><td class="num">46.8 %</td><td class="num">4.60</td><td class="num">9.83</td></tr>
+      <tr class="hi"><td class="mono">n-max 10, p-min 0.5</td><td class="num">87.39</td><td class="num">2.05&times;</td><td class="num">59.2 %</td><td class="num">4.56</td><td class="num">7.69</td></tr>
+      <tr><td class="mono">n-max 10, p-min 0.75</td><td class="num">80.32</td><td class="num">1.88&times;</td><td class="num">72.3 %</td><td class="num">3.32</td><td class="num">4.59</td></tr>
+      <tr><td class="mono">n-max 16, p-min 0.5</td><td class="num">80.32</td><td class="num">1.88&times;</td><td class="num">47.1 %</td><td class="num">4.88</td><td class="num">10.36</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout warn">
+    <span class="label">Acceptance rate does not rank configs</span>
+    <p>The highest-acceptance configuration on that table (n-max 4 / p-min 0.75,
+    <b>89.9 %</b>) is 7 % <em>slower</em> than the config that accepts only
+    <b>59.2 %</b>. Drafting deeper and being wrong more often still wins,
+    because the MTP head is cheap and each verify pass is not. And the very
+    deepest draft (n-max 16) accepts the most per pass and is slow again,
+    because the draft itself starts to cost. The optimum is a ridge.</p>
+  </div>
+
+  <h3><span class="sigil">03</span>Case study: that sweep overfits its own prompt</h3>
+  <p>The sweep above says n-max&nbsp;10&nbsp;/&nbsp;p-min&nbsp;0.5 by 8 %. Re-run
+  the top two configurations across four content types &mdash; same servers, four
+  probes each &mdash; and the winner changes:</p>
+
+  <div class="table-wrap"><table>
+    <caption><span class="measured">MEASURED</span> &mdash; 700 predicted tokens per cell, temp 0 / top_k 1, <code>-c 32768</code>, fresh server per configuration. These are <b>reasoning</b> tokens: at the model's default effort a 700-token budget never reaches the answer, so each row is the model thinking about that task. See &sect;06.04.</caption>
+    <thead><tr><th>Content</th><th class="num">no spec</th><th class="num">n10 / p0.5</th><th class="num">acc.</th><th class="num">n4 / p0.75</th><th class="num">acc.</th></tr></thead>
+    <tbody>
+      <tr><td>Novel JS class <span class="small">(the sweep's prompt)</span></td><td class="num">42.81</td><td class="num"><b>88.77</b></td><td class="num">59.2 %</td><td class="num">78.71</td><td class="num">89.9 %</td></tr>
+      <tr><td>Python-module <em>task</em></td><td class="num">42.77</td><td class="num"><b>63.09</b></td><td class="num">56.5 %</td><td class="num">56.36</td><td class="num">87.4 %</td></tr>
+      <tr><td>Prose-explainer <em>task</em></td><td class="num">42.66</td><td class="num">48.42</td><td class="num">43.2 %</td><td class="num"><b>51.68</b></td><td class="num">79.9 %</td></tr>
+      <tr><td>Verbatim-copy <em>task</em></td><td class="num">42.47</td><td class="num">56.44</td><td class="num">54.9 %</td><td class="num"><b>79.64</b></td><td class="num">96.3 %</td></tr>
+    </tbody>
+  </table></div>
+
+  <p>n10/p0.5 wins the prompt it was tuned on by 13 %, wins Python by 12 %,
+  <em>loses</em> prose by 6 % and loses copying by <b>29 %</b>. Both are
+  defensible; neither is universal. This page ships n10/p0.5 because the stated
+  use case is coding, and says so out loud rather than presenting it as the
+  answer.</p>
+
+  <h3><span class="sigil">04</span>The acceptance demonstration</h3>
+  <p>Same card, same flags, only the content changes. This is the measurement
+  that makes every speculative speed-up falsifiable &mdash; and it produced the
+  campaign's most interesting mistake.</p>
+
+  <p>It fooled me twice, and both mistakes are more instructive than the
+  number they produced.</p>
+
+  <h4>First reading &mdash; &ldquo;copying is slower&rdquo;</h4>
+  <p>At <b>n-max 10 / p-min 0.5</b>, the novel-code probe ran 89.06&nbsp;t/s
+  (59.2 % acceptance) and the copy-this-verbatim probe ran <em>slower</em>,
+  59.26&nbsp;t/s (54.7 %). Copying is supposed to be the trivially predictable
+  case, so this looked like a genuine surprise about the model.</p>
+
+  <h4>Second reading &mdash; &ldquo;no, it is the draft depth&rdquo;</h4>
+  <p>At <b>n-max 4 / p-min 0.75</b> the identical copy prompt accepted
+  <b>96.3 %</b> and ran 79.64&nbsp;t/s. That looked like a tidy mechanism: a
+  10-deep rollout cannot cash in easy content because the MTP head conditions
+  each draft step on its own previous guess, so a 4-deep draft wins. Tidy, and
+  still wrong.</p>
+
+  <h4>What was actually happening</h4>
+  <p>Re-running the cases with the generated text <em>saved</em> rather than
+  discarded settled it:</p>
+
+  <div class="table-wrap"><table>
+    <caption><span class="measured">MEASURED</span> &mdash; one server, MTP n-max 10 / p-min 0.5, temp 0 / top_k 1, 700-token cap, <code>-c 32768</code>. The generated text was written to disk and read.</caption>
+    <thead><tr><th>Probe</th><th class="num">t/s</th><th class="num">acceptance</th><th>What came back in <code>content</code></th></tr></thead>
+    <tbody>
+      <tr><td>Novel JS class</td><td class="num">88.79</td><td class="num">59.2 %</td><td><b>Empty.</b> 700 tokens, all of them reasoning.</td></tr>
+      <tr><td>Copy a JS snippet verbatim</td><td class="num">59.29</td><td class="num">54.7 %</td><td><b>Empty.</b> 700 tokens, all of them reasoning.</td></tr>
+      <tr><td>Copy an English paragraph verbatim</td><td class="num">102.55</td><td class="num">77.1 %</td><td>The paragraph, copied correctly, four times.</td></tr>
+      <tr class="hi"><td>Count from 1 to 200</td><td class="num"><b>133.78</b></td><td class="num">85.5 %</td><td>The numbers.</td></tr>
+    </tbody>
+  </table></div>
+
+  <p><b>Neither copy probe ever copied anything.</b> Both spent the whole
+  700-token budget thinking about the copy task. And because speculative
+  decoding is lossless at greedy sampling, the n4 and n10 runs of that prompt
+  emitted the <em>identical</em> token sequence &mdash; so the 96.3 % versus
+  54.9 % acceptance gap is not about copying at all. It is about how well the
+  MTP head predicts <em>that reasoning stream</em> four tokens ahead versus ten.
+  The second reading's mechanism was real; the content it was attributed to was
+  imaginary.</p>
+
+  <div class="callout warn">
+    <span class="label">What every speed number in &sect;02, &sect;03 and the sweep above is timing</span>
+    <p>This model thinks by default, at <code>xhigh</code>, and a 700-token cap
+    is nowhere near enough to finish. Those probes were timing <b>reasoning
+    tokens</b>, not deliverables. The tokens are real and the server timed them
+    correctly &mdash; but every content label describes the <em>task</em>, not
+    the token stream, and no conclusion about content predictability survives
+    unless the text was read back.</p>
+  </div>
+
+  <p>The two probes that <em>did</em> answer already hinted at the real result
+  &mdash; 102.6&nbsp;t/s copying a paragraph, 133.8&nbsp;t/s counting to 200,
+  against 88.8 for reasoning about code. Predictable content is faster, exactly
+  as the theory says. It just took three attempts to measure it without fooling
+  myself, and the third one is below.</p>
+
+  <h4>The demonstration, done properly</h4>
+  <p>Third attempt. Thinking disabled with
+  <code>chat_template_kwargs: {"enable_thinking": false}</code>, so every timed
+  token is a token you would actually keep. Same four contents, same three
+  configurations, fresh server each:</p>
+
+  <div class="table-wrap"><table>
+    <caption><span class="measured">MEASURED</span> &mdash; <b>answer tokens only</b>, thinking disabled, <code>-c 32768</code>, temp 0 / top_k 1, <code>-ngl 99</code>, q8_0 KV, up to 700 predicted tokens, fresh server per configuration.</caption>
+    <thead><tr><th>Content generated</th><th class="num">No spec</th><th class="num">n10 / p0.5</th><th class="num">acc.</th><th class="num">n4 / p0.75</th><th class="num">acc.</th><th class="num">Best vs floor</th></tr></thead>
+    <tbody>
+      <tr class="hi"><td>Copying a supplied JS snippet</td><td class="num">41.46</td><td class="num"><b>148.66</b></td><td class="num">99.0 %</td><td class="num">97.04</td><td class="num">100.0 %</td><td class="num">3.59&times;</td></tr>
+      <tr><td>Novel JavaScript class</td><td class="num">42.17</td><td class="num"><b>95.35</b></td><td class="num">67.4 %</td><td class="num">84.47</td><td class="num">92.3 %</td><td class="num">2.26&times;</td></tr>
+      <tr><td>Novel Python module + tests</td><td class="num">41.84</td><td class="num"><b>79.13</b></td><td class="num">59.3 %</td><td class="num">75.12</td><td class="num">91.9 %</td><td class="num">1.89&times;</td></tr>
+      <tr><td>English prose explainer</td><td class="num">41.55</td><td class="num">43.80</td><td class="num">43.5 %</td><td class="num"><b>48.35</b></td><td class="num">79.9 %</td><td class="num">1.16&times;</td></tr>
+    </tbody>
+  </table></div>
+
+  <p>That is the acceptance curve, and it is monotone in the way the theory
+  says it should be: <b>the same card, the same file, the same flags, and a
+  3.4&times; spread in decode speed produced entirely by what is being
+  written</b>. Copying runs at 148.7&nbsp;t/s. Prose runs at 43.8 &mdash; a
+  1.16&times; return on speculation, which is close enough to nothing that on a
+  writing workload the drafter is barely worth its 1,808&nbsp;MiB.</p>
+
+  <div class="callout good">
+    <span class="label">And here is why acceptance rate alone still misleads</span>
+    <p>Look at the copying row. <code>n4/p0.75</code> accepts <b>100.0 %</b>
+    &mdash; a perfect score, 424 of 424 draft tokens &mdash; and runs
+    97.0&nbsp;t/s. <code>n10/p0.5</code> accepts <em>less</em>, 99.0 %, and runs
+    <b>148.7</b>. The reason is the quantity that actually matters:
+    <b>accepted tokens per target pass</b>, which is 3.96 for the 4-deep draft
+    and <b>10.54</b> for the 10-deep one. A perfect acceptance rate on a short
+    draft is a rate limit, not an achievement.</p>
+  </div>
+
+  <p>The two recipes in &sect;08 fall straight out of this table.
+  <code>n10/p0.5</code> wins every code row by 5&ndash;53 %;
+  <code>n4/p0.75</code> wins prose by 10 %. Both were chosen on the earlier
+  reasoning-token sweep and both survive re-measurement on the tokens a reader
+  actually keeps &mdash; which is the only reason they are still printed.</p>
+
+  <div class="feature">
+    <p>Flags do not create speed. They only choose
+    <span class="em">where you sit</span> on a curve the content already drew.</p>
+  </div>
+</section>
+
+<section id="hardware">
+  <div class="section-tag"><span class="num">07</span>Hardware matrix</div>
+  <h2>What this run would cost on other cards.</h2>
+<h3><span class="sigil">01</span>Decode, by bandwidth</h3>
+  <p>One row of this table is measured. Every other row is
+  <span class="derived">DERIVED</span> arithmetic, and the arithmetic is only as
+  good as its assumption &mdash; which is that decode speed tracks memory
+  bandwidth divided by file size, at the efficiency this card actually achieved.
+  Read them as an ordering, not as promises.</p>
+
+  <pre><code>derived t/s (no speculation) = bandwidth GB/s &divide; 14.25 GB &times; 0.649
+
+where 0.649 is THIS machine's measured ratio of achieved decode to
+raw bandwidth (42.61 &divide; 65.7). A different backend - Metal, Vulkan,
+a CPU build - will not have this efficiency, and the derived rows for
+non-CUDA hardware are correspondingly softer.</code></pre>
+
+  <div class="table-wrap"><table>
+    <caption>Bandwidth figures <span class="cited">CITED</span> to NVIDIA and Apple primary documents (&sect;14). Decode column: the 3090 row is <span class="measured">MEASURED</span>; every other row is <span class="derived">DERIVED</span> from the formula above. DDR figures are arithmetic: MT/s &times; 64 bit &times; 2 channels &divide; 8.</caption>
+    <thead><tr><th>Hardware</th><th class="num">Bandwidth</th><th class="num">Memory</th><th class="num">Decode t/s, no spec</th><th>Does the 13.3 GiB file fit, and how much window</th></tr></thead>
+    <tbody>
+      <tr class="hi">
+        <td><b>RTX 3090</b></td><td class="num">936 GB/s</td><td class="num">24 GB</td>
+        <td class="num"><b>42.6</b> <span class="small">measured, no drafter</span></td>
+        <td>Yes. 163,840 tokens resident with the projector loaded.</td>
+      </tr>
+      <tr><td>RTX 4090</td><td class="num">1008 GB/s</td><td class="num">24 GB</td><td class="num">~45.9</td><td>Yes, same window as the 3090 &mdash; same 24 GB.</td></tr>
+      <tr><td>RTX 5090</td><td class="num">1792 GB/s</td><td class="num">32 GB</td><td class="num">~81.6</td><td>Yes, and the extra 8 GB is ~190k more tokens: the full 262,144 window fits resident.</td></tr>
+      <tr><td>RTX 6000 Ada</td><td class="num">960 GB/s</td><td class="num">48 GB</td><td class="num">~43.7</td><td>Yes, 262,144 resident with room to spare.</td></tr>
+      <tr><td>RTX A6000</td><td class="num">768 GB/s</td><td class="num">48 GB</td><td class="num">~35.0</td><td>Yes, 262,144 resident.</td></tr>
+      <tr><td>RTX 4060 Ti 16 GB</td><td class="num">288 GB/s</td><td class="num">16 GB</td><td class="num">~13.1</td><td>The weights fit; the window barely does. <span class="derived">DERIVED</span> from &sect;02's constants on a 16,384 MiB board, before any desktop: <b>~29k tokens</b> text-only with the coding drafter, <b>~2.5k</b> with the projector as well (it does not fit in practice), and <b>~53k</b> with vision but no drafter. On 16 GB you pick one of speed and sight.</td></tr>
+      <tr><td>RTX 3060 12 GB</td><td class="num">360 GB/s</td><td class="num">12 GB</td><td class="num">&mdash;</td><td><b>No.</b> The weights alone are 13.3 GiB. Partial offload puts layers on a 51.2 GB/s DDR4 bus and the derived figure above stops applying entirely.</td></tr>
+      <tr><td>Apple M4 Max <span class="small">(16C/40C bin)</span></td><td class="num">546 GB/s</td><td class="num">unified, to 128 GB</td><td class="num">~24.9</td><td>Yes, and the window is bounded by the Metal working-set limit rather than a VRAM wall. Metal efficiency is not this card's; treat as an ordering only.</td></tr>
+      <tr><td>Apple M4 Pro</td><td class="num">273 GB/s</td><td class="num">unified, to 64 GB</td><td class="num">~12.4</td><td>Yes, same caveat.</td></tr>
+      <tr><td>CPU only, DDR5-6000 dual channel</td><td class="num">96 GB/s</td><td class="num">system RAM</td><td class="num">~4.4</td><td>Fits if you have the RAM. This is a different kind of usable &mdash; minutes per answer, not seconds.</td></tr>
+      <tr><td>CPU only, DDR4-3200 dual channel <span class="small">(this box's RAM)</span></td><td class="num">51.2 GB/s</td><td class="num">system RAM</td><td class="num">~2.3</td><td>Same, halved. This is the bus a spilled KV cache is reading over &mdash; see &sect;02.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout warn">
+    <span class="label">Channels, not just speed</span>
+    <p>Every CPU-side number above assumes <b>dual channel</b>. A single-stick
+    machine has exactly half the bus and every offload estimate halves with it.
+    This is the most common reason a reader's measured number comes in at half
+    of a published one, and it is invisible unless somebody states the channel
+    count &mdash; so: this machine is 2 &times; 16 GiB DDR4-3200, dual channel.</p>
+  </div>
+
+  <h3><span class="sigil">02</span>Wall-clock for one real deliverable</h3>
+  <p>The reference job is the &sect;04 task at <code>reasoning_effort low</code>:
+  one self-contained animated HTML page against a long requirement list.
+  <span class="measured">MEASURED</span> on this 3090 it took <b>17,321
+  generated tokens in 3&nbsp;minutes 35&nbsp;seconds</b> at 81.2&nbsp;t/s
+  (<code>-c 131072</code>, drafter n4/p0.75, a mixed stream of ~4.8k characters
+  of thinking and 36.7k of HTML). Scaling that by each card's derived decode gives:</p>
+
+  <div class="table-wrap"><table>
+    <caption>The 3090 row is <span class="measured">MEASURED</span>. Every other row is <span class="derived">DERIVED</span> twice over: once through the bandwidth formula, then again through this machine's <b>1.91&times;</b> drafting speed-up on this content.</caption>
+    <thead><tr><th>Hardware</th><th class="num">Expected t/s, drafter on</th><th class="num">Wall for 17,321 tokens</th></tr></thead>
+    <tbody>
+      <tr class="hi"><td><b>RTX 3090</b></td><td class="num"><b>81.2</b> <span class="small">measured</span></td><td class="num"><b>3 m 35 s</b> <span class="small">measured</span></td></tr>
+      <tr><td>RTX 5090</td><td class="num">~155</td><td class="num">~1 m 51 s</td></tr>
+      <tr><td>RTX 4090</td><td class="num">~87</td><td class="num">~3 m 18 s</td></tr>
+      <tr><td>RTX 6000 Ada</td><td class="num">~83</td><td class="num">~3 m 28 s</td></tr>
+      <tr><td>RTX A6000</td><td class="num">~67</td><td class="num">~4 m 20 s</td></tr>
+      <tr><td>Apple M4 Max (16C/40C)</td><td class="num">~48</td><td class="num">~6 m 5 s</td></tr>
+      <tr><td>RTX 4060 Ti 16 GB</td><td class="num">~25</td><td class="num">~11 m 33 s</td></tr>
+      <tr><td>Apple M4 Pro</td><td class="num">~24</td><td class="num">~12 m 13 s</td></tr>
+      <tr><td>CPU, DDR5-6000 dual channel</td><td class="num">~8</td><td class="num">~34 m</td></tr>
+      <tr><td>CPU, DDR4-3200 dual channel</td><td class="num">~4</td><td class="num">~1 h 6 m</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout warn">
+    <span class="label">The weaker half of that arithmetic</span>
+    <p>Speculative decoding trades compute for bandwidth: it runs a small draft
+    model and one wider verify pass in place of several narrow ones. On a card
+    with far more bandwidth per unit of compute than a 3090, the 1.91&times;
+    multiplier should shrink. It was <b>measured on exactly one card</b>, so the
+    fast rows are the least trustworthy numbers on this page, and they are here
+    as an ordering rather than a promise.</p>
+  </div>
+</section>
+
+<section id="recipes">
+  <div class="section-tag"><span class="num">08</span>Recipes</div>
+  <h2>Copy-paste configurations, each with its measurement.</h2>
+<p>Four configurations, because two measured findings split the choice: the
+  vision projector costs 1,138&nbsp;MiB of window, and the best drafting flags
+  for code are not the best for prose. Pick with this rule and stop reading:</p>
+
+  <div class="phases">
+    <div class="phase">
+      <div class="k">Start here</div>
+      <h4>Code, vision, and a normal desktop</h4>
+      <p><b>Recipe 2.</b> 131,072 tokens with the projector loaded, and enough
+      slack left that a browser cannot push it into system RAM. This is the
+      default.</p>
+    </div>
+    <div class="phase">
+      <div class="k">If nothing else is running</div>
+      <h4>The longest vision-capable window</h4>
+      <p><b>Recipe 1.</b> 163,840 tokens, but read the fence: it leaves
+      1,260&nbsp;MiB for the desktop, and this desktop wanted up to
+      1,181&nbsp;MiB of that on its own.</p>
+    </div>
+    <div class="phase">
+      <div class="k">If you never send images</div>
+      <h4>The longest window of all</h4>
+      <p><b>Recipe 3.</b> 180,224 tokens. Dropping the projector is worth about
+      26,500 tokens of context, measured.</p>
+    </div>
+  </div>
+
+  <p class="small"><b>Recipe 4</b> is Recipe 2 with the conservative drafter,
+  for writing rather than code. On answer tokens it measured
+  <b>48.35&nbsp;t/s</b> writing prose against 43.80 for the coding drafter, at
+  79.9 % acceptance against 43.5 %. It loses every code case, by 5&ndash;53 %.
+  It is not in the decision cards above because most readers will not need it
+  &mdash; take it if you mainly write.</p>
+
+  <h3><span class="sigil">01</span>Recipe 1 &mdash; coding with vision, quality-first</h3>
+  <p class="small"><span class="measured">MEASURED</span>: llama-server takes <b>23,316 MiB</b> of dedicated VRAM, leaving <b>1,260 MiB</b> of the board for the desktop and slack combined. This desktop wanted between 133 and 1,181 MiB across 26 loads, so <b>this configuration can spill on a busy desktop and does not on a quiet one</b>. Decode 79.3 t/s on a 700-token code probe at the model's default effort (reasoning tokens); &sect;06 has the answer-token figures.</p>
+  <pre><code>llama-server -m Qwen3.8-27B-UD-IQ4_XS.gguf \
+  --mmproj mmproj-Qwen3.8-27B-BF16.gguf --image-min-tokens 1024 \
+  --alias qwen/qwen3.8-27b -c 163840 \
+  -ngl 99 --parallel 1 --load-mode mmap -ctk q8_0 -ctv q8_0 \
+  --spec-type draft-mtp --spec-draft-n-max 10 --spec-draft-p-min 0.5 \
+  --reasoning-preserve --jinja \
+  --chat-template-kwargs "{\"reasoning_effort\":\"medium\"}" \
+  --host 127.0.0.1 --port 1234</code></pre>
+
+  <h3><span class="sigil">02</span>Recipe 2 &mdash; desktop-safe</h3>
+  <p class="small"><span class="measured">MEASURED</span>: llama-server takes <b>21,908 MiB</b>, leaving <b>2,668 MiB</b> for the desktop and slack &mdash; more than twice what this desktop ever wanted (1,181 MiB at its heaviest). Decode 77.1 t/s on a 700-token code probe at default effort (reasoning tokens); &sect;06 has the answer-token figures.</p>
+  <pre><code>llama-server -m Qwen3.8-27B-UD-IQ4_XS.gguf \
+  --mmproj mmproj-Qwen3.8-27B-BF16.gguf --image-min-tokens 1024 \
+  --alias qwen/qwen3.8-27b -c 131072 \
+  -ngl 99 --parallel 1 --load-mode mmap -ctk q8_0 -ctv q8_0 \
+  --spec-type draft-mtp --spec-draft-n-max 10 --spec-draft-p-min 0.5 \
+  --reasoning-preserve --jinja \
+  --chat-template-kwargs "{\"reasoning_effort\":\"medium\"}" \
+  --host 127.0.0.1 --port 1234</code></pre>
+
+  <h3><span class="sigil">03</span>Recipe 3 &mdash; text-only, maximum window</h3>
+  <p class="small"><span class="measured">MEASURED</span>: llama-server takes <b>22,882 MiB</b> at <code>-c 180224</code>, leaving <b>1,694 MiB</b>. Going further costs that headroom fast &mdash; 196,608 leaves 989&ndash;1,117 MiB and 212,992 leaves 413 (two loads of the same 196,608 config differed by 128 MiB), and the shallow probe already sags 56.6 &rarr; 51.9 &rarr; 49.2 t/s across those three &mdash; on a board this full that is the overcommitment penalty starting, not a window effect. No projector: images are rejected, and the window is ~26,500 tokens larger for it.</p>
+  <pre><code>llama-server -m Qwen3.8-27B-UD-IQ4_XS.gguf \
+  --alias qwen/qwen3.8-27b -c 180224 \
+  -ngl 99 --parallel 1 --load-mode mmap -ctk q8_0 -ctv q8_0 \
+  --spec-type draft-mtp --spec-draft-n-max 10 --spec-draft-p-min 0.5 \
+  --reasoning-preserve --jinja \
+  --chat-template-kwargs "{\"reasoning_effort\":\"medium\"}" \
+  --host 127.0.0.1 --port 1234</code></pre>
+
+  <h3><span class="sigil">04</span>Recipe 4 &mdash; prose and writing</h3>
+  <p class="small"><span class="measured">MEASURED</span>: llama-server takes <b>21,010 MiB</b>, leaving <b>3,566 MiB</b> &mdash; the roomiest configuration here. Decode 72.4 t/s on the same 700-token code probe at default effort (reasoning tokens). Identical to Recipe 2 except the drafter, which measured <b>+10 % writing prose</b> on answer tokens (48.35 vs 43.80 t/s) at 79.9 % acceptance against 43.5 %.</p>
+  <pre><code>llama-server -m Qwen3.8-27B-UD-IQ4_XS.gguf \
+  --mmproj mmproj-Qwen3.8-27B-BF16.gguf --image-min-tokens 1024 \
+  --alias qwen/qwen3.8-27b -c 131072 \
+  -ngl 99 --parallel 1 --load-mode mmap -ctk q8_0 -ctv q8_0 \
+  --spec-type draft-mtp --spec-draft-n-max 4 --spec-draft-p-min 0.75 \
+  --reasoning-preserve --jinja \
+  --chat-template-kwargs "{\"reasoning_effort\":\"medium\"}" \
+  --host 127.0.0.1 --port 1234</code></pre>
+
+  <h3><span class="sigil">05</span>The measured menu</h3>
+  <p>Every row below was produced by loading that exact command line, sampling
+  <code>power.draw</code> at 1&nbsp;Hz across one identical 700-token
+  generation, and integrating over the generation window only.</p>
+
+  <div class="table-wrap"><table>
+    <caption><span class="measured">MEASURED</span> &mdash; each row is a fresh server with the command line printed above it (on port 1235; see &sect;14), one identical 700-token novel-JS probe at temp 0 / top_k 1 <b>at the model's default effort, so decode here is reasoning tokens</b>, and a 1 Hz power log integrated over the generation window only. <b>Gross GPU draw, idle not subtracted.</b> &ldquo;Server VRAM&rdquo; is llama-server's own dedicated usage; &ldquo;left on board&rdquo; is 24,576 minus that, and the desktop has to come out of it.</caption>
+    <thead><tr><th>Recipe</th><th class="num">Window</th><th>Vision</th><th class="num">Drafter</th><th class="num">Server VRAM</th><th class="num">Left on board</th><th class="num">Decode t/s</th><th class="num">Peak W</th><th class="num">Wh / answer</th></tr></thead>
+    <tbody>
+      <tr><td><b>1</b> &mdash; bare desktop</td><td class="num">163,840</td><td>yes</td><td class="num">n10 / p0.5</td><td class="num">23,316</td><td class="num" style="color:var(--warn)">1,260</td><td class="num">79.26</td><td class="num">340</td><td class="num">0.73</td></tr>
+      <tr class="hi"><td><b>2</b> &mdash; the default</td><td class="num">131,072</td><td>yes</td><td class="num">n10 / p0.5</td><td class="num">21,908</td><td class="num"><b>2,668</b></td><td class="num">77.05</td><td class="num">338</td><td class="num">0.75</td></tr>
+      <tr><td><b>3</b> &mdash; text only</td><td class="num">180,224</td><td>no</td><td class="num">n10 / p0.5</td><td class="num">22,882</td><td class="num">1,694</td><td class="num">80.02&dagger;</td><td class="num">336&dagger;</td><td class="num">0.73&dagger;</td></tr>
+      <tr><td><b>4</b> &mdash; prose</td><td class="num">131,072</td><td>yes</td><td class="num">n4 / p0.75</td><td class="num">21,010</td><td class="num"><b>3,566</b></td><td class="num">72.44</td><td class="num">337</td><td class="num">0.80</td></tr>
+      <tr><td class="small">1 with the prose drafter <span class="small">(reference)</span></td><td class="num">163,840</td><td>yes</td><td class="num">n4 / p0.75</td><td class="num">22,418</td><td class="num">2,158</td><td class="num">70.46</td><td class="num">336</td><td class="num">0.84</td></tr>
+      <tr><td colspan="9" class="small">Idle, no server loaded: <b>34.6 W</b> (n=15; 33.2 W measured 83 minutes earlier). Idle with the model loaded and answering nothing: <b>30.2&ndash;31.1 W</b> across all five configurations &mdash; a loaded server costs essentially nothing until you ask it something. The desktop's own share of the board measured <b>133&ndash;1,181 MiB</b> across 26 loads; that is what has to fit in the &ldquo;left on board&rdquo; column.</td></tr>
+    </tbody>
+  </table></div>
+
+  <p class="small">&dagger; Recipe 3's VRAM comes from the ceiling pass at its
+  shipped <code>-c 180224</code>; its decode and power row was captured at
+  196,608, before the window was lowered. Power is flat across every
+  configuration measured here &mdash; 277 to 287&nbsp;W mean, 336 to 340 peak
+  &mdash; so the substitution changes nothing material.</p>
+
+  <div class="callout warn">
+    <span class="label">Read the watt-hours in this table with care</span>
+    <p>Each row integrates a ~10-second, 700-token generation, and the first of
+    its ten samples catch the board ramping from 31&nbsp;W to 340. The
+    <em>mean</em> over that window is therefore only 277&ndash;287&nbsp;W
+    (recorded per recipe in the campaign log), while the multi-minute runs in
+    &sect;04.03 sustained <b>344&nbsp;W</b>. The peak column above is the honest
+    steady-state figure; the Wh column is not. For planning, use &sect;04.03
+    &mdash; <b>1.19&ndash;1.83 Wh per thousand tokens</b>, rising with effort
+    &mdash; and treat this one as a per-recipe sanity check rather than the
+    number to multiply by your electricity bill.</p>
+  </div>
+
+  <details>
+    <summary>The launcher, in full</summary>
+    <p class="small">Saved beside this report as
+    <code>work/serve-qwen38.bat</code>. Each configuration carries the
+    measurement that justifies it as a comment, so the file stays honest when
+    it is copied to another machine.</p>
+    <pre><code>@echo off
+rem ---------------------------------------------------------------------------
+rem  serve-qwen38.bat - measured menu for Qwen3.8-27B UD-IQ4_XS on an RTX 3090
+rem  Every configuration below carries the measurement that justifies it.
+rem  Measured 2026-08-23, campaign qwen38-27b-blind. See index.html.
+rem  llama.cpp build 10502, commit 0adcc3bb5 (llama-server 0.1.2-dev).
+rem
+rem  Usage:  serve-qwen38.bat [1|2|3|4] [low|medium|xhigh]
+rem          default: 2 medium   (2 is the desktop-safe default)
+rem ---------------------------------------------------------------------------
+setlocal
+set EXE=E:\AI\llama.cpp\llama-server.exe
+set MODEL=C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF\Qwen3.8-27B-UD-IQ4_XS.gguf
+set MMPROJ=C:\Users\chink\.lmstudio\models\lmstudio-community\Qwen3.8-27B-GGUF\mmproj-Qwen3.8-27B-BF16.gguf
+set PORT=1234
+
+set CHOICE=%1
+if &quot;%CHOICE%&quot;==&quot;&quot; set CHOICE=2
+set EFFORT=%2
+if &quot;%EFFORT%&quot;==&quot;&quot; set EFFORT=medium
+
+rem Flags that are right on every configuration - see index.html section 03.
+set COMMON=-ngl 99 --parallel 1 --load-mode mmap -ctk q8_0 -ctv q8_0 --jinja --reasoning-preserve --host 127.0.0.1 --port %PORT% --alias qwen/qwen3.8-27b
+
+rem Coding drafter: on ANSWER tokens, measured 95.35 t/s writing a JS class
+rem vs 42.17 with speculation off (-c 32768, temp 0). Wins every code case.
+set SPEC_CODE=--spec-type draft-mtp --spec-draft-n-max 10 --spec-draft-p-min 0.5
+rem Prose drafter: on ANSWER tokens, 48.35 t/s writing prose vs 43.80 for
+rem SPEC_CODE, and 79.9 % acceptance vs 43.5 %. Wins prose, loses code.
+set SPEC_PROSE=--spec-type draft-mtp --spec-draft-n-max 4 --spec-draft-p-min 0.75
+
+if &quot;%CHOICE%&quot;==&quot;1&quot; goto cfg1
+if &quot;%CHOICE%&quot;==&quot;2&quot; goto cfg2
+if &quot;%CHOICE%&quot;==&quot;3&quot; goto cfg3
+if &quot;%CHOICE%&quot;==&quot;4&quot; goto cfg4
+goto cfg2
+
+:cfg1
+rem [1] CODING + VISION, largest resident window.  BARE DESKTOP ONLY.
+rem     MEASURED: llama-server takes 23,316 MiB dedicated, leaving 1,260 MiB
+rem     of the 24,576 MiB board for the desktop.  This desktop wanted up to
+rem     1,179 MiB on its own, so this config can spill on a busy screen.
+rem     Decode 79.3 t/s on a 700-token code probe (reasoning tokens).
+echo [1] coding + vision, -c 163840, effort=%EFFORT%
+&quot;%EXE%&quot; -m &quot;%MODEL%&quot; --mmproj &quot;%MMPROJ%&quot; --image-min-tokens 1024 -c 163840 %COMMON% %SPEC_CODE% --chat-template-kwargs &quot;{\&quot;reasoning_effort\&quot;:\&quot;%EFFORT%\&quot;}&quot;
+goto end
+
+:cfg2
+rem [2] DEFAULT: CODING + VISION, desktop-safe.  MEASURED: llama-server takes
+rem     21,908 MiB, leaving 2,668 MiB - more than twice what this desktop ever
+rem     wanted.  Decode 77.1 t/s on a 700-token code probe (reasoning tokens).
+echo [2] desktop-safe, -c 131072, effort=%EFFORT%
+&quot;%EXE%&quot; -m &quot;%MODEL%&quot; --mmproj &quot;%MMPROJ%&quot; --image-min-tokens 1024 -c 131072 %COMMON% %SPEC_CODE% --chat-template-kwargs &quot;{\&quot;reasoning_effort\&quot;:\&quot;%EFFORT%\&quot;}&quot;
+goto end
+
+:cfg3
+rem [3] TEXT-ONLY, MAXIMUM WINDOW.  Dropping the projector frees a MEASURED
+rem     1,138 MiB = ~26,500 tokens of q8_0 window.  MEASURED at -c 180224:
+rem     llama-server takes 22,882 MiB, leaving 1,694 MiB.  196,608 leaves
+rem     989-1,117 and 212,992 leaves 413, with decode already sagging.
+rem     Do not go higher.
+echo [3] text-only max window (-c 180224), effort=%EFFORT%
+&quot;%EXE%&quot; -m &quot;%MODEL%&quot; -c 180224 %COMMON% %SPEC_CODE% --chat-template-kwargs &quot;{\&quot;reasoning_effort\&quot;:\&quot;%EFFORT%\&quot;}&quot;
+goto end
+
+:cfg4
+rem [4] PROSE / WRITING.  Same window as [2], conservative drafter: MEASURED
+rem     on real answer tokens, 48.35 t/s on prose vs 43.80 for the coding
+rem     drafter (79.9 % vs 43.5 % acceptance).  Note speculation is worth only
+rem     1.16x on prose at all - the floor is 41.55 t/s.
+echo [4] prose, -c 131072, effort=%EFFORT%
+&quot;%EXE%&quot; -m &quot;%MODEL%&quot; --mmproj &quot;%MMPROJ%&quot; --image-min-tokens 1024 -c 131072 %COMMON% %SPEC_PROSE% --chat-template-kwargs &quot;{\&quot;reasoning_effort\&quot;:\&quot;%EFFORT%\&quot;}&quot;
+goto end
+
+:end
+endlocal
+</code></pre>
+  </details>
+</section>
+
+<section id="statistics">
+  <div class="section-tag"><span class="num">09</span>Sample size</div>
+  <h2>Why this page publishes no accuracy score at all.</h2>
+
+  <p>The honest answer to &ldquo;is IQ4_XS as accurate as Q4_K_M?&rdquo; needs
+  more samples than a four-hour window can buy, and a bad answer is worse than
+  none. Here is the arithmetic that made the call.</p>
+
+  <p>For a paired comparison at 95 % confidence and 80 % power, the number of
+  items needed to detect a gap of <em>G</em> accuracy points is roughly:</p>
+
+  <div class="table-wrap"><table>
+    <caption><span class="derived">DERIVED</span> &mdash; standard paired-proportion power arithmetic; the ordering is what matters, not the exact counts.</caption>
+    <thead><tr><th class="num">Gap to detect</th><th class="num">Items needed</th><th>What that gap looks like</th></tr></thead>
+    <tbody>
+      <tr><td class="num">20 pts</td><td class="num">~25</td><td>A collapse. A broken quant, a wrong chat template.</td></tr>
+      <tr><td class="num">10 pts</td><td class="num">~100&ndash;150</td><td>A different model size class.</td></tr>
+      <tr><td class="num">5 pts</td><td class="num">~300&ndash;500</td><td>A genuinely worse quantisation.</td></tr>
+      <tr><td class="num">1&ndash;3 pts</td><td class="num">thousands</td><td>Every Q4-class quant against every other one.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3><span class="sigil">01</span>A worked example</h3>
+  <p>Suppose you run 25 GSM8K questions and one quant scores 22/25 (88 %) while
+  another scores 20/25 (80 %). The 95 % confidence interval on a single 22/25 is
+  <b>70&ndash;96 %</b> (Wilson, <span class="derived">DERIVED</span>). The intervals overlap almost completely. You have
+  measured that neither quant is catastrophically broken, which is worth
+  knowing, and you have measured <em>nothing</em> about which is better. Report
+  it as a smoke test or do not report it.</p>
+
+  <div class="callout warn">
+    <span class="label">The right tool for the question</span>
+    <p>Per-token statistics answer the ranking question that small-n accuracy
+    cannot. One perplexity pass over the wikitext-2-raw test split scores
+    hundreds of thousands of token positions instead of a few hundred
+    all-or-nothing answers &mdash; which is why &sect;05 reports perplexity and
+    stays silent on benchmark accuracy.</p>
+  </div>
+
+  <h3><span class="sigil">02</span>The token-budget trap</h3>
+  <p>There is a second way to publish a wrong benchmark number, and it has
+  nothing to do with sample size. A thinking model at <code>xhigh</code> can
+  spend tens of thousands of tokens before it answers. Cap generation too low
+  and the arm truncates: the model was <em>right</em> and you scored it wrong,
+  and the truncations concentrate in exactly the hard questions. The rule is:
+  set the cap where the longest thought cannot reach it, count truncations, and
+  if an arm truncates, <b>raise the cap and re-run that arm</b>. Never filter
+  the test set to the questions that did not truncate &mdash; that selects your
+  items on one arm's behaviour and deletes the hard ones.</p>
+
+  <div class="anti">
+    <div class="x">&times;</div>
+    <div>
+      <h4>Presenting n=25 as a quant ranking</h4>
+      <p>It detects a 20-point collapse and nothing finer. Label it a smoke test
+      or leave it out.</p>
+    </div>
+    <div class="x">&times;</div>
+    <div>
+      <h4>Dropping truncated questions</h4>
+      <p>Selection bias, in the direction that flatters the arm with the biggest
+      appetite.</p>
+    </div>
+    <div class="x">&times;</div>
+    <div>
+      <h4>Quoting one t/s number for a model</h4>
+      <p>This page measured <b>8.0 to 148.7 t/s</b> for the same file on the
+      same card in one evening &mdash; an 18&times; spread, entirely from
+      content, context depth, drafting flags and whether the window was
+      resident. Any single number is a claim about all four that the number
+      does not carry.</p>
+    </div>
+  </div>
+</section>
+
+<section id="trouble">
+  <div class="section-tag"><span class="num">10</span>Troubleshooting</div>
+  <h2>Six failures, each with the signature that identifies it.</h2>
+
+  <div class="table-wrap"><table>
+    <thead><tr><th>Symptom</th><th>Signature measured here</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><b>Decode ~30 % low, everything else normal</b></td>
+        <td>29.84 t/s where 42.31 was expected; VRAM only 298 MiB lower; server loads and answers normally; CPU threads busy.</td>
+        <td>The <code>-ngl</code> off-by-one. Use <code>-ngl 99</code>, never <code>-ngl &lt;n_layer&gt;</code>.</td>
+      </tr>
+      <tr>
+        <td><b>Fast on short prompts, collapses on long ones</b></td>
+        <td>llama-server's <em>shared</em> GPU memory grew 190 &rarr; 700 &rarr; 2,096 &rarr; 3,502 MiB as <code>-c</code> rose, while dedicated pinned at ~23.1 GiB (23,637&ndash;23,784 MiB).</td>
+        <td>Silent VRAM spill. Lower <code>-c</code> until shared stops growing, or enable NVIDIA's <em>Prefer No Sysmem Fallback</em> so the load fails loudly instead.</td>
+      </tr>
+      <tr>
+        <td><b>Server exits immediately, log appears to end at the CORS banner</b></td>
+        <td>Observed at the start of this campaign: the stderr log stops at the CORS banner, and the <em>last</em> line &mdash; below the tail most harnesses print &mdash; reads <code>couldn't bind HTTP server socket, hostname: 127.0.0.1, port: 1234</code>. An LM Studio instance owned the port. Not reproducible later: LM Studio had released it by 02:13, so this row is an observation, not a saved artefact.</td>
+        <td>Read the last line of stderr, not the tail-12. <code>netstat -ano | findstr :1234</code>, then pick another port.</td>
+      </tr>
+      <tr>
+        <td><b>Warnings about unused <code>blk.64</code> tensors</b></td>
+        <td><code>model has unused tensor blk.64.nextn.eh_proj.weight -- ignoring</code>, 15 lines of it.</td>
+        <td>Not a fault. That is the MTP head being skipped because <code>--spec-type none</code>. Turn speculation on and the lines disappear &mdash; and decode roughly doubles on code (&sect;06).</td>
+      </tr>
+      <tr>
+        <td><b>An empty answer after a long, healthy-looking generation</b></td>
+        <td><code>completion_tokens</code> = exactly your cap,
+        <code>finish_reason=&quot;length&quot;</code>, and
+        <code>choices[0].message.content</code> is the empty string. Measured
+        here at a 700-token cap on a hard prompt.</td>
+        <td>Not a bug. The model thinks by default at <code>xhigh</code> and
+        never reached the answer. Raise the cap, lower
+        <code>reasoning_effort</code>, or set
+        <code>chat_template_kwargs: {&quot;enable_thinking&quot;: false}</code>.
+        Watch for this in benchmark harnesses especially &mdash; it scores as a
+        wrong answer.</td>
+      </tr>
+      <tr>
+        <td><b>A tuning sweep that will not reproduce</b></td>
+        <td>Same two configs: n10/p0.5 ahead by 13 % on one prompt, behind by 29 % on another.</td>
+        <td>The sweep was single-prompt. Re-run the finalists on the content you actually generate before shipping the flags.</td>
+      </tr>
+    </tbody>
+  </table></div>
+
+  <h3><span class="sigil">01</span>Commands that actually work on Windows</h3>
+  <pre><code># Board total, 1 Hz, with power - the number to watch for spill and heat
+nvidia-smi --query-gpu=memory.used,power.draw,utilization.gpu \
+           --format=csv,noheader -l 1
+
+# nvidia-smi is per-process BLIND on Windows. For llama-server's own
+# dedicated vs shared split - the spill signature - use the perf counters:
+Get-Counter '\GPU Process Memory(*)\Dedicated Usage'
+Get-Counter '\GPU Process Memory(*)\Shared Usage'
+# instance names look like pid_12345_luid_... - filter on your PID
+
+# Who has the port
+netstat -ano | Select-String ':1234\s'</code></pre>
+
+  <div class="callout">
+    <span class="label">Trust the server's own timings</span>
+    <p>Every speed number on this page comes from the
+    <code>timings</code> object llama-server returns
+    (<code>predicted_per_second</code>, <code>prompt_per_second</code>,
+    <code>draft_n</code>, <code>draft_n_accepted</code>). Dividing tokens by
+    wall time folds prefill into decode and will quietly under-report decode by
+    a factor that grows with prompt length &mdash; at 28k depth, wall-clock
+    reports 9.2 t/s where decode is really 47.1.</p>
+  </div>
+</section>
+
+<section id="vision">
+  <div class="section-tag"><span class="num">11</span>Vision</div>
+  <h2>What a screenshot costs, and what was not tested.</h2>
+<p>The campaign brief for vision was narrow and deliberate: measure what one
+  real 1440p Chrome-headless screenshot of a local HTML page costs in prompt
+  tokens, through a direct API request. That is what &sect;11 contains. The
+  critique loop &mdash; render the model's own code, screenshot it, send it
+  back, and judge whether the critique names real content &mdash; was
+  <b>not measured</b>, and neither was any coding agent's image attachment. See
+  the last part of this section.</p>
+
+  <h3><span class="sigil">01</span>What resolution costs</h3>
+  <p>The arithmetic first, so the measurement has something to disagree with.
+  Patch size 16 with <code>spatial_merge_size 2</code> gives one visual token
+  per 32&times;32-pixel block <span class="derived">DERIVED</span>. An
+  unresized 2560&times;1440 screenshot is therefore
+  <code>80 &times; 45 = 3,600</code> tokens &mdash; before any smart-resize
+  policy or the <code>--image-min-tokens</code> / <code>--image-max-tokens</code>
+  clamps.</p>
+
+  <div class="table-wrap"><table>
+    <caption><span class="measured">MEASURED</span> &mdash; IQ4_XS + BF16 projector, <code>-c 65536</code>, <code>-ngl 99</code>, q8_0 KV, MTP n4/p0.75, temp 0 / top_k 1. Image cost = <code>prompt_tokens</code>(text + image) &minus; <code>prompt_tokens</code>(text alone); the text-only baseline measured 75 tokens on both servers. Screenshots are Chrome headless captures of a real local page.</caption>
+    <thead><tr><th>Screenshot</th><th class="num">Arithmetic says</th><th class="num">Default flags</th><th class="num">With <code>--image-min-tokens 1024</code></th><th class="num">Prefill for the image</th></tr></thead>
+    <tbody>
+      <tr><td>1280 &times; 720</td><td class="num">920</td><td class="num"><b>922</b></td><td class="num">1,077</td><td class="num">1.66 s @ 574 t/s</td></tr>
+      <tr class="hi"><td>2560 &times; 1440</td><td class="num">3,600</td><td class="num"><b>3,602</b></td><td class="num">3,602 <span class="small">(unchanged)</span></td><td class="num">5.93 s @ 613 t/s</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3><span class="sigil">02</span>What the screenshot actually cost</h3>
+
+  <p>The arithmetic was right to <b>two tokens</b>. A 2560&times;1440
+  screenshot costs <b>3,602 tokens</b> against the 3,600 that
+  <code>(2560&divide;32) &times; (1440&divide;32)</code> predicts; the extra
+  pair is the vision start/end sentinel. At these resolutions the default
+  configuration performs <em>no</em> resize at all &mdash; what you capture is
+  what you pay for, linearly in pixels.</p>
+
+  <p>The two knobs behave exactly as their names suggest, and the measurement
+  shows when each one bites:</p>
+  <ul>
+    <li><code>--image-min-tokens 1024</code> raised the 720p image from 922 to
+    <b>1,077</b> tokens and left the 1440p image untouched at 3,602. It is a
+    floor, and it only applies to images that fall below it. llama.cpp prints a
+    startup warning recommending exactly this for Qwen-VL grounding, and the
+    720p reply <em>was</em> more specific with the floor on
+    (&ldquo;a green sea turtle swimming on the left&hellip; a purple starfish
+    resting on the sand near the bottom&rdquo; versus a bare list without
+    it).</li>
+    <li><code>--image-max-tokens 1024</code>, checked separately, cut the same
+    1440p image to <b>1,010</b> tokens &mdash; a 3.6&times; saving, at whatever
+    the corresponding cost in detail is. That cost was not measured.</li>
+  </ul>
+
+  <div class="callout good">
+    <span class="label">The model does see the pixels</span>
+    <p>This was not the assigned measurement, but it fell out of it and it is
+    worth stating. Shown a headless render of <em>its own generated page</em>
+    and asked to name three distinct things, the model returned
+    &ldquo;a green sea turtle, a cluster of purple jellyfish, and a purple
+    starfish resting on the rocks&rdquo; at 720p, and &ldquo;purple jellyfish,
+    a green sea turtle, and tall green stalks of seaweed rising from the
+    sand&rdquo; at 1440p. Every one of those is in the frame. <b>This is not
+    the critique loop</b> &mdash; a critique is a judgement, not a description,
+    and none was asked for &mdash; but it does establish that the transport
+    works and that the reply tracks the frame. It falls short of proving the
+    perception is real: the page in the screenshot is one the model wrote
+    itself, so a good answer is reachable from memory of its own code, and no
+    control run withheld the image. The test this page tells you to run in
+    &sect;13 is exactly the one it did not run here.</p>
+  </div>
+
+  <div class="callout warn">
+    <span class="label">One failure worth copying down</span>
+    <p>The first attempt at this measurement returned nothing, and the server
+    log showed <em>no request at all</em>. Windows PowerShell 5.1's
+    <code>Invoke-RestMethod</code> cannot post the ~261&nbsp;KB body that a
+    1440p PNG data-URI produces; the request never leaves the client. The
+    identical request from Python completes in 3.8&nbsp;s. If your images are
+    silently not arriving, check the client before you check the model.</p>
+  </div>
+
+  <h3><span class="sigil">03</span>Budgeting images against your window</h3>
+  <p>Put the image cost next to the memory arithmetic from &sect;02 and the
+  trade becomes concrete. At the measured 45,056&nbsp;B per window token:</p>
+
+  <div class="table-wrap"><table>
+<caption><span class="derived">DERIVED</span> from the 32 x 32-pixel rule and this machine's measured 45,056 B per window token. The 720p and 1440p rows were both <span class="measured">MEASURED</span> (922 and 3,602 tokens); the 1080p and 4K rows are arithmetic only.</caption>
+<thead><tr><th>Screenshot</th><th class="num">Tokens</th><th class="num">KV cost</th><th class="num">Fit in Recipe 2's 131,072 window</th></tr></thead><tbody>
+<tr><td>1280 x 720 (720p)</td><td class="num">922 <span class="small">measured</span></td><td class="num">40 MiB</td><td class="num">142</td></tr>
+<tr><td>1920 x 1080 (1080p)</td><td class="num">2,040 <span class="small">arithmetic</span></td><td class="num">88 MiB</td><td class="num">64</td></tr>
+<tr><td>2560 x 1440 (1440p)</td><td class="num">3,602 <span class="small">measured</span></td><td class="num">155 MiB</td><td class="num">36</td></tr>
+<tr><td>3840 x 2160 (4K)</td><td class="num">8,160 <span class="small">arithmetic</span></td><td class="num">351 MiB</td><td class="num">16</td></tr>
+</tbody></table></div>
+
+  <h3><span class="sigil">04</span>Serving and capture</h3>
+  <p class="small">The commands below are Recipe 2's, which is what you should
+  run. The measurements in &sect;11.01 were taken at <code>-c 65536</code> on
+  port 1235 &mdash; image cost does not depend on either, but say so rather than
+  claim the block was copy-pasted.</p>
+  <pre><code># the projector must be passed at load time; it costs a MEASURED 1,138 MiB
+llama-server -m Qwen3.8-27B-UD-IQ4_XS.gguf \
+  --mmproj mmproj-Qwen3.8-27B-BF16.gguf \
+  --image-min-tokens 1024 \
+  -c 131072 -ngl 99 --parallel 1 --load-mode mmap \
+  -ctk q8_0 -ctv q8_0 \
+  --spec-type draft-mtp --spec-draft-n-max 10 --spec-draft-p-min 0.5 \
+  --jinja --host 127.0.0.1 --port 1234
+
+# capture (Chrome; stock Edge takes the identical flags)
+chrome --headless=new --disable-gpu --hide-scrollbars \
+       --virtual-time-budget=6000 \
+       --screenshot=shot.png --window-size=2560,1440 \
+       file:///path/to/page.html</code></pre>
+
+  <p>The request is an ordinary <code>/v1/chat/completions</code> call whose
+  user message content is an array &mdash; one <code>text</code> part and one
+  <code>image_url</code> part whose <code>url</code> is a
+  <code>data:image/png;base64,&hellip;</code> URI. No special endpoint is
+  involved, which is why every agent's vision support is really just a question
+  of whether the agent bothers to build that array.</p>
+
+  <div class="callout warn">
+    <span class="label">Not measured here</span>
+    <p><b>The critique loop</b> &mdash; render the model's code, screenshot it,
+    send it back, and judge whether the <em>critique</em> names real defects
+    &mdash; was cut for time, and so was <b>the agent-attach matrix</b>. What
+    &sect;11.2 establishes is weaker and should not be mistaken for it: the
+    model describes a render accurately when asked to describe it. Nobody asked
+    it to find the bug in &sect;04, and it was not given the chance. An
+    unmeasured loop is reported as unmeasured, never as a pass.</p>
+  </div>
+</section>
+
+<section id="scope">
+  <div class="section-tag"><span class="num">12</span>Scope</div>
+  <h2>What a 27B on one consumer card is for.</h2>
+
+  <p>This page measured speed, memory, energy and image cost. It ran no
+  capability benchmark, so the honest scope statement has to lean on the
+  vendor's own claims and on structure &mdash; clearly marked as such.</p>
+
+  <p>The one capability observation it does have is &sect;04's: asked for a
+  single self-contained HTML file against a 40-line requirement list, this model
+  produced <b>two complete, dependency-free, ~1,270-line HTML files in one
+  shot</b> &mdash; 36,680 and 40,838 bytes, no external references in either
+  &mdash; one of which ran correctly and one of which had an
+  initialisation-order bug. That is a real data point about the size class
+  &mdash; a 27B at 4 bits will write a lot of correct code in one pass and will
+  also quietly hand you a bug &mdash; and it is n=2.</p>
+
+  <p>The vendor positions Qwen3.8-27B as a thinking, tool-using, vision-capable
+  model with a 262k native window, and publishes agentic-coding benchmark
+  numbers evaluated at temp&nbsp;1.0 / top_p&nbsp;0.95 in a 256k context
+  <span class="cited">CITED</span>
+  (<a href="https://huggingface.co/Qwen/Qwen3.8-27B">model card</a>). Those are
+  the vendor's numbers, on the vendor's harness, at full precision. Nothing on
+  this page confirms or contradicts them, and a 4-bit quantisation on a 24 GiB
+  card is a different artefact from what they measured.</p>
+
+  <p>What is measurable from here is the shape of the trade. This file is
+  13.3&nbsp;GiB. A frontier model is one to two orders of magnitude larger and
+  is not going to run on this card at any quantisation. The interesting
+  question is therefore never &ldquo;is this as good as the frontier&rdquo;
+  &mdash; it is <b>which tasks are kind-limited and which are
+  degree-limited</b>. A task that needs the model to hold a long file, follow a
+  spec and emit working code is degree-limited: a smaller model does it less
+  reliably, and you find out by running it. A task that needs knowledge the
+  model does not have is kind-limited, and no amount of local speed fixes it.</p>
+
+  <div class="callout">
+    <span class="label">The number that actually decides it</span>
+    <p>Writing real deliverables, this card produced
+    <b>43.8 to 95.4 tokens per second</b> &mdash; prose at the bottom, code at
+    the top, both on answer tokens at <code>-c 32768</code> with the shipped
+    drafter &mdash; while drawing a sustained <b>344&nbsp;W</b> measured over
+    multi-minute generations, gross, with your data never leaving the machine.
+    That is the proposition. It is not &ldquo;frontier-equivalent&rdquo; and
+    this page will not say it is.</p>
+  </div>
+</section>
+
+<section id="agents">
+  <div class="section-tag"><span class="num">13</span>Coding agents</div>
+  <h2>Not measured &mdash; and unmeasured means unmeasured.</h2>
+
+  <p>The methodology asks for an agent-attach matrix: every coding agent tested
+  against the served model with a question only answerable by seeing an attached
+  image, scored PASS / FAIL-honest / FAIL-hallucinated. That phase was
+  <b>cut for time before any agent was launched</b>, so this page publishes no
+  agent configuration, no verdicts, and no &ldquo;should work&rdquo; snippets. A
+  config that was never run is a guess, and a guess in a monospace block reads
+  exactly like a measurement.</p>
+
+  <p>Two things an integration would build on <em>are</em> established here: the
+  server answers the OpenAI-compatible <code>/v1/chat/completions</code> endpoint
+  with <code>--jinja</code>, and images ride that same endpoint as
+  <code>image_url</code> data URIs (&sect;11). The one flag to get right is
+  <code>reasoning_effort</code> &mdash; an agent that does not pass it gets
+  <code>xhigh</code>, which &sect;04 measured at 120&nbsp;Wh and no deliverable.</p>
+
+  <div class="callout warn">
+    <span class="label">The failure to hunt when you do wire one up</span>
+    <p>Agents drop image attachments <em>silently</em> when a capability flag is
+    missing, and a model that receives no image will often describe one anyway.
+    Test every agent with a question that cannot be answered without the pixels,
+    and treat a confident wrong description as worse than an honest refusal
+    &mdash; a standard &sect;11 does not itself meet, and says so.</p>
+  </div>
+</section>
+
+<section id="sources">
+  <div class="section-tag"><span class="num">14</span>Sources</div>
+  <h2>The trail, so you can check the work.</h2>
+  <h3><span class="sigil">01</span>How every number here was produced</h3>
+  <ul>
+    <li><b>Serving:</b> <code>llama-server</code>, <b>llama.cpp version
+    0.1.2-dev, build 10502, commit <code>0adcc3bb5</code></b>, Clang 20.1.8,
+    Windows x86_64, binary dated 2026-08-19. Every finding on this page is
+    specific to that build &mdash; <code>--spec-type draft-mtp</code>, the
+    <code>-ngl</code> off-by-one, <code>--load-mode</code> and
+    <code>--image-min-tokens</code> are all build-dependent, so check yours
+    before comparing.</li>
+    <li><b>Endpoint:</b> OpenAI-compatible <code>/v1/chat/completions</code>,
+    one server per configuration, <code>--parallel 1</code>. Measured on
+    <b>port 1235</b>, because an LM Studio instance owned 1234 on this machine
+    (&sect;10). The recipes print 1234 because that is the conventional port and
+    it changes nothing measured.</li>
+    <li><b>Speed:</b> read from the server's own <code>timings</code> object
+    &mdash; <code>prompt_per_second</code>, <code>predicted_per_second</code>,
+    <code>draft_n</code>, <code>draft_n_accepted</code>. Never wall-clock
+    divided by tokens.</li>
+    <li><b>VRAM:</b> board total from
+    <code>nvidia-smi --query-gpu=memory.used</code>; llama-server's own
+    dedicated/shared split from the Windows
+    <code>\GPU Process Memory(*)\Dedicated Usage</code> and
+    <code>\Shared Usage</code> performance counters, filtered on the server's
+    PID.</li>
+    <li><b>Power:</b> <code>nvidia-smi --query-gpu=timestamp,power.draw
+    --format=csv -l 1</code> logged for the whole effort phase, integrated over
+    each generation's recorded start/end timestamps.</li>
+    <li><b>Perplexity:</b> <code>llama-perplexity</code> over the
+    wikitext-2-raw <em>test</em> split at <code>-c 8192</code>,
+    <code>-fa on</code>.</li>
+    <li><b>Determinism:</b> every speed probe ran at
+    <code>temperature 0, top_k 1</code>. The effort runs in &sect;04 ran at the
+    model card's recommended thinking sampling, which is not deterministic and
+    is labelled n=1 accordingly.</li>
+    <li><b>Raw material:</b> scripts in <code>work/</code>, logs and generated
+    artefacts in <code>data/</code>, decisions and timestamps in
+    <code>campaign.md</code>, all beside this file.</li>
+  </ul>
+
+  <h3><span class="sigil">02</span>External sources</h3>
+  <ul>
+    <li><a href="https://huggingface.co/Qwen/Qwen3.8-27B">Qwen/Qwen3.8-27B model card</a>
+    &mdash; layer layout, head geometry, 262,144 native context, the
+    <code>reasoning_effort</code> levels, and the recommended thinking-mode
+    sampling (<code>temperature 1.0, top_p 0.95, top_k 20, min_p 0.0</code>).</li>
+    <li><a href="https://huggingface.co/Qwen/Qwen3.8-27B/resolve/main/config.json"><code>config.json</code></a>
+    &mdash; fetched during this run and saved to <code>data/config.json</code>;
+    source of the <code>layer_types</code> array, <code>num_key_value_heads</code>,
+    <code>head_dim</code>, the Gated-DeltaNet dimensions and
+    <code>vision_config</code>.</li>
+    <li><a href="https://huggingface.co/unsloth/Qwen3.8-27B-GGUF">unsloth/Qwen3.8-27B-GGUF</a>
+    &mdash; the measured quantisation, <code>Qwen3.8-27B-UD-IQ4_XS.gguf</code>
+    (14,252,845,984 bytes), and the chat template read from its GGUF
+    metadata.</li>
+    <li><a href="https://huggingface.co/lmstudio-community/Qwen3.8-27B-GGUF">lmstudio-community/Qwen3.8-27B-GGUF</a>
+    &mdash; the BF16 vision projector, <code>mmproj-Qwen3.8-27B-BF16.gguf</code>
+    (931,145,856 bytes).</li>
+    <li><a href="https://huggingface.co/datasets/ggml-org/ci/resolve/main/wikitext-2-raw-v1.zip">wikitext-2-raw-v1</a>
+    &mdash; the perplexity corpus; the <code>wiki.test.raw</code> split only.</li>
+    <li><a href="https://images.nvidia.com/aem-dam/en-zz/Solutions/geforce/ampere/pdf/NVIDIA-ampere-GA102-GPU-Architecture-Whitepaper-V1.pdf">NVIDIA
+    Ampere GA102 architecture whitepaper</a> &mdash; RTX 3090 at 936 GB/s
+    (384-bit &times; 19.5 Gbps), and the RTX A6000 at 768 GB/s.</li>
+    <li><a href="https://images.nvidia.com/aem-dam/Solutions/geforce/blackwell/nvidia-rtx-blackwell-gpu-architecture.pdf">NVIDIA
+    RTX Blackwell architecture whitepaper</a> &mdash; RTX 5090 at 1792 GB/s,
+    with the 3090 and 4090 in the same comparison table.</li>
+    <li><a href="https://images.nvidia.com/aem-dam/Solutions/geforce/ada/nvidia-ada-gpu-architecture.pdf">NVIDIA
+    Ada architecture whitepaper</a> &mdash; RTX 4090 at 1008 GB/s.</li>
+    <li><a href="https://www.nvidia.com/en-us/geforce/news/rtx-40-series-vram-video-memory-explained/">NVIDIA,
+    &ldquo;A Deeper Look At VRAM On GeForce RTX 40 Series&rdquo;</a> &mdash; RTX
+    4060 Ti at 288 GB/s peak. Note that the widely-quoted 554 GB/s for that card
+    is NVIDIA's own <em>effective</em>-bandwidth argument about its 32 MB L2, not
+    peak bandwidth, and it is the wrong number for this kind of table.</li>
+    <li><a href="https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/rtx-6000/proviz-print-rtx6000-datasheet-web-2504660.pdf">NVIDIA
+    RTX 6000 Ada datasheet</a> &mdash; 960 GB/s, 48 GB.</li>
+    <li><a href="https://support.apple.com/en-us/121553">Apple MacBook Pro
+    technical specifications</a> &mdash; M4 Max at 410 or 546 GB/s depending on
+    the bin, M4 Pro at 273 GB/s. &ldquo;Up to 546&rdquo; is a ceiling across
+    bins, not a single machine's figure.</li>
+  </ul>
+
+  <h3><span class="sigil">03</span>What was not measured</h3>
+  <p>Stated plainly so nobody mistakes an omission for a result:</p>
+  <ul>
+    <li><b>Other quantisations.</b> One file was measured. There is no quant
+    ranking on this page and there cannot be one.</li>
+    <li><b>Benchmark accuracy.</b> No GSM8K, no MMLU, no coding benchmark, at
+    any n. See &sect;09 for why a small one would have been worse than none.</li>
+    <li><b>The vision critique loop.</b> A screenshot's token cost was measured;
+    whether the model's critique of a rendered page names real content was
+    not.</li>
+    <li><b>Coding agents.</b> No agent was launched. &sect;13.</li>
+    <li><b>Blind quality judging.</b> &sect;04's quality note is one judge, not
+    blind, at n=1.</li>
+    <li><b>Other machines.</b> Every measured row is this RTX 3090. &sect;07's
+    other cards are labelled arithmetic.</li>
+  </ul>
+
+  <div class="callout">
+    <span class="label">Reproducing this</span>
+    <p>Every configuration in &sect;08 is a complete command line. Run one,
+    send the red-black-tree prompt at <code>temperature 0, top_k 1</code>, and
+    read <code>timings.predicted_per_second</code> out of the response. If your
+    number is far below the one printed here, &sect;10's first two rows explain
+    almost every case.</p>
+  </div>
+</section>
+</main>
+
+<aside class="margin">
+<div class="sidenote" style="margin-top:300px">
+  <div class="lbl">Blinding</div>
+  <p>This was run as a reproduction test with the answer key sealed. The
+  machine held a previous campaign's results for this same model; those files,
+  the published report, and every summary and log from that run were
+  <em>never opened</em>.</p>
+  <p>The one exception is the wikitext corpus in that directory &mdash; input
+  data, not a result.</p>
+</div>
+
+<div class="sidenote" style="margin-top:520px">
+  <div class="lbl">Why 16 and not 64</div>
+  <p>Gated DeltaNet is a linear-attention layer: it keeps a fixed-size
+  recurrent state instead of a growing key/value history. Three of every four
+  layers here are that kind.</p>
+  <p>The consequence is not subtle. A conventional 27B transformer with this
+  head geometry would want four times the cache, and 262k would not be a
+  conversation you could have on a 24&nbsp;GiB card.</p>
+</div>
+
+<div class="sidenote" style="margin-top:760px">
+  <div class="lbl">The arithmetic is a floor</div>
+  <p>config.json says 34,816&nbsp;B/token. The card says 39,936 with the
+  drafter off and 45,056 with it on.</p>
+  <p>Budget with the number the card gave you. Where the two disagree, the
+  card is not wrong.</p>
+</div>
+
+<div class="sidenote" style="margin-top:900px">
+  <div class="lbl">Shared memory is the tell</div>
+  <p>On Windows, <code>nvidia-smi</code> cannot see per-process usage. The
+  <em>GPU Process Memory</em> performance counters can, and their
+  <em>Shared Usage</em> line is where a spill announces itself long before the
+  speed does.</p>
+</div>
+
+<div class="sidenote" style="margin-top:900px">
+  <div class="lbl">One measurement, twice</div>
+  <p>The projector's 1,138&nbsp;MiB was measured two unrelated ways &mdash; a
+  mmproj-on/off difference at the native max, and a projector-less versus
+  projector-loaded difference at 32k &mdash; and landed on the same figure.</p>
+  <p>Two cheap metrics agreeing is worth more than one expensive one.</p>
+</div>
+
+<div class="sidenote" style="margin-top:640px">
+  <div class="lbl">Where the speed numbers come from</div>
+  <p>llama-server returns a <code>timings</code> object on every completion:
+  <code>prompt_per_second</code>, <code>predicted_per_second</code>,
+  <code>draft_n</code>, <code>draft_n_accepted</code>.</p>
+  <p>Every t/s and every acceptance figure on this page is read from those
+  fields. Nothing here is a stopwatch divided by a token count.</p>
+</div>
+
+<div class="sidenote" style="margin-top:1500px">
+  <div class="lbl">The mistake worth keeping</div>
+  <p>The acceptance demonstration was run first at n-max&nbsp;10 and produced a
+  clean, reproducible number attached to a false conclusion.</p>
+  <p>It survived here as a case study because how a tidy measurement misleads
+  is worth more than the measurement was.</p>
+</div>
+
+<div class="sidenote" style="margin-top:2400px">
+  <div class="lbl">n=1 means n=1</div>
+  <p>The effort comparison is a single run per level, judged by one judge who
+  could see the labels. The methodology asks for two runs per level and blind
+  independent judges.</p>
+  <p>It is published as cost data with a quality note attached, not as a
+  ranking.</p>
+</div>
+
+<div class="sidenote" style="margin-top:900px">
+  <div class="lbl">Why no benchmark score</div>
+  <p>Twenty-five questions can detect a broken quant and nothing finer. Running
+  a small benchmark and printing the percentage would have been the most
+  quotable number on this page and the least true one.</p>
+</div>
+</aside>
+
+</div>
+
+<footer>
+  <div class="in">
+    <div>
+      <h5>About this page</h5>
+      <p>A blind reproduction run of the <code>measured-inference</code> campaign
+      methodology: one model, one machine, one night, with the answer key sealed.
+      No prior campaign's results, report, or summary files were read while producing it.</p>
+      <p>Measurements ran 2026-08-23, 00:19 to 02:19 local, on a Windows 11
+      desktop whose own VRAM use varied between 133 and 1,181&nbsp;MiB over the
+      night. Raw logs, generated files and screenshots live beside this page in
+      <code>data/</code>; every decision, dead end and self-correction is in
+      <code>campaign.md</code>, including one operator error that cost a
+      re-run.</p>
+    </div>
+    <div>
+      <h5>Configuration</h5>
+      <ul>
+        <li>llama.cpp llama-server</li>
+        <li>Qwen3.8-27B-UD-IQ4_XS</li>
+        <li>mmproj BF16 projector</li>
+        <li>RTX 3090 24 GiB, driver 596.36</li>
+        <li>i5-13600KF, 32 GiB DDR4-3200</li>
+      </ul>
+    </div>
+    <div>
+      <h5>Reading order</h5>
+      <ul>
+        <li><a href="#recipes">Recipes</a> if you just want to serve it</li>
+        <li><a href="#physics">Physics</a> if a number surprised you</li>
+        <li><a href="#trouble">Troubleshooting</a> if it is slow</li>
+        <li><a href="#sources">Sources</a> to check the work</li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    Measured, cited, or labelled derived &middot;
+    n=1 results are marked n=1 &middot;
+    nothing here should run faster on this page than it does on your card
+  </div>
+</footer>
+
+</body>
+</html>

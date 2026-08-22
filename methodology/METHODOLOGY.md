@@ -89,3 +89,29 @@ before any budget table; never carry another model's number forward.
 20. Detach long jobs; make scripts resumable; parse-check before detaching;
     checkpoint-commit each phase; one GPU job at a time; keep a campaign log
     that survives session restarts.
+
+## The standard benchmark protocol
+21. **Every reasoning-effort sweep runs the standard suite** under fixed
+    conditions: `SEED=42`, `N=25` per benchmark per effort level, greedy
+    decoding, `max_tokens 16384` (rule 7 applies: report truncations; if any
+    arm truncates, raise the cap and rerun that arm). Server `-c` must exceed
+    the suite's longest prompt + 16,384 — MeetingBank transcripts are long.
+    The suite (HuggingFace ids):
+    - GSM8K (`gsm8k/gsm8k`) — exact-match accuracy
+    - MATH-500 — exact-match accuracy
+    - HumanEval (`openai/openai_humaneval`) — sandboxed execution pass@1
+    - MBPP — sandboxed execution pass@1
+    - ALPACA (`tatsu-lab/alpaca`) — judge-scored when an independent judge
+      endpoint is configured; otherwise speed + transcripts only (a model
+      judging its own outputs is not a score)
+    - MeetingBank (`huuuyeah/meetingbank`) — ROUGE-L vs reference summaries
+    - MT-Bench — judge-scored under the same judge rule as ALPACA
+    - **Mean** — the composite index: each *scored* benchmark normalized to
+      0–100 by its own scorer, then averaged; always labeled "composite
+      index over ⟨list⟩", never presented as an accuracy.
+    **Interpretation guardrails**: a single N=25 cell is a smoke test
+    (±~16 pts) — never rank efforts by one cell. The cross-suite Mean
+    aggregates ~175 samples per effort and carries near-n=200 power; it and
+    categorical collapses are the interpretable results. Any suspicious cell
+    escalates to n=200 on that benchmark before being claimed. Expect the
+    full sweep to cost ~4–8 h per model at max effort on a 24 GB card.

@@ -218,7 +218,7 @@ rerun that removes a truncation artifact).
      judge, and only re-attach labels after every score is in. Ties are a
      legitimate verdict — at n=2 per level, say "tie" rather than crowning
      noise, and report the within-level spread beside the mean.
-- Accuracy per level at n=200 with clean caps.
+- Accuracy per level via the **standard benchmark protocol** (METHODOLOGY rule 21: SEED=42, N=25 per benchmark, 16,384 cap, the 7-benchmark suite, normalized Mean as the headline). Per-cell = smoke test; the Mean and categorical collapses are the claims. Escalate suspicious cells to n=200.
 - Derive the **window-sets-the-effort-ceiling table**: measured thinking appetite
   per level vs. each recipe's context window.
 
