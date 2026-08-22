@@ -96,22 +96,27 @@ before any budget table; never carry another model's number forward.
     decoding, `max_tokens 16384` (rule 7 applies: report truncations; if any
     arm truncates, raise the cap and rerun that arm). Server `-c` must exceed
     the suite's longest prompt + 16,384 — MeetingBank transcripts are long.
-    **Must-run core (every effort sweep, no exceptions)**:
+    **Must-run — all seven, every effort sweep.** Cross-report comparability
+    (other models; the same model on other machines) requires the identical
+    suite: a missing benchmark breaks apples-to-apples and voids the Mean.
     - GSM8K (`gsm8k/gsm8k`) — exact-match accuracy
     - ALPACA (`tatsu-lab/alpaca`) — judge-scored when an independent judge
       endpoint is configured; otherwise speed + transcripts only (a model
-      judging its own outputs is not a score)
+      judging its own outputs is not a score — this is a scoring gate, the
+      benchmark still RUNS and its transcripts are kept)
     - HumanEval (`openai/openai_humaneval`) — sandboxed execution pass@1
     - MeetingBank (`huuuyeah/meetingbank`) — ROUGE-L vs reference summaries
-    **Optional extensions (run when the time budget allows)**:
     - MATH-500 — exact-match accuracy
     - MBPP — sandboxed execution pass@1
     - MT-Bench — judge-scored under the same judge rule as ALPACA
-    - the agentic bucket (rule 22, with its own cost gate)
-    **Mean** — the composite index: each *scored* benchmark actually run,
-    normalized to 0–100 by its own scorer, then averaged; always labeled
-    "composite index over ⟨list⟩", never presented as an accuracy. Reports
-    state which benchmarks ran and which were skipped for time.
+    **Optional**: only the agentic bucket (rule 22), because it alone carries
+    an hours-to-days cost gate.
+    **Mean** — the composite index: each *scored* benchmark normalized to
+    0–100 by its own scorer, then averaged; always labeled "composite index
+    over ⟨list⟩", never presented as an accuracy. Two reports' Means are
+    comparable only when their scored sets AND suite hashes match — a report
+    without a judge endpoint states that its Mean excludes the judge-gated
+    pair.
     **Interpretation guardrails**: a single N=25 cell is a smoke test
     (±~16 pts) — never rank efforts by one cell. The cross-suite Mean
     aggregates ~175 samples per effort and carries near-n=200 power; it and
