@@ -1,0 +1,1344 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Qwen 3.8 27B Optimal settings</title>
+<style>
+  :root {
+    --ground: #ffffff;
+    --surface: #f5f5f7;
+    --surface2: #e8e8ed;
+    --ink: #1d1d1f;
+    --muted: #6e6e73;
+    --line: #d2d2d7;
+    --accent: #0071e3;
+    --accent-ink: #0066cc;
+    --bad: #d70015;
+    --c-weights: #0066cc;
+    --c-kv: #64b5ff;
+    --c-ovh: #6e6e73;
+    --mono: "SF Mono", "Cascadia Code", Consolas, "Courier New", monospace;
+    --body: -apple-system, "SF Pro Text", system-ui, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #000000;
+      --surface: #1d1d1f;
+      --surface2: #2c2c2e;
+      --ink: #f5f5f7;
+      --muted: #86868b;
+      --line: #3a3a3c;
+      --accent: #2997ff;
+      --accent-ink: #6cb4ff;
+      --bad: #ff6961;
+      --c-weights: #2997ff;
+      --c-kv: #0a5cad;
+      --c-ovh: #86868b;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #000000;
+    --surface: #1d1d1f;
+    --surface2: #2c2c2e;
+    --ink: #f5f5f7;
+    --muted: #86868b;
+    --line: #3a3a3c;
+    --accent: #2997ff;
+    --accent-ink: #6cb4ff;
+    --bad: #ff6961;
+    --c-weights: #2997ff;
+    --c-kv: #0a5cad;
+    --c-ovh: #86868b;
+  }
+  body { background: var(--ground); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.65; margin: 0; }
+  .layout { display: grid; grid-template-columns: 200px minmax(0,1fr); gap: clamp(36px, 4vw, 72px); max-width: 1240px; margin: 0 auto; padding: clamp(28px, 4vh, 56px) clamp(20px, 3vw, 40px) 96px; }
+  @media (min-width: 1600px) { body { font-size: 17px; } .layout { max-width: 1360px; } }
+  nav.toc { position: sticky; top: 36px; align-self: start; font-family: var(--mono); font-size: 12px; line-height: 1.5; padding-top: 120px; }
+  nav.toc .toctitle { letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-ink); margin-bottom: 10px; font-size: 11px; }
+  nav.toc a { display: block; padding: 5px 0 5px 12px; color: var(--muted); text-decoration: none; border-left: 2px solid var(--line); }
+  nav.toc a:hover, nav.toc a:focus-visible { color: var(--accent-ink); border-left-color: var(--accent); }
+  .content { min-width: 0; }
+  @media (max-width: 940px) {
+    .layout { grid-template-columns: 1fr; gap: 0; padding: 28px 18px 64px; }
+    nav.toc { display: none; }
+    body { font-size: 15px; }
+    pre { font-size: 12px; padding: 14px 14px; }
+    section { margin-top: 40px; }
+    .specs { gap: 0 22px; }
+    .layout code { white-space: normal; overflow-wrap: anywhere; }
+  }
+  header { border-bottom: 2px solid var(--ink); padding-bottom: 28px; margin-bottom: 12px; }
+  .eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin: 0 0 14px; }
+  h1 { font-family: var(--mono); font-size: clamp(24px, 4.5vw, 34px); line-height: 1.25; margin: 0 0 14px; letter-spacing: -0.01em; text-wrap: balance; }
+  .lede { color: var(--muted); margin: 0; max-width: 64ch; }
+  .specs { display: flex; flex-wrap: wrap; gap: 0 32px; padding: 18px 0; border-bottom: 1px solid var(--line); }
+  .spec { font-family: var(--mono); font-size: 13px; padding: 6px 0; }
+  .spec b { display: block; font-weight: 400; color: var(--muted); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; }
+  section { margin-top: 52px; scroll-margin-top: 24px; }
+  .fno { font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
+  .fno::before { content: "§ "; color: var(--accent); }
+  .rt { font-family: var(--mono); font-size: 14.5px; font-weight: 600; letter-spacing: 0.06em; color: var(--ink); margin: 30px 0 8px; padding-left: 10px; border-left: 3px solid var(--accent); }
+  h2 { font-family: var(--mono); font-size: 20px; line-height: 1.35; margin: 0 0 14px; text-wrap: balance; }
+  p { margin: 0 0 14px; max-width: 74ch; }
+  p:last-child { margin-bottom: 0; }
+  code { font-family: var(--mono); font-size: 0.88em; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; white-space: nowrap; }
+  .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  strong { color: var(--accent-ink); }
+  .callout { border-left: 3px solid var(--accent); background: var(--surface); padding: 14px 18px; margin: 18px 0; border-radius: 0 12px 12px 0; }
+  .callout p { margin: 0; }
+  .callout .tag { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-ink); display: block; margin-bottom: 6px; }
+  .tablebox { overflow-x: auto; margin: 18px 0; }
+  .flags { text-decoration: underline dotted var(--muted); text-underline-offset: 3px; cursor: help; }
+  .hint { font-size: 10px; letter-spacing: 0.04em; text-transform: none; color: var(--muted); }
+  details.cmds { margin: 14px 0 18px; }
+  details.cmds summary { font-family: var(--mono); font-size: 12.5px; color: var(--accent-ink); cursor: pointer; padding: 8px 0; }
+  details.cmds pre { margin-top: 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 400; text-align: left; padding: 8px 14px 8px 0; border-bottom: 2px solid var(--ink); }
+  td { padding: 9px 14px 9px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tr.hl td { background: var(--surface); }
+  figure { margin: 22px 0; padding: 0; }
+  figure svg { width: 100%; height: auto; display: block; }
+  figcaption { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .axis-t { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+  .dlabel { font-family: var(--mono); font-size: 11.5px; fill: var(--ink); }
+  .dlabel-m { font-family: var(--mono); font-size: 11.5px; fill: var(--muted); }
+  pre { font-family: var(--mono); font-size: 13px; line-height: 1.7; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; overflow-x: auto; margin: 18px 0; }
+  pre .c { color: var(--muted); }
+  pre .f { color: var(--accent-ink); }
+  footer { margin-top: 64px; padding-top: 18px; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  a { color: var(--accent-ink); }
+  ul { margin: 0 0 14px; padding-left: 22px; max-width: 74ch; }
+  li { margin-bottom: 6px; }
+</style>
+
+<div class="layout">
+<nav class="toc" aria-label="Contents">
+  <div class="toctitle">Contents</div>
+  <a href="#s01">01 · The model</a>
+  <a href="#s02">02 · The physics</a>
+  <a href="#s02-budget" style="padding-left:22px">VRAM budget table</a>
+  <a href="#s03">03 · Universal rules</a>
+  <a href="#s04">04 · Reasoning effort</a>
+  <a href="#s05">05 · Which file to get</a>
+  <a href="#s05-scored" style="padding-left:22px">Smoke test: FP4 vs INT4</a>
+  <a href="#s05b">06 · Speculative decoding</a>
+  <a href="#s05-mtp" style="padding-left:22px">MTP free speed</a>
+  <a href="#s05-dflash2" style="padding-left:22px">DFlash2</a>
+  <a href="#s05-sweep" style="padding-left:22px">Settings sweep</a>
+  <a href="#s06">07 · Hardware matrix</a>
+  <a href="#s07">08 · Recipes per card</a>
+  <a href="#s09">09 · Benchmark sample size</a>
+  <a href="#s08">10 · Troubleshooting</a>
+  <a href="#vision">11 · Vision</a>
+  <a href="#s11">12 · When 27B is enough</a>
+  <a href="#agents">Coding agents</a>
+  <a href="#appendix-opencode" style="padding-left:22px">OpenCode</a>
+  <a href="#appendix-aider" style="padding-left:22px">aider</a>
+  <a href="#appendix-qwencode" style="padding-left:22px">Qwen Code</a>
+  <a href="#appendix-pi" style="padding-left:22px">Pi</a>
+  <a href="#appendix-dsh" style="padding-left:22px">DeepSeek Harness</a>
+  <a href="#src">Sources</a>
+</nav>
+
+<div class="content">
+<header>
+  <p class="eyebrow">Field guide · Local inference</p>
+  <h1>Qwen 3.8 27B Optimal settings</h1>
+  <p class="lede">How to run Qwen3.8-27B well on whatever you have — RTX 30/40/50 series, DGX Spark (GB10), Intel Arc Pro B50/B70, or an Intel Arc B390-class iGPU. Grounded in measured runs on an RTX 3090 and fact-checked against published specs and community benchmarks.</p>
+</header>
+
+<div class="specs">
+  <div class="spec"><b>Model</b>Qwen3.8-27B · hybrid attention</div>
+  <div class="spec"><b>Native context</b>262,144 tok</div>
+  <div class="spec"><b>Q4 weights</b>~16.5 GB</div>
+  <div class="spec"><b>Reference</b>RTX 3090 · 39.7 t/s floor (short-context, no spec) · 49–70 short-context work · ~39–60 deep agent sessions (39.3 measured at 27k) · 119.8 ceiling</div>
+  <div class="spec"><b>Benchmark run</b>~2k in + ~100k thinking/out</div>
+</div>
+
+<section id="s01">
+  <p class="fno">01</p>
+  <h2>The model, in five facts that drive every setting</h2>
+  <ul>
+    <li><strong>Hybrid attention.</strong> Most of its 64 layers use Gated DeltaNet, a linear-attention design whose memory use stays constant no matter how long the context gets; only 16 of the 64 are standard attention layers (and those use GQA with 4 KV heads). The result: KV costs just 64&nbsp;KiB per token at fp16 — 4.0&nbsp;GiB at 122k context with a Q8 cache, 7.5&nbsp;GiB unquantized — where a dense 27B storing KV in every layer would need exactly 4× as much. Huge contexts are cheap in memory, and speed falls off gently as they fill rather than collapsing.</li>
+    <li><strong>Native 262,144 context.</strong> No YaRN or rope tricks needed below that; the limit you'll actually hit is VRAM, not the model. (The model card lists extension to 1M via YaRN — out of scope here: the KV cache alone would run ~34&nbsp;GiB even at q8_0.)</li>
+    <li><strong>Thinking always on, defaulting to <code>xhigh</code>.</strong> Reasoning tokens share the context window with your prompt and output — a 100k-token thinking run needs a &gt;100k window (§04).</li>
+    <li><strong>Vision is optional at serve time — and it costs context.</strong> The BF16 mmproj projector takes ~0.9&nbsp;GB of VRAM, which at a Q8 cache is ~<span class="num">27k</span> tokens of window (§02's arithmetic). Serving text-only converts vision you aren't using directly into context: it's what lets UD-IQ4_XS hold the <em>full native 262,144</em> on a 24&nbsp;GB card (§08 Choice B prints both variants).</li>
+    <li><strong>Official thinking-mode sampling: temp 1.0 · top-p 0.95 · top-k 20 · min-p 0.</strong> Clients that silently send temperature 0 (aider does) cause repetition loops — override them.</li>
+  </ul>
+  <figure>
+    <svg viewBox="0 0 640 300" role="img" aria-label="Diagram using an everyday metaphor: standard attention is like a transcript that keeps one page per token and re-reads all of it for every new word, so memory grows forever. Gated DeltaNet is like a whiteboard summary: every new token is blended into the same fixed-size board, overwriting old detail, so memory never grows. Result: about 4 gigabytes of cache at 122k context instead of sixteen.">
+      <text class="dlabel" x="16" y="22">standard attention (16 of 64 layers) — like keeping a full transcript</text>
+      <g fill="var(--surface2)" stroke="var(--line)">
+        <rect x="30"  y="36" width="30" height="40" rx="2"/>
+        <rect x="70"  y="36" width="30" height="40" rx="2"/>
+        <rect x="110" y="36" width="30" height="40" rx="2"/>
+        <rect x="150" y="36" width="30" height="40" rx="2"/>
+      </g>
+      <g stroke="var(--muted)" stroke-width="1">
+        <line x1="36" y1="46" x2="54" y2="46"/><line x1="36" y1="54" x2="54" y2="54"/><line x1="36" y1="62" x2="54" y2="62"/>
+        <line x1="76" y1="46" x2="94" y2="46"/><line x1="76" y1="54" x2="94" y2="54"/><line x1="76" y1="62" x2="94" y2="62"/>
+        <line x1="116" y1="46" x2="134" y2="46"/><line x1="116" y1="54" x2="134" y2="54"/><line x1="116" y1="62" x2="134" y2="62"/>
+        <line x1="156" y1="46" x2="174" y2="46"/><line x1="156" y1="54" x2="174" y2="54"/><line x1="156" y1="62" x2="174" y2="62"/>
+      </g>
+      <g fill="var(--surface2)" stroke="var(--line)" stroke-dasharray="3 3">
+        <rect x="190" y="36" width="30" height="40" rx="2"/>
+        <rect x="230" y="36" width="30" height="40" rx="2"/>
+      </g>
+      <text class="axis-t" x="45"  y="92" text-anchor="middle">word 1</text>
+      <text class="axis-t" x="85"  y="92" text-anchor="middle">word 2</text>
+      <text class="axis-t" x="125" y="92" text-anchor="middle">word 3</text>
+      <text class="axis-t" x="165" y="92" text-anchor="middle">word 4</text>
+      <text class="axis-t" x="225" y="92" text-anchor="middle">…forever</text>
+      <text class="dlabel-m" x="286" y="52">every word adds a page — none thrown away;</text>
+      <text class="dlabel-m" x="286" y="68">the whole pile is re-read for each new word</text>
+      <line x1="16" y1="110" x2="624" y2="110" stroke="var(--line)"/>
+      <text class="dlabel" x="16" y="134">Gated DeltaNet (48 of 64 layers) — like a whiteboard summary</text>
+      <g stroke="var(--ink)" stroke-width="1.5" fill="var(--surface)">
+        <rect x="30"  y="148" width="110" height="62" rx="4"/>
+        <rect x="250" y="148" width="110" height="62" rx="4"/>
+        <rect x="470" y="148" width="110" height="62" rx="4"/>
+      </g>
+      <g>
+        <rect x="38"  y="156" width="60" height="12" rx="2" fill="var(--accent)"/>
+        <rect x="38"  y="174" width="90" height="12" rx="2" fill="var(--surface2)"/>
+        <rect x="38"  y="192" width="40" height="12" rx="2" fill="var(--surface2)"/>
+        <rect x="258" y="156" width="60" height="12" rx="2" fill="var(--surface2)"/>
+        <rect x="258" y="174" width="90" height="12" rx="2" fill="var(--accent)"/>
+        <rect x="258" y="192" width="40" height="12" rx="2" fill="var(--surface2)"/>
+        <rect x="478" y="156" width="30" height="12" rx="2" fill="var(--surface2)"/>
+        <rect x="478" y="174" width="50" height="12" rx="2" fill="var(--surface2)"/>
+        <rect x="478" y="192" width="94" height="12" rx="2" fill="var(--accent)"/>
+      </g>
+      <line x1="146" y1="179" x2="242" y2="179" stroke="var(--accent)" stroke-width="1.5"/>
+      <polygon points="248,179 240,175 240,183" fill="var(--accent)"/>
+      <text class="axis-t" x="194" y="170" text-anchor="middle">word 2:</text>
+      <text class="axis-t" x="194" y="196" text-anchor="middle">rewrite board</text>
+      <line x1="366" y1="179" x2="462" y2="179" stroke="var(--accent)" stroke-width="1.5"/>
+      <polygon points="468,179 460,175 460,183" fill="var(--accent)"/>
+      <text class="axis-t" x="414" y="170" text-anchor="middle">word 3:</text>
+      <text class="axis-t" x="414" y="196" text-anchor="middle">rewrite board</text>
+      <text class="axis-t" x="30" y="228">the SAME board — never bigger</text>
+      <text class="dlabel-m" x="250" y="228">new words are blended in over old detail —</text>
+      <text class="dlabel-m" x="250" y="244">"gated" = choose what to keep, what to erase</text>
+      <line x1="16" y1="258" x2="624" y2="258" stroke="var(--line)"/>
+      <text class="dlabel" x="16" y="282">memory at 122k:</text>
+      <rect x="140" y="270" width="24" height="14" rx="2" fill="var(--accent)"/>
+      <text class="dlabel-m" x="170" y="282">~4 GB this hybrid</text>
+      <rect x="300" y="270" width="96" height="14" rx="2" fill="var(--muted)"/>
+      <text class="dlabel-m" x="404" y="282">~16 GB if all 64 kept transcripts (4×)</text>
+    </svg>
+    <figcaption>Transcript vs whiteboard: 16 layers keep the transcript (that's the part that grows), 48 keep only a rewritten summary — which is why 122k of context costs ~4 GB here (Q8 cache), not the ~16 a dense model would need. The ratio is exactly 4×: only 16 of 64 layers store KV.</figcaption>
+  </figure>
+  <figure>
+    <svg viewBox="0 0 640 222" role="img" aria-label="Line chart of cache memory versus context length. A same-size model with all-standard attention climbs steeply and exceeds a 24 gigabyte card around 185k context. This hybrid model's line stays shallow, reaching about 4 gigabytes at 122k and about 8.5 at the full 262k, both with a Q8 cache.">
+      <g stroke="var(--line)" stroke-width="1">
+        <line x1="60" y1="180" x2="600" y2="180"/>
+        <line x1="60" y1="113" x2="600" y2="113"/>
+        <line x1="60" y1="46"  x2="600" y2="46"/>
+      </g>
+      <text class="axis-t" x="52" y="184" text-anchor="end">0</text>
+      <text class="axis-t" x="52" y="117" text-anchor="end">10</text>
+      <text class="axis-t" x="52" y="50"  text-anchor="end">20</text>
+      <line x1="60" y1="20" x2="600" y2="20" stroke="var(--bad)" stroke-width="1.5" stroke-dasharray="5 4"/>
+      <text class="axis-t" x="596" y="34" text-anchor="end" fill="var(--bad)">24 GB — the whole card (weights still need ~17 of it)</text>
+      <polyline points="60,180 311,73 438,20" fill="none" stroke="var(--muted)" stroke-width="2"/>
+      <polygon points="438,20 430,24 436,30" fill="var(--muted)"/>
+      <circle cx="311" cy="73" r="4" fill="var(--muted)" stroke="var(--ground)" stroke-width="2"/>
+      <text class="dlabel-m" x="330" y="100">all-standard attention:</text>
+      <text class="dlabel-m" x="330" y="115">~16 GB at 122k, off the card by ~185k</text>
+      <polyline points="60,180 311,153 600,123" fill="none" stroke="var(--accent)" stroke-width="2.5"/>
+      <circle cx="311" cy="153" r="4" fill="var(--accent)" stroke="var(--ground)" stroke-width="2"/>
+      <text class="dlabel" x="330" y="168">this hybrid: 4 GB at 122k · 8.5 GB at 262k</text>
+      <text class="axis-t" x="60"  y="200">0</text>
+      <text class="axis-t" x="311" y="200" text-anchor="middle">122k</text>
+      <text class="axis-t" x="600" y="200" text-anchor="middle">262k</text>
+      <text class="axis-t" x="620" y="214" text-anchor="end">context length → · cache GB on y</text>
+    </svg>
+    <figcaption>The same fact as a curve: the transcript line runs off a 24 GB card around 185k context; the whiteboard-heavy hybrid never comes close.</figcaption>
+  </figure>
+</section>
+
+<section id="s02">
+  <p class="fno">02</p>
+  <h2>The physics: bandwidth is king, and VRAM is a cliff</h2>
+  <p>Generation speed comes down to one ratio: how fast your card can read memory, divided by how much it must read per token. Every token requires reading the entire model — about 16.5&nbsp;GB for a 4-bit quant. So take your card's bandwidth in GB/s, divide by 16.5, multiply by ~0.7 (the efficiency we measured on CUDA), and that's your speed ceiling in tokens per second. This one calculation predicts every row of the matrix in §07.</p>
+  <p>The second law: speed vs. context is a <strong>cliff, not a curve</strong>. Flat while weights + KV fit in VRAM; a collapse once anything spills over the PCIe bus — and the magnitude scales with how much spills: ~10× when the weights file itself lands in system memory (the 256k point below), a measured 1.5–2× from even a ~2&nbsp;GB spill (§10). Measured on the reference 3090:</p>
+  <figure>
+    <svg viewBox="0 0 640 250" role="img" aria-label="Line chart of short-probe decode speed versus allocated context on an RTX 3090, MTP speculation on. Speed holds at 51 to 55 tokens per second from 122k through 213k, drops to 41 at 217k and 19.5 at 221k, and an older no-speculation measurement shows 4 tokens per second at 256k when the Q4 file itself spills. A vertical marker at 131k notes dedicated VRAM is full there — larger windows stay fast only until actually filled.">
+      <g stroke="var(--line)" stroke-width="1">
+        <line x1="48" y1="210" x2="620" y2="210"/>
+        <line x1="48" y1="145" x2="620" y2="145"/>
+        <line x1="48" y1="81"  x2="620" y2="81"/>
+        <line x1="48" y1="16"  x2="620" y2="16"/>
+      </g>
+      <text class="axis-t" x="40" y="214" text-anchor="end">0</text>
+      <text class="axis-t" x="40" y="149" text-anchor="end">20</text>
+      <text class="axis-t" x="40" y="85"  text-anchor="end">40</text>
+      <text class="axis-t" x="40" y="20"  text-anchor="end">60</text>
+      <text class="axis-t" x="48"  y="230">0</text>
+      <text class="axis-t" x="179" y="230" text-anchor="middle">64k</text>
+      <text class="axis-t" x="310" y="230" text-anchor="middle">128k</text>
+      <text class="axis-t" x="440" y="230" text-anchor="middle">192k</text>
+      <text class="axis-t" x="571" y="230" text-anchor="middle">256k</text>
+      <text class="axis-t" x="620" y="246" text-anchor="end">allocated context (tokens) · short-probe decode t/s, MTP on · RTX 3090</text>
+      <line x1="316" y1="26" x2="316" y2="210" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 4"/>
+      <polyline points="56,33 299,31 483,43" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>
+      <polyline points="483,43 492,77 500,147" fill="none" stroke="var(--bad)" stroke-width="2.5" stroke-linejoin="round"/>
+      <polyline points="500,147 571,197" fill="none" stroke="var(--bad)" stroke-width="2" stroke-dasharray="5 5"/>
+      <circle cx="299" cy="31" r="5" fill="var(--accent)" stroke="var(--ground)" stroke-width="2"/>
+      <circle cx="483" cy="43" r="5" fill="var(--accent)" stroke="var(--ground)" stroke-width="2"/>
+      <circle cx="492" cy="77" r="4" fill="var(--bad)" stroke="var(--ground)" stroke-width="2"/>
+      <circle cx="500" cy="147" r="5" fill="var(--bad)" stroke="var(--ground)" stroke-width="2"/>
+      <circle cx="571" cy="197" r="5" fill="var(--bad)" stroke="var(--ground)" stroke-width="2"/>
+      <text class="dlabel" x="290" y="22" text-anchor="end">122k · 55.4 t/s</text>
+      <text class="dlabel" x="474" y="32" text-anchor="end">213k · 51.8</text>
+      <text class="dlabel" x="508" y="80">217k · 41.2</text>
+      <text class="dlabel" x="512" y="146">221k · 19.5</text>
+      <text class="dlabel" x="566" y="185" text-anchor="end">256k, Q4 file · 4 t/s (older no-spec run)</text>
+      <text class="dlabel-m" x="322" y="130">131k · dedicated VRAM full — fast past here only until filled</text>
+      <text class="dlabel-m" x="420" y="176" text-anchor="middle">the cliff, measured: 213k fast → 221k collapsed</text>
+    </svg>
+    <figcaption>Same model, same GPU, measured 2026-08-22 (plateau and cliff: MTP-on short probes; the 256k point: an older no-speculation run where the Q4 file itself spilled). The 256k point is not a verdict on 256k — a smaller resident file runs full native context on the same card: UD-IQ4_XS at Q4-class quality text-only, or 3-bit with room to spare (budget table below). The dashed 131k line marks where dedicated VRAM fills: the plateau beyond it holds only while the deep context stays untouched — the two-ceilings paragraph below has the full story.</figcaption>
+  </figure>
+  <div class="callout"><span class="tag">Corollary</span><p>Allocated is not the same as used: a big context window with a small prompt in it costs VRAM, not speed. And as long as you stay below the cliff, shrinking the window gains you nothing — there is no hidden "optimal point" to search for.</p></div>
+  <p>That corollary now has a measured face. Probed 2026-08-22 with Q4_K_M (q8_0 KV, MTP on, mmproj loaded — the ~1&nbsp;GiB-larger UD-Q4_K_XL shifts every ceiling ~30k tokens lower, while dropping <code>--mmproj</code> frees ~0.9&nbsp;GiB and raises them ~27k, to roughly ~158k fully resident) by stepping <code>-c</code> upward with short temp-0 decode probes: speed holds at <span class="num">~50–55</span> t/s all the way to <code>-c 212992</code>, turns borderline at 217,088 (<span class="num">41.2</span> t/s), and collapses at 221,184 (<span class="num">19.5</span> t/s). But <code>nvidia-smi</code> tells the other half of the story: dedicated VRAM hits its ~24&nbsp;GB ceiling already at <code>-c 131072</code> (measured <span class="num">24,052</span> MiB) — past that point the KV cache is overcommitted, and the run stays fast only while a short prompt leaves the deep pages untouched. So a 24&nbsp;GB card has two ceilings, not one: <strong>~131k is the practical fully-resident ceiling</strong> — fast even when a long run actually fills it, though it sits right at the margin (the recipe's 122,880 deliberately leaves headroom below it), and it is the same number the budget table's arithmetic lands on below — while <strong>up to ~213k loads and runs fine for shallow use</strong>, degrading progressively as real tokens land in the overcommitted tail.</p>
+
+  <h2 id="s02-budget" style="margin-top:36px; scroll-margin-top:24px">The VRAM budget, in one table</h2>
+  <p>The cliff chart says where speed dies; this table says why. KV costs exactly <span class="num">64&nbsp;KiB</span> per token at fp16 (§01), so what fits on a <span class="num">24&nbsp;GiB</span> card is plain arithmetic: weights + KV + ~1–1.5&nbsp;GiB of compute buffers + ~0.2&nbsp;GiB of constant recurrent state for the DeltaNet layers (kept at fp32 — the <code>-ctk/-ctv</code> flags don't touch it). The rows assume roughly 22–23&nbsp;GiB usable of the 24; the real figure is machine-dependent — whatever your browsers and desktop are holding comes off the top (§10).</p>
+  <div class="tablebox">
+  <table>
+    <tr><th>Context</th><th>KV type</th><th>KV size</th><th>Largest unsloth file that fits</th></tr>
+    <tr><td class="n">262,144</td><td class="n">fp16</td><td class="n">16.0 GiB</td><td>nothing — even the smallest file (UD-IQ1_S, 5.8 GiB) misses once buffers are counted</td></tr>
+    <tr><td class="n">262,144</td><td class="n">q8_0</td><td class="n">8.5 GiB</td><td><b>UD-IQ4_XS</b> (13.3 GiB) — text-only, no mmproj: ~23 GiB total, verified by shallow probes to the full 262,144 (§05's dark-horse callout). By arithmetic alone UD-Q3_K_XL (12.2 GiB, ~22.2 GiB total) sits in the same marginal-but-workable zone — the IQ4_XS figure is measured, the Q3 one is not — and <b>UD-IQ3_XXS</b> (10.15 GiB) fits with room to spare</td></tr>
+    <tr><td class="n">262,144</td><td class="n">q4_0</td><td class="n">4.5 GiB</td><td>UD-Q4_K_M would fit — but skip it: q4_0 KV is the wrong trade at exactly the context lengths that need it (below)</td></tr>
+    <tr class="hl"><td class="n">131,072</td><td class="n">q8_0</td><td class="n">4.25 GiB</td><td><b>Q4_K_M</b> (15.4 GiB) — ~21.1 GiB total, ~22.0 with the vision projector; this is the reference recipe's row (its measured 122,880 context trims KV to 3.98 GiB). The alternative UD-Q4_K_XL (16.39 GiB, ~22.1 GiB total) also fits when VRAM is spare</td></tr>
+    <tr><td class="n">65,536</td><td class="n">q8_0</td><td class="n">2.125 GiB</td><td><b>UD-Q5_K_S</b> (~17.4 GiB) — the quality play when you don't need long thinking runs</td></tr>
+  </table>
+  </div>
+  <p>Two footnotes the table earns. First, the q4_0-KV flag: the problem is not that quantization error "accumulates" — each cache entry is quantized once — it's that at long context every new token attends over hundreds of thousands of perturbed entries, and retrieval gets flaky at exactly the 200k+ lengths a q4_0 cache would enable. q8_0 is the deepest safe cut. Second, prefill: these budgets make a 200k+ prompt <em>fit</em>, but filling it is quadratic work on the 16 full-attention layers — a genuinely full 100k prompt takes several minutes to first token on a 3090, potentially tens of minutes at full 200k+ (an estimate, not a benchmark; the reference run's ~2k prompt hides this cost entirely).</p>
+</section>
+
+<section id="s03">
+  <p class="fno">03</p>
+  <h2>Universal rules — true on every card</h2>
+  <ul>
+    <li><strong>One token pool.</strong> <code>prompt + thinking + output ≤ context</code>. The model has no awareness of its limits and cannot budget its own thinking; limits are enforced by your config only.</li>
+    <li><strong>Cut-offs are client-side.</strong> The server generates until told to stop. Truncations come from the client's <code>max_tokens</code>, its request timeout, or Ctrl+C — and with OpenAI-compatible APIs a cut generation cannot seamlessly resume. Size <code>max_tokens</code> and the client timeout so the whole run fits one response.</li>
+    <li><strong>One slot, quantized KV.</strong> <code>--parallel 1</code> (some UIs default to 2 = double KV) and <code>-ctk q8_0 -ctv q8_0</code> (halves KV, negligible loss — but never q4_0 for the KV cache; why: §02).</li>
+    <li><strong><code>--load-mode none</code> — harmless everywhere, essential on RAM-tight machines; every §08 recipe ships it by default</strong> (replaces the deprecated <code>--no-mmap</code>). Without it the whole GGUF stays cached in system RAM even after the weights are in VRAM — ~15&nbsp;GB freed for the Q4 file. The cost is a slower model load: measured <span class="num">~10–30</span>&nbsp;s to first health check across tonight's dozens of restarts (SSD-dependent).</li>
+    <li><strong><code>-ctk q8_0 -ctv q8_0</code> — now verified, not assumed.</strong> Measured wikitext perplexity with the Q8 cache: <span class="num">6.5498</span> vs <span class="num">6.5348</span> at fp16 — +0.23%, inside the error bars. Half the KV VRAM for statistically nothing. (Avoid q4_0 for K at long context — §05's mechanism note.)</li>
+    <li><strong><code>--parallel 1</code> — also measured.</strong> Two concurrent requests at <code>--parallel 2</code> gained only +11% aggregate throughput (79.2 vs 71.3 t/s) while making each request ~40% slower and halving the per-slot window. For one user — even one driving multiple agents — queueing beats sharing.</li>
+    <li><strong>All layers on GPU or accept the cliff.</strong> Partial offload speed is set by CPU RAM bandwidth, not by the GPU — a 5080 and a 4060&nbsp;Ti offload at nearly the same ~8–12 t/s (assuming two sticks of DDR5 in dual channel, ~90&nbsp;GB/s; a single stick halves the bandwidth and the t/s with it). And this is a dense model: the MoE escape hatch of parking expert tensors on CPU (<code>-ot</code>) has nothing to target here, so every offloaded layer sits on the critical path of every token. (Two ways this rule silently breaks: §10.)</li>
+  </ul>
+  <figure>
+    <svg viewBox="0 0 640 130" role="img" aria-label="Diagram of the context window as one fixed-length bar shared by three segments: the prompt, the thinking tokens which grow during the run, and the output. When thinking plus output reach the right wall set by the -c flag, generation is cut mid-sentence.">
+      <rect x="16" y="34" width="560" height="40" rx="6" fill="none" stroke="var(--ink)" stroke-width="1.5"/>
+      <rect x="18" y="36" width="120" height="36" rx="4" fill="var(--surface2)"/>
+      <rect x="138" y="36" width="280" height="36" fill="var(--accent)"/>
+      <rect x="418" y="36" width="110" height="36" fill="var(--muted)"/>
+      <text class="dlabel" x="78" y="58" text-anchor="middle">prompt</text>
+      <text class="dlabel" x="278" y="58" text-anchor="middle" fill="var(--ground)">thinking — grows during the run</text>
+      <text class="dlabel" x="473" y="58" text-anchor="middle" fill="var(--ground)">output</text>
+      <line x1="528" y1="42" x2="560" y2="42" stroke="var(--bad)" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <polygon points="566,42 558,38 558,46" fill="var(--bad)"/>
+      <line x1="576" y1="26" x2="576" y2="82" stroke="var(--bad)" stroke-width="2"/>
+      <text class="dlabel" x="590" y="50" fill="var(--bad)">the</text>
+      <text class="dlabel" x="590" y="64" fill="var(--bad)">wall</text>
+      <text class="axis-t" x="16" y="22">one shared pool — the model cannot budget it; your config does</text>
+      <text class="axis-t" x="16" y="100">|— window size = the server's -c flag —|</text>
+      <text class="axis-t" x="330" y="100">hit the wall mid-thought → the answer is cut off;</text>
+      <text class="axis-t" x="330" y="114">size max_tokens and timeouts to fit the whole run</text>
+    </svg>
+    <figcaption>The context window is one pot, not three: a 100k-token thinking run inside a 32k window fails by arithmetic, not by bug.</figcaption>
+  </figure>
+</section>
+
+<section id="s04">
+  <p class="fno">04</p>
+  <h2>Reasoning effort: the setting that moves hours, not percent</h2>
+  <p>The default <code>xhigh</code> maximizes benchmark scores by thinking enormously; disabling reasoning measurably hurts complex tasks. So we measured the whole dial ourselves, 2026-08-22 on the reference 3090, from two directions: <strong>cost</strong> — the same ~1,700-token coding task (build an animated aquarium page) run twice per setting at temp&nbsp;1.0 — and <strong>quality</strong> — the six resulting pages graded blind against the spec by independent reviewers, plus a separate n=200 GSM8K accuracy run per setting:</p>
+  <div class="tablebox">
+  <table>
+    <tr><th>Effort</th><th>Tokens (2 runs)</th><th>Wall-clock</th><th>Blind quality score /100</th><th>GSM8K n=200</th></tr>
+    <tr><td><code>low</code></td><td class="n">16.7k–29.8k</td><td class="n">4:34–8:34</td><td class="n"><b>40, 47 — both runs produced pages whose JavaScript crashes</b> (one never draws a frame, one freezes on its first)</td><td class="n">96.0% (0 truncated — cap-independent)</td></tr>
+    <tr class="hl"><td><code>medium</code></td><td class="n">20.7k–23.4k</td><td class="n">5:54–7:04</td><td class="n">86, 93</td><td class="n">97.5% (0 truncated — cap-independent)</td></tr>
+    <tr><td><code>xhigh</code></td><td class="n">73.1k–75.8k</td><td class="n">24:58–26:48</td><td class="n">92, 95 · 100% of spec, both runs</td><td class="n">95.0% (94.0 under a 4,096 cap†)</td></tr>
+  </table>
+  </div>
+  <p>† the first run's 4,096-token cap cut 5 of xhigh's 200 answers mid-thinking; rerun at a 16,384 cap: <strong>zero truncations, 95.0%</strong> — the budget had cost ~1 point, and 16,384 proved sufficient for every xhigh thought on this benchmark. Only the xhigh arm needed rerunning: greedy decoding is deterministic, so the never-truncating low/medium runs are byte-identical under any larger cap (the full methodology lesson is §09's token-budget note). And no, medium's 97.5 does not mean xhigh is <em>losing</em>: the 2.5-point gap is ~1.3σ at this sample size — a statistical tie (resolving it for real would take ~1,000+ paired samples, §09) — and low sitting <em>between</em> them breaks any effort-accuracy ladder. If the small downward lean were real, the known mechanism is overthinking: long reasoning on easy problems creates chances to second-guess a correct answer. The findings, stated plainly: <strong>the dial has a cliff and a slope, and they are not where you'd guess.</strong> The cliff is low→medium — and it moves with task difficulty: <code>low</code> matched the others on short math (96%), then shipped fatally broken JavaScript on the complex page <em>twice out of two</em> (one run never draws a frame, the other freezes on frame one), with one broken run burning <em>more</em> tokens than medium. On hard tasks, low is not a budget option; it is a defect generator. Above the cliff the slope is shallow: medium and xhigh overlap on score (medium's own run-to-run spread beats the between-effort gap — indistinguishable at two runs per setting), but only <code>xhigh</code> delivered 100% of the spec's requirements with zero fatal defects on both runs, and it won both blind head-to-head rankings. Its edge is <em>completeness insurance</em>, not average score.</p>
+  <div class="tablebox">
+  <table>
+    <tr><th>Effort</th><th>Use for</th><th>Cost</th></tr>
+    <tr class="hl"><td><code>xhigh</code></td><td>the quality-first default this guide ships — 100% spec coverage and zero fatal defects in the judged runs; worth it whenever a shipped bug or missed requirement costs more than ~20 minutes of GPU time</td><td class="n">~4× medium's wall-clock, measured twice; raise max_tokens or thinking eats the budget</td></tr>
+    <tr><td><code>medium</code></td><td>the value setting — ~90%+ of the judged quality in a quarter of the wall-clock; interactive sessions where the wait matters</td><td class="n">minutes, not hours</td></tr>
+    <tr><td><code>low</code> / <code>none</code></td><td>short, simple tasks only (it matched the others on easy math) — <b>measured shipping broken code on complex tasks, 2 of 2 runs</b></td><td class="n">not reliably cheaper on hard tasks, and the output may not run</td></tr>
+  </table>
+  </div>
+  <p>Set it server-side in llama.cpp: <code>--chat-template-kwargs "{\"reasoning_effort\":\"xhigh\"}"</code> (GUI front-ends typically expose it as a reasoning-effort setting). This guide ships <code>xhigh</code> in every recipe <em>whose context window can hold it and whose speed makes the wait sane</em> — the 12&nbsp;GB offload recipe's 112k window holds xhigh fine, but at ~6–8&nbsp;t/s it ships <code>medium</code> as a patience call, not a window limit (§08) — because effort has a second price besides time: <strong>thinking tokens live inside the context window (§03's shared pool), so your window sets an effort ceiling.</strong> Measured appetite on one hard task: xhigh thinks 73–76k tokens — the one figure the window table needs (the cost table above has the full per-effort column). That maps onto windows directly:</p>
+  <div class="tablebox">
+  <table>
+    <tr><th>Your <code>-c</code> window</th><th>Effort ceiling</th><th>Why</th></tr>
+    <tr><td class="n">≥ 100k (24 GB+, Spark, B70, 12 GB offload)</td><td><code>xhigh</code></td><td>the 73–76k measured appetite fits with room for prompt and answer</td></tr>
+    <tr><td class="n">&lt; 50k (16 GB cards, B50 at 49k)</td><td><code>medium</code></td><td>xhigh's appetite alone can overflow the window mid-thinking — a truncated xhigh run scores <em>worse</em> than a completed medium one. On these cards the window cannot grow, so medium is not the budget option — it is the best quality the VRAM affords</td></tr>
+    <tr><td class="n">unified-memory iGPUs (any window)</td><td><code>xhigh</code> <em>if you raise <code>-c</code> and accept the hours</em></td><td>an iGPU's window is borrowed system RAM, not a wall — Windows grants ~57% of RAM by default and Intel's driver can override to ~87% (§08 recipe) — so its effort ceiling is patience (~3–4 h per xhigh answer at 5–7 t/s), not memory</td></tr>
+  </table>
+  </div>
+  <p>Within your ceiling, the trade is time: a local card's tokens are free, so pay wall-clock knowingly with the tables above as the price list, and drop one notch per-session when you're waiting at the keyboard. "Free" holds for electricity too — the card draws a measured ~<span class="num">310</span>&nbsp;W under load, so even the priciest measured answer (xhigh, ~26&nbsp;min) costs ≈<span class="num">0.13</span>&nbsp;kWh — a few cents; a medium answer is ≈<span class="num">0.03</span>&nbsp;kWh. The wall-clock is the only bill that matters.</p>
+</section>
+
+<section id="s05">
+  <p class="fno">05</p>
+  <h2>Which file to download — quants are not interchangeable</h2>
+  <p>Two files of the same size from different quantizers can differ a lot in quality — measured comparisons (KL divergence against the full model) prove it. Current best picks:</p>
+  <div class="tablebox">
+  <table>
+    <tr><th>Size class</th><th>Best file</th><th>Weights</th><th>Notes</th></tr>
+    <tr><td>4-bit GGUF (the default class — the dark-horse callout below splits Q4_K_M vs the shipped UD-IQ4_XS)</td><td><a href="https://huggingface.co/lmstudio-community/Qwen3.8-27B-GGUF"><b>Q4_K_M</b></a> · lmstudio-community (or <a href="https://huggingface.co/unsloth/Qwen3.8-27B-GGUF">UD-Q4_K_XL</a>)</td><td class="n">16.5 GB</td><td>settled by measurement 2026-08-22: n=200 GSM8K tied (the numbers live in the perplexity discussion below; §09 for why the ±3-pt band makes it a tie), and wikitext-2 perplexity (the table below) came out 2.3% in Q4_K_M's favor. Unsloth's ~10%-lower-KLD claim for the XL file is a relative logit metric on their calibration set, worth ~1–3 true accuracy points at most. With quality tied, the 1 GiB decides: Q4_K_M's headroom buys ~30k more resident context or the vision projector (§08). Pick UD-Q4_K_XL only when VRAM is spare</td></tr>
+    <tr><td>3-bit GGUF (16 GB cards)</td><td><a href="https://huggingface.co/unsloth/Qwen3.8-27B-GGUF"><b>UD-Q3_K_XL</b></a> · unsloth</td><td class="n">13.1 GB</td><td>today's 3-bit methods are far better than older ones; Qwen's own AD-IQ3_S reportedly scores slightly better (<a href="https://huggingface.co/Qwen/Qwen3.8-27B/discussions/65">KLD data</a>) but you have to request access to download it</td></tr>
+    <tr><td>6-bit GGUF (quality, 32 GB cards)</td><td><a href="https://huggingface.co/lmstudio-community/Qwen3.8-27B-GGUF"><b>Q6_K</b></a> · lmstudio-community</td><td class="n">22.4 GB</td><td>wins its size class; near-Q8 quality</td></tr>
+    <tr><td>8-bit GGUF (reference)</td><td><a href="https://huggingface.co/lmstudio-community/Qwen3.8-27B-GGUF"><b>Q8_0</b></a> · lmstudio-community</td><td class="n">29 GB</td><td>the reference-quality choice, for machines that can hold it (DGX Spark; 32 GB cards at short context)</td></tr>
+    <tr class="hl"><td>NVFP4 (native on Blackwell)</td><td><a href="https://huggingface.co/unsloth/Qwen3.8-27B-NVFP4"><b>Qwen3.8-27B-NVFP4</b></a> · unsloth, via vLLM</td><td class="n">~15 GB</td><td>for Blackwell cards (RTX 50 / GB10 / B200): about 1.5× the speed of the unquantized model while keeping 92–97% of its accuracy. Runs only in vLLM — its FP8 output layer isn't supported by llama.cpp or SGLang</td></tr>
+    <tr><td>NVFP4 GGUF (any GPU — measured)</td><td><a href="https://huggingface.co/esatapedico/Qwen3.8-27B-NVFP4-MTP-GGUF"><b>NVFP4-MTP GGUF tiers</b></a> · community, via llama.cpp</td><td class="n">13.8–23.2 GiB</td><td>The model card claims these need a Blackwell GPU (sm_120). <strong>We tested that claim on an RTX 3090, and it's wrong</strong> — llama.cpp falls back to software decoding and the files run fine on older cards. The catch: on older cards you keep the small file size but lose the speed. Prompt processing is ~20% slower than Q4_K_M (1058 vs 1288 t/s, both on the 08-21 build — the dark-horse callout's 1303 for Q4_K_M is the canonical build-10502 llama-bench pp512 figure), and speculative decoding (§06) is slower too — the 2026-08-22 re-measure at the shipped flags put the tiers at 54.6/48.2 t/s (VERY-LOW/HIGH) vs Q4_K_M's 57.9 with the same MTP head (the 2026-08-21 build had measured 46.8 vs 58–60, with the tiers in the opposite order). So if speed is what you want, stick with Q4_K_M. The one reason to pick NVFP4 on an older card: the 13.8 GiB VERY-LOW file is ~1.6 GiB smaller than Q4_K_M, and that spare VRAM buys roughly 50k extra tokens of context on a 24 GB card (VERY-LOW's built-in draft head drafted worse than the other tiers' at large n-max — at the shipped n-max 4 the 08-22 re-measure found the penalty gone; see the scored comparison below). One quirk to know: llama-bench reports these files as "Q8_0" — that's a metadata bug, so tell them apart by file size</td></tr>
+    <tr><td>OpenVINO int4 (Intel Arc / iGPU)</td><td><a href="https://huggingface.co/OpenVINO/Qwen3.8-27B-int4-ov"><b>Qwen3.8-27B-int4-ov</b></a> · Intel official</td><td class="n">~16 GB</td><td>INT4_ASYM g128; first-party Intel runtime, OpenAI-compatible server; experimental — validate long runs</td></tr>
+    <tr><td>OpenVINO int8 (32 GB Arc quality play)</td><td><a href="https://huggingface.co/OpenVINO/Qwen3.8-27B-int8-ov"><b>Qwen3.8-27B-int8-ov</b></a> · Intel official</td><td class="n">~28 GB</td><td>Intel's equivalent of the Q6/Q8 quality tier; needs a 32 GB card</td></tr>
+  </table>
+  </div>
+  <p style="font-size:14px">Units, because they bite: HF download pages list decimal GB while VRAM is binary GiB — the 17.6&nbsp;GB UD-Q4_K_XL is 16.39&nbsp;GiB resident. That ~7% gap is why "17.6 GB weights + 4.25 GiB KV" still fits comfortably inside 24&nbsp;GiB (§02's budget table).</p>
+  <div class="callout"><span class="tag">Rule of thumb</span><p>For a benchmark, use the same quant on every machine (Q4-class) — a different quant is a different model and its scores aren't comparable. For daily use, pick the best quant that fits entirely in your VRAM.</p></div>
+
+  <h2 id="s05-scored" style="margin-top:36px; scroll-margin-top:24px">Does FP4 beat INT4? A scored smoke test</h2>
+  <p>First, what the two formats actually are. A 4-bit quant stores each weight as one of only 16 allowed values — the formats differ in <em>where those 16 values sit</em>:</p>
+  <figure>
+    <svg viewBox="0 0 640 210" role="img" aria-label="Diagram of the two 4-bit number grids. INT4 places its 16 allowed values at even spacing across the range. FP4 places them densely near zero, where most neural-network weights live, and sparsely at the extremes. Below, both formats store a separate scale factor per small block of weights, which is the shared mechanism that actually preserves quality.">
+      <text class="dlabel" x="16" y="20">INT4 — 16 allowed values, evenly spaced</text>
+      <line x1="40" y1="46" x2="600" y2="46" stroke="var(--muted)"/>
+      <g stroke="var(--muted)" stroke-width="1.5">
+        <line x1="40" y1="38" x2="40" y2="54"/><line x1="80" y1="38" x2="80" y2="54"/><line x1="120" y1="38" x2="120" y2="54"/><line x1="160" y1="38" x2="160" y2="54"/><line x1="200" y1="38" x2="200" y2="54"/><line x1="240" y1="38" x2="240" y2="54"/><line x1="280" y1="38" x2="280" y2="54"/><line x1="320" y1="38" x2="320" y2="54"/><line x1="360" y1="38" x2="360" y2="54"/><line x1="400" y1="38" x2="400" y2="54"/><line x1="440" y1="38" x2="440" y2="54"/><line x1="480" y1="38" x2="480" y2="54"/><line x1="520" y1="38" x2="520" y2="54"/><line x1="560" y1="38" x2="560" y2="54"/><line x1="600" y1="38" x2="600" y2="54"/>
+      </g>
+      <text class="axis-t" x="320" y="70" text-anchor="middle">same step size everywhere</text>
+      <text class="dlabel" x="16" y="96">FP4 — 16 allowed values, dense near zero</text>
+      <line x1="40" y1="122" x2="600" y2="122" stroke="var(--accent)"/>
+      <g stroke="var(--accent)" stroke-width="1.5">
+        <line x1="40" y1="114" x2="40" y2="130"/><line x1="133" y1="114" x2="133" y2="130"/><line x1="180" y1="114" x2="180" y2="130"/><line x1="227" y1="114" x2="227" y2="130"/><line x1="250" y1="114" x2="250" y2="130"/><line x1="273" y1="114" x2="273" y2="130"/><line x1="297" y1="114" x2="297" y2="130"/><line x1="320" y1="114" x2="320" y2="130"/><line x1="343" y1="114" x2="343" y2="130"/><line x1="367" y1="114" x2="367" y2="130"/><line x1="390" y1="114" x2="390" y2="130"/><line x1="413" y1="114" x2="413" y2="130"/><line x1="460" y1="114" x2="460" y2="130"/><line x1="507" y1="114" x2="507" y2="130"/><line x1="600" y1="114" x2="600" y2="130"/>
+      </g>
+      <text class="axis-t" x="320" y="146" text-anchor="middle">fine steps near zero (where most weights live) · coarse at the edges</text>
+      <line x1="16" y1="158" x2="624" y2="158" stroke="var(--line)"/>
+      <g fill="var(--surface2)" stroke="var(--line)">
+        <rect x="16" y="172" width="22" height="18"/><rect x="38" y="172" width="22" height="18"/><rect x="60" y="172" width="22" height="18"/><rect x="82" y="172" width="22" height="18"/><rect x="104" y="172" width="22" height="18"/><rect x="126" y="172" width="22" height="18"/><rect x="148" y="172" width="22" height="18"/><rect x="170" y="172" width="22" height="18"/>
+      </g>
+      <rect x="200" y="172" width="64" height="18" rx="9" fill="var(--accent)"/>
+      <text class="dlabel" x="232" y="185" text-anchor="middle" fill="var(--ground)">× scale</text>
+      <text class="dlabel-m" x="276" y="186">each small block of weights gets its own scale</text>
+      <text class="axis-t" x="16" y="206">this shared rescaling (K-quants: per 32 · NVFP4: per 16) — not the grid shape — is what preserves quality</text>
+    </svg>
+    <figcaption>The real difference between "integer" and "float" 4-bit is grid spacing; block scaling equalizes most of it in practice.</figcaption>
+  </figure>
+  <p>A common belief says floating-point formats always beat integer formats at the same bit width. We tested it: the three quants above, graded for <em>correctness</em> on GSM8K and MATH-500 (20 problems each, greedy decoding, identical prompts, 4096-token budget; answers that ran out of budget mid-thinking count as wrong and are reported as truncations). One framing rule before the numbers: at <span class="num">20</span> problems this is a <strong>smoke test, not a ranking</strong>. (Throughout this guide a <strong>point</strong> means a percentage point of accuracy — 94% → 95% is one point. It is an absolute unit, unlike "percent better", which is relative; and in a scored run, points and questions are chained together: at n=20 each question is worth 5 points, at n=200 each is worth 0.5.) The smoke test's job is to catch a <em>broken</em> quant — a bad conversion or mangled chat template collapses a score by 20–40+ points, which even n=20 detects reliably. It cannot rank healthy quants, whose true gaps are a point or three (the arithmetic is in §09). The table's last two columns track MTP — the model's built-in draft head for speculative decoding, introduced in §06. Measured on the reference 3090:</p>
+  <div class="tablebox">
+  <table>
+    <tr><th>Quant</th><th>Format</th><th>GSM8K</th><th>MATH-500</th><th>Decode (MTP on)</th><th>Draft accept len</th></tr>
+    <tr class="hl"><td>Q4_K_M</td><td>K-quant (integer grid)</td><td class="n">85% (1 trunc)</td><td class="n"><b>75%</b> (5 trunc)</td><td class="n">63–70 t/s</td><td class="n">4.7–4.9</td></tr>
+    <tr><td>NVFP4-HIGH</td><td>FP4, most extras upgraded</td><td class="n">85% (1 trunc)</td><td class="n">65% (5 trunc)</td><td class="n">~55 t/s</td><td class="n">4.7–4.8</td></tr>
+    <tr><td>NVFP4-VERY-LOW</td><td>FP4, smallest tier</td><td class="n">85% (0 trunc)</td><td class="n">65% (5 trunc)</td><td class="n">~49 t/s</td><td class="n">3.33</td></tr>
+  </table>
+  </div>
+  <p style="font-size:14px">The decode column comes from a different llama.cpp build and workload than §06's configuration table (Sources lists both) — compare speeds within this table only.</p>
+  <p>What the numbers say:</p>
+  <ul>
+    <li><strong>"Floating point always wins" did not survive the test.</strong> All three tied on GSM8K; on MATH-500 the integer-grid K-quant answered two more problems than either FP4 file. At 20 samples that edge is weak evidence — but it is the <em>opposite</em> direction from the belief. What actually decides 4-bit quality is how cleverly a format spends its bits — block sizes, scale precision, which layers stay high-precision — and mature K-quants are very good at that game. Both families use fine-grained scaling; the float-vs-integer grid underneath matters far less than people assume.</li>
+    <li><strong>The two NVFP4 tiers were indistinguishable at this sample size</strong> — which is expected under noise, not evidence of equivalence. The file structure does predict a tie, though: the family shares one byte-identical NVFP4 backbone, with tiers differing only in the surrounding layers. The surprise is where VERY-LOW's savings actually landed: <strong>on these math prompts at n-max 10 its MTP draft head drafted noticeably worse (acceptance length 3.33 vs ~4.8)</strong> — a speculative-decoding <em>speed</em> cost, not an accuracy one. The penalty is config-dependent, though (n-max and p-min are the speculation knobs §06 tunes): re-measured 2026-08-22 at the tuned n-max&nbsp;4 / p-min&nbsp;0.75 on code generation, both tiers accepted identically (<span class="num">0.83</span>) and VERY-LOW was the <em>faster</em> file (<span class="num">54.6</span> vs <span class="num">48.2</span>&nbsp;t/s) — smaller weights, less memory traffic per token.</li>
+    <li><strong>Sample-size honesty: each problem is worth 5 points.</strong> Every gap in this table is one or two questions wide. Treat it as "no meaningful quality difference, mild edge to the K-quant" — not a ranking. We also ran the same prompts through a different serving stack and grader version and saw individual cells move by up to 10 points, which means <em>measurement variance is the same size as the differences being measured</em>. Anyone showing you a one-run quant ranking without error bars is selling something. §09 puts numbers on exactly how underpowered a 20-question run is.</li>
+  </ul>
+  <div class="callout"><span class="tag">The takeaway</span><p>Pick your file by <strong>size and speed</strong>, not by format ideology: on a 24 GB Ampere card that means Q4_K_M or the smaller UD-IQ4_XS. Q4_K_M is the fastest of the three files smoke-tested <em>here</em> (best-drafting MTP head — the n=20 smoke test found nothing against it, and the measured wikitext perplexity below comes out in its favor); the dark-horse callout below splits it against UD-IQ4_XS. NVFP4's real advantages live on Blackwell hardware where the format runs natively.</p></div>
+
+  <p>Accuracy at 20 questions cannot separate healthy quant files (§09 carries the full arithmetic) — but per-token metrics can. <strong>Perplexity</strong> here is the classic model-quality metric, not the search engine (which named itself after it): run the model over real text and score how well it predicted each actual next token. A perplexity of <span class="num">6.5</span> means that at every step the model was, on average, as uncertain as choosing between ~6.5 equally likely words — perfect prediction would be 1, and lower is better. Because quantization damage makes prediction slightly worse <em>everywhere</em>, this metric feels it at all ~<span class="num">330k</span> token positions instead of collecting one right/wrong bit per benchmark question. Measured 2026-08-22 on the reference 3090: <code>llama-perplexity</code> over the full wikitext-2-raw test set (<code>-c 8192</code>) for six 4-bit-class contenders:</p>
+  <div class="tablebox">
+  <table>
+    <tr><th>File</th><th>Perplexity (lower is better)</th><th>vs best</th></tr>
+    <tr class="hl"><td><b>Q4_K_M</b></td><td class="n">6.535 ± 0.044</td><td class="n">—</td></tr>
+    <tr class="hl"><td><b>UD-IQ4_XS</b> (13.3 GiB)</td><td class="n">6.596 ± 0.045</td><td class="n">+0.9% — within ~1σ</td></tr>
+    <tr><td>UD-Q4_K_M</td><td class="n">6.654 ± 0.045</td><td class="n">+1.8%</td></tr>
+    <tr><td>UD-Q4_K_XL</td><td class="n">6.682 ± 0.046</td><td class="n">+2.3%</td></tr>
+    <tr><td>NVFP4-HIGH</td><td class="n">6.826 ± 0.047</td><td class="n">+4.4%</td></tr>
+    <tr><td>NVFP4-VERY-LOW</td><td class="n">6.877 ± 0.047</td><td class="n">+5.2%</td></tr>
+  </table>
+  </div>
+  <p>Read it with its one limit attached: this is a single corpus, and wikitext rewards plain-text prediction while unsloth's UD calibration targets chat-style data — so the ordering among the top files may not carry over perfectly to instruct workloads (the n=200 GSM8K comparison agreed within noise: Q4_K_M 94.0%, UD-Q4_K_XL 94.5%, UD-IQ4_XS 93.0% — and NVFP4-HIGH 92.5%, NVFP4-VERY-LOW 90.5%, trailing the K-quants in the same direction as this table, all ±~3–4 pts). Two robust findings: <strong>both NVFP4 tiers trail the K-quants</strong> — the same direction the scored table's MATH-500 column hinted, reached by an independent measurement — and <strong>none of the unsloth Dynamic variants beat the plain lmstudio Q4_K_M on this corpus, including at identical size</strong>. Two cheap metrics agreeing beats one expensive one.</p>
+  <div class="callout"><span class="tag">The dark horse: UD-IQ4_XS</span><p>The table's second row is the night's discovery. At <span class="num">13.3</span>&nbsp;GiB — 2.1&nbsp;GiB smaller than Q4_K_M — UD-IQ4_XS ties it on quality (perplexity within ~1σ, GSM8K within noise) and, because decode is bandwidth-bound, the smaller file is <em>faster everywhere it was measured</em>: prefill 1365 vs 1303 t/s, plain decode <span class="num">43.8</span> vs 39.9, GSM8K with speculation <span class="num">73</span> vs 63. The saved VRAM becomes context: its measured fully-resident ceiling <em>with the vision projector loaded</em> is ~<span class="num">180–190k</span> (vs Q4_K_M's ~131k), shallow probes stayed at 65–70&nbsp;t/s all the way to the full native <span class="num">262,144</span> with no collapse anywhere (pre-re-sweep flags at the larger -c allocations — the tuned-MTP near-empty measure on the 196k config is 79.3–79.9&nbsp;t/s, §08's menu), and by §02's arithmetic a text-only launch (no mmproj) holds the <em>entire native context fully resident</em> — the capability this guide previously reserved for 3-bit files, now at Q4-class quality (a headless/bare-desktop configuration: its ~1 GiB slack does not survive a browser — §08's Choice B ships the desktop-safe 196k instead). Why still name Q4_K_M the default? Two defaults, two scopes: <strong>Q4_K_M is this guide's measurement base and maximum-quality pick</strong> — both quality metrics lean the same whisker in its favor, it is the file every number in this guide was measured on, and IQ-format decode support varies more across backends (measured on CUDA) — while <strong>UD-IQ4_XS at -c 196608 is the reference machine's shipped daily default</strong> (§08's launcher menu, row [1]). <strong>Context- or speed-hungry: pick UD-IQ4_XS. Maximum measured quality at 122k: stay on Q4_K_M.</strong> Either is right.</p></div>
+</section>
+
+<section id="s05b">
+  <p class="fno">06</p>
+  <h2>Speculative decoding — free speed, priced in acceptance</h2>
+  <p>Speculation is lossless: every drafted token is verified by the full model before it counts, so quality is never on the table — only speed is, and the speedup is set by <strong>draft acceptance</strong>, which your content decides. The subsections below measure it, tune it, and show how a clean benchmark overstated it. First, the zoomed-out result — every speed this guide measured on the reference 3090: one card, conditions noted per row (Q4_K_M at the tuned flags, 2026-08-22, unless a row says otherwise):</p>
+  <div class="tablebox">
+  <table>
+    <tr><th>Workload</th><th>Acceptance</th><th>Decode</th><th>What it means</th></tr>
+    <tr><td>Ceiling — copying text verbatim (pre-re-sweep flags: n-max 10 / p-min 0.5)</td><td class="n">0.93</td><td class="n">119.8 t/s</td><td>drafts nearly always accepted</td></tr>
+    <tr><td>Short math, greedy (GSM8K — §05 scored table's build &amp; workload, not this table's)</td><td class="n">0.90</td><td class="n">63–70 t/s</td><td>short, predictable reasoning</td></tr>
+    <tr><td>Realistic code, temp 0</td><td class="n">0.81</td><td class="n">57.9 t/s</td><td>the tuned-flags benchmark number</td></tr>
+    <tr class="hl"><td><b>Production coding, temp 1.0</b></td><td class="n">—</td><td class="n"><b>55–61 t/s</b></td><td><b>what a normal session feels like</b></td></tr>
+    <tr><td>Long xhigh run, sustained over 73k tokens</td><td class="n">—</td><td class="n">48.8 t/s</td><td>KV deepens, thinking drafts worse</td></tr>
+    <tr><td>Deep context (<strong>measured on UD-IQ4_XS as a depth series</strong>): 54.6 t/s at 3.6k → 46 at 10k → ~44 at 15–28k → 34–39 by ~27–29k (run-to-run); prefill declines 1180 → ~600–860 t/s over the same span</td><td class="n">0.79–0.88, steady</td><td class="n">~34–44 t/s at agent depth</td><td>acceptance never moves — the cost is per-token KV reads growing with depth. Expect this band in sessions holding 10–30k of context, with nothing wrong. Q4_K_M at equal depth is expected <em>lower</em> (no measurement exists)</td></tr>
+    <tr><td>Floor — speculation off</td><td class="n">—</td><td class="n">39.7 t/s</td><td>pure bandwidth: 936 GB/s ÷ 16.5 GB × 0.7</td></tr>
+  </table>
+  </div>
+  <p>Read the band, not a number: <strong>the floor is physics, everything above it is acceptance.</strong> Plan wall-clock on the row that matches your work. One caveat on the floor before using it as a diagnostic: 39.7 is a <em>short-context</em> figure, and depth itself legitimately takes you below it, gradually (39.3 at a 27k-deep prompt, acceptance steady). The two §10 failure modes are different in kind: they land <em>far</em> below it at <em>short</em> context (25.7 t/s with the <code>-ngl</code> off-by-one, 20–35 spilled, against ~40 expected) — well below 40 at short context is the broken signature, not "below 39.7" and not honest depth or merely unlucky content.</p>
+
+  <h2 id="s05-mtp" style="margin-top:36px; scroll-margin-top:24px">MTP speculative decoding — free speed on every GPU</h2>
+  <p>Qwen3.8-27B ships with a built-in <strong>multi-token prediction (MTP) draft head</strong> — a small helper network that guesses several tokens ahead so the full model only has to check them, which is much faster than generating each one. The standard K-quant GGUFs (§05's table) <a href="https://github.com/sudoingX/qwen38-mtp">already include it</a> (the head itself always stays at 8-bit, whatever the main quant). llama.cpp added support in <a href="https://github.com/ggml-org/llama.cpp/discussions/27164">July 2026</a>, and because every guess is verified by the full model before it's accepted, <strong>the output is exactly what the model would have written anyway</strong> — you only gain speed. It works on any GPU llama.cpp supports: Ampere, Ada, Blackwell, Arc, iGPUs.</p>
+  <figure>
+    <svg viewBox="0 0 640 216" role="img" aria-label="Diagram comparing normal decoding, where the full 27B model runs one pass per token, with MTP speculative decoding, where a tiny draft head guesses four tokens cheaply and one full-model pass verifies them all, keeping the correct guesses and discarding the wrong one.">
+      <text class="dlabel" x="16" y="22">normal decoding — one full-model pass per token</text>
+      <g>
+        <rect x="16"  y="34" width="76" height="26" rx="4" fill="var(--muted)"/>
+        <rect x="150" y="34" width="76" height="26" rx="4" fill="var(--muted)"/>
+        <rect x="284" y="34" width="76" height="26" rx="4" fill="var(--muted)"/>
+        <rect x="418" y="34" width="76" height="26" rx="4" fill="var(--muted)"/>
+      </g>
+      <text class="dlabel" x="54"  y="51" text-anchor="middle" fill="var(--ground)">27B pass</text>
+      <text class="dlabel" x="188" y="51" text-anchor="middle" fill="var(--ground)">27B pass</text>
+      <text class="dlabel" x="322" y="51" text-anchor="middle" fill="var(--ground)">27B pass</text>
+      <text class="dlabel" x="456" y="51" text-anchor="middle" fill="var(--ground)">27B pass</text>
+      <g stroke="var(--muted)" stroke-width="1.5">
+        <line x1="92"  y1="47" x2="118" y2="47"/><line x1="226" y1="47" x2="252" y2="47"/>
+        <line x1="360" y1="47" x2="386" y2="47"/><line x1="494" y1="47" x2="520" y2="47"/>
+      </g>
+      <g fill="var(--surface2)" stroke="var(--line)">
+        <rect x="118" y="36" width="22" height="22" rx="3"/><rect x="252" y="36" width="22" height="22" rx="3"/>
+        <rect x="386" y="36" width="22" height="22" rx="3"/><rect x="520" y="36" width="22" height="22" rx="3"/>
+      </g>
+      <text class="dlabel-m" x="554" y="51">= 4 tokens</text>
+      <line x1="16" y1="84" x2="624" y2="84" stroke="var(--line)"/>
+      <text class="dlabel" x="16" y="108">MTP speculative decoding — draft cheap, verify once</text>
+      <rect x="16" y="122" width="90" height="26" rx="4" fill="var(--accent)"/>
+      <text class="dlabel" x="61" y="139" text-anchor="middle" fill="var(--ground)">draft head</text>
+      <text class="axis-t" x="61" y="164" text-anchor="middle">tiny, ~free</text>
+      <line x1="106" y1="135" x2="130" y2="135" stroke="var(--accent)" stroke-width="1.5"/>
+      <polygon points="136,135 128,131 128,139" fill="var(--accent)"/>
+      <g fill="var(--surface2)" stroke="var(--line)">
+        <rect x="140" y="124" width="22" height="22" rx="3"/><rect x="166" y="124" width="22" height="22" rx="3"/>
+        <rect x="192" y="124" width="22" height="22" rx="3"/><rect x="218" y="124" width="22" height="22" rx="3"/>
+      </g>
+      <text class="axis-t" x="190" y="164" text-anchor="middle">4 guesses</text>
+      <line x1="246" y1="135" x2="272" y2="135" stroke="var(--accent)" stroke-width="1.5"/>
+      <polygon points="278,135 270,131 270,139" fill="var(--accent)"/>
+      <rect x="282" y="122" width="130" height="26" rx="4" fill="var(--muted)"/>
+      <text class="dlabel" x="347" y="139" text-anchor="middle" fill="var(--ground)">one 27B pass</text>
+      <text class="axis-t" x="347" y="164" text-anchor="middle">checks all 4 at once</text>
+      <line x1="418" y1="135" x2="444" y2="135" stroke="var(--accent)" stroke-width="1.5"/>
+      <polygon points="450,135 442,131 442,139" fill="var(--accent)"/>
+      <text class="dlabel" x="458" y="141" fill="var(--accent)">✓ ✓ ✓</text>
+      <text class="dlabel" x="506" y="141" fill="var(--bad)">✗</text>
+      <text class="dlabel-m" x="524" y="141">→ keep 3 + its fix</text>
+      <text class="axis-t" x="458" y="164">wrong guess discarded — output identical, just faster</text>
+    </svg>
+    <figcaption>Speculative decoding in one picture: guesses are free to make and cheap to check in bulk; the full model still has the final word on every token.</figcaption>
+  </figure>
+  <pre>  --spec-type draft-mtp  --spec-draft-n-max 4  --spec-draft-p-min 0.75</pre>
+  <p>How much speed it adds depends heavily on hardware and workload — reports range from <span class="num">+33%</span> to <span class="num">+145%</span>. An RTX 5090 tester saw <span class="num">148 avg / 203 peak t/s</span> on the NVFP4 tiers. On our reference 3090, generation went from 40.3 (the 08-21 build's cold-start baseline; the canonical 08-22 baseline is 39.7–39.9) to 58–60 t/s — <strong><span class="num">+45%</span></strong> at the default-ish settings (n-max 4, 89% of drafted tokens accepted) — and on the original benchmark prompt, tuning pushed it to <strong><span class="num">81.7 t/s, +105%</span></strong> (n-max 10, p-min 0.5) — though a 2026-08-22 re-sweep on realistic code inverted that ranking in favor of n-max 4 / p-min 0.75 (the full story, and the mechanism behind the flip, is in the sweep section below). The warning all these numbers carry: <strong>benchmark on your own machine</strong>. That 5090 tester found n-max 4 fastest with 6–8 slower; our 3090 agreed on real code yet kept climbing to n-max 10 on its near-ideal prompt — the optimum moves with hardware <em>and</em> content, so there is no universal best value. You'll need a llama.cpp build recent enough to have the draft-mtp feature.</p>
+  <p>One more measured nuance before you pencil <span class="num">82</span> t/s into your plans: <strong>the speedup is set by draft acceptance, and acceptance is set by your content</strong>. The head only wins when its guesses match what the full model was about to write — easy for boilerplate and predictable code, hard for prose that could go anywhere. Same card, same flags (the original sweep's n-max 10, p-min 0.5), temp 0:</p>
+  <div class="tablebox">
+  <table>
+    <tr><th>Workload (measured 2026-08-22)</th><th>Decode</th><th>Acceptance</th><th>Mean accepted run</th></tr>
+    <tr><td>baseline — no speculation</td><td class="n">39.7 t/s</td><td class="n">—</td><td class="n">—</td></tr>
+    <tr><td>essay prose</td><td class="n">43.5 t/s · +10%</td><td class="n">45%</td><td class="n">3.3 tok</td></tr>
+    <tr><td>code generation</td><td class="n">51.5 t/s · +30%</td><td class="n">47%</td><td class="n">4.0 tok</td></tr>
+    <tr><td>best case (the sweep's benchmark prompt)</td><td class="n">81.7 t/s · +105% (vs its 39.8 warm baseline)</td><td class="n">≈80%</td><td class="n">—</td></tr>
+  </table>
+  </div>
+  <div class="callout"><span class="tag">What to actually expect</span><p>The <span class="num">81.7</span> t/s headline is real, but it is a best case — near-ideal acceptance on highly predictable output. On everyday prose and code the same flags measured <span class="num">44–52</span> t/s: still free speed, just not double (and the re-swept n-max 4 / p-min 0.75 does better on exactly this content — <span class="num">57.9</span> t/s on the code probe). And the model card's official temp 1.0 sampling randomizes exactly the tokens the drafter must guess, so long thinking-heavy runs land lower still. Speculation never costs output quality; on unlucky content it just stops paying.</p></div>
+  <div class="callout"><span class="tag">Acceptance is the speed</span><p>The cleanest demonstration we measured (2026-08-22): same card, same flags (n-max&nbsp;10, p-min&nbsp;0.5, temp&nbsp;0), only the content differs. Generating novel code: <span class="num">51.5</span> t/s — acceptance <span class="num">0.47</span>, mean accepted run 4.0 of 10 drafted. Copying a provided snippet verbatim: <span class="num">119.8</span> t/s — acceptance <span class="num">0.93</span>, mean run 9.9 of 10. A <span class="num">2.3×</span> speed difference with identical settings. Draft acceptance is not a detail of speculative decoding, it is the whole mechanism — which is why a speculative benchmark number quoted without its acceptance rate is unfalsifiable.</p></div>
+
+  <h2 id="s05-dflash2" style="margin-top:36px; scroll-margin-top:24px">DFlash2 — block drafting (PR stage)</h2>
+  <p><a href="https://inco.ai/blog/dflash2/">DFlash2</a> drafts differently from MTP: instead of guessing one token at a time, it predicts a whole 7-token block in a single pass, then picks the most plausible sequence out of the candidates it considered for each position. Like MTP, every draft is verified before it's accepted, so <strong>the output is identical to running the model alone</strong>. The costs: a separate 1.14&nbsp;GB drafter model to download (<a href="https://huggingface.co/incoai/Qwen3.8-27B-DFlash2-GGUF">incoai/Qwen3.8-27B-DFlash2-GGUF</a>, ~1.2&nbsp;GB of VRAM), and — until <a href="https://github.com/ggml-org/llama.cpp/pull/27342">llama.cpp PR 27342</a> is merged — building llama.cpp yourself from that branch.</p>
+  <figure>
+    <svg viewBox="0 0 640 196" role="img" aria-label="Diagram of DFlash2 block drafting: one pass proposes ranked candidate tokens for all seven positions at once, and a path selector threads the most coherent sequence through them, sometimes picking a second- or third-ranked candidate instead of the top one.">
+      <text class="dlabel" x="16" y="22">one drafter pass proposes candidates for all 7 positions at once</text>
+      <text class="axis-t" x="16" y="60">rank 1</text>
+      <text class="axis-t" x="16" y="96">rank 2</text>
+      <text class="axis-t" x="16" y="132">rank 3</text>
+      <g fill="var(--surface2)" stroke="var(--line)">
+        <rect x="76"  y="44" width="56" height="24" rx="3"/><rect x="152" y="44" width="56" height="24" rx="3"/>
+        <rect x="228" y="44" width="56" height="24" rx="3"/><rect x="304" y="44" width="56" height="24" rx="3"/>
+        <rect x="380" y="44" width="56" height="24" rx="3"/><rect x="456" y="44" width="56" height="24" rx="3"/>
+        <rect x="532" y="44" width="56" height="24" rx="3"/>
+        <rect x="76"  y="80" width="56" height="24" rx="3"/><rect x="152" y="80" width="56" height="24" rx="3"/>
+        <rect x="228" y="80" width="56" height="24" rx="3"/><rect x="304" y="80" width="56" height="24" rx="3"/>
+        <rect x="380" y="80" width="56" height="24" rx="3"/><rect x="456" y="80" width="56" height="24" rx="3"/>
+        <rect x="532" y="80" width="56" height="24" rx="3"/>
+        <rect x="76"  y="116" width="56" height="24" rx="3"/><rect x="152" y="116" width="56" height="24" rx="3"/>
+        <rect x="228" y="116" width="56" height="24" rx="3"/><rect x="304" y="116" width="56" height="24" rx="3"/>
+        <rect x="380" y="116" width="56" height="24" rx="3"/><rect x="456" y="116" width="56" height="24" rx="3"/>
+        <rect x="532" y="116" width="56" height="24" rx="3"/>
+      </g>
+      <g fill="var(--accent)">
+        <rect x="76"  y="44" width="56" height="24" rx="3"/><rect x="152" y="44" width="56" height="24" rx="3"/>
+        <rect x="228" y="80" width="56" height="24" rx="3"/><rect x="304" y="44" width="56" height="24" rx="3"/>
+        <rect x="380" y="116" width="56" height="24" rx="3"/><rect x="456" y="44" width="56" height="24" rx="3"/>
+        <rect x="532" y="80" width="56" height="24" rx="3"/>
+      </g>
+      <polyline points="104,56 180,56 256,92 332,56 408,128 484,56 560,92" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/>
+      <text class="axis-t" x="104" y="162" text-anchor="middle">pos 1</text>
+      <text class="axis-t" x="180" y="162" text-anchor="middle">pos 2</text>
+      <text class="axis-t" x="256" y="162" text-anchor="middle">pos 3</text>
+      <text class="axis-t" x="332" y="162" text-anchor="middle">pos 4</text>
+      <text class="axis-t" x="408" y="162" text-anchor="middle">pos 5</text>
+      <text class="axis-t" x="484" y="162" text-anchor="middle">pos 6</text>
+      <text class="axis-t" x="560" y="162" text-anchor="middle">pos 7</text>
+      <text class="dlabel-m" x="16" y="186">the selector threads the most coherent path — not always the top-ranked guess (MTP, by contrast, drafts one token at a time with no second choices)</text>
+    </svg>
+    <figcaption>Block drafting: seven positions proposed in one pass, then a lightweight selector picks the sequence most likely to survive verification.</figcaption>
+  </figure>
+  <p>Measured on the reference RTX 3090, same prompt, temp 0, 600-token code generation:</p>
+  <figure>
+    <svg viewBox="0 0 640 286" role="img" aria-label="Bar chart of decode speed on an RTX 3090, 2026-08-21 build: Q4_K_M baseline 40.3 tokens per second, Q4_K_M with MTP at default settings 59, Q4_K_M with MTP at n-max 10 best case 81.7, Q4_K_M with DFlash2 70, NVFP4-HIGH with MTP 46.8, NVFP4-VERY-LOW with MTP 43">
+      <g stroke="var(--line)" stroke-width="1">
+        <line x1="126" y1="4" x2="126" y2="238"/>
+        <line x1="244" y1="4" x2="244" y2="238"/>
+        <line x1="361" y1="4" x2="361" y2="238"/>
+        <line x1="479" y1="4" x2="479" y2="238"/>
+        <line x1="596" y1="4" x2="596" y2="238"/>
+      </g>
+      <text class="axis-t" x="118" y="25"  text-anchor="end">Q4_K_M alone</text>
+      <text class="axis-t" x="118" y="63"  text-anchor="end">Q4_K_M + MTP</text>
+      <text class="axis-t" x="118" y="101" text-anchor="end">Q4_K_M MTP n-max 10†</text>
+      <text class="axis-t" x="118" y="139" text-anchor="end">Q4_K_M + DFlash2</text>
+      <text class="axis-t" x="118" y="177" text-anchor="end">NVFP4-HIGH + MTP</text>
+      <text class="axis-t" x="118" y="215" text-anchor="end">NVFP4-V-LOW + MTP</text>
+      <rect x="126" y="8"   width="237" height="26" rx="3" fill="var(--accent)"/>
+      <rect x="126" y="46"  width="347" height="26" rx="3" fill="var(--accent)"/>
+      <rect x="126" y="84"  width="480" height="26" rx="3" fill="var(--accent)"/>
+      <rect x="126" y="122" width="411" height="26" rx="3" fill="var(--accent)"/>
+      <rect x="126" y="160" width="275" height="26" rx="3" fill="var(--accent)"/>
+      <rect x="126" y="198" width="253" height="26" rx="3" fill="var(--accent)"/>
+      <text class="dlabel" x="371" y="26">40.3 t/s · 08-21 build</text>
+      <text class="dlabel" x="481" y="64">58–60 t/s · +45%</text>
+      <text class="dlabel" x="598" y="102" text-anchor="end" fill="var(--ground)">81.7 t/s · +105%</text>
+      <text class="dlabel" x="545" y="140">69–71 · +75%</text>
+      <text class="dlabel" x="409" y="178">46.8 t/s</text>
+      <text class="dlabel" x="387" y="216">43.0 t/s</text>
+      <text class="axis-t" x="126" y="260">0</text>
+      <text class="axis-t" x="244" y="260" text-anchor="middle">20</text>
+      <text class="axis-t" x="361" y="260" text-anchor="middle">40</text>
+      <text class="axis-t" x="479" y="260" text-anchor="middle">60</text>
+      <text class="axis-t" x="596" y="260" text-anchor="middle">80</text>
+      <text class="axis-t" x="620" y="280" text-anchor="end">decode t/s · RTX 3090 · all rows lossless vs the base model</text>
+    </svg>
+    <figcaption>Within each group the model weights are identical — only the drafting method and its settings change. † the n-max 10 row is the original sweep's winner, measured warm-cache on its near-ideal prompt; the 2026-08-22 re-sweep on realistic code inverted this — n-max 4 / p-min 0.75 wins there (the sweep section below has the numbers) and DFlash2's best fell to 46.5 t/s (n-max 2), below tuned MTP — so the 69–71 here is best-case content too. On older cards, NVFP4's software fallback limits how much drafting can help.</figcaption>
+  </figure>
+  <div class="tablebox">
+  <table>
+    <tr><th>Configuration <span class="hint">(hover a row for its flags)</span></th><th>Decode</th><th>vs baseline</th><th>Draft acceptance</th></tr>
+    <tr><td><span class="flags" title="llama-server -m Qwen3.8-27B-Q4_K_M.gguf -c 32768 -ngl 99 --parallel 1 -ctk q8_0 -ctv q8_0 --jinja  (no speculative flags)">Q4_K_M, no speculation (08-21 cold-start build — the canonical 08-22 baseline is 39.7–39.9)</span></td><td class="n">40.3 t/s</td><td class="n">—</td><td class="n">—</td></tr>
+    <tr class="hl"><td><span class="flags" title="llama-server -m Qwen3.8-27B-Q4_K_M.gguf --spec-type draft-mtp --spec-draft-n-max 4 --spec-draft-p-min 0.75  (MTP head is inside the main GGUF — no extra file; the 2026-08-22 re-sweep confirmed these near-default flags as the everyday pick)">Q4_K_M + built-in MTP (n-max 4, p-min 0.75 — the everyday pick; the 58–60 / 89% here is the 08-21 run — the 08-22 re-sweep measured the same flags at 57.9 t/s, 0.81 acceptance, on realistic code)</span></td><td class="n">58–60 t/s</td><td class="n">+45%</td><td class="n">89%</td></tr>
+    <tr><td><span class="flags" title="llama-server -m Qwen3.8-27B-Q4_K_M.gguf --spec-type draft-mtp --spec-draft-n-max 10 --spec-draft-p-min 0.5  (the original sweep winner — warm-cache, near-ideal prompt; the 2026-08-22 re-sweep on real code found it slower than n-max 4)">Q4_K_M + MTP at n-max 10, p-min 0.5 (best case)</span></td><td class="n">81.7 t/s†</td><td class="n">+105%</td><td class="n">≈80% (longer drafts)</td></tr>
+    <tr><td><span class="flags" title="llama-server -m Qwen3.8-27B-Q4_K_M.gguf -md Qwen3.8-27B-DFlash2-Q4_K_M.gguf --spec-type draft-dflash --spec-draft-n-max 7  (needs the separate 1.14 GB drafter + the PR 27342 build)">Q4_K_M + DFlash2 (n-max 7; benchmark prompt — the 2026-08-22 re-sweep on real code measured its best at 46.5 t/s, n-max 2, below tuned MTP's 57.9)</span></td><td class="n">69–71 t/s</td><td class="n">+75%</td><td class="n">73% (7-token blocks)</td></tr>
+    <tr><td><span class="flags" title="llama-server -m Qwen3.8-27B-NVFP4-MTP-HIGH.gguf --spec-type draft-mtp --spec-draft-n-max 4 --spec-draft-p-min 0.75">NVFP4-HIGH + built-in MTP (2026-08-21 build)</span></td><td class="n">46.8 t/s</td><td class="n">+16%</td><td class="n">90%</td></tr>
+    <tr><td><span class="flags" title="llama-server -m Qwen3.8-27B-NVFP4-MTP-VERY-LOW.gguf --spec-type draft-mtp --spec-draft-n-max 4 --spec-draft-p-min 0.75">NVFP4-VERY-LOW + built-in MTP (2026-08-21 build — the 2026-08-22 re-measure at these same flags flipped the tier order: VERY-LOW 54.6 vs HIGH 48.2 t/s, both accepting 0.83 — §05)</span></td><td class="n">43.0 t/s</td><td class="n">+7%</td><td class="n">86%</td></tr>
+  </table>
+  </div>
+  <details class="cmds">
+    <summary>The exact llama-server command for each row (tap to expand)</summary>
+    <pre><span class="c">:: shared flags in every run below:</span>
+llama-server -c 32768 -ngl 99 --parallel 1 -ctk q8_0 -ctv q8_0 --jinja --port 1235
+
+<span class="c">:: row 1 — baseline: just the model, no speculative flags</span>
+  -m Qwen3.8-27B-Q4_K_M.gguf
+
+<span class="c">:: row 2 — built-in MTP, n-max 4 / p-min 0.75 — the re-swept everyday pick (the draft head ships inside the main GGUF):</span>
+  -m Qwen3.8-27B-Q4_K_M.gguf <span class="f">--spec-type draft-mtp --spec-draft-n-max 4 --spec-draft-p-min 0.75</span>
+
+<span class="c">:: row 3 — MTP at n-max 10 / p-min 0.5 — the original sweep winner, best-case content only († = measured warm-cache):</span>
+  -m Qwen3.8-27B-Q4_K_M.gguf <span class="f">--spec-type draft-mtp --spec-draft-n-max 10 --spec-draft-p-min 0.5</span>
+
+<span class="c">:: row 4 — DFlash2 (separate 1.14 GB drafter via -md; needs the PR 27342 build):</span>
+  -m Qwen3.8-27B-Q4_K_M.gguf <span class="f">-md Qwen3.8-27B-DFlash2-Q4_K_M.gguf --spec-type draft-dflash --spec-draft-n-max 7</span>
+
+<span class="c">:: rows 5-6 — NVFP4 files with their embedded MTP head (same MTP flags):</span>
+  -m Qwen3.8-27B-NVFP4-MTP-HIGH.gguf <span class="f">--spec-type draft-mtp --spec-draft-n-max 4 --spec-draft-p-min 0.75</span>
+  -m Qwen3.8-27B-NVFP4-MTP-VERY-LOW.gguf <span class="f">--spec-type draft-mtp --spec-draft-n-max 4 --spec-draft-p-min 0.75</span>
+
+<span class="c">:: what each speculative flag means:</span>
+<span class="c">::   --spec-type            which drafting method: draft-mtp (built-in head) or draft-dflash (external drafter)</span>
+<span class="c">::   -md / --model-draft    path to the external drafter GGUF (DFlash2 only)</span>
+<span class="c">::   --spec-draft-n-max     how many tokens to draft per step - the main tuning knob, sweep 2-12 on your machine</span>
+<span class="c">::   --spec-draft-p-min     drafter confidence floor 0-1; below it, drafting pauses for that step</span></pre>
+  </details>
+  <p>That table says two things. First, speculation is real free speed: the re-swept everyday flags (n-max 4, p-min 0.75) measured 57.9 t/s on realistic code, and the temp-1.0 xhigh sweep <em>sustained</em> 48.8 t/s across a 73k-token thinking run — putting the 100k reference run at roughly 34 minutes, down from 45. On highly predictable content acceptance climbs toward the verbatim-copy demonstration's 119.8 t/s ceiling (the workload table in the MTP section says what happens on less predictable content; the sweep below explains the settings). Second, the NVFP4 rows show that the quant and the drafter interact: speculative decoding makes the GPU check several drafted tokens at once, and that batch-checking is exactly the work NVFP4's software fallback does slowest. So on cards older than Blackwell, pair speculation with normal K-quants, not NVFP4.</p>
+  <h2 id="s05-sweep" style="margin-top:36px; scroll-margin-top:24px">Tuning the drafter — an 18-config sweep, and how it fooled us</h2>
+  <p>Read this section as a case study, not as settings advice: the sweep below was measured carefully, is internally consistent — and its headline conclusion did not survive contact with realistic content. The verdict that did survive is in the re-sweep callout at the end; the sweep itself stays because <em>how</em> a clean benchmark misleads is worth more than another settings table. Two knobs control the drafting behaviour, and both mattered more than the defaults suggest:</p>
+  <figure>
+    <svg viewBox="0 0 640 232" role="img" aria-label="Diagram of the two speculative-decoding knobs. spec-draft-n-max sets how many tokens the drafter may run ahead before each full-model check: at 4, four full checks are needed where at 10 fewer, larger batches suffice. spec-draft-p-min is a confidence floor: drafting stops early the moment the drafter's confidence dips below it, so a high floor keeps cancelling the long drafts that a big n-max allows.">
+      <text class="dlabel" x="16" y="20">--spec-draft-n-max · how far the drafter runs ahead before each check</text>
+      <text class="axis-t" x="16" y="46">n-max 4</text>
+      <g fill="var(--accent)"><rect x="80" y="34" width="56" height="16" rx="2"/><rect x="162" y="34" width="56" height="16" rx="2"/><rect x="244" y="34" width="56" height="16" rx="2"/></g>
+      <g fill="var(--muted)"><rect x="139" y="34" width="20" height="16" rx="2"/><rect x="221" y="34" width="20" height="16" rx="2"/><rect x="303" y="34" width="20" height="16" rx="2"/></g>
+      <text class="dlabel-m" x="336" y="47">…many full-model checks</text>
+      <text class="axis-t" x="16" y="76">n-max 10</text>
+      <g fill="var(--accent)"><rect x="80" y="64" width="140" height="16" rx="2"/><rect x="246" y="64" width="140" height="16" rx="2"/></g>
+      <g fill="var(--muted)"><rect x="223" y="64" width="20" height="16" rx="2"/><rect x="389" y="64" width="20" height="16" rx="2"/></g>
+      <text class="dlabel-m" x="422" y="77">…fewer, bigger checks</text>
+      <text class="axis-t" x="80" y="100">▪ drafting (cheap)   <tspan fill="var(--muted)">▪ full-model check (the expensive part)</tspan></text>
+      <line x1="16" y1="114" x2="624" y2="114" stroke="var(--line)"/>
+      <text class="dlabel" x="16" y="138">--spec-draft-p-min · confidence floor — drafting stops the moment confidence dips below it</text>
+      <g fill="var(--accent)">
+        <rect x="80"  y="168" width="26" height="40"/>
+        <rect x="116" y="176" width="26" height="32"/>
+        <rect x="152" y="182" width="26" height="26"/>
+      </g>
+      <g fill="var(--surface2)" stroke="var(--line)">
+        <rect x="188" y="192" width="26" height="16"/>
+        <rect x="224" y="196" width="26" height="12"/>
+      </g>
+      <line x1="70" y1="188" x2="264" y2="188" stroke="var(--bad)" stroke-width="1.5" stroke-dasharray="5 4"/>
+      <text class="axis-t" x="272" y="192" fill="var(--bad)">floor 0.75 → stops here — long drafts keep dying</text>
+      <line x1="70" y1="202" x2="264" y2="202" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="5 4"/>
+      <text class="axis-t" x="272" y="212" fill="var(--accent-ink)">floor 0.5 → keeps going — unlocked n-max 10 (+8 t/s)</text>
+      <text class="axis-t" x="80" y="226">drafter confidence per token →</text>
+    </svg>
+    <figcaption>The knobs interact: a big n-max only pays off when the p-min floor is low enough to let drafts actually run long. Tuning them together is what found 81.7 t/s on the benchmark prompt — and what the re-sweep below shows flipping on real code.</figcaption>
+  </figure>
+  <p>The table above used the settings each method's authors recommend. Then we swept <code>--spec-draft-n-max</code> across both methods (same prompt, temp 0, warm cache — a different run state than the cold-start table, so absolute numbers shift a few t/s in either direction: this sweep's baseline reads 39.8 against the table's 40.3. Compare within this chart, not against it). The result contradicted both recommendations — and then a second sweep on realistic content contradicted the first:</p>
+  <figure>
+    <svg viewBox="0 0 640 268" role="img" aria-label="Line chart of decode speed versus spec-draft-n-max on an RTX 3090. The built-in MTP curve keeps rising to a peak of 81.7 tokens per second at n-max 10, then dips at 12. The DFlash2 curve peaks at 77.6 at n-max 4 and slowly declines through n-max 16. The no-speculation baseline is 39.8.">
+      <g stroke="var(--line)" stroke-width="1">
+        <line x1="48" y1="57"  x2="620" y2="57"/>
+        <line x1="48" y1="130" x2="620" y2="130"/>
+        <line x1="48" y1="203" x2="620" y2="203"/>
+      </g>
+      <text class="axis-t" x="40" y="61"  text-anchor="end">80</text>
+      <text class="axis-t" x="40" y="134" text-anchor="end">60</text>
+      <text class="axis-t" x="40" y="207" text-anchor="end">40</text>
+      <line x1="48" y1="204" x2="620" y2="204" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="3 5"/>
+      <text class="dlabel-m" x="614" y="196" text-anchor="end">no speculation · 39.8</text>
+      <polyline points="83,141 118,114 188,99 258,106 328,79 398,50 468,62" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>
+      <polyline points="118,109 153,89 188,66 223,66 258,69 293,79 398,80 608,83" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linejoin="round"/>
+      <circle cx="398" cy="50" r="5" fill="var(--accent)" stroke="var(--ground)" stroke-width="2"/>
+      <circle cx="188" cy="66" r="5" fill="var(--muted)" stroke="var(--ground)" stroke-width="2"/>
+      <text class="dlabel" x="398" y="36" text-anchor="middle">MTP · n-max 10 · 81.7 t/s</text>
+      <text class="dlabel-m" x="188" y="52" text-anchor="middle">DFlash2 · n-max 4 · 77.6</text>
+      <text class="dlabel" x="476" y="60">MTP (built-in)</text>
+      <text class="dlabel-m" x="560" y="103">DFlash2</text>
+      <text class="axis-t" x="83"  y="228" text-anchor="middle">1</text>
+      <text class="axis-t" x="188" y="228" text-anchor="middle">4</text>
+      <text class="axis-t" x="328" y="228" text-anchor="middle">8</text>
+      <text class="axis-t" x="468" y="228" text-anchor="middle">12</text>
+      <text class="axis-t" x="608" y="228" text-anchor="middle">16</text>
+      <text class="axis-t" x="620" y="250" text-anchor="end">--spec-draft-n-max · decode t/s on y · RTX 3090, warm cache</text>
+    </svg>
+    <figcaption>The blue MTP curve keeps climbing long after the advice says to stop; DFlash2 peaks at 4, not its recommended 7. This chart's prompt drafts near-ideally — the re-sweep below reruns the question on real code.</figcaption>
+  </figure>
+  <p>Three findings, all measured 2026-08-21:</p>
+  <ul>
+    <li><strong>On this prompt — and only on prompts that draft like it</strong> — the tuned built-in MTP head won outright: n-max 10 with p-min 0.5 gave 81.7 t/s, +105% over baseline, beating DFlash2's best (77.6 at n-max 4–5). No drafter download, no source build, no VRAM cost. (On realistic code the same flags measure 48.3 — the re-sweep below.)</li>
+    <li><strong><code>--spec-draft-p-min</code> is the hidden second knob.</strong> At n-max 10, lowering it from 0.75 to 0.5 was worth +8 t/s (73.5 → 81.7); at n-max 4 the difference was small. A high confidence floor keeps pausing exactly the long drafts that big n-max exists for.</li>
+    <li><strong>DFlash2's recommended n-max 7 was not its own best setting here</strong> — 4 and 5 both beat it (77.6/77.5 vs 74.0). Every recommendation in this space, including ours, is one machine's measurement.</li>
+  </ul>
+  <div class="callout"><span class="tag">The re-sweep — real content flips the verdict</span><p>Those findings are one prompt's truth, and that prompt drafted near-ideally. Re-swept 2026-08-22 — <span class="num">10</span> configurations, temp-0 code-generation probe — the ranking inverted: <strong>n-max&nbsp;4 / p-min&nbsp;0.75 won at <span class="num">57.9</span> t/s (acceptance <span class="num">0.81</span>), while the benchmark prompt's champion n-max&nbsp;10 / p-min&nbsp;0.5 fell to <span class="num">48.3</span></strong>. DFlash2 flipped with it: its best on real code was <span class="num">46.5</span>&nbsp;t/s (n-max&nbsp;2) — <em>below</em> tuned MTP, the reverse of its benchmark-prompt 69–77, and a hard sell for the extra download and source build. The mechanism reverses with the acceptance rate: at ~80% acceptance long drafts compound into free tokens; at ~50% they compound into wasted verification, and a high confidence floor is what keeps the drafter honest. So the setting this guide ships — here and in every §08 recipe — is <strong>n-max&nbsp;4 / p-min&nbsp;0.75</strong>, with the chart above kept as measured history and as proof that any single-prompt sweep, ours included, overfits its prompt.</p></div>
+  <div class="callout"><span class="tag">The one curve under all of it</span><p>Every MTP number this guide has ever measured sits on a single line: <strong>speed as a function of draft acceptance</strong>. Novel code at acceptance <span class="num">0.47</span> → <span class="num">51.5</span>&nbsp;t/s; this sweep's near-ideal benchmark prompt → <span class="num">81.7</span>; copying text verbatim at <span class="num">0.93</span> → <span class="num">119.8</span> — all on the same card with the same flags. The old sweep was never wrong as a <em>measurement</em>; it was wrong as a <em>promise</em>, because it reported one point on this curve as if it were the curve. Your content decides where you sit on it; the flags only tune how gracefully you sit there.</p></div>
+  <div class="callout"><span class="tag">Reading acceptance tables</span><p>Published speculative-decoding tables (like the DFlash2 blog's "mean acceptance length") are <strong>speed numbers, not quality scores</strong>. The verify step guarantees every configuration writes exactly what the base model would have written — a higher acceptance number just means more tokens got through per check. Quality only changes when the <em>weights</em> change (a different quant); speed only changes when the <em>drafter</em> changes.</p></div>
+</section>
+
+<section id="s06">
+  <p class="fno">07</p>
+  <h2>The hardware matrix</h2>
+  <p>Estimated wall-clock time for the reference benchmark run (~2k prompt + ~100k thinking/output), with each card using the settings that keep quality highest. The 3090 row is one measured data point — from a single machine and workload, so treat it as an anchor, not a promise; the other rows follow the bandwidth calculation from §02 at ~0.7 efficiency (less on Intel's stack). All times exclude speculative decoding, which varies per system but can help a lot: on the reference 3090 it moved the benchmark run to roughly 34 minutes, down from 45 (the measured speeds, dates, and the content ceiling are all in §06). Treat speculation as moving a card up this chart — furthest on predictable content — not as a new baseline.</p>
+  <figure>
+    <svg viewBox="0 0 640 340" role="img" aria-label="Bar chart of estimated time for a 100k-token run: RTX 5090 about 25 minutes, RTX 4090 about 40, RTX 3090 45 measured, Arc B70 about 1.4 hours, DGX Spark about 2.2, RTX 5080 offloading about 3, Arc B50 about 3, Arc B390-class iGPU about 5.2 hours">
+      <g stroke="var(--line)" stroke-width="1">
+        <line x1="215" y1="4" x2="215" y2="312"/>
+        <line x1="304" y1="4" x2="304" y2="312"/>
+        <line x1="393" y1="4" x2="393" y2="312"/>
+        <line x1="482" y1="4" x2="482" y2="312"/>
+        <line x1="571" y1="4" x2="571" y2="312"/>
+      </g>
+      <text class="axis-t" x="118" y="25"  text-anchor="end">RTX 5090 32GB</text>
+      <text class="axis-t" x="118" y="63"  text-anchor="end">RTX 4090 24GB</text>
+      <text class="axis-t" x="118" y="101" text-anchor="end">RTX 3090 24GB</text>
+      <text class="axis-t" x="118" y="139" text-anchor="end">Arc B70 32GB</text>
+      <text class="axis-t" x="118" y="177" text-anchor="end">DGX Spark GB10</text>
+      <text class="axis-t" x="118" y="215" text-anchor="end">RTX 16GB class</text>
+      <text class="axis-t" x="118" y="253" text-anchor="end">Arc B50 16GB</text>
+      <text class="axis-t" x="118" y="291" text-anchor="end">Arc B390 iGPU</text>
+      <rect x="126" y="8"   width="37"  height="26" rx="3" fill="var(--accent)"/>
+      <rect x="126" y="46"  width="60"  height="26" rx="3" fill="var(--accent)"/>
+      <rect x="126" y="84"  width="67"  height="26" rx="3" fill="var(--accent)"/>
+      <rect x="126" y="122" width="125" height="26" rx="3" fill="var(--accent)"/>
+      <rect x="126" y="160" width="196" height="26" rx="3" fill="var(--accent)"/>
+      <rect x="126" y="198" width="249" height="26" rx="3" fill="var(--accent)"/>
+      <rect x="126" y="236" width="267" height="26" rx="3" fill="var(--accent)"/>
+      <rect x="126" y="274" width="463" height="26" rx="3" fill="var(--accent)"/>
+      <text class="dlabel" x="171" y="26">~25 min</text>
+      <text class="dlabel" x="194" y="64">~40 min</text>
+      <text class="dlabel" x="201" y="102">45 min · measured</text>
+      <text class="dlabel" x="259" y="140">~1.4 h</text>
+      <text class="dlabel" x="330" y="178">~2.2 h</text>
+      <text class="dlabel" x="383" y="216">~3 h · offload</text>
+      <text class="dlabel" x="401" y="254">~3 h</text>
+      <text class="dlabel" x="597" y="292">~5.2 h</text>
+      <text class="axis-t" x="126" y="330">0</text>
+      <text class="axis-t" x="215" y="330" text-anchor="middle">1h</text>
+      <text class="axis-t" x="304" y="330" text-anchor="middle">2h</text>
+      <text class="axis-t" x="393" y="330" text-anchor="middle">3h</text>
+      <text class="axis-t" x="482" y="330" text-anchor="middle">4h</text>
+      <text class="axis-t" x="571" y="330" text-anchor="middle">5h</text>
+    </svg>
+    <figcaption>One 100k-token thinking run per platform, Q4-class fidelity. "RTX 16GB class" = 4080 / 4070 Ti S / 5080 / 5060 Ti running Q4 with ~22 layers on CPU.</figcaption>
+  </figure>
+  <div class="tablebox">
+  <table>
+    <tr><th>Card</th><th>VRAM</th><th>Bandwidth</th><th>Strategy</th><th>Decode</th><th>100k run</th></tr>
+    <tr><td>RTX 5090</td><td class="n">32 GB</td><td class="n">1792 GB/s</td><td>UD-Q4_K_XL, all-GPU, 262k ctx — or NVFP4/vLLM</td><td class="n">~65–80 t/s</td><td class="n">~25 min</td></tr>
+    <tr><td>RTX 4090</td><td class="n">24 GB</td><td class="n">1008 GB/s</td><td>Q4_K_M, all-GPU, ~122k ctx</td><td class="n">~40–45 t/s</td><td class="n">~40 min</td></tr>
+    <tr class="hl"><td>RTX 3090</td><td class="n">24 GB</td><td class="n">936 GB/s</td><td>Q4_K_M, all-GPU, 122,880 ctx (measured)</td><td class="n">40 t/s</td><td class="n">45 min</td></tr>
+    <tr><td>RTX 5080 / 4080 / 4070&nbsp;Ti&nbsp;S / 5060&nbsp;Ti</td><td class="n">16 GB</td><td class="n">448–960 GB/s</td><td>Q4 partial offload (fidelity) or UD-Q3_K_XL resident (speed)</td><td class="n">~8–12 / 25–50 t/s</td><td class="n">~3 h / ~45 min†</td></tr>
+    <tr><td>RTX 3060 / 5070</td><td class="n">12 GB</td><td class="n">360–672 GB/s</td><td>heavy offload — better served by a smaller model</td><td class="n">~6–8 t/s</td><td class="n">~4–5 h</td></tr>
+    <tr><td>Intel Arc Pro B70</td><td class="n">32 GB</td><td class="n">608 GB/s</td><td>Q5/Q6 GGUF (Vulkan) or OpenVINO int4; full 262k fits</td><td class="n">~18–26 t/s</td><td class="n">~1.1–1.5 h</td></tr>
+    <tr><td>Intel Arc Pro B50</td><td class="n">16 GB</td><td class="n">224 GB/s</td><td>UD-Q3_K_XL resident or OpenVINO int4 (tight: ~15 GiB weights on 16 GB — small context only) — Q4 does not fit</td><td class="n">~8–12 t/s</td><td class="n">~2.5–3.5 h†</td></tr>
+    <tr><td>Intel Arc B580</td><td class="n">12 GB</td><td class="n">456 GB/s</td><td>even 3-bit doesn't fit — heavy offload (Vulkan) or 2-bit; better served by a 14B model</td><td class="n">~6–8 t/s</td><td class="n">~4–4.5 h</td></tr>
+    <tr><td>DGX Spark (GB10)</td><td class="n">128 GB unified</td><td class="n">273 GB/s</td><td>Q4_K_M on llama-server (§08 recipe, ~11–12 t/s) · NVFP4/vLLM for max speed · Q8_0 for reference quality</td><td class="n">~10–15 t/s</td><td class="n">~2–2.8 h</td></tr>
+    <tr><td>Intel Arc B390-class iGPU (Core Ultra)</td><td class="n">shared, ≤96 GB</td><td class="n">153.6 GB/s<br><span style="color:var(--muted); font-size:12px">(LPDDR5X-9600, 2ch)</span></td><td>Vulkan Q4_K_M on llama-server (§08 recipe) or OpenVINO int4; effort ≤ medium</td><td class="n">~5–7 t/s</td><td class="n">~4.5–5.5 h</td></tr>
+  </table>
+  </div>
+  <p>† 3-bit rows trade quality for that speed — a different model for benchmark purposes (§05). They also trade window: on 16&nbsp;GiB the resident 3-bit file caps context near ~49k by §02's budget arithmetic, so a single &gt;100k run must either checkpoint across windows or take the offload path. The pattern to internalize: <strong>capacity decides the strategy; bandwidth decides the wait.</strong> A 5080's 960&nbsp;GB/s is worthless for this model the moment one layer lands on the CPU.</p>
+  <p><strong>System-RAM assumption for every offload and shared-memory row:</strong> those t/s figures are derived from §02's formula at <em>dual-channel</em> bandwidth — two sticks: desktop DDR5-5600 ≈ 90&nbsp;GB/s, the iGPU row's LPDDR5X-9600 ≈ 153.6&nbsp;GB/s. <strong>A single stick runs single-channel at half that bandwidth — halve the t/s and double the hours</strong>, and slower DDR5 grades scale down proportionally. If your machine reads slower than this table, check the assumption before blaming the table: Task Manager → Performance → Memory shows your speed and slots used, and §02's formula (your GB/s ÷ file GB × 0.7) predicts <em>your</em> number. dGPU-resident rows are unaffected — their bandwidth is fixed VRAM.</p>
+</section>
+
+<section id="s07">
+  <p class="fno">08</p>
+  <h2>Recipes per card class</h2>
+
+  <p>One recipe per class — the single best configuration we can defend, not a menu. The 24–32 GB class is the one exception: two measured winners exist there, split by what you value, so both are printed with the choosing rule up front. Trade-offs live in §05/§07; here you just copy the block for your card.</p>
+
+  <p class="rt">NVIDIA 24–32 GB · 3090 / 4090 / 5090 — Choice A · Q4_K_M (maximum measured quality)</p>
+  <pre><span class="c">:: CHOOSE A when quality at ~122k context is everything: both quality metrics lean a</span>
+<span class="c">:: whisker its way (perplexity 6.535 vs IQ4_XS 6.596; GSM8K 94.0% vs 93.0% — each</span>
+<span class="c">:: within noise, but two independent metrics agreeing), and it is the file every</span>
+<span class="c">:: number in this guide was measured on. CHOOSE B below for more context or speed.</span>
+<span class="c">:: file: <a href="https://huggingface.co/lmstudio-community/Qwen3.8-27B-GGUF">lmstudio-community/Qwen3.8-27B-GGUF</a> (Q4_K_M, 16.5 GB)</span>
+<span class="c">:: before first run: set "Prefer No Sysmem Fallback" (NVIDIA Control Panel) and never</span>
+<span class="c">:: write -ngl 64 — both explained in §10</span>
+llama-server.exe -m Qwen3.8-27B-Q4_K_M.gguf  --alias qwen/qwen3.8-27b
+  <span class="f">-c 122880</span>                     <span class="c">:: 24 GB: measured resident ceiling is ~131k — this leaves</span>
+                                <span class="c">:: margin (§02 two-ceilings). 5090 32 GB: -c 262144 fits (~8.5 GB KV)</span>
+  <span class="f">-ngl 99  --parallel 1  --load-mode none  -ctk q8_0 -ctv q8_0</span>
+  --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0.0
+  <span class="f">--spec-type draft-mtp --spec-draft-n-max 4 --spec-draft-p-min 0.75</span>  <span class="c">:: re-swept optimum on</span>
+                                <span class="c">:: the 3090 (57.9 t/s on real code; the old n-max 10 / p-min 0.5</span>
+                                <span class="c">:: fell to 48.3 there) — still per-card: sweep n-max 2-12 (§06)</span>
+<span class="c">:: vision: add  --mmproj mmproj-Qwen3.8-27B-BF16.gguf --image-min-tokens 1024</span>
+<span class="c">:: --image-max-tokens 10580  when you need it (min 1024 = grounding-accuracy floor;</span>
+<span class="c">:: max 10580 = 4K-class screenshot detail — §11 has the token budgets). The ~0.9 GB</span>
+<span class="c">:: projector + this Q4_K_M file at -c 122880 is exactly the measured ~23.7 GiB</span>
+<span class="c">:: reference config: it fits, but BARE-DESKTOP ONLY (~0.3 GiB slack) — §10 measured</span>
+<span class="c">:: this very config spilling ~1.9 GB with browsers open and falling to 20–35 t/s.</span>
+<span class="c">:: With a desktop running, drop to  -c 65536  (~2 GiB slack, by §02's arithmetic:</span>
+<span class="c">:: each 32k of window = ~1 GiB of slack) or  -c 49152  for browser-heavy desktops</span>
+<span class="c">:: (~2.6 GiB) — or go text-only at full window. Vision + desktop-safe at a BIG</span>
+<span class="c">:: window = Choice B below (its smaller file is what buys the room).</span>
+<span class="c">:: On the 1 GiB-larger UD-Q4_K_XL, projector + full context busts 24 GB — drop to -c 98304</span>
+  --jinja --port 1234
+  --chat-template-kwargs "{\"reasoning_effort\":\"xhigh\"}"  <span class="c">:: quality-first default; medium</span>
+                                <span class="c">:: when the wait matters (§04 price list)</span></pre>
+
+  <p class="rt">NVIDIA 24–32 GB — Choice B · UD-IQ4_XS (the daily default: vision + speed, quality tied)</p>
+  <pre><span class="c">:: CHOOSE B for everyday use: quality statistically tied with A (§05's dark-horse</span>
+<span class="c">:: callout has all six comparisons), measured FASTER everywhere (decode 43.8 vs 39.9</span>
+<span class="c">:: base, prefill 1365 vs 1303, GSM8K 73 vs 63 t/s), 2.1 GiB smaller — and this block</span>
+<span class="c">:: ships vision ON: screenshots to 4K detail for agent feedback loops (§11).</span>
+<span class="c">:: Caveat: IQ-format decode measured on CUDA; verify on Vulkan/Metal first.</span>
+<span class="c">:: file: <a href="https://huggingface.co/unsloth/Qwen3.8-27B-GGUF">unsloth/Qwen3.8-27B-GGUF</a> (UD-IQ4_XS, 14.25 GB) + the BF16 mmproj from either repo</span>
+llama-server.exe -m Qwen3.8-27B-UD-IQ4_XS.gguf  --alias qwen/qwen3.8-27b
+  <span class="f">--mmproj mmproj-Qwen3.8-27B-BF16.gguf  --image-min-tokens 1024  --image-max-tokens 10580</span>
+                                <span class="c">:: min 1024 = grounding-accuracy floor; max 10580 = 4K-class</span>
+                                <span class="c">:: screenshot detail (token budgets per image: §11)</span>
+  <span class="f">-c 122880</span>                     <span class="c">:: verified live: 71.3 t/s, ~21.6 GiB total, ~3 GiB slack —</span>
+                                <span class="c">:: survives a real desktop and browser agent UIs (§10)</span>
+  <span class="f">-ngl 99  --parallel 1  --load-mode none  -ctk q8_0 -ctv q8_0</span>
+  --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0.0
+  <span class="f">--spec-type draft-mtp --spec-draft-n-max 4 --spec-draft-p-min 0.75</span>  <span class="c">:: same tuning as A</span>
+  --jinja --port 1234
+  --chat-template-kwargs "{\"reasoning_effort\":\"xhigh\"}"
+<span class="c">:: text-only variants — drop the --mmproj/--image-* line and the window grows:</span>
+<span class="c">::   -c 196608  desktop-safe 196k window (1.6x Choice A), still ~3 GiB slack</span>
+<span class="c">::   -c 262144  THE FULL NATIVE CONTEXT resident (≈23 GiB, ~1 GiB slack) — headless/bare</span>
+<span class="c">::   desktop ONLY: measured live, a browser UI pushed the compositor to 3.6 GiB, spilled</span>
+<span class="c">::   3.5 GiB, and decode fell to ~26 t/s (§10). The rule: the projector costs ~0.9 GiB</span>
+<span class="c">::   ≈ 27k tokens of q8 window — budget for BOTH the vision you use and the desktop you run</span></pre>
+
+  <p>The whole class fits on one table — the decision menu the reference machine's launcher actually uses, every option carrying its measured expectation so nobody picks a trap by accident. Two scopes coexist: the shipped daily default is the vision-capable IQ4_XS row, while Q4_K_M remains the guide's measurement base and maximum-quality pick (§05's dark-horse callout).</p>
+  <div class="tablebox">
+  <table>
+    <tr><th>#</th><th>Config</th><th>Window</th><th>Expect</th><th>When to pick it</th></tr>
+    <tr class="hl"><td class="n">1</td><td><b>UD-IQ4_XS + hi-res vision</b> (max-tokens 10580)</td><td class="n">122880</td><td class="n">~55–70 t/s · verified ~3 GiB slack</td><td><b>the daily default</b> — screenshot loops to 4K detail (§11); a full xhigh cycle plus ~10 shots fit</td></tr>
+    <tr><td class="n">2</td><td>UD-IQ4_XS text-only</td><td class="n">196608</td><td class="n">~55–70 t/s · desktop-safe</td><td>maximum desktop-safe window for long text/agent sessions</td></tr>
+    <tr><td class="n">3</td><td>UD-IQ4_XS text-only</td><td class="n">262144</td><td class="n"><b>~26 t/s if anything else touches the GPU</b></td><td>full native context — headless / bare desktop only</td></tr>
+    <tr><td class="n">4</td><td>Q4_K_M + vision</td><td class="n">122880</td><td class="n">~55–65 t/s · ~0.3 GiB slack</td><td>maximum measured quality — bare desktop only (browsers spill it to 20–35, §10); with a desktop, drop <code>-c</code> or go text-only</td></tr>
+    <tr><td class="n">5</td><td>UD-Q4_K_XL text-only</td><td class="n">122880</td><td class="n">~55–65 t/s</td><td>quality tied with Q4_K_M, 1 GiB bigger — the extra size buys nothing on 24 GB</td></tr>
+    <tr><td class="n">6</td><td>UD-Q4_K_M + vision</td><td class="n">122880</td><td class="n">~55–65 t/s</td><td>measured worse than plain Q4_K_M (PPL +1.8%) — skip</td></tr>
+    <tr><td class="n">7</td><td>DFlash2 external drafter</td><td class="n">—</td><td class="n">~46 t/s on real code</td><td>loses to the built-in MTP — historical interest</td></tr>
+    <tr><td class="n">8</td><td>NVFP4 HIGH</td><td class="n">—</td><td class="n">~48–54 t/s</td><td>Ampere dequant fallback — slower and lower quality; Blackwell is its home turf</td></tr>
+  </table>
+  </div>
+  <p style="font-size:14px">Expect columns are short-context wall-clock bands. Decode falls with <em>depth</em>, not just spill — §06's deep-context row carries the lesson (near-empty probe 79.3–79.9 → 39.3 t/s at a 27k-deep prompt, acceptance steady at 0.82; the probe methodology differs from these bands, so don't cross-compare). Agent sessions holding 10–30k of context live in the ~39–60 band with nothing wrong.</p>
+  <details class="cmds"><summary>The launcher behind this table — a menu batch you can adapt (edit the paths)</summary>
+  <pre>@echo off
+rem serve-qwen.bat - measured-menu launcher for llama.cpp (24 GB class)
+rem usage: serve-qwen.bat [low^|medium^|xhigh] [context-override] [1-8]
+set EFFORT=%1
+if "%EFFORT%"=="" set EFFORT=xhigh
+set CTXARG=%2
+set PICK=%3
+set MODELS=C:\path\to\your\models
+set MMPROJ=%MODELS%\mmproj-Qwen3.8-27B-BF16.gguf
+if not "%PICK%"=="" goto pick_%PICK%
+echo  [1] IQ4_XS + hi-res vision -c 122880  (default)
+echo  [2] IQ4_XS text-only       -c 196608
+echo  [3] IQ4_XS text-only       -c 262144  headless only
+echo  [4] Q4_K_M + vision        -c 122880  bare desktop only
+choice /C 12345678 /T 8 /D 1 /M "Choice"
+goto pick_%ERRORLEVEL%
+:pick_1
+set MODEL=%MODELS%\Qwen3.8-27B-UD-IQ4_XS.gguf
+set CTX=122880
+set MM=--mmproj "%MMPROJ%" --image-min-tokens 1024 --image-max-tokens 10580
+goto launch
+:pick_2
+set MODEL=%MODELS%\Qwen3.8-27B-UD-IQ4_XS.gguf
+set CTX=196608
+set MM=
+goto launch
+:pick_3
+set MODEL=%MODELS%\Qwen3.8-27B-UD-IQ4_XS.gguf
+set CTX=262144
+set MM=
+goto launch
+:pick_4
+set MODEL=%MODELS%\Qwen3.8-27B-Q4_K_M.gguf
+set CTX=122880
+set MM=--mmproj "%MMPROJ%" --image-min-tokens 1024
+goto launch
+:launch
+if not "%CTXARG%"=="" set CTX=%CTXARG%
+llama-server.exe -m "%MODEL%" %MM% --alias qwen/qwen3.8-27b -c %CTX% ^
+  -ngl 99 --parallel 1 --load-mode none -ctk q8_0 -ctv q8_0 ^
+  --spec-type draft-mtp --spec-draft-n-max 4 --spec-draft-p-min 0.75 ^
+  --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0.0 ^
+  --chat-template-kwargs "{\"reasoning_effort\":\"%EFFORT%\"}" ^
+  --jinja --host 127.0.0.1 --port 1234</pre>
+  </details>
+
+  <p class="rt">NVIDIA 16 GB · 5080 / 4080 / 4070 Ti S / 5060 Ti</p>
+  <pre><span class="c">:: best daily experience: 3-bit fully resident (25-50 t/s) + free MTP speed.</span>
+<span class="c">:: Q4-with-CPU-offload preserves more fidelity but crawls at ~8-12 t/s (§07) —</span>
+<span class="c">:: on 16 GB, resident UD-Q3_K_XL is the right call for everything but benchmarks.</span>
+<span class="c">:: file: <a href="https://huggingface.co/unsloth/Qwen3.8-27B-GGUF">huggingface.co/unsloth/Qwen3.8-27B-GGUF</a> (UD-Q3_K_XL, 13.1 GB)</span>
+llama-server.exe -m Qwen3.8-27B-UD-Q3_K_XL.gguf  --alias qwen/qwen3.8-27b
+  <span class="f">-c 49152  -ngl 99</span>  --parallel 1  --load-mode none  -ctk q8_0 -ctv q8_0
+                                <span class="c">:: §02 math: 12.2 GiB weights + 1.6 GiB q8 KV + ~1-1.5 GiB</span>
+                                <span class="c">:: buffers ≈ 15.2 GiB — right at the 16 GiB ceiling. Drop to</span>
+                                <span class="c">:: -c 40960 with a desktop running. A &gt;100k window cannot fit</span>
+                                <span class="c">:: resident on 16 GB — that job needs the Q4 offload path (§07)</span>
+  --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0.0
+  <span class="f">--spec-type draft-mtp --spec-draft-n-max 4 --spec-draft-p-min 0.75</span>  <span class="c">:: start at 4, sweep (§06)</span>
+  --jinja --port 1234
+  <span class="f">--chat-template-kwargs "{\"reasoning_effort\":\"medium\"}"</span>  <span class="c">:: NOT xhigh here: its measured</span>
+                                <span class="c">:: 73-76k thinking appetite overflows this 49k window mid-run (§04's</span>
+                                <span class="c">:: effort-ceiling table) — medium is the best quality 16 GB affords</span></pre>
+
+  <p class="rt">12 GB class · RTX 3060 / RTX 5070 / Arc B580</p>
+  <pre><span class="c">:: honest framing: this class runs the 27B poorly in every configuration — if the</span>
+<span class="c">:: exact model isn't required, a 14B-class Qwen at Q4 fits resident and flies.</span>
+<span class="c">:: If it must be this model: Q4 with most layers on CPU (~6-8 t/s; speed is set by</span>
+<span class="c">:: your system RAM. The ~6-8 t/s assumes TWO sticks of DDR5 in dual channel (~90 GB/s);</span>
+<span class="c">:: one stick = single channel = half the bandwidth = roughly half the t/s).</span>
+<span class="c">:: file: <a href="https://huggingface.co/lmstudio-community/Qwen3.8-27B-GGUF">huggingface.co/lmstudio-community/Qwen3.8-27B-GGUF</a> (Q4_K_M — on a bandwidth-bound</span>
+<span class="c">:: offload path the smaller Q4 file means fewer GB re-read per token, and §05's</span>
+<span class="c">:: measured perplexity favors it too)</span>
+llama-server.exe -m Qwen3.8-27B-Q4_K_M.gguf  --alias qwen/qwen3.8-27b
+  <span class="f">-c 112640  -ngl 28</span>            <span class="c">:: ~28 of the 65 offloadable layers (64 + output — §10);</span>
+                                <span class="c">:: raise until &lt;500 MB VRAM free</span>
+  --parallel 1  --load-mode none  -ctk q8_0 -ctv q8_0   <span class="c">:: CPU layers need ~10 GB of real RAM</span>
+<span class="c">:: no MTP flags here on purpose: speculation is unmeasured on the CPU-offload path —</span>
+<span class="c">:: verify a speedup on your machine before adding it</span>
+  --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0.0  --jinja --port 1234
+  <span class="f">--chat-template-kwargs "{\"reasoning_effort\":\"medium\"}"</span>  <span class="c">:: unlike 16 GB this is NOT a</span>
+<span class="c">:: window limit — the 112k window (mostly in system RAM) holds xhigh's 73-76k appetite</span>
+<span class="c">:: fine. It is a patience limit: at ~6-8 t/s an xhigh answer runs ~3 HOURS vs ~1 h for</span>
+<span class="c">:: medium (§04 effort table). Switch to xhigh for overnight/unattended runs only</span>
+<span class="c">:: Arc B580: use the Vulkan build (same Battlemage SYCL caveat as the Pro cards)</span></pre>
+
+  <p class="rt">Intel Arc Pro B70 32 GB</p>
+  <pre><span class="c">:: VULKAN llama.cpp build — currently beats SYCL on Battlemage (SYCL has known perf</span>
+<span class="c">:: bugs there; IPEX-LLM is archived — do not use it). Re-benchmark after driver updates.</span>
+<span class="c">:: file: <a href="https://huggingface.co/lmstudio-community/Qwen3.8-27B-GGUF">huggingface.co/lmstudio-community/Qwen3.8-27B-GGUF</a> (Q6_K, 22.4 GB — near-Q8 quality)</span>
+llama-server.exe -m Qwen3.8-27B-Q6_K.gguf  --alias qwen/qwen3.8-27b
+  <span class="f">-c 262144  -ngl 99</span>            <span class="c">:: full native context fits (~8.5 GB KV at Q8)</span>
+  --parallel 1  --load-mode none  -ctk q8_0 -ctv q8_0   <span class="c">:: verify KV-quant support in your build</span>
+  --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0.0
+  <span class="f">--spec-type draft-mtp --spec-draft-n-max 4 --spec-draft-p-min 0.75</span>  <span class="c">:: start at 4, sweep (§06)</span>
+  --jinja --port 1234
+  --chat-template-kwargs "{\"reasoning_effort\":\"xhigh\"}"</pre>
+
+  <p class="rt">Intel Arc Pro B50 16 GB</p>
+  <pre><span class="c">:: Q4 does not fit and 224 GB/s punishes offload — fully resident 3-bit, Vulkan build</span>
+<span class="c">:: file: <a href="https://huggingface.co/unsloth/Qwen3.8-27B-GGUF">huggingface.co/unsloth/Qwen3.8-27B-GGUF</a> (UD-Q3_K_XL, 13.1 GB)</span>
+llama-server.exe -m Qwen3.8-27B-UD-Q3_K_XL.gguf  --alias qwen/qwen3.8-27b
+  <span class="f">-c 49152  -ngl 99</span>  --parallel 1  --load-mode none  -ctk q8_0 -ctv q8_0
+                                <span class="c">:: same 16 GiB budget as the NVIDIA class above: weights + KV +</span>
+                                <span class="c">:: buffers ≈ 15.2 GiB; a &gt;100k window cannot fit resident</span>
+  --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0.0
+  <span class="f">--spec-type draft-mtp --spec-draft-n-max 4 --spec-draft-p-min 0.75</span>  <span class="c">:: start at 4, sweep (§06)</span>
+  --jinja --port 1234
+  <span class="f">--chat-template-kwargs "{\"reasoning_effort\":\"medium\"}"</span>  <span class="c">:: NOT xhigh: 73-76k thinking</span>
+                                <span class="c">:: appetite vs a 49k window — see §04's effort-ceiling table</span></pre>
+
+  <p class="rt">DGX Spark · GB10, 128 GB unified</p>
+  <pre><span class="c">:: llama-server (ARM64 Linux build — no .exe here), same stack as every other card.</span>
+<span class="c">:: Bandwidth (273 GB/s) is the ceiling, so the smallest high-quality file wins:</span>
+<span class="c">:: Q4_K_M (16.5 GB) over UD-Q4_K_XL (17.6 GB) is ~6% more t/s on a bandwidth-bound box</span>
+<span class="c">:: (and our measured wikitext perplexity favors it — §05).</span>
+<span class="c">:: file: <a href="https://huggingface.co/lmstudio-community/Qwen3.8-27B-GGUF">huggingface.co/lmstudio-community/Qwen3.8-27B-GGUF</a> (Q4_K_M)</span>
+llama-server -m Qwen3.8-27B-Q4_K_M.gguf  --alias qwen/qwen3.8-27b
+  <span class="f">-c 262144  -ngl 99</span>            <span class="c">:: 128 GB unified: full native context is trivial (~8.5 GB q8 KV)</span>
+  --parallel 1  --load-mode none  -ctk q8_0 -ctv q8_0
+  --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0.0
+  <span class="f">--spec-type draft-mtp --spec-draft-n-max 4 --spec-draft-p-min 0.75</span>  <span class="c">:: start at 4, sweep (§06 —</span>
+                                <span class="c">:: unmeasured on GB10; the 3090 gained +45% on real code)</span>
+  --jinja --port 1234
+  --chat-template-kwargs "{\"reasoning_effort\":\"xhigh\"}"
+<span class="c">:: faster vendor alternative: Blackwell-native NVFP4 on vLLM (~1.5x BF16 speed, FP8 KV,</span>
+<span class="c">:: 92-97% accuracy) — vllm serve <a href="https://huggingface.co/unsloth/Qwen3.8-27B-NVFP4">unsloth/Qwen3.8-27B-NVFP4</a> --max-model-len 131072.</span>
+<span class="c">:: llama.cpp cannot load that release (FP8 lm_head); switching stacks buys the FP4 path</span></pre>
+
+  <p class="rt">Intel Core Ultra iGPU · Arc B390-class</p>
+  <pre><span class="c">:: llama-server.exe, VULKAN build (SYCL has known perf bugs on current Intel GPUs;</span>
+<span class="c">:: IPEX-LLM is archived). RAM is the spec that matters: the B390 tier (Core Ultra X9</span>
+<span class="c">:: 388H) ships only with dual-channel LPDDR5X-9600 = 153.6 GB/s, up to 96 GB shared.</span>
+<span class="c">:: Intel's formal Arc-branding floor for B390/B370 is 7,467 MT/s — slower RAM relabels</span>
+<span class="c">:: the iGPU as generic "Intel Graphics" — and other Core Ultra configs may ship slower</span>
+<span class="c">:: RAM or one module (single channel = half the bandwidth) — the ~5-7 t/s scales with</span>
+<span class="c">:: YOUR bandwidth via §02's formula; the model fits easily, it is just slow.</span>
+<span class="c">:: The recipe ships medium — the 65k</span>
+<span class="c">:: window below can't hold xhigh's 73-76k thinking appetite, and at this speed an xhigh</span>
+<span class="c">:: answer runs 3-4 HOURS anyway. Raise -c and effort together for overnight runs only.</span>
+<span class="c">:: file: <a href="https://huggingface.co/lmstudio-community/Qwen3.8-27B-GGUF">huggingface.co/lmstudio-community/Qwen3.8-27B-GGUF</a> (Q4_K_M — smallest strong Q4;</span>
+<span class="c">:: every GB re-read per token hurts at 153 GB/s)</span>
+llama-server.exe -m Qwen3.8-27B-Q4_K_M.gguf  --alias qwen/qwen3.8-27b
+  <span class="f">-c 65536  -ngl 99</span>             <span class="c">:: interactive default, NOT a memory limit: an iGPU borrows</span>
+                                <span class="c">:: system RAM, ~57% by default. To raise it: Intel Graphics</span>
+                                <span class="c">:: Software ≥25.26.1602.2 with driver ≥32.0.101.6974 → the GPU's</span>
+                                <span class="c">:: General tab → "Shared GPU Memory Override" slider (~87%; up to</span>
+                                <span class="c">:: ~93% on B390/B370 with current Arc Pro drivers, RAM-dependent)</span>
+                                <span class="c">:: → reboot. Needs ≥10 GB RAM, select Core Ultra</span>
+                                <span class="c">:: systems. With 96 GB RAM even -c 262144 fits — raise it for</span>
+                                <span class="c">:: xhigh runs (§04 effort table); the costs are slower prefill</span>
+                                <span class="c">:: and starving the CPU/OS of working RAM (keep some for both)</span>
+  --parallel 1  --load-mode none  -ctk q8_0 -ctv q8_0   <span class="c">:: verify KV-quant support in the Vulkan build</span>
+  --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0.0
+  <span class="f">--spec-type draft-mtp --spec-draft-n-max 4 --spec-draft-p-min 0.75</span>  <span class="c">:: start at 4, sweep (§06);</span>
+                                <span class="c">:: unmeasured on iGPUs — drop the spec flags if it doesn't help</span>
+  --jinja --port 1234
+  <span class="f">--chat-template-kwargs "{\"reasoning_effort\":\"medium\"}"</span>  <span class="c">:: NOT xhigh: 73-76k thinking</span>
+<span class="c">:: appetite vs this 65k window (§04's effort-ceiling table) — and at 5-7 t/s an xhigh</span>
+<span class="c">:: answer is 3-4 hours anyway. Raise -c and effort together only if you accept both costs</span>
+<span class="c">:: possibly-faster vendor alternative: Intel's OpenVINO Model Server on the iGPU with</span>
+<span class="c">:: <a href="https://huggingface.co/OpenVINO/Qwen3.8-27B-int4-ov">OpenVINO/Qwen3.8-27B-int4-ov</a> (<a href="https://docs.openvino.ai/2025/model-server/ovms_docs_llm_quickstart.html">OVMS LLM quickstart</a>; OpenAI-compatible /v3 endpoint) —</span>
+<span class="c">:: Intel tunes that stack for its own silicon; benchmark both if the t/s matters to you</span></pre>
+
+</section>
+
+<section id="s09">
+  <p class="fno">09</p>
+  <h2>How big must a benchmark sample size be?</h2>
+  <p>A worked example from this guide's own data. A GSM8K score of <span class="num">85%</span> at <span class="num">20</span> questions carries a 95% confidence interval of roughly <span class="num">64–95%</span> (Wilson) — a thirty-point window around a table where every score sits within ten points of every other. One flipped question moves a score 5 points. Healthy Q4-class quants differ by perhaps <span class="num">1–3</span> <em>true</em> points; inside that window, such a gap is invisible. The principle generalizes to any benchmark of any size: the question is never "is n big enough?" in the abstract, but "is n big enough <em>for the gap I need to see</em>?"</p>
+  <p>The arithmetic is unforgiving because sampling noise shrinks with the <em>square root</em> of the sample count: <strong>halve the gap you want to detect and you need four times the samples.</strong> What that costs on this 3090 — paired evaluation on the same questions, temp 0, ~80% base accuracy, 95% confidence at 80% power, ~<span class="num">1,200</span> tokens per sample at ~<span class="num">55&nbsp;t/s</span>:</p>
+  <div class="tablebox">
+  <table>
+    <tr><th>True gap to detect</th><th>Samples needed</th><th>Wall clock per model</th></tr>
+    <tr><td>~20 pts — a broken quant</td><td class="n">~25–30</td><td class="n">~9–11 min</td></tr>
+    <tr><td>~10 pts</td><td class="n">~100–150</td><td class="n">~35–55 min</td></tr>
+    <tr><td>~5 pts</td><td class="n">~300–500</td><td class="n">~2–3 h</td></tr>
+    <tr><td>1–3 pts — typical Q4 vs Q4</td><td class="n">~2,000–10,000</td><td class="n">~12–60 h</td></tr>
+  </table>
+  </div>
+  <p>The first row is the one job a local accuracy run does well — and the only claim §05's scored smoke test makes. The last row is why nobody ranks healthy quants by accuracy scores: the run that could would take days per model.</p>
+
+  <p class="fno" style="margin-top:24px">The other way a benchmark lies: the token budget</p>
+  <p>Sample size is not the only silent corrupter. <strong>A thinking model spends tokens reasoning before it answers, and a fixed <code>max_tokens</code> cap silently converts its hardest questions into wrong answers</strong> — the run doesn't error, the score just drops. Measured here: the §04 effort comparison first ran GSM8K n=200 with a 4,096-token cap, and <code>xhigh</code> scored 94.0% with <span class="num">5</span> answers cut off mid-thinking and graded wrong — while <code>low</code> and <code>medium</code>, which think less, never touched the cap. The cap didn't measure the model; it taxed exactly the setting that thinks most, on exactly the questions that need it most.</p>
+  <p>The tempting fix is the wrong one: <em>"rerun using only the questions that didn't truncate."</em> That selects the question set based on one arm's behavior — dropping precisely the hard items where a quality difference could live — and quietly changes the question from "which setting scores better?" to "which setting scores better on easy questions?" It also breaks comparability with every published number on the same benchmark. <strong>The logical fix is to raise the budget, not shrink the test:</strong> rerun with a cap the longest thinker cannot hit (16,384 here). And because greedy decoding is deterministic, arms that never truncated produce byte-identical output under any larger cap — only the truncated arm needs rerunning. The corrected number lives in §04's table, capped result beside it in brackets.</p>
+  <div class="callout"><span class="tag">The checklist line</span><p>Before trusting any thinking-model benchmark score — yours or a leaderboard's — ask two questions: what was <code>max_tokens</code>, and how many answers truncated? A score published without its cap is unfalsifiable, for the same reason a speculative-decoding speedup without its acceptance rate is (§06).</p></div>
+  <div class="callout"><span class="tag">The right tool</span><p><strong>KL-divergence and perplexity rank quants; a small-n accuracy pass smoke-tests everything those metrics can't see.</strong> Logit-level metrics compare per-token probabilities against the full-precision model over ~<span class="num">330k</span> token positions in an estimated ~15–30 min per model on a 3090-class card (an estimate, not a benchmark from this guide — that covers the per-quant pass against saved full-precision baseline logits; generating the baseline itself needs the BF16 model, which exceeds a 3090's VRAM, and is a slower one-time cost), resolving differences no feasible accuracy run can — which is why quant authors themselves (unsloth's Dynamic 3.0, for example) compare files this way. But they run below the sampling and template layer, so a broken chat template or mangled tool-call format sails through them unnoticed while collapsing scored answers by 20+ points. Run both: KLD to pick between files, one cheap accuracy pass to confirm the file you picked actually works end to end — §05's perplexity table is this advice in practice.</p></div>
+</section>
+
+<section id="s08">
+  <p class="fno">10</p>
+  <h2>When it silently runs at half speed</h2>
+  <p>Two failure modes produce the same complaint — the command that did <span class="num">40</span> t/s yesterday does <span class="num">25</span> today — while the server starts cleanly and reports nothing wrong. Both were measured on the reference 3090 (2026-08-22), and both are configuration, not hardware.</p>
+
+  <p class="fno" style="margin-top:24px">Failure 1 · The silent VRAM spill</p>
+  <p>The NVIDIA driver does not refuse an allocation that exceeds VRAM — by default it quietly overflows into shared system memory across the PCIe bus. On the reference machine, two open browsers held ~2–3&nbsp;GB of VRAM; the 122,880-context config needed ~22&nbsp;GiB (§02's budget table); about <span class="num">1.9&nbsp;GB</span> spilled. The server loaded without a single warning and decoded at <span class="num">20–35</span> t/s — and stayed there no matter how far the context was shrunk, because the weights stay spilled either way. This is §02's cliff in its most treacherous form: <strong>the cliff is invisible to the server</strong>. Nothing errors, nothing is logged, everything just runs at half its speed or worse.</p>
+  <p>The signature lives in Task Manager: dedicated GPU memory pinned at <span class="num">23.5–24.0 / 24.0</span>, <strong>shared GPU memory growing</strong>, CPU around 70% from driver paging. The fix is freeing the VRAM (close the apps holding it). The prevention is making the failure loud: NVIDIA Control Panel → Manage 3D Settings → Program Settings → llama-server.exe → <strong>CUDA — Sysmem Fallback Policy → Prefer No Sysmem Fallback</strong>. With that set, an over-budget load fails with an out-of-memory error at startup instead of running slow all day.</p>
+
+  <p class="fno">Failure 2 · The -ngl off-by-one</p>
+  <p>llama.cpp counts the output projection as one more "layer" than the model has transformer layers. This model has 64, so <code>-ngl 64</code> reads as complete — and leaves the output layer, a 5120&nbsp;×&nbsp;~151k-vocab matmul that runs for every generated token, on the CPU. Measured cost: decode <span class="num">25.7</span> vs <span class="num">39.7</span> t/s, prefill <span class="num">106</span> vs <span class="num">290</span> t/s (server-log prefill on the short test prompt — a different probe from llama-bench pp512, which reads ~1300 on this card), GPU utilization 53–67% instead of ~90%, and a stack of CPU threads pinned doing the vocab matmul. The recipes in §08 all say <code>-ngl 99</code> for exactly this reason: any number past the real count means "everything", with no off-by-one to get wrong. One log line to read carefully: <code>failed to fit params to free device memory: n_gpu_layers already set by user</code> only means an explicit <code>-ngl</code> overrode the automatic fit — any value triggers it, <code>-ngl 99</code> included. The Failure-2-specific signals are the ones in the table below.</p>
+
+  <div class="tablebox">
+  <table>
+    <tr><th>Signal</th><th>VRAM spill</th><th>-ngl off-by-one</th></tr>
+    <tr><td>Shared GPU memory (Task Manager)</td><td>grows during the run</td><td>stays flat</td></tr>
+    <tr><td>Decode speed</td><td class="n">20–35 t/s, flat at every context size</td><td class="n">25.7 t/s, fixed (vs 39.7)</td></tr>
+    <tr><td>Persistence</td><td>vanishes when other apps release VRAM</td><td>survives reboot — it lives in your command line</td></tr>
+    <tr><td>Fix</td><td>free the VRAM · Prefer No Sysmem Fallback</td><td><code>-ngl 99</code></td></tr>
+  </table>
+  </div>
+  <div class="callout"><span class="tag">High CPU alone proves nothing</span><p>llama.cpp worker threads busy-spin while waiting on the GPU, so ~50–70% CPU during perfectly healthy all-GPU decode is normal on a 20-thread machine. The trouble signal is the combination — high CPU <em>and</em> low t/s. Either failure above shows both.</p></div>
+
+  <p class="fno" style="margin-top:24px">The commands that actually work on Windows</p>
+  <p>One tooling trap cost this guide's own debugging session real time: on Windows, <code>nvidia-smi</code>'s per-process listing shows <code>[N/A]</code> or "Insufficient Permissions" for memory, and its <code>memory.used</code> only counts dedicated VRAM — <strong>it cannot see the spill</strong>. The tools that exposed both failure modes:</p>
+  <pre><span class="c"># totals + who's on the GPU (dedicated only - spill NOT visible here):</span>
+nvidia-smi --query-gpu=memory.used,memory.total,utilization.gpu --format=csv
+
+<span class="c"># the spill itself - total shared GPU memory in use (PowerShell):</span>
+(Get-Counter '\GPU Process Memory(*)\Shared Usage').CounterSamples |
+  Measure-Object CookedValue -Sum   <span class="c"># divide Sum by 1MB; growing = spilling</span>
+
+<span class="c"># per-process dedicated commitment - this is what caught the compositor (dwm)</span>
+<span class="c"># holding 3.6 GiB during a browser-UI session:</span>
+(Get-Counter '\GPU Process Memory(*)\Dedicated Usage').CounterSamples |
+  Where-Object { $_.CookedValue -gt 200MB }
+
+<span class="c"># or simply Task Manager - Performance - GPU: the dedicated/shared split and,</span>
+<span class="c"># under Performance - Memory, your RAM speed and "Slots used" (the §07 channel check)</span></pre>
+</section>
+
+<section id="vision">
+  <p class="fno">11</p>
+  <h2>Vision — screenshots in, critiques out</h2>
+  <p>The optional mmproj projector (§01) turns this model into something genuinely useful for a coding loop: a critic that can <em>look at what your code rendered</em>. Proven end-to-end on the reference 3090, 2026-08-22: Chrome captured a 4K screenshot (<span class="num">3840×2160</span>, a 2.3&nbsp;MB PNG) of this guide's own test page — an animated canvas aquarium — and the model, served with the config below, named the visible creatures individually, identified the weakest visual element (kelp drawn as wire-thin polylines), and wrote working replacement drawing code with tapered, phase-offset swaying blades. Round trip: ~<span class="num">39</span> s, of which the 4K image cost <span class="num">8,244</span> prompt tokens.</p>
+  <p><strong>Image cost is resolution, not file size.</strong> Any png/jpg is smart-resized into visual tokens; the server flags set the budget: <code>--image-min-tokens 1024</code> is the community floor for grounding accuracy, and the default cap of 4,096 tokens (≈3.2&nbsp;MP) rises with <code>--image-max-tokens</code> — this guide's vision config uses <span class="num">10,580</span> for 4K-class detail (<a href="https://github.com/ggml-org/llama.cpp/discussions/17172">4K handling upstream still has open quirks</a>, so 1440p is the sweet spot):</p>
+  <div class="tablebox">
+  <table>
+    <tr><th>Screenshot</th><th>Context cost</th><th>Feedback rounds alongside a full xhigh cycle (~80–90k) at -c 122880</th></tr>
+    <tr><td>1080p</td><td class="n">~2.6k tokens</td><td class="n">~12–15</td></tr>
+    <tr class="hl"><td><b>1440p — recommended</b></td><td class="n">~4.7k</td><td class="n">~7–9</td></tr>
+    <tr><td>4K (measured)</td><td class="n">8.2k</td><td class="n">~3–4</td></tr>
+  </table>
+  </div>
+  <p>The serving config (verified: loads at ~21.6&nbsp;GiB with ~3&nbsp;GiB desktop slack, 71.3&nbsp;t/s short-context) and the capture command:</p>
+  <pre>llama-server -m Qwen3.8-27B-UD-IQ4_XS.gguf  --alias qwen/qwen3.8-27b
+  -c 122880  -ngl 99  --parallel 1  --load-mode none  -ctk q8_0 -ctv q8_0
+  <span class="f">--mmproj mmproj-Qwen3.8-27B-BF16.gguf  --image-min-tokens 1024  --image-max-tokens 10580</span>
+  --spec-type draft-mtp --spec-draft-n-max 4 --spec-draft-p-min 0.75
+  --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0.0  --jinja  --port 1234
+
+<span class="c"># capture the page your code just rendered (Chrome headless):</span>
+chrome --headless --disable-gpu --window-size=2560,1440 ^
+  --screenshot=shot.png --virtual-time-budget=6000 file:///path/to/page.html</pre>
+  <p><strong>Multi-image works, and it can judge between versions.</strong> Measured: three screenshots of three <em>different</em> aquarium implementations in one request — 4K, 1440p, 1080p — cost <span class="num">13,913</span> prompt tokens (74&nbsp;s round trip), and the model ranked them by visual richness correctly <em>and</em> flagged the third as "broken / nearly empty… looks like the animation failed to spawn its fish." That page is the same low-effort output §04's blind <em>code</em> judges scored 40/100 for freezing on its first frame — vision review and code review reaching the same verdict independently. For an iterative loop this means the model can compare its current render against the previous one in a single request.</p>
+  <p>Which coding agents can actually carry a local screenshot to the model? All five were tested headlessly against this server with the same 2.3&nbsp;MB 4K PNG and a question only answerable by seeing it (2026-08-22). Encouragingly, <strong>no agent hallucinated</strong> — every failure was an honest "I see no image":</p>
+  <div class="tablebox">
+  <table>
+    <tr><th>Agent</th><th>Vision headless</th><th>How — and the trap</th></tr>
+    <tr><td>OpenCode</td><td>✔ with config</td><td><strong>a bare model entry silently reads the PNG as bytes</strong> (tested — the model honestly saw nothing). Declare <code>"attachment": true</code> and <code>"modalities": {"input": ["text","image"]}</code> on the model (the config below includes them), and headless <code>opencode run "@shot.png …"</code> passes — verified on v1.18.21 after tracing <a href="https://github.com/anomalyco/opencode/issues/15728">issue #15728</a></td></tr>
+    <tr><td>aider</td><td>✔ passes</td><td>image path as a plain file argument (<code>aider … --message "…" shot.png</code>); requires <code>supports_vision: true</code> in the model metadata file</td></tr>
+    <tr><td>Qwen Code</td><td>✔ with config</td><td><strong>env-vars-only setup silently drops images.</strong> Declare the model in <code>settings.json</code> <code>modelProviders</code> with <code>capabilities: {vision: true}</code>, then <code>qwen -p "@shot.png …"</code> works</td></tr>
+    <tr><td>Pi</td><td>✔ passes</td><td>image path as a positional argument after <code>-p</code>; the provider's models.json must list <code>"image"</code> in <code>input</code></td></tr>
+    <tr><td>DeepSeek Harness</td><td>✔ passes</td><td>no attach flag exists or is needed — reference the path in the task text; settings.yaml must declare <code>input: [text, image]</code>. Gave the richest correct answer of the five</td></tr>
+  </table>
+  </div>
+  <div class="callout"><span class="tag">The dependable route, and two rules</span><p>For a scripted screenshot loop, the OpenAI-compatible API itself is the zero-dependency path: send the image as a <code>data:image/png;base64,…</code> entry in an <code>image_url</code> content part alongside the text — exactly what the proof above used. Two rules regardless of route: <strong>budget <code>max_tokens</code> generously</strong> — a thinking model reasons about the image before answering, and a tight cap returns an empty answer with the thinking complete (measured; §03's cut-off rule applies to vision too) — and <strong>clear old screenshots between iterations</strong>; each one keeps its thousands of tokens in the window.</p></div>
+</section>
+
+<section id="s11">
+  <p class="fno">12</p>
+  <h2>When 27B is enough — and when the frontier earns its keep</h2>
+  <p>A closing dose of perspective — with a disclosure up front: unlike everything above, this section is argued from the published literature, not measured on this machine. The question it answers is the one every local-inference guide dodges: <em>which tasks should you trust this machine with?</em> A model does not need trillions of parameters to act as an encyclopedia. High-frequency knowledge — geography, mainstream history, standard biology, common coding syntax — compresses comfortably into 27B (a model stores <a href="https://arxiv.org/abs/2404.05405">on the order of 2 bits of factual knowledge per parameter</a>), which is why local factual Q&amp;A feels frontier-grade. What frontier models buy with their scale looks like a difference in kind but is built from differences in degree: per-step reliability <a href="https://arxiv.org/abs/2304.15004">improves smoothly with capability</a>, and because a long task succeeds only if every step does, those smooth gains compound into cliff-like gaps on exactly the work below — as <em>reasoning engines, software architects, and autonomous agents</em>. The boundary runs through five territories:</p>
+  <ul>
+    <li><strong>Long-horizon reasoning.</strong> Direct questions are effortless at 27B; what degrades is the 30-step deduction, the formal proof, the architecture analysis — work where one early flaw silently poisons everything downstream: agent success <a href="https://arxiv.org/abs/2505.05115">decays exponentially with task length</a>, and transformers solve deep compositional problems by <a href="https://arxiv.org/abs/2305.18654">pattern-matching that collapses as the reasoning graph grows</a> — a collapse that reaches even frontier models at sufficient depth, so the frontier <a href="https://arxiv.org/abs/2503.14499">extends the horizon</a> rather than escaping the regime. This guide's §04 judging located the local edge precisely: at <code>xhigh</code>, the 27B delivered 100% of a complex <em>single-file</em> spec, twice. Multi-file systems, where the flaws hide in the seams between files, are where the footing gives.</li>
+    <li><strong>The long tail of knowledge.</strong> 27B keeps what training data repeated often — fact recall <a href="https://arxiv.org/abs/2211.08411">tracks how many times a fact appeared in pre-training</a> — and frontier models retain far more of the rare: the niche legal precedent, the legacy framework, the unusual drug interaction (the studies measure trivia-style entity facts; these are the practical analogue). But the tail deficit shrinks rather than disappears — scaling <a href="https://aclanthology.org/2023.acl-long.546/">fails to appreciably improve memorization of tail facts</a>, and closing the gap by scale alone would take many orders of magnitude more model. The danger is the failure mode: on obscure ground no model reliably says "I don't know" — <a href="https://arxiv.org/abs/2509.04664">training and benchmarks reward confident guessing over abstention</a> — and a small model simply has more gaps for the fluent hallucination to fill. Treat confident answers about rare domains as unverified drafts, or ground them with retrieval: retrieval-augmented small models beat vanilla models orders of magnitude larger on exactly these facts.</li>
+    <li><strong>Ultra-long recall.</strong> A whole codebase or a 500-page audit in one prompt is two problems wearing one coat: <em>holding</em> the text, which this card's 122k window does (§02), and <em>keeping every cross-document dependency straight</em>, which improves with model scale — in <a href="https://arxiv.org/abs/2404.06654">RULER's within-family test</a>, a 34B degrades far less than a 6B trained on the same context — but scale mitigates rather than cures: only about half of models claiming ≥32K actually handle 32K, information <a href="https://aclanthology.org/2024.tacl-1.9/">buried mid-context is used far worse than at the edges</a>, and once retrieval requires inference instead of literal matching, <a href="https://arxiv.org/abs/2502.05167">most long-context models fall below half their short-context accuracy by 32K</a>.</li>
+    <li><strong>Multi-constraint instruction following.</strong> "Five custom API rules, strict typing, an exact JSON schema, and ten edge-case tests — simultaneously." Rule stacks like that degrade small models first, and quietly: <a href="https://arxiv.org/abs/2507.11538">the dominant failure at high instruction density is silent omission</a> — the output stays a coherent, compliant-looking document — and violations are <a href="https://arxiv.org/abs/2407.03978">hard enough to spot that benchmarks need LLM judges to find them</a>. <a href="https://arxiv.org/abs/2310.20410">Every model declines as constraints stack</a>, so fidelity under heavy constraints is one of the clearest capability dividends — frontier reasoning models hold near-perfect through ~150 simultaneous instructions where small models decay exponentially — but it buys later, slower degradation, not immunity: even the best fall to ~68% at 500 instructions.</li>
+    <li><strong>Autonomous agentic reliability.</strong> An agent that calls tools, reads its own error logs, and self-corrects across dozens of steps multiplies its per-step error rate through every step — measured agent success <a href="https://arxiv.org/abs/2505.05115">declines exponentially with task length, like a half-life</a> — and worse than independent errors predict, because models <a href="https://arxiv.org/abs/2509.09677">self-condition on their own earlier mistakes</a>, amplifying drift into failure. Frontier agents push the horizon <a href="https://metr.org/blog/2025-03-19-measuring-ai-ability-to-complete-long-tasks/">from minutes toward hours</a>, but at 50% success — at their quoted horizon they still fail half the time. This is why the setups in the next section shine for supervised sessions — every model is near-perfect on short, checked steps — and wobble on multi-hour autonomous loops, and why §04's defect cliff matters most in exactly this mode, where nobody is watching the output.</li>
+  </ul>
+  <div class="tablebox">
+  <table>
+    <tr><th>Task type</th><th>27B local</th><th>Frontier model</th></tr>
+    <tr><td>Factual Q&amp;A &amp; summarization</td><td>excellent</td><td>excellent</td></tr>
+    <tr><td>Standard code &amp; prose</td><td>great</td><td>exceptional</td></tr>
+    <tr><td>Multi-file system architecture</td><td>moderate — struggles</td><td>exceptional</td></tr>
+    <tr><td>50-step autonomous tool loops</td><td>high drift / failure</td><td>much longer horizons — still ~50% at their own limit</td></tr>
+    <tr><td>Obscure / niche domain expertise</td><td>hallucination-prone</td><td>better, still unreliable — verify or retrieve</td></tr>
+  </table>
+  </div>
+  <div class="callout"><span class="tag">The honest division of labor</span><p>A well-tuned local 27B is a fast, private, tireless colleague for the bounded work that fills most of a day — and this guide exists to make it as good at that as the hardware allows. Frontier models exist for the multi-step, high-stakes cognitive work where accuracy must decay as slowly as possible — and even they decay. The two compose: route the bounded work local and escalate the architecture to a frontier model — the planner/executor split in the DeepSeek Harness setup below is this section as a config file. Knowing which task you are holding is itself a setting — the one no flag can fix.</p></div>
+</section>
+
+<section id="agents">
+  <p class="fno">Coding agents</p>
+  <h2>Coding agents — one server, any agent</h2>
+  <p>Every recipe above ends with an OpenAI-compatible server (llama-server on port 1234; the vendor-alternative stacks on their own default ports — adjust the base URL to match). Any OpenAI-compatible client connects with the same three facts: base URL <code>http://localhost:1234/v1</code>, the model id the server reports (<code>qwen/qwen3.8-27b</code> via <code>--alias</code>), and the context/output limits from your <code>-c</code> setting. The agents below are ordered by popularity (GitHub stars, August 2026); nothing here is hardware-specific. <strong>Every setup was verified end-to-end on the reference machine (2026-08-22): each agent installed, configured exactly as printed, and run through a live one-shot request against llama-server.</strong></p>
+
+  <h2 id="appendix-opencode" style="margin-top:36px; scroll-margin-top:24px"><a href="https://opencode.ai/docs/providers/">OpenCode</a> · the most-starred coding agent</h2>
+  <pre><span class="c"># install:  npm i -g opencode-ai   (or the curl installer / brew)</span>
+<span class="c"># config: ~/.config/opencode/opencode.json (or opencode.json in the project)</span>
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "llamacpp": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "llama-server (local)",
+      "options": { "baseURL": "http://localhost:1234/v1", "apiKey": "dummy" },
+      "models": {
+        "qwen/qwen3.8-27b": {
+          "name": "Qwen3.8 27B (local)",
+          "attachment": true,
+          "modalities": { "input": ["text", "image"], "output": ["text"] },
+          "limit": { "context": 122880, "output": 106496 }
+        }
+      }
+    }
+  }
+}
+<span class="c"># run:  opencode --model llamacpp/qwen/qwen3.8-27b   (or pick via /models)</span>
+<span class="c"># the attachment/modalities pair is REQUIRED for images: without it OpenCode</span>
+<span class="c"># silently reads a referenced PNG as text bytes (§11's vision table)</span></pre>
+  <p style="font-size:14px">Two gotchas from the docs: <code>baseURL</code> must sit inside <code>options</code>, not at the provider root, and the provider id must be a custom name ("llamacpp", "local") — reusing a built-in provider name breaks resolution. (<a href="https://njannasch.dev/snippets/opencode-llamacpp-config/">llama.cpp example</a>)</p>
+
+  <h2 id="appendix-aider" style="margin-top:36px; scroll-margin-top:24px"><a href="https://aider.chat">aider</a> · the git-native pair-programmer</h2>
+  <p>The most detailed walkthrough of the five — its metadata/limits pattern is the template every other client repeats in its own config format.</p>
+  <p class="fno" style="margin-top:24px">Step 1 · Install aider</p>
+  <pre><span class="c"># needs Python 3.9+ — any one of these:</span>
+python -m pip install aider-install &amp;&amp; aider-install   <span class="c"># official installer (recommended)</span>
+pip install aider-chat                                 <span class="c"># plain pip</span>
+uv tool install --force --python python3.12 aider-chat <span class="c"># uv, isolated env</span></pre>
+
+  <p class="fno">Step 2 · Point aider at the server</p>
+  <p>Aider's <code>openai/</code> model prefix means "any OpenAI-compatible server" — llama-server and OpenVINO Model Server both qualify. Set two environment variables (the key is required by aider; make it match the server's <code>--api-key</code> if you set one, otherwise any placeholder works):</p>
+  <pre><span class="c"># Windows (cmd / batch)                              # Linux / macOS</span>
+set OPENAI_API_BASE=http://localhost:1234/v1         export OPENAI_API_BASE=http://localhost:1234/v1
+set OPENAI_API_KEY=dummy                             export OPENAI_API_KEY=dummy</pre>
+
+  <p class="fno">Step 3 · Tell aider the model's limits</p>
+  <p>Aider knows nothing about a local model until you describe it. Create <code>.aider.model.metadata.json</code> in the directory you launch aider from (or your home directory). Match <code>max_input_tokens</code> to the server's <code>-c</code> value — these two numbers drifting apart is the classic silent failure:</p>
+  <pre>{
+    "openai/qwen/qwen3.8-27b": {
+        "max_input_tokens": 122880,
+        "max_tokens": 106496,
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0,
+        "supports_vision": true
+    }
+}</pre>
+  <p>The model name after <code>openai/</code> must match what the server reports at <code>/v1/models</code> — llama-server sets it with <code>--alias</code>, so the recipes above all serve as <code>qwen/qwen3.8-27b</code>.</p>
+
+  <p class="fno">Step 4 · Fix aider's defaults for a thinking model</p>
+  <p>Aider sends temperature 0 by default — a repetition-loop trigger on reasoning models — and needs to know to strip <code>&lt;think&gt;</code> blocks before parsing edits. Create <code>.aider.model.settings.yml</code> next to the metadata file:</p>
+  <pre>- name: openai/qwen/qwen3.8-27b
+  use_temperature: 1.0
+  reasoning_tag: think
+  extra_params:
+    top_p: 0.95</pre>
+
+  <p class="fno">Step 5 · Launch</p>
+  <pre>aider --model openai/qwen/qwen3.8-27b --edit-format diff --timeout 3600</pre>
+  <ul style="font-size:14px">
+    <li><code>--edit-format diff</code> — the model writes only changed hunks instead of whole files. On local t/s this is the biggest quality-of-life setting there is: a 60&nbsp;KB file edit drops from minutes to seconds. Diff also degrades gracefully on cut-offs (complete hunks still apply).</li>
+    <li><code>--timeout 3600</code> — long thinking runs outlive default client timeouts; the server log shows a timeout as "Client disconnected. Stopping generation".</li>
+    <li>First run sanity checks: the model-warning banner should be gone (metadata file found), and the banner should read <em>diff edit format</em>. If edits arrive mangled, the fallback is removing <code>--edit-format diff</code> to use whole-file mode.</li>
+    <li>Vision: with <code>supports_vision: true</code> and the server launched with <code>--mmproj</code>, you can <code>/add screenshot.png</code> in aider and the local model will see it.</li>
+  </ul>
+
+  <h2 id="appendix-qwencode" style="margin-top:36px; scroll-margin-top:24px"><a href="https://github.com/QwenLM/qwen-code">Qwen Code CLI</a> · Qwen's own terminal agent</h2>
+  <pre><span class="c"># install (Node.js 20+)</span>
+npm install -g @qwen-code/qwen-code
+<span class="c"># configure via env vars — put them in ~/.qwen/.env to persist:</span>
+OPENAI_BASE_URL=http://localhost:1234/v1
+OPENAI_API_KEY=dummy
+OPENAI_MODEL=qwen/qwen3.8-27b
+<span class="c"># then just run:</span>
+qwen</pre>
+  <p style="font-size:14px">The API key must be present even for a local server ("Missing credentials" otherwise), and set the context window explicitly in its settings if offered — Qwen Code's built-in defaults assume the cloud model's limits, not your <code>-c</code> value. (<a href="https://carteakey.dev/snippets/qwen-code-local-llama-cpp.html">setup notes</a>)</p>
+
+  <h2 id="appendix-pi" style="margin-top:36px; scroll-margin-top:24px"><a href="https://pi.dev/docs/latest/custom-provider">Pi coding agent</a></h2>
+  <pre><span class="c"># custom providers live in ~/.pi/agent/models.json:</span>
+{
+  "providers": {
+    "llamacpp": {
+      "baseUrl": "http://localhost:1234/v1",
+      "api": "openai-completions",
+      "apiKey": "dummy",
+      "compat": { "supportsDeveloperRole": false, "supportsReasoningEffort": false },
+      "models": [
+        { "id": "qwen/qwen3.8-27b", "name": "Qwen3.8 27B (local)",
+          "contextWindow": 122880, "maxTokens": 106496, "reasoning": true }
+      ]
+    }
+  }
+}
+<span class="c"># headless one-shot:  pi --model llamacpp/qwen/qwen3.8-27b --no-session -p "task"</span></pre>
+  <p style="font-size:14px">The <code>compat</code> flags matter: they tell Pi to send a plain <code>system</code> role and skip the <code>reasoning_effort</code> request parameter — the dialect llama-server expects. Pi enforces <code>maxTokens</code> client-side, so size it like aider's (this is the client whose default cap causes the mid-generation cut-offs described in §03). (<a href="https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/custom-provider.md">docs</a>)</p>
+
+  <h2 id="appendix-dsh" style="margin-top:36px; scroll-margin-top:24px"><a href="https://deepseek-harness.github.io/deepseek-harness/guide/quickstart">DeepSeek Harness</a> · plugin-based agent framework (developer preview)</h2>
+  <pre><span class="c"># install globally, then run the web UI (npx cold-cache can hang for minutes):</span>
+npm i -g @deepseek-ai/dsh
+dsh web
+<span class="c"># custom OpenAI-compatible providers live in $DSH_HOME/settings.yaml.</span>
+<span class="c"># BOTH blocks are required: registering the provider is not enough — without the</span>
+<span class="c"># routing block the harness silently keeps its cloud default and fails with</span>
+<span class="c"># MISSING_CREDENTIAL (verified end-to-end on the reference machine, 2026-08-22):</span>
+agent-default-model:
+  provider: llamacpp
+  model: qwen/qwen3.8-27b
+llm-pi-ai:
+  providers:
+    llamacpp:
+      api: openai-completions
+      baseURL: http://localhost:1234/v1
+      apiKeyEnv: LLAMA_API_KEY        <span class="c"># set LLAMA_API_KEY=dummy to match --api-key</span>
+      compat:
+        supportsDeveloperRole: false  <span class="c"># llama-server wants a plain system role</span>
+        maxTokensField: max_tokens
+      models:
+        - id: qwen/qwen3.8-27b
+          input: [text, image]        <span class="c"># vision works when the server runs with --mmproj</span>
+          contextWindow: 122880       <span class="c"># match the server's -c value</span>
+          maxTokens: 106496           <span class="c"># REQUIRED: dsh enforces this client-side (same Pi</span>
+                                      <span class="c"># schema). Without it the small default cap cuts long</span>
+                                      <span class="c"># thinking replies mid-run — the symptom is "Output token</span>
+                                      <span class="c"># limit reached … send continue" on any xhigh answer (§03)</span></pre>
+  <p style="font-size:14px">The harness's headline trick is routing: it plans with heavy reasoning, then fans the plan out to sub-agents that execute with light reasoning. Two things to know when backing it with llama-server. First, llama-server ignores a per-request <code>reasoning_effort</code> field (same dialect issue as Pi above) — effort is fixed server-side via <code>--chat-template-kwargs</code>, so either run one server at <code>xhigh</code> (this guide's quality-first default), or run two llama-server instances (one <code>xhigh</code> planner on one port, one <code>low</code> executor on another) and register both as separate models in <code>settings.yaml</code> — the harness can then route between them. Second, its parallel sub-agents each hold their own context: with <code>--parallel 1</code> (this guide's recipes) requests queue rather than run concurrently, which is correct on a single 24 GB card — raising <code>--parallel</code> multiplies KV cache and walks you off the §02 cliff. For non-thinking "fast mode" runs, Qwen's official instruct sampling is temp 0.7 · top-p 0.8 · presence penalty 1.5.</p>
+
+  <div class="callout"><span class="tag">One rule for all agents</span><p>Whatever the agent, its context and max-output settings must match the server's <code>-c</code> value — the client-side limits are what prevent the silent mid-generation cut-offs, because the model itself cannot budget its own tokens (§03).</p></div>
+
+</section>
+
+<section id="src">
+  <p class="fno">Sources</p>
+  <h2>Fact-check trail</h2>
+  <ul style="font-size:14px">
+    <li>§12 task boundaries — long-tail knowledge: <a href="https://arxiv.org/abs/2211.08411">Kandpal et al., ICML 2023</a>, <a href="https://aclanthology.org/2023.acl-long.546/">PopQA / Mallen et al., ACL 2023</a>, <a href="https://arxiv.org/abs/2404.05405">knowledge-capacity scaling laws</a>, <a href="https://arxiv.org/abs/2509.04664">Why Language Models Hallucinate</a> · long-horizon reasoning: <a href="https://arxiv.org/abs/2305.18654">Faith and Fate (NeurIPS 2023)</a>, <a href="https://arxiv.org/abs/2304.15004">emergent-abilities mirage (NeurIPS 2023)</a>, <a href="https://arxiv.org/abs/2503.14499">METR time horizons</a>, <a href="https://arxiv.org/abs/2505.05115">agent half-life (Ord, 2025)</a> · long context: <a href="https://arxiv.org/abs/2404.06654">RULER (COLM 2024)</a>, <a href="https://aclanthology.org/2024.tacl-1.9/">Lost in the Middle (TACL 2024)</a>, <a href="https://arxiv.org/abs/2502.05167">NoLiMa (ICML 2025)</a> · constraint stacking: <a href="https://arxiv.org/abs/2310.20410">FollowBench (ACL 2024)</a>, <a href="https://arxiv.org/abs/2507.11538">IFScale</a>, <a href="https://arxiv.org/abs/2407.03978">ComplexBench (NeurIPS 2024)</a> · agentic reliability: <a href="https://metr.org/blog/2025-03-19-measuring-ai-ability-to-complete-long-tasks/">METR blog</a>, <a href="https://arxiv.org/abs/2509.09677">self-conditioning in long-horizon execution</a></li>
+    <li>Arc Pro B70 32 GB, 256-bit, 608 GB/s — <a href="https://www.tomshardware.com/pc-components/gpus/intel-arc-pro-b70-and-arc-pro-b65-gpus-bring-32gb-of-ram-to-ai-and-pro-apps-bigger-battlemage-finally-arrives-but-its-not-for-gaming">Tom's Hardware</a>, <a href="https://www.pugetsystems.com/labs/articles/intel-arc-pro-b70-review/">Puget Systems</a>, <a href="https://www.intel.com/content/dam/www/central-libraries/us/en/documents/2026-03/datasheet-b70-gpu.pdf">Intel datasheet</a></li>
+    <li>RTX 50-series bandwidth (5090 1792, 5080 960, 5060 Ti 448 GB/s) — <a href="https://gamersnexus.net/gpus/nvidia-rtx-5090-575-watts-rtx-5080-5070-ti-5070-specs">GamersNexus</a>, <a href="https://www.techspot.com/specs/gpu/303357-nvidia-geforce-rtx-5090.html">TechSpot</a></li>
+    <li>DGX Spark GB10: 128 GB unified LPDDR5X, 273 GB/s — <a href="https://www.tomshardware.com/pc-components/gpus/nvidia-dgx-spark-review/2">Tom's Hardware review</a>, <a href="https://www.lmsys.org/blog/2025-10-13-nvidia-dgx-spark/">LMSYS</a></li>
+    <li>Arc B390-class iGPU (Core Ultra): dual-channel LPDDR5X-9600 mandate for B390, 153.6 GB/s, ≤96 GB, shipping in Core Ultra X9 388H laptops — <a href="https://www.tomshardware.com/pc-components/gpus/intels-xe3-graphics-architecture-breaks-cover-panther-lakes-12-xe-core-igpu-promises-50-percent-better-performance-than-lunar-lake">Tom's Hardware</a>, <a href="https://www.techpowerup.com/345897/intel-mandates-7-467-mt-s-memory-for-panther-lake-arc-b390-b370-integrated-graphics">TechPowerUp</a>, <a href="https://hothardware.com/reviews/intel-core-ultra-x9-388h-panther-lake-review?page=2">HotHardware 388H review</a>, <a href="https://www.intel.com/content/www/us/en/products/sku/245526/intel-core-ultra-x9-processor-388h-18m-cache-up-to-5-10-ghz/specifications.html">Intel ARK</a>, <a href="https://www.ultrabookreview.com/74624-intel-panther-lake-laptops/">shipping laptop list</a></li>
+    <li>NVFP4: Blackwell-only, vLLM, ~1.5× BF16, 92–97% accuracy, FP8 KV — <a href="https://unsloth.ai/docs/models/qwen3.8">Unsloth docs</a>, <a href="https://forums.developer.nvidia.com/t/qwen3-8-27b-on-dgx-spark-using-vllm-nvfp4-vs-fp8-performance/380258">NVIDIA forums</a>, <a href="https://kaitchup.substack.com/p/qwen36-27b-quantization-fp8-vs-int4">Kaitchup</a></li>
+    <li>Quant quality (UD V3, AD-IQ3_S, lmstudio Q6_K KLD comparison) — <a href="https://huggingface.co/Qwen/Qwen3.8-27B/discussions/65">HF discussion #65</a>, <a href="https://kingy.ai/blog/qwen3-8-27b-best-quantization-gguf/">kingy.ai</a></li>
+    <li>xhigh overthinking (22,276 thinking tokens / 21 min for a simple SVG) — <a href="https://simonw.substack.com/p/qwen-38-27b-is-excellent-but-it-defaults">Simon Willison</a></li>
+    <li>Intel stack status: IPEX-LLM archived Jan 2026 — <a href="https://github.com/intel/ipex-llm">GitHub repo</a>; Vulkan beats SYCL on Battlemage — <a href="https://github.com/ggml-org/llama.cpp/issues/22413">llama.cpp #22413</a>, <a href="https://jonathanmann.tech/blog/intel-arc-b70-llama-cpp-benchmarks/">B70 benchmark notes</a>, <a href="https://www.phoronix.com/review/intel-arc-pro-b70-linux/3">Phoronix</a></li>
+    <li>OpenVINO builds — <a href="https://huggingface.co/OpenVINO/Qwen3.8-27B-int4-ov">int4-ov</a>, <a href="https://huggingface.co/OpenVINO/Qwen3.8-27B-int8-ov">int8-ov</a> · Model card — <a href="https://huggingface.co/Qwen/Qwen3.8-27B">Qwen/Qwen3.8-27B</a></li>
+    <li>MTP speculative decoding: ships in standard GGUFs, +33–145% on consumer GPUs — <a href="https://github.com/sudoingX/qwen38-mtp">qwen38-mtp recipe &amp; benchmarks</a>, <a href="https://github.com/ggml-org/llama.cpp/discussions/27164">llama.cpp discussion</a>; RTX 5090 tier benchmarks — <a href="https://huggingface.co/esatapedico/Qwen3.8-27B-NVFP4-MTP-GGUF">NVFP4-MTP-GGUF card</a> (the card's Blackwell-only claim is contradicted by the Ampere measurements below, but its MTP data generalizes)</li>
+    <li>DFlash2: block drafting + path selection — <a href="https://inco.ai/blog/dflash2/">inco.ai announcement</a>, <a href="https://github.com/ggml-org/llama.cpp/pull/27342">llama.cpp PR 27342</a>, <a href="https://huggingface.co/incoai/Qwen3.8-27B-DFlash2-GGUF">drafter GGUFs</a></li>
+    <li>3090 measurements in §06 (baseline / MTP / DFlash2 / NVFP4-on-Ampere, plus the 18-config n-max &amp; p-min sweep): this guide's own runs, 2026-08-21 — llama.cpp build 5ecbe1ac1 (PR 27342), CUDA 12.8, temp-0 600-token code generation, llama-bench pp512/tg128</li>
+    <li>FP4-vs-INT4 scored comparison: this guide's own runs, 2026-08-21 — GSM8K + MATH-500 (20 each), greedy, 4096-token budget, llama-server (build 10502) with MTP, graded via <a href="https://github.com/chinkeong/benchmark">chinkeong/benchmark</a> (final-number / boxed-answer exact match, truncations counted wrong)</li>
+    <li>MTP workload-dependence probes (§06) and the half-speed failure modes (§10): this guide's own runs, 2026-08-22 — RTX 3090, temp-0 700-token probes, warm cache</li>
+    <li>Context-ceiling probe (§02), reasoning-effort comparison (§04), acceptance demonstration (§06), and wikitext-2 perplexity runs (§05): this guide's own runs, 2026-08-22 — RTX 3090, reference recipe (Q4_K_M, q8_0 KV, MTP on, mmproj loaded; the perplexity table scores each listed file); ceiling probe via stepped <code>-c</code> with short temp-0 decode probes, effort comparison at temp 1.0 with the coding-task runs ending at EOS (its GSM8K column ran under the capped protocol in the bullet below), acceptance demo at n-max 10 / p-min 0.5 temp 0, perplexity via <code>llama-perplexity</code> over the full wikitext-2-raw test set at <code>-c 8192</code></li>
+    <li>n=200 GSM8K runs (§04's per-effort column; §05's per-quant comparison — Q4_K_M 94.0 / UD-Q4_K_XL 94.5 / UD-IQ4_XS 93.0 / NVFP4-HIGH 92.5 / NVFP4-VERY-LOW 90.5, all ±~3–4 pts) and the 10-config speculation re-sweep (§06): this guide's own runs, 2026-08-22 — GSM8K at greedy decoding under a 4,096-token cap with the same exact-match grader as the n=20 pass, truncations counted wrong (5 xhigh answers overran the cap mid-thinking — §04's footnote); re-sweep via temp-0 code-generation probes, warm cache, RTX 3090</li>
+  </ul>
+</section>
+
+<footer>Field guide · updated 2026-08-22 (context-ceiling probe, reasoning-effort measurements, acceptance demonstration, wikitext-2 perplexity table; earlier same-day: VRAM budget table, MTP workload nuance, troubleshooting section) · measured base: RTX 3090 · companion doc: Qwen 3.8 27B on RTX 3090 (session field notes)</footer>
+</div>
+</div>

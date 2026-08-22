@@ -1,0 +1,25 @@
+# Self-contained big things live in the repo tree but never in git.
+# The repo must stay clonable in seconds on a borrowed machine.
+
+# downloaded model weights / projectors
+models/
+
+# self-downloaded runtimes (llama.cpp builds, OpenVINO, drivers)
+bin/
+
+# campaign working data: raw logs, corpora, screenshots, generated pages
+results/*/data/
+results/*/work/
+*.log
+
+# benchmark datasets and per-run outputs (harness re-downloads them)
+scripts/bench/datasets/
+scripts/bench/results/
+
+# python / node debris
+__pycache__/
+node_modules/
+
+# agent-local state
+.aider*
+.qwen/
