@@ -128,3 +128,16 @@ before any budget table; never carry another model's number forward.
     ranking. Agentic tasks are where per-step error compounding lives — this
     bucket is the empirical test of the scope-perspective section's
     predictions, and the place low effort is most expected to fail.
+23. **Frozen inputs, offline-first.** Apples-to-apples across machines requires
+    identical inputs: the benchmark test cases live IN the repo
+    (`scripts/bench/datasets-frozen/`, `corpora/`) and every scored run uses a
+    committed **frozen suite manifest** (SHA-256-pinned prompts + settings via
+    the harness's `--suite`); two reports are comparable iff their suite hashes
+    match. Loading order everywhere: frozen file → local cache → network — the
+    network is a fallback, never a dependency, so a dead website or an
+    air-gapped machine cannot break a run. What cannot live in git (runtimes,
+    weights, container images) is covered two ways: the sneakernet path (copy
+    `bin/` and `models/` from another machine — both are location-independent)
+    and `scripts/make-offline-bundle.ps1`, which pre-downloads every external
+    dependency into one folder for USB transfer. A campaign that had to touch
+    the network for anything beyond the model weights records what and why.

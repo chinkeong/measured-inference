@@ -17,6 +17,18 @@ results/**/work/
 scripts/bench/datasets/
 scripts/bench/results/
 
+# agentic benchmark (Pier / DeepSWE): vendored upstream clones, sandbox
+# scratch, and per-run trajectories are all re-creatable. The setup notes
+# and runner scripts in agentic/ ARE tracked.
+agentic/deep-swe/
+agentic/work/
+agentic/pier/
+agentic/trajectories/
+agentic/results/
+agentic/.venv/
+agentic/**/.venv/
+agentic/**/__pycache__/
+
 # python / node debris
 __pycache__/
 node_modules/
@@ -26,3 +38,6 @@ node_modules/
 .aider*
 .qwen/
 .claude/
+
+# offline transfer bundle (built by scripts/make-offline-bundle.ps1)
+offline-bundle/
