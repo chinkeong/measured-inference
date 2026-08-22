@@ -22,8 +22,9 @@ cd measured-inference
 ```
 
 Everything heavy is self-contained and gitignored: `scripts/setup.*` downloads a
-llama.cpp build into `bin/`, models download into `models/` — nothing installs
-globally, because the machine may be borrowed.
+llama.cpp build into `bin/`, models download into `models/`, and the accuracy
+harness's two Python dependencies go into a repo-local `.venv/` — nothing
+installs globally, because the machine may be borrowed.
 
 ## The pledge
 Every number in a report is **measured on that machine, cited to a live source,

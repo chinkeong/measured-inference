@@ -11,8 +11,24 @@ app involved.
 ## Requirements
 
 - A llama.cpp build with `llama-server` — found via `--server-bin`, the
-  `LLAMA_SERVER` env var, or PATH.
+  `LLAMA_SERVER` env var, or PATH (`scripts/setup.*` installs one into
+  `bin/llama.cpp/`, which the runner finds automatically).
 - Python 3.10+ with `requests` and `Pillow`.
+
+**Install those two into a repo-local venv, never globally** — the machine may
+be borrowed. From the repo root (`.venv/` is gitignored):
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install requests Pillow    # Windows
+# POSIX: python3 -m venv .venv && ./.venv/bin/python -m pip install requests Pillow
+```
+
+Then run every `python bench.py …` / `python render_table.py …` below with that
+interpreter (`..\..\.venv\Scripts\python.exe bench.py …` from this directory),
+or activate the venv first. If a venv cannot be created, `pip install --user`
+is the fallback — say so in the report's methodology trail, because it is the
+one thing the campaign left on the host.
 
 ## What it measures
 

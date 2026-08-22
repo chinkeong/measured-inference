@@ -8,8 +8,9 @@ models/
 bin/
 
 # campaign working data: raw logs, corpora, screenshots, generated pages
-results/*/data/
-results/*/work/
+# (** so the pattern still matches if a slug ever contains a slash)
+results/**/data/
+results/**/work/
 *.log
 
 # benchmark datasets and per-run outputs (harness re-downloads them)
@@ -19,7 +20,9 @@ scripts/bench/results/
 # python / node debris
 __pycache__/
 node_modules/
+.venv/
 
 # agent-local state
 .aider*
 .qwen/
+.claude/

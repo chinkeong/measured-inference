@@ -22,7 +22,8 @@ measured failure.
 6. **Sample-size law**: accuracy at n≤25 is a smoke test (detects ~20-pt
    collapses only). Detecting a gap of G points needs roughly (paired, 95%/80%):
    20 pts → ~25; 10 → ~100–150; 5 → ~300–500; 1–3 → thousands. Perplexity/KLD
-   over ~300k token positions is how healthy quants are actually ranked.
+   over ~330k token positions (the wikitext-2-raw test split the reference
+   campaign scored) is how healthy quants are actually ranked.
 7. **The budget rule**: thinking models must run with a cap the longest thought
    cannot hit; report truncations; on truncation, raise the cap and rerun the
    affected arm only (greedy determinism makes other arms byte-identical).
@@ -47,15 +48,26 @@ measured failure.
     never wall-clock that includes prefill.
 
 ## Memory
+*Every memory rule below is built on one arithmetic:*
+**KV bytes/token = 2 × full-attention layers × n_kv_heads × head_dim ×
+bytes-per-element (cache dtype)** — the 2 is K and V; count only
+full-attention layers (linear/gated-delta/sliding-window layers cost less or
+nothing); bytes-per-element is 2 for fp16, 1 for q8_0. Compute it per model
+before any budget table; never carry another model's number forward.
+
 13. **Two ceilings, not one**: fully-resident (VRAM fills; fast even when the
     window fills) vs shallow-safe (overcommitted but fast until deep pages are
     touched), plus the collapse point. Report both, per file, per
     projector-on/off.
-14. **Slack is the anti-spill budget**: ~1 GiB slack does not survive a desktop;
-    each 32k of q8 window ≈ 1 GiB. Ship desktop-safe defaults; fence
-    bare-desktop configs loudly. The vision projector ≈ 0.9 GiB ≈ 27k tokens.
+14. **Slack is the anti-spill budget**: ~1 GiB slack does not survive a desktop.
+    Ship desktop-safe defaults; fence bare-desktop configs loudly. The window
+    and projector costs are model-specific — derive them from this model's
+    measured KV bytes/token and mmproj file size (reference finding — recompute
+    per model: each 32k of q8 window ≈ 1 GiB; the vision projector ≈ 0.9 GiB ≈
+    27k tokens).
 15. **The -ngl off-by-one**: output projection counts as layer n+1; always
-    `-ngl 99`; the miss costs ~35% decode and pins CPU threads.
+    `-ngl 99`; the miss pins CPU threads and costs real decode speed
+    (reference finding — recompute per model: ~35%).
 
 ## Effort & windows
 16. **The window sets an effort ceiling**: measure each effort level's thinking

@@ -1,5 +1,15 @@
 # Parameterized probe: pass extra llama-server args after the script name.
 # Example: probe-config.ps1 --spec-type none
+#
+# WARNING - the default below is '-ngl 64' and that is the off-by-one trap
+# METHODOLOGY rule 15 exists to prevent (llama.cpp counts the output projection
+# as layer n+1; leaving it on the CPU cost this campaign ~35% of decode speed).
+# It is safe here ONLY because every caller appends '-ngl 99' in its extra args,
+# which wins as the later occurrence. Callers in this directory all do:
+# spec-sweep.ps1, spec-sweep2.ps1, confirm-benchmarks.ps1.
+# If you invoke this script standalone or adapt it, PASS '-ngl 99' YOURSELF.
+# (Left as-is rather than fixed: this is the file as it ran, and the numbers in
+# the example report were produced by it.)
 $ErrorActionPreference = 'Stop'
 $extra = $args
 $log = 'E:\AI\aider\qwen\server-probe-err.txt'

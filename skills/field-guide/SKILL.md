@@ -30,18 +30,37 @@ questions.
    `/api/models/<repo>/tree/main`) and propose which quants to measure (a Q4-class
    primary + challengers: same-size alternates, one smaller IQ-class, vendor
    variants) and whether an mmproj/vision projector exists. Confirm the set.
+   **Prove access before the interview closes**: a gated or private repo fails
+   at Phase-1 download time, when the no-questions rule has already locked you
+   out of asking. Test with a range request on one chosen file
+   (`curl -sI -r 0-1023 <resolve-url>` → expect 206/200, not 401/403; the
+   listing API itself succeeds on gated repos, so listing is not proof). If it
+   401s, ask for an HF token in this same round and confirm it works
+   (`Authorization: Bearer <token>`) before proceeding.
 2. **Machine**: auto-detect (GPU via nvidia-smi / lspci, VRAM, RAM speed+channels,
    CPU threads, OS, disk free) and present the detection for confirmation. RAM
    channels matter: single-stick machines halve every offload/iGPU estimate.
 3. **Use cases**: text coding / vision-screenshot loops / coding agents / long
    context? This decides which optional phases run.
-4. **Time budget**: overnight (~8 h) vs. multi-day. Sets n for accuracy runs
-   (n=200 baseline) and how many quants get the full treatment.
+4. **Time budget**: overnight (~8 h) vs. multi-day. Present the concrete plan
+   it buys and confirm that, not the hours:
+   - **overnight** = primary + 1 challenger get the full treatment (n=200
+     accuracy each, full PPL on those two); remaining proposed quants get
+     load-and-speed probes only; Phase 7 runs at 2 runs × 3 levels on one file.
+   - **multi-day** = every proposed quant gets the full treatment (n=200 per
+     arm, full PPL on every file), plus the Phase 4 ceiling sweep per file and
+     Phase 7 accuracy per effort level.
+     Anything below overnight is a smoke test: say so in the report, and never
+     publish a quant ranking from it.
 5. **Philosophy**: quality-first (ship max effort where the window allows — the
    default) or latency-first. Also: does the model expose an effort/thinking knob
    (check the chat template) — if yes, Phase 7 runs.
 6. **Publish target**: results/<slug>/index.html always; plus a git remote / site
-   directory if the user names one.
+   directory if the user names one. **`<slug>` = the model repo name,
+   lowercased, as a single path component** — no slashes, `-GGUF` suffix
+   dropped: `huggingface.co/unsloth/SomeNew-32B-GGUF` → `somenew-32b`. Confirm
+   it in this round and record it in `campaign.md`; after a crash, reuse that
+   exact slug rather than deriving a second one.
 7. **Coding agents** (feeds Phases 8–9): auto-detect installed agents (probe
    PATH for `opencode`, `aider`, `qwen`, `pi`, `dsh`, `claude`, …) and present
    the detected roster. Confirm which to test, and whether missing ones may be
@@ -71,6 +90,18 @@ after any restart).
   its return value (use `Write-Host` for logs); parse-check scripts before
   detaching (`[scriptblock]::Create((Get-Content -Raw file))`); double quotes
   inside git commit messages get mangled; native stderr wraps as error records.
+- **POSIX equivalents** (Linux/macOS — every reference script is PowerShell;
+  `scripts/probe-config.sh` is the ported seed to adapt from):
+  - Detach: `setsid nohup ./run.sh > run.log 2>&1 &` (or `nohup … &`); poll the
+    log for a DONE marker, same as the Windows path.
+  - Parse-check before detaching: `bash -n script.sh` (the `[scriptblock]`
+    equivalent); `set -euo pipefail` at the top of every runner.
+  - VRAM/spill diagnostics: NVIDIA `nvidia-smi --query-gpu=memory.used
+    --format=csv -l 1` (no Get-Counter needed — per-process is visible via
+    `nvidia-smi --query-compute-apps=pid,used_memory --format=csv`); Intel
+    `intel_gpu_top`; Apple `powermetrics --samplers gpu_power` plus Metal
+    working-set (there is no spill — watch swap with `vm_stat`).
+  - Process control: `pkill -f llama-server` for the `Stop-Process` calls.
 - **The GPU is single-file**: one measurement job at a time; serialize via
   completion markers.
 - **Verify your own probes**: a metric that divides tokens by wall time including
@@ -92,11 +123,28 @@ sizes against the HF listing). Download nothing you won't measure.
 
 ### Phase 2 — foundation & sanity
 - Read the model's `config.json`: layer count, full-attention pattern, KV
-  heads/head_dim → compute **KV bytes/token** (the budget-table backbone).
+  heads/head_dim → compute **KV bytes/token** (the budget-table backbone):
+
+  **KV bytes/token = 2 × full-attention layers × n_kv_heads × head_dim ×
+  bytes-per-element** — 2 = K and V; bytes-per-element = 2 for fp16 cache, 1
+  for `q8_0`. For a plain transformer, full-attention layers = all layers. For
+  hybrids (the reference model is Gated-DeltaNet + full attention every 4th
+  layer) count only the full-attention ones; linear/gated-delta layers carry a
+  fixed-size state, and sliding-window layers cap at their window — note both
+  as separate constants rather than folding them into the per-token figure.
+  Sanity-check the result against the server's reported KV size at a known
+  `-c`; if they disagree, trust the server and say why in `campaign.md`.
+
+  If the GGUF repo has no `config.json` (common for quant-only repos), read the
+  base model repo it was converted from, or take the values from llama-server's
+  own GGUF metadata dump at load time (`n_layer`, `n_head_kv`, `n_embd_head_k` /
+  `n_embd_head_v` in the startup log).
 - **The -ngl trap**: llama.cpp counts the output layer as layer n+1. Always use
   `-ngl 99`; verify with a baseline probe that decode ≈ bandwidth ÷ file-size ×
-  0.7 (reference: `probe-config.ps1`). If it lands far low with high CPU and
-  ~60% GPU util, an output layer is on the CPU.
+  0.7 (reference: `probe-config.ps1` — note its header warning: it defaults to
+  `-ngl 64` and relies on callers passing `-ngl 99`; POSIX seed:
+  `scripts/probe-config.sh`, which defaults correctly). If it lands far low with
+  high CPU and ~60% GPU util, an output layer is on the CPU.
 - Spill prevention: document "Prefer No Sysmem Fallback" (NVIDIA) or platform
   equivalent; record the machine's idle VRAM (desktop overhead).
 - Discover the effort/thinking knob (`--chat-template-kwargs`) and the sampling
@@ -118,7 +166,10 @@ sizes against the HF listing). Download nothing you won't measure.
   `-c` upward with short probes + VRAM readings. Report BOTH ceilings: fully
   resident (dedicated VRAM fills) and shallow-safe (probes stay fast on
   overcommitted windows), plus the collapse point. Label per file and per
-  mmproj-on/off; state the desktop-slack rule (each 32k of window ≈ 1 GiB).
+  mmproj-on/off; state the desktop-slack rule **using this model's computed KV
+  cost from Phase 2**, not a remembered constant (reference model: each 32k of
+  q8 window ≈ 1 GiB, projector ≈ 0.9 GiB ≈ 27k tokens — reference finding,
+  recompute per model).
 - Ship desktop-safe defaults; fence bare-desktop configs loudly (a browser UI
   once pushed the Windows compositor to 3.6 GiB and halved a "fitting" config).
 
@@ -128,9 +179,10 @@ increasing prompt depths; report decode and prefill vs depth with acceptance
 shown steady (or not). Use server timings, never wall-clock-including-prefill.
 
 ### Phase 6 — quality: rank with perplexity, smoke-test with accuracy
-- **Perplexity ranks quants** (~330k token positions; reference:
-  `ppl-compare.ps1`, resumable, one model per invocation if the platform kills
-  long tasks). Verify the KV-quant claim while here (fp16 vs q8_0 cache).
+- **Perplexity ranks quants** (METHODOLOGY rule 6 — the wikitext-2-raw test
+  split, ~330k token positions; reference: `ppl-compare.ps1`, resumable, one
+  model per invocation if the platform kills long tasks). Verify the KV-quant
+  claim while here (fp16 vs q8_0 cache).
 - **Accuracy smoke-tests** (scripts/bench/bench.py, `--greedy --score`): n=200 on
   a checkable dataset for the chosen quants. Statistics law: n≤25 detects only
   ~20-pt collapses; 1–3-pt quant gaps need thousands — never present small-n
@@ -141,11 +193,31 @@ shown steady (or not). Use server timings, never wall-clock-including-prefill.
   (selection bias).
 
 ### Phase 7 — effort (if the model has a thinking/effort knob)
-- Cost: 2 runs per level on a hard generative task (a complex single-file page
-  spec works; see the example's aquarium prompt) — tokens, wall, t/s.
-- Quality: **blind-judge the outputs with subagents** (spec-compliance checklist
-  + real-bug audit + within-set ranking allowed to declare ties). n=2 honesty:
-  report variance, don't crown noise.
+References: `sweep-efforts.ps1` (pass 1: one run per level, saves thinking +
+answer), `sweep-pass2.ps1` (pass 2 at fresh sampling → the second independent
+sample per level), `sweep-tune.ps1` (finds the largest fast context first, then
+sweeps there), `extract-html.ps1` (pulls the HTML answer out of each sweep
+output), `effort-gsm8k.ps1` + `xhigh-16k.ps1` (accuracy per level, and the
+rerun that removes a truncation artifact).
+
+- Cost: 2 runs per level on a hard generative task — tokens, wall, t/s. The
+  reference task ships as `templates/effort-task-example.md` (the aquarium
+  page: one self-contained HTML file, a mandated CONFIG object, and a long
+  checkable requirement list). Reuse it, or write one with the same shape: a
+  single deliverable file, and requirements a judge can tick off one by one.
+- Quality: **blind-judge the outputs with subagents.**
+  1. **Independent judges**: one fresh subagent per output, no shared context,
+     each seeing only the task spec and one candidate — never the set at once,
+     never the campaign log.
+  2. **Score /100 against a spec checklist**, weighted: 60 compliance (each
+     numbered requirement met/partial/missed), 25 correctness (real bugs found
+     by reading and by running the page), 15 craft (structure, readability,
+     the CONFIG object actually being tunable).
+  3. **Blind and randomize**: strip effort labels and any thinking traces,
+     rename files to opaque ids (`candidate-a` … ), shuffle the order per
+     judge, and only re-attach labels after every score is in. Ties are a
+     legitimate verdict — at n=2 per level, say "tie" rather than crowning
+     noise, and report the within-level spread beside the mean.
 - Accuracy per level at n=200 with clean caps.
 - Derive the **window-sets-the-effort-ceiling table**: measured thinking appetite
   per level vs. each recipe's context window.
@@ -154,9 +226,20 @@ shown steady (or not). Use server timings, never wall-clock-including-prefill.
 - Resolution→token map (`--image-min-tokens` / `--image-max-tokens`); measure a
   real 4K screenshot's prompt_tokens.
 - **The critique loop proof**: render something with the model's own code (Phase
-  7 outputs work), Chrome-headless screenshot it, send it back, judge whether the
+  7 outputs work), headless-screenshot it, send it back, judge whether the
   critique names real content. Multi-image test with one intentionally broken
   page as the discriminator.
+  **Detect the browser before relying on it** — do not assume Chrome. Try, in
+  order: `chrome`/`google-chrome`/`chromium` on PATH; then stock Edge, which
+  needs no install on Windows
+  (`msedge --headless=new --disable-gpu --screenshot=shot.png --window-size=1920,1080 file:///…`,
+  same flags as Chrome — `C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`);
+  then Playwright/Puppeteer if either is already present. If none exists,
+  **do not install a browser on a borrowed machine and do not fake the loop**:
+  run the still-valid parts (resolution→token map, agent-attach matrix with a
+  pre-made image), and record in `campaign.md` and the report that the critique
+  loop was not measured on this machine and why. An unmeasured loop is reported
+  as unmeasured — never as a pass.
 - **Agent-attach matrix**: for every coding agent confirmed in interview item 7,
   test headless image attachment with a question only answerable by seeing the
   image; verdicts PASS / FAIL-honest / FAIL-hallucinated (flag hallucination
@@ -192,8 +275,27 @@ report will print. Fix and document, don't paper over (the reference campaign
 found a missing `--alias` and a missing routing block this way).
 
 ### Phase 10 — power
-Sample watts under load (nvidia-smi / platform equivalent) → kWh per answer per
-effort level. Cheap, delightful, expectation-setting.
+Deliverable: **kWh per answer per recipe/config** — one figure per shipped
+recipe, which is where it lands in the report (REPORT-SPEC §8, the recipes /
+measured-menu decision table). This runs whether or not the model has an effort
+knob; when Phase 7 ran, additionally resolve it per effort level for
+REPORT-SPEC §4. Cheap, delightful, expectation-setting.
+
+- **Sample**: `nvidia-smi --query-gpu=power.draw --format=csv,noheader -l 1`
+  logged to a file for the duration of **one rerun per config** (and per effort
+  level if Phase 7 ran) — a real generation, not an idle server.
+- **Integrate**: `kWh = mean-load-watts × wall-seconds / 3.6e6`. Use the mean
+  over the generation window only (drop load/warm-up samples), and pair it with
+  the answer's token count so kWh/answer and kWh/1k-tokens both fall out.
+- **State the baseline**: report **gross draw, idle not subtracted**, and say so
+  in the report — a reader's marginal cost is between gross and gross-minus-idle,
+  and an unlabeled number is unfalsifiable (rule 3).
+- **Non-NVIDIA**: Intel Arc/iGPU — HWiNFO64 (sensor logging to CSV) on Windows,
+  or RAPL on Linux (`/sys/class/powercap/intel-rapl/*/energy_uj`, differenced
+  over the window: J = ΔµJ/1e6, kWh = J/3.6e6); Apple Silicon —
+  `sudo powermetrics --samplers gpu_power,cpu_power -i 1000`. If no counter is
+  readable without installing something on a borrowed machine, **mark the phase
+  unmeasured** rather than estimating from TDP.
 
 ### Phase 11 — the report
 Build `results/<slug>/index.html` per `templates/REPORT-SPEC.md`, using
