@@ -120,6 +120,9 @@ references**.
 `scripts/setup.ps1|sh` fetches a llama.cpp build into `bin/` for this platform.
 Download the chosen quants + mmproj into `models/` (curl, resumable, verify byte
 sizes against the HF listing). Download nothing you won't measure.
+**Start the Phase 10 power logger now** (Phase 10, Step 0 — the detached 500 ms
+`nvidia-smi` CSV): it is nearly free and it turns every phase below into power
+data instead of a rerun. Take the cold idle baseline before the first load.
 
 ### Phase 2 — foundation & sanity
 - Read the model's `config.json`: layer count, full-attention pattern, KV
@@ -296,28 +299,102 @@ with a one-shot request (matrix above, text-only) using exactly the configs the
 report will print. Fix and document, don't paper over (the reference campaign
 found a missing `--alias` and a missing routing block this way).
 
-### Phase 10 — power
-Deliverable: **kWh per answer per recipe/config** — one figure per shipped
-recipe, which is where it lands in the report (REPORT-SPEC §8, the recipes /
-measured-menu decision table). This runs whether or not the model has an effort
-knob; when Phase 7 ran, additionally resolve it per effort level for
-REPORT-SPEC §4. Cheap, delightful, expectation-setting.
+### Phase 10 — power (the logger starts at Phase 1, not here)
+Executes **METHODOLOGY rule 24** — read it before this phase; it defines every
+metric and every label below. Deliverables: the per-recipe energy block for
+REPORT-SPEC §8, the per-effort split for §4, and the **per-axis J/token
+matrix**, which is what turns energy from trivia into an argument.
 
-- **Sample**: `nvidia-smi --query-gpu=power.draw --format=csv,noheader -l 1`
-  logged to a file for the duration of **one rerun per config** (and per effort
-  level if Phase 7 ran) — a real generation, not an idle server.
-- **Integrate**: `kWh = mean-load-watts × wall-seconds / 3.6e6`. Use the mean
-  over the generation window only (drop load/warm-up samples), and pair it with
-  the answer's token count so kWh/answer and kWh/1k-tokens both fall out.
-- **State the baseline**: report **gross draw, idle not subtracted**, and say so
-  in the report — a reader's marginal cost is between gross and gross-minus-idle,
-  and an unlabeled number is unfalsifiable (rule 3).
+**Step 0 — start the logger at campaign start and leave it running.** A 500 ms
+CSV log costs one process and a few MB a day, and it retroactively converts
+every later phase into power data: the spec sweep, the ceiling sweep, the depth
+series, the rule-21 suite and the effort runs all become energy arms *for free*
+if the log was already running when they ran. Rerunning them later for watts is
+hours you do not need to spend. Start it detached at the top of Phase 1:
+
+```powershell
+# Windows — detached; survives harness session restarts
+$q = "timestamp,power.draw,power.draw.instant,clocks.current.sm," +
+     "clocks.current.memory,utilization.gpu,utilization.memory," +
+     "memory.used,memory.reserved,temperature.gpu,pstate"
+Start-Process nvidia-smi -WindowStyle Hidden `
+  -ArgumentList "--query-gpu=$q","--format=csv","-lms","500" `
+  -RedirectStandardOutput results/<slug>/data/power/campaign-power.csv
+```
+```bash
+# POSIX
+nohup nvidia-smi --query-gpu=timestamp,power.draw,power.draw.instant,\
+clocks.current.sm,clocks.current.memory,utilization.gpu,utilization.memory,\
+memory.used,memory.reserved,temperature.gpu,pstate \
+  --format=csv -lms 500 > results/<slug>/data/power/campaign-power.csv &
+```
+Clocks, pstate and util are in the query on purpose: they are how you prove a
+low-watt sample was a **ramping** board (rule 24's clock-ramp caveat) rather
+than an efficient one. One file per phase is fine — record each filename and
+its start time in `campaign.md`, and restart the logger after any reboot.
+
+**Step 1 — baselines first, dated, both flavors.** Before the model loads:
+board idle, no server, n≥15 samples (reference 2026-08-22: **33.2 W**). Once
+the server is up and idle: loaded-idle (reference: **30.7–31.1 W** — a resident
+model costs almost nothing until asked). Both go in `campaign.md` with date and
+tier label; every idle-subtracted figure downstream depends on them. Take the
+baseline **cold** — a board still cooling from the previous phase reads high
+(one reference log's first 10 samples averaged 58.0 W against the 33.2 W cold
+reading) — or state which it was.
+
+**Step 2 — join to server timings; never average a whole run.** For every
+measured request, record the request's start timestamp alongside the server's
+`timings` block. Then:
+- prefill window = `[t0, t0 + prompt_ms/1000]` → mean W over those samples ×
+  window seconds = **J_prefill**; ÷ `prompt_n` = **J per prompt-token**.
+- decode window = `[t0 + prompt_ms/1000, + predicted_ms/1000]` → **J_decode**;
+  ÷ `predicted_n` = **J/token**; `predicted_n ÷ (J_decode/3.6e6)` =
+  **tokens/kWh**; `J_decode × decode-seconds` = **EDP (J·s)**.
+- **Wh/answer = (J_prefill + J_decode)/3600**, reported twice: gross, and
+  idle-subtracted (subtract loaded-idle W over the same windows).
+Drop the first post-idle request from every arm and say so. Reference
+integrator to adapt: `results/qwen38-27b-blind/work/power-integrate.py` —
+**use the Python one**; the PowerShell version tripped over 5.1's
+`TryParseExact` overload resolution.
+
+**Step 3 — the per-axis J/token matrix** (rule 24's axis clause; this is the
+phase's real product). One row per arm, columns: mean W · J/token decode ·
+J/prompt-token · tokens/kWh · EDP · verdict. Axes, each measured or carrying an
+explicit "not measured" row: **quant** (each candidate file), **drafter**
+(`--spec-type` off vs each tuned config — expect t/s up at flat W, so J/token
+down; quantify), **KV dtype** (f16 vs q8_0), **`--parallel`** (1 vs 2,
+aggregate — batching amortizes a fixed draw), **depth** (reuse the Phase 5
+series: t/s falls; does W fall with it?), **effort level** (Phase 7), and
+**token regime** (thinking vs answer — same server, different J/token). If the
+log from Step 0 was running during those phases, most of this matrix is a query
+over CSV you already have.
+
+**Step 4 — the power cap.** `nvidia-smi -pl <W>` (3090 stock 350 W; Linux may
+need `-pm 1` first) is the one knob that directly buys efficiency — sweep it
+(e.g. 350 / 300 / 250 / 200 W) into the same matrix. It needs an elevated
+shell: if the campaign cannot elevate, do **not** estimate — print the command
+and the stock cap in the report and mark it "unmeasured on this machine
+(requires administrator)".
+
+**Step 5 — per-recipe energy** for REPORT-SPEC §8: one identical real
+generation per shipped recipe (a real answer, not an idle server), integrated
+as in Step 2. Label the tier on the table: on an NVML-only machine, "in-band
+GPU board power (NVML); PSU losses and PUE excluded" — never call it system
+power. Short windows understate sustained load (reference: 10 s recipe probes
+read 277–287 W where multi-minute runs sustained 344 W, because the early
+samples catch the ramp) — quote the per-1k-token figures for planning and say
+which is which.
+
 - **Non-NVIDIA**: Intel Arc/iGPU — HWiNFO64 (sensor logging to CSV) on Windows,
   or RAPL on Linux (`/sys/class/powercap/intel-rapl/*/energy_uj`, differenced
   over the window: J = ΔµJ/1e6, kWh = J/3.6e6); Apple Silicon —
-  `sudo powermetrics --samplers gpu_power,cpu_power -i 1000`. If no counter is
-  readable without installing something on a borrowed machine, **mark the phase
-  unmeasured** rather than estimating from TDP.
+  `sudo powermetrics --samplers gpu_power,cpu_power -i 1000`. All three are
+  in-band tiers with different scopes (RAPL is package, not board) — label
+  which. If no counter is readable without installing something on a borrowed
+  machine, **mark the phase unmeasured** rather than estimating from TDP.
+- **Wall tier**: if a PDU or plug meter exists, log it too and report both
+  tiers — that is the only way to state PSU + system overhead as measured.
+  Absent one, the report says the overhead is excluded and unmeasured.
 
 ### Phase 11 — the report
 Build `results/<slug>/index.html` per `templates/REPORT-SPEC.md`, using

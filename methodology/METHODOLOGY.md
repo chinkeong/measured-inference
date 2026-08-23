@@ -136,6 +136,72 @@ measured: +0.693% PPL vs f16 — superlinear, more than double q8_0's
     t/s and token counts with garbage, and greedy decoding makes the loop
     deterministic, not rare.
 
+## Power
+24. **Every watt carries its instrumentation tier; every joule carries its
+    phase.** Energy is measured or it is absent — TDP is not a measurement,
+    and a campaign that cannot read a counter says "unmeasured" rather than
+    estimating.
+    - **Tier label on every power figure.** Three tiers: **in-band** (the
+      accelerator's own telemetry — NVML/`nvidia-smi` board power, RAPL,
+      `powermetrics`), **node** (machine-level: IPMI/BMC, PSU telemetry), and
+      **wall** (PDU or plug meter). Name the tier in the table header or the
+      number is unfalsifiable (rule 3). A machine with NVML only — the
+      reference 3090 — publishes "in-band GPU board power (NVML); PSU losses
+      and datacenter PUE excluded", never calls that figure system power, and
+      never inflates it by a guessed PSU efficiency. Total-system and
+      cost-per-kWh claims need a wall meter or they do not ship.
+    - **Phase-aware attribution is mandatory.** Prefill is compute-bound and
+      spikes; decode is bandwidth-bound and flat (reference 2026-08-22:
+      ~344 W sustained decode). One mean-watts figure over a whole run hides
+      both. Log power **timestamped at ≤1 s interval** (the reference campaign
+      logs at 500 ms) and **join the samples to the server's own per-request
+      `timings`**: `prompt_n`/`prompt_ms` bound the prefill window,
+      `predicted_n`/`predicted_ms` the decode window. Report the two
+      separately. A watt-number over a wall-clock window that folds prefill
+      into decode is rule 12's error with a meter attached.
+    - **The standardized industry metrics — every report ships this table
+      under that name**, each cell with its tier and phase: **J/token**
+      (decode), **J per prompt-token** (prefill), **tokens/kWh**, **Wh per
+      answer reported twice — gross and idle-subtracted**, **EDP =
+      energy × latency (J·s)**, spelled out so no reader takes it for a
+      power-delay product, and **E_comm (interconnect/communication
+      energy)** — measured or split out on multi-accelerator serving, and on
+      a single-GPU machine stated as "N/A — single GPU, no interconnect"
+      rather than omitted. Idle is **measured on THIS machine and dated**, in
+      both flavors (no-server and loaded-idle), with the first ≥60 s of every
+      idle window discarded: the reference campaign's own idle numbers were
+      contaminated — a board still cooling from the prior job read
+      **33.2–34.6 W "idle"** against **30.7–31.1 W loaded-idle**, a
+      physically backwards ordering; the settled tails read 30.3–31.0 W in
+      both states. A remembered idle constant is not a baseline, and neither
+      is a cooling board.
+    - **The clock-ramp caveat is a power caveat too.** Rule 12's ramp applies
+      to both ends of J/token: a prefill fired at a cold board reaches only
+      ~900–990 MHz against 1,455 MHz settled, so it draws unrepresentative
+      watts over an unrepresentative duration. Discard the first post-idle
+      request as rule 12 discards the first post-prefill probe, and state
+      which samples were dropped and why (clocks and pstate belong in the log
+      for exactly this: they prove a low sample was a ramping board and not an
+      efficient one).
+    - **Every axis the report recommends on carries a J/token comparison or
+      an explicit "not measured" line.** The set: quant (each candidate file),
+      drafter (`--spec-type` off vs each tuned config — t/s rises at roughly
+      constant W, so J/token should fall; quantify it), KV dtype (f16 vs
+      q8_0), `--parallel` (1 vs 2, aggregate J/token — batching amortizes a
+      fixed draw), depth (rule 12's series: t/s falls, so measure whether W
+      falls with it and what J/token does), effort level, and token regime
+      (thinking vs answer). A recommendation whose energy went unmeasured says
+      so in its own row; silence is the omission rule 12 already bans, in
+      energy.
+    - **Power-limit capping is the direct efficiency knob — named either
+      way.** `nvidia-smi -pl <W>` (reference 3090 default 350 W; Linux may
+      need `-pm 1` first) trades t/s for J/token and belongs in the same
+      J/token + EDP table as every other axis. It normally requires an
+      elevated shell: a campaign that can elevate **measures** it; one that
+      cannot prints the command, the stock cap, and "unmeasured on this
+      machine (requires administrator)". An unmeasured knob is documented,
+      never estimated.
+
 ## The standard benchmark protocol
 21. **Every reasoning-effort sweep runs the standard suite** under fixed
     conditions: `SEED=42`, `N=25` per benchmark per effort level, greedy

@@ -22,9 +22,11 @@ complete real instance; match its craft, not its model.
 3. **Universal rules** — the flags true on every card, each with its measured
    justification (all-layers, load-mode, KV quant verified, parallel verdict).
 4. **Effort** (if applicable) — cost table (tokens/wall per level, 2 runs),
-   blind-judged quality, accuracy per level with cap annotations, energy per
-   answer *resolved per effort level* (the §8 energy column, split by level),
-   the window-sets-the-ceiling table, the guidance table.
+   blind-judged quality, accuracy per level with cap annotations, **energy per
+   effort level** — the §8 energy column split by level, carrying the same
+   METHODOLOGY rule-24 metrics (tier label, Wh/answer gross AND
+   idle-subtracted, J/token, tokens/kWh), the window-sets-the-ceiling table,
+   the guidance table.
 5. **Which file** — quant table with the settled pick and evidence; scored
    smoke test framed as a smoke test; perplexity ranking table; the dark-horse
    callout if a challenger emerged.
@@ -51,11 +53,18 @@ complete real instance; match its craft, not its model.
    recipe per class except where two measured winners split by use (then a
    choosing rule up front); vision flags printed, not hinted; a measured menu
    decision table + the launcher source in a collapsed details block. **Energy
-   lives here unconditionally**: the decision table carries a measured
-   watts-under-load and kWh-per-answer column per recipe, labeled gross or
-   idle-subtracted (Phase 10). If a model has an effort knob, §4 repeats it
-   split by level; if power could not be measured, the column says so rather
-   than being dropped.
+   lives here unconditionally, to METHODOLOGY rule 24** (which defines the
+   metrics — do not restate it): a table explicitly titled **"Standardized
+   industry metrics"** carrying, per recipe, the instrumentation tier label,
+   mean load W, **J/token (decode) with J/prompt-token (prefill) beside it**,
+   tokens/kWh, **EDP (J·s)**, **Wh/answer both gross and idle-subtracted**
+   against this machine's dated idle, and an **E_comm** row ("N/A — single
+   GPU, no interconnect" on single-accelerator machines, measured/split on
+   multi-GPU); plus the **per-axis J/token table** (quant, drafter, KV dtype,
+   parallel, depth, effort, regime, power cap), every row measured or marked
+   "not measured". If a model has an effort knob, §4 repeats the set split by
+   level; if power could not be measured, the columns say so rather than
+   being dropped.
 9. **Benchmark sample size** — the statistics teaching section (CI worked
    example, gap-vs-n table, right-tool split, the token-budget lesson).
 10. **Troubleshooting** — each failure mode with its measured signature, a
