@@ -1047,3 +1047,26 @@ GSM8K unit-suffix compare (xhigh 92->100), newline squeeze; all arms
 re-graded offline from kept transcripts. Full log: work/rule21-live.md.
 Power: 500ms logger covered 10:48-13:19 (xhigh-cap32k tail + all rerun
 arms + trailing idle), 17,716 samples -> data/power/rule21-power.csv.
+
+## 2026-08-23 - Energy joins (E0 + E8a, zero GPU; full tables work/energy-joins.md)
+E0 (rule-21 arms, drafter OFF, mixed regime, in-band board power): pooled
+J/decode-token 7.884 +/- 0.307 (n=115 requests wholly inside the logged
+window); tokens/kWh 429k-465k; prefill 0.41-0.79 J/prompt-token. Coverage:
+medium/low cap-32k arms full, xhigh-cap32k tail-only (63.4%; full arm
+estimated 746-764 Wh); the 16k arms and GSM8K/ALPACA/MeetingBank/MT-Bench
+have no power data. Provisional settled idle 31.2 W (pending matrix A1/A2).
+E8a (effort arms, MTP n4/p0.75 ON, temp 1.0, n=1/level): reproduces
+published Wh within 0.05%. J/decode-token 4.26 / 5.18 / 6.60(trunc) /
+6.13(120k); tokens/kWh 845k / 695k / 545k / 587k; EDP 1.57e7 / 4.84e7 /
+5.52e8 / 4.16e8 J.s; prefill 0.12-0.18 J/prompt-token = 26-43x cheaper
+per token than decode; J/token == mean_W / decode_t/s with no residual.
+HEADLINE: the drafter roughly halves J/token (4.3-6.1 on vs ~7.9 off).
+ANOMALIES: (1) sustained board power drifted 305.5 -> 341.1 W at constant
+throughput/temp/mem-clock, tracking SM clock 1453 -> 1606 MHz - decode is
+bandwidth-bound so the extra clock bought nothing; "344 W sustained" must
+become a range (306-341 W drafter-off); +/-6% J/token between arms hours
+apart is instrumental. (2) partial-window joins must count only requests
+wholly inside the log (caught: impossible 5.32 J/tok). (3) server-down !=
+GPU-idle: plot rendering spiked the "idle" tail to 121-124 W five times.
+(4) suite-file settings block records sampling the --greedy runner
+overrides - result JSONs are authoritative for conditions.
