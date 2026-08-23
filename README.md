@@ -40,10 +40,13 @@ the report promised. The rules that enforce this are in
 ## Map
 | Path | What |
 |---|---|
-| `AGENTS.md` | agent entrypoint |
-| `skills/field-guide/` | the campaign skill |
-| `methodology/` | the measurement law |
+| `AGENTS.md` | agent entrypoint — the tier-0 router (invariants + routing table) |
+| `skills/field-guide/SKILL.md` | the campaign map and the one-round interview |
+| `skills/field-guide/stages/` | `stage-0.md`…`stage-7.md` — one procedure per stage, loaded one at a time |
+| `methodology/` | the measurement law (`METHODOLOGY.md`) and how to apply it (`REASONING.md`) |
+| `reference/` | `platform-notes.md`, `failure-library.md` — grepped by symptom, never read whole |
 | `templates/` | report spec + complete worked example |
 | `scripts/reference-3090/` | proven probe/sweep scripts |
 | `scripts/bench/` | accuracy harness |
+| `scripts/power/` | energy attribution toolkit |
 | `results/<model>/` | campaign logs and finished reports |

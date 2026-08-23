@@ -37,22 +37,24 @@ is left as written.
 Phase numbers here are the reference campaign's original numbering. The campaign
 skill now runs Stages 0–7; its "Old numbering → stages" table
 (`skills/field-guide/SKILL.md`) maps every phase below onto the stage that owns
-that work today.
+that work today. The **Stage** column below is that mapping applied — open
+`skills/field-guide/stages/stage-N.md` for the procedure a script serves.
 
-| Phase | Scripts | What they do |
-|---|---|---|
-| **2–3** (foundation, sanity, the -ngl trap) | `probe-config.ps1`, `probe-diag.ps1`, `probe-diag2.ps1` | `probe-config.ps1` is the canonical parameterized probe every sweep calls (fresh server + temp-0 probe + t/s); the two diag scripts surface the server's own layer-offload / speculation / timing log lines (`probe-diag2` adds `-ngld 99` for the draft context). **`probe-config.ps1` defaults to `-ngl 64`** — see the warning in its header. |
-| **3** (speed, speculation, acceptance) | `spec-sweep.ps1`, `spec-sweep2.ps1`, `accept-demo.ps1`, `confirm-benchmarks.ps1`, `dflash-real-code.ps1` | MTP n-max × p-min sweep then refinement around the winner; the novel-vs-verbatim acceptance demonstration; the re-confirmation pass that re-ran every cited number with `-ngl 99`; the external-drafter (DFlash2) apples-to-apples comparison. |
-| **4** (memory, context ceilings) | `ctx-limit-sweep.ps1`, `iq4-ctx-sweep.ps1`, `verify-recommend.ps1` | Step `-c` upward to the spill tipping point and binary-refine (Q4_K_M, then IQ4_XS); then verify the promoted defaults under real desktop VRAM load with a short probe, a deep prompt, and VRAM sampling. |
-| **5** (depth) | `deep-decode-probe.ps1`, `nuance-suite.ps1` (part 1) | The server-timings prefill/decode split at ~27k depth; the nuance suite's depth/prefill series. `nuance-suite.ps1` also carries part 2 (q8 KV quality PPL → Phase 6), part 3 (`--parallel 2`), and part 4 (multi-image vision → Phase 8). |
-| **6** (quality: perplexity) | `ppl-compare.ps1` | Perplexity over wikitext-2-raw across the local quants; downloads and caches the corpus; resumable, one model per invocation. |
-| **6–7** (quality: accuracy) | `quant-accuracy.ps1`, `iq4-accuracy.ps1`, `effort-gsm8k.ps1`, `xhigh-16k.ps1` | n=200 greedy scored GSM8K: paired across quants, the final gate for the promoted quant, per effort level, and the 16k-cap rerun that removed the truncation artifact from the xhigh arm. All drive `scripts/bench/bench.py`. |
-| **7** (effort) | `sweep-efforts.ps1`, `sweep-pass2.ps1`, `sweep-tune.ps1`, `extract-html.ps1` | Pass 1 and pass 2 of the effort sweep (two independent samples per level for blind judging); `sweep-tune.ps1` first finds the largest context that still decodes fast, then sweeps there; `extract-html.ps1` pulls the HTML answer out of each output file. The prompt these read (`prompt.md`) ships as `templates/effort-task-example.md`. |
-| **serving** | `serve-menu-example.bat` | The measured-menu launcher: numbered configs, each with the measurement that justifies it. The pattern REPORT-SPEC §3 (the recipes chapter) asks every report to produce. |
+| Phase | Stage today | Scripts | What they do |
+|---|---|---|---|
+| **2–3** (foundation, sanity, the -ngl trap) | **Stage 1** | `probe-config.ps1`, `probe-diag.ps1`, `probe-diag2.ps1` | `probe-config.ps1` is the canonical parameterized probe every sweep calls (fresh server + temp-0 probe + t/s); the two diag scripts surface the server's own layer-offload / speculation / timing log lines (`probe-diag2` adds `-ngld 99` for the draft context). **`probe-config.ps1` defaults to `-ngl 64`** — see the warning in its header. |
+| **3** (speed, speculation, acceptance) | **Stage 3** | `spec-sweep.ps1`, `spec-sweep2.ps1`, `accept-demo.ps1`, `confirm-benchmarks.ps1`, `dflash-real-code.ps1` | MTP n-max × p-min sweep then refinement around the winner; the novel-vs-verbatim acceptance demonstration; the re-confirmation pass that re-ran every cited number with `-ngl 99`; the external-drafter (DFlash2) apples-to-apples comparison. |
+| **4** (memory, context ceilings) | **Stage 2** | `ctx-limit-sweep.ps1`, `iq4-ctx-sweep.ps1`, `verify-recommend.ps1` | Step `-c` upward to the spill tipping point and binary-refine (Q4_K_M, then IQ4_XS); then verify the promoted defaults under real desktop VRAM load with a short probe, a deep prompt, and VRAM sampling. |
+| **5** (depth) | **Stage 3** | `deep-decode-probe.ps1`, `nuance-suite.ps1` (part 1) | The server-timings prefill/decode split at ~27k depth; the nuance suite's depth/prefill series. `nuance-suite.ps1` also carries part 2 (q8 KV quality PPL → Phase 6), part 3 (`--parallel 2`), and part 4 (multi-image vision → Phase 8). |
+| **6** (quality: perplexity) | **Stage 1** screen, **Stage 6a** ranking | `ppl-compare.ps1` | Perplexity over wikitext-2-raw across the local quants; downloads and caches the corpus; resumable, one model per invocation. |
+| **6–7** (quality: accuracy) | **Stage 6a/6b** | `quant-accuracy.ps1`, `iq4-accuracy.ps1`, `effort-gsm8k.ps1`, `xhigh-16k.ps1` | n=200 greedy scored GSM8K: paired across quants, the final gate for the promoted quant, per effort level, and the 16k-cap rerun that removed the truncation artifact from the xhigh arm. All drive `scripts/bench/bench.py`. |
+| **7** (effort) | **Stage 4** appetite, **Stage 6b** arms | `sweep-efforts.ps1`, `sweep-pass2.ps1`, `sweep-tune.ps1`, `extract-html.ps1` | Pass 1 and pass 2 of the effort sweep (two independent samples per level for blind judging); `sweep-tune.ps1` first finds the largest context that still decodes fast, then sweeps there; `extract-html.ps1` pulls the HTML answer out of each output file. The prompt these read (`prompt.md`) ships as `templates/effort-task-example.md`. |
+| **serving** | **Stage 5 / 7** | `serve-menu-example.bat` | The measured-menu launcher: numbered configs, each with the measurement that justifies it. The pattern REPORT-SPEC §3 (the recipes chapter) asks every report to produce. |
 
 ## Adapting on POSIX
 
 Every script here is PowerShell — the reference machine was Windows.
 `scripts/probe-config.sh` is a bash port of `probe-config.ps1`, provided as the
-adaptation seed for Linux/macOS campaigns; the SKILL's standing rules list the
-POSIX equivalents for detaching, parse-checking, and VRAM diagnostics.
+adaptation seed for Linux/macOS campaigns. The POSIX equivalents for
+detaching, parse-checking and VRAM diagnostics live in
+`reference/platform-notes.md` — grep it by symptom.

@@ -6,6 +6,22 @@ Adapted from a reflective-practice framework contributed by the project
 owner; every abstract principle below is anchored to an incident this
 project actually paid for.
 
+## The checklist (distilled)
+
+The pre-output self-check in one line each, so a gate can inline it without the
+essay. Run before publishing any report section, review verdict, or conclusion.
+
+0. **Projection** — is the "error" you found their mistake, or your framework's assumption showing?
+1. **Performance** — is this passage helping the reader, or displaying your skill? Cut the display.
+2. **Over-attribution** — flagged most of the input as wrong? Suspect your instrument first.
+3. **Expertise blindness** — your most confident judgment gets one extra probe; the tidier the story, the more it needs it.
+4. **Citation honesty** — did the source come before or after the conclusion? After is decoration until verified.
+5. **Reversal** — if the thing you are criticizing were correct, would your analysis notice?
+6. **Landing** — does your first sentence make the reader feel informed or judged?
+
+Model the reader's needs silently — by thinking, never by asking. Reader
+orientation is exercised in what you write; it never pauses a running campaign.
+
 ## The direction of the work
 
 Work backwards from the person you are helping. The analysis is a tool, not
