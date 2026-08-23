@@ -403,3 +403,23 @@ EARNED BY: the quant-ladder cross-model arm (2026-08-23); the agent
 also retracted its own SWA hypothesis when the evidence did not
 support it (published blowups occur where the sliding window never
 binds).
+
+## GPU idle for hours while pipeline work is pending - the silent stall
+
+SYMPTOM: nvidia-smi shows ~1% util / near-empty VRAM while the campaign
+still has queued arms; the runner heartbeat file mtime is hours old; no
+agent or task notification fired; the last ledger line is a completed
+item, not an error.
+CAUSE: layered liveness failure - the detached runner died (often at a
+state transition, e.g. the moment new input files arrived) AND the
+monitor watching it died or was never re-armed, so the completion-based
+notification chain had nothing to fire on. Silence from every layer
+reads as "busy" unless something is checking.
+FIX: rule 20 liveness protocol - runner heartbeat (<=2 min), an
+independent watchdog with a stale threshold above the longest legitimate
+quiet stretch, and a session-level fallback wake (~30 min) that checks
+the watchers themselves. Recovery is cheap when runners are resumable:
+diagnose the death from the runner log tail, restart, it skips completed
+work. Treat idle-GPU-with-pending-work as an alarm, never a rest.
+EARNED BY: the quant-ladder stall (2026-08-23 21:14 - 00:45) - two GPU
+hours lost, caught only by the user asking for status.

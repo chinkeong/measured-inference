@@ -212,7 +212,22 @@ beyond its retrieval-tested depth is labeled
 ## Operations
 20. Detach long jobs; make scripts resumable; parse-check before detaching;
     checkpoint-commit each phase; one GPU job at a time; keep a campaign log
-    that survives session restarts. **Greedy repetition check**: any long
+    that survives session restarts.
+    **The liveness protocol — silence is not progress.** A detached pipeline
+    must be watched in three tiers, because every tier can die and only the
+    one above it notices: (a) every long runner WRITES a heartbeat
+    (timestamp + progress counter, ≤2 min interval); (b) an independent
+    WATCHDOG reads heartbeat freshness and GPU state, with its stale
+    threshold set ABOVE the longest legitimate quiet stretch of the work it
+    watches, and acts on staleness — restart the resumable runner, or
+    escalate; (c) a SESSION-LEVEL fallback wake (~30 min) checks that the
+    watchers themselves are alive. A heartbeat nobody reads is a diary.
+    GPU idle while work is pending is itself an alarm condition, never a
+    reassurance. Dated case study (2026-08-23 night): a ladder runner died
+    the minute its inputs arrived, its agent's monitor died with it, and
+    the GPU sat idle for two hours — invisible to the completion-based
+    notification chain, caught only by a human asking for status. Both
+    lower tiers existed; the third did not. **Greedy repetition check**: any long
     greedy generation whose tokens or timings feed a claim must be spot-read
     for degenerate repetition loops first — a looping transcript inflates
     t/s and token counts with garbage, and greedy decoding makes the loop
