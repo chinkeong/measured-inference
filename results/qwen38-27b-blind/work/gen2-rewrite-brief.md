@@ -281,3 +281,34 @@ result a critique loop.
 "only one quantization was measured on the speed axis" to closed; the quality
 axis stays open, and its price is one evening for a second perplexity run
 under identical conditions.
+
+---
+
+## USER-DIRECTED (2026-08-23): rewrite the front-matter title block
+
+The current hero must be replaced. Each clause is now false or non-compliant:
+
+> "One model, one card, one night / ... nothing is carried over from another
+> model or another run. The three things here that are not measurements -
+> the arithmetic in 02, the other cards in 07, the vendor claims in 12 -
+> say so where they stand."
+
+- "one night" - the campaign now spans 2026-08-22 through 08-23+ (follow-up
+  probes, rule-21 sweep, power matrix, energy joins, quant ladder).
+- "One model" - the quant ladder adds a cross-model decisive arm
+  (gemma-4-12B-QAT) and NVFP4/Q4_K_M rig controls.
+- "nothing is carried over from another model or another run" - audit
+  defect 2.12: the Sources trail itself says DGX Spark / Arc figures are
+  carried from the template fact-check set; rule-21 suite + scorer are
+  shared artifacts. The claim contradicts the report own trail.
+- "The three things here that are not measurements" - the count is no
+  longer three, and enumerating non-measurement classes in the hero is
+  fragile; the per-number provenance chips + the evidence-tier declaration
+  (new REPORT-SPEC non-negotiables) replace this device.
+
+Replacement requirements: the new front matter satisfies the evidence-tier
+non-negotiable (hours measured, arms run, smoke vs solid, self-correction
+count, BEFORE the first number), states the true date span and scope, and
+passes review gate 4 front-matter-vs-trail check. Keep the second line
+("Every setting, with the number that justifies it") - it is true, it is
+the pledge, and it survives the rewrite.
