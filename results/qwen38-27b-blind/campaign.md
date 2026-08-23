@@ -1039,8 +1039,13 @@ MEASURABLE QUALITY ON THIS SUITE (walls 1.00 / 1.47 / 2.70 h; mean output
 needed 18,273 tokens and was CORRECT - the budget rule's poster child.
 Determinism: 139/139 non-truncated prompts byte-identical across cap
 raise - empirically licenses rule 7's rerun-only-affected-arms.
-Per-benchmark (32k): GSM8K 100/100/100, MATH-500 92/100/92, HumanEval
-100/96/84, MBPP 92/84/88, MeetingBank ROUGE-L 22.6/22.4/22.3.
+Per-benchmark at the 16k cap: GSM8K 100/100/100, MATH-500 92/100/92,
+HumanEval 100/96/84, MBPP 92/84/88, MeetingBank ROUGE-L 22.6/22.4/22.3.
+At the 32k rerun the affected cells become: low MATH-500 96, xhigh
+MATH-500 100 / HumanEval 92 / MBPP 92 - reconciling exactly to the
+82.1/80.5/81.3 composites. (CORRECTION 2026-08-23 evening: this entry
+originally labeled the 16k rows as 32k; caught by the Gen-2 draft
+numeric audit.)
 Scorer bugs found by the live run and fixed symmetrically (selftest
 78/78): MATH-500 presentation-vs-value normalization (low arm 60->92),
 GSM8K unit-suffix compare (xhigh 92->100), newline squeeze; all arms
@@ -1092,8 +1097,10 @@ HEADLINES:
 - Depth in energy: at 91k fill, 90.7% of the arm joules are PREFILL;
   J/prompt-token 0.164->0.306->0.421 (quadratic attention as joules);
   same 700-token answer costs 0.83 Wh at 1.5k vs 11.71 Wh at 91k (14x).
-- Quant energy: Q4_K_M +7.8%, NVFP4-HIGH +13.1% J/token vs IQ4_XS
-  (real, outside floor). KV f16 vs q8_0: 0.7% = clean null.
+- Quant energy: Q4_K_M +8.0%, NVFP4-HIGH +13.4% J/token vs IQ4_XS
+  (real, outside floor; CORRECTION - earlier line printed +7.8/+13.1,
+  which reproduce from no pair of report.txt cells). KV f16 vs q8_0:
+  0.7% = clean null.
 - Regime: think-on 6.07 vs think-off 3.74 J/token (1.63x decode-rate
   penalty - independently cross-validates the 1.69x draft-length
   mechanism).
