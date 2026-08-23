@@ -381,3 +381,25 @@ EARNED BY: quant-ladder rig gate (2026-08-23) - three ledger lines
 (RESULT, RIGGATE, DETECT) swallowed; recovered from the runner log. The
 class of failure this repo cares most about: a measurement that happened
 but the report would never know about.
+
+## Gemma-4-instruct models read absurd perplexity on llama-perplexity
+
+SYMPTOM: llama-perplexity on any gemma-4 -it model returns PPL in the
+hundreds-to-thousands (measured here: 12B-QAT 1,159.7; published:
+E4B 52.7, E2B 144.5, 26B-A4B 6,617.8) while the same pipeline reads
+sane values for other families and for gemma-3-it (9.04) and gemma-4
+BASE models (7.1-8.3).
+CAUSE: undiagnosed upstream (issue tracker has no maintainer answer;
+stale-closed). Ecosystem-wide, instruct-tuning-correlated for this
+family; NOT a local rig fault - a rig control on gemma-4-E2B matched
+the published value within 8% across different hardware/precision.
+FIX: withdraw the PPL/bits-per-byte row for this family with the
+documented external cause; carry cross-model comparisons on scored
+benchmarks (rule 21) instead. Always run a same-family published-value
+control before blaming your rig (instrument-first, rule 20) - and note
+llama-perplexity DEFAULTS to -c 512, so any published PPL without an
+explicit -c is a 512-token run, not comparable to yours.
+EARNED BY: the quant-ladder cross-model arm (2026-08-23); the agent
+also retracted its own SWA hypothesis when the evidence did not
+support it (published blowups occur where the sliding window never
+binds).

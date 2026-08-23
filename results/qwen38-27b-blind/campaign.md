@@ -1109,3 +1109,18 @@ reference (machine state suspect - recheck before publishing ladder);
 unexplained); (4) E1 Wh/answer is per-700-tokens (ceiling hit), not per
 complete answer; (5) SPILL heuristic fires on shr>0 - wants a
 threshold (132-426 MiB WDDM shared mapping is benign; no arm spilled).
+
+## 2026-08-23 evening - gemma PPL withdrawn (documented upstream defect); ladder logistics
+Gemma-4-12B-QAT PPL 1,159.7 WITHDRAWN as a model result: gemma-4-instruct
+family measures broken on llama-perplexity ecosystem-wide (published E4B
+52.7 / E2B 144.5 / 26B-A4B 6,617; gemma-3-it and gemma-4 base sane). Rig
+exonerated by two controls: Qwen anchor chunk1 exact, and our E2B control
+133.7 vs published 144.5 (8%, different hardware/precision). bpb row for
+gemma carries "not measurable on this stack - documented upstream defect";
+the scored-benchmark decisive arm is the cross-model judge (in flight:
+GSM8K 20/25 all correct so far, ~83 t/s). Agent self-corrections logged:
+SWA hypothesis unsupported; llama-perplexity default -c is 512.
+Ladder logistics: the other session downloader died 14:18 (five
+.incomplete frozen); this session resumed all six rungs 18:33 (etag
+resume preserved ~28 GiB); ladder polling continues, file-stability gate
+unchanged.
