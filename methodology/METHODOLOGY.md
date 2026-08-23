@@ -202,6 +202,57 @@ measured: +0.693% PPL vs f16 — superlinear, more than double q8_0's
       machine (requires administrator)". An unmeasured knob is documented,
       never estimated.
 
+## Sequencing
+25. **Cheap probes buy the map; the map locks the recipes; only locked recipes
+    earn expensive hours.** Measurement has an order, and the order is not
+    negotiable: information that would change what you run is bought FIRST, at
+    the lowest price it can be bought at, and it is written down as a decision
+    before any hour-scale run begins.
+    - **The recipe lock is a gate, not a summary.** Before any expensive arm —
+      effort arms, the rule-21 benchmark suite, the energy matrix, full
+      perplexity beyond the cheap screen, the vision loop, the agent matrix —
+      the campaign writes explicit recipe cards (file · window · flags · effort
+      ceiling · expected speed band) into the campaign log. Nothing expensive
+      starts above the line where those cards are written. A configuration that
+      is not on a card does not get measured; a card a later measurement
+      falsifies is corrected on the card first and re-run second.
+    - **Appetite before effort arms.** Every effort level's thinking-token
+      appetite is measured by cheap probes before ANY expensive arm runs at that
+      level, and a level is offered on a recipe only where
+      `window ≥ appetite upper tail + prompt + answer margin`. A level no recipe
+      can hold is published as **not offered**, with its measured appetite
+      beside it — it is never run to truncation and reported as a score.
+    - **Caps cleared before benchmark arms.** Rule 7 is applied BEFORE spending
+      rather than after truncating: every benchmark and effort cap is derived
+      from the measured appetite distribution, and the serving `-c` is sized
+      above longest-prompt + cap, so truncation is impossible by construction.
+      Truncation discovered afterwards is a sequencing failure, not a data
+      point.
+    - **Prune before you treat.** A candidate file earns expensive treatment
+      only after surviving a cheap screen (throughput probe + file size + a
+      short perplexity screen over identical chunks). A file that is both slower
+      AND worse is dropped there, with both screen numbers recorded and
+      published as screened-out — never carried through hours of treatment to
+      earn a one-word verdict.
+    - **Dated case study (2026-08-22, reference campaign — rule 5).** The xhigh
+      effort arm ran 21 minutes and ~120 Wh inside a 65,536-token window. The
+      campaign then measured xhigh's thinking appetite: **61–76k tokens**. The
+      arm had truncated, the deliverable was zero, and it had to be re-run at a
+      raised cap. The cheap probes that would have predicted this cost minutes;
+      they would have moved the run into a window that fits, or listed xhigh as
+      not offered on that recipe — honestly, and for free. The same campaign
+      carried UD-Q4_K_XL through the full treatment to conclude "pointless":
+      hours spent to publish one word. Both failures have one shape — an
+      expensive run started before the cheap information that governed it
+      existed.
+    - **The who-consumes-this-number test.** Every planned run names, before it
+      starts, the recipe decision or the reader-facing number that will consume
+      its result. A run nothing consumes is cut: completeness is not a consumer,
+      and neither is curiosity. The same test bounds replication — establish the
+      noise floor by replicating ONE configuration across arms, never every arm.
+      Over-measurement is not the safe error: it spends the hours the runs a
+      reader actually needs were going to use.
+
 ## The standard benchmark protocol
 21. **Every reasoning-effort sweep runs the standard suite** under fixed
     conditions: `SEED=42`, `N=25` per benchmark per effort level, greedy
