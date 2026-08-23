@@ -24,6 +24,15 @@ measured failure.
    20 pts → ~25; 10 → ~100–150; 5 → ~300–500; 1–3 → thousands. Perplexity/KLD
    over 294,912 token positions (36 x 8,192-token chunks of the frozen wikitext-2-raw test corpus - the reference
    campaign scored) is how healthy quants are actually ranked.
+   **Cross-MODEL comparisons never use raw perplexity** — PPL is
+   tokenizer-dependent (different vocabularies cut the same text into
+   different token counts, so equal-text PPL across model families compares
+   nothing). For a size-matched cross-model row ("does a 12B QAT at 4 bits
+   beat a 27B crushed to 2?"), convert to **bits-per-byte**
+   (total NLL ÷ corpus bytes: ln(PPL) × n_tokens ÷ (ln 2 × corpus_bytes),
+   with each model's OWN token count) or judge by scored benchmarks
+   (rule 21) — both tokenizer-independent. Within one model's quant ladder,
+   raw PPL stays the ranking tool.
 7. **The budget rule**: thinking models must run with a cap the longest thought
    cannot hit - clearing the appetite DISTRIBUTION's upper tail, not its median (a generous-looking cap near the median is a truncation machine); report truncations; on truncation, raise the cap and rerun the
    affected arm only (greedy determinism makes other arms byte-identical).

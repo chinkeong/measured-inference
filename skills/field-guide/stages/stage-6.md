@@ -17,6 +17,14 @@ at a Stage-5 cap, inside a Stage-5 window. Checkpoint-commit each sub-stage.
   one. Verify the KV-quant claim while here (fp16 vs q8_0 cache). **q4_0
   K-cache is not a free next step** — never recommend it without its own
   measured PPL check; absent the check, say "unverified here".
+- **Size ladder (optional, when the use case asks "how small can this model
+  go")**: `scripts/quant-ladder/` is the reusable runner — manifest-driven,
+  streamed (test a rung only when its file is on disk AND byte-stable),
+  anchor-gated (re-run one known quant first; abort on >0.5% drift), GPU-gated
+  (never starts while another job holds the card). Protocol: PPL ranks the
+  rungs, detector probes disqualify (repetition, format collapse, template
+  sanity); include a right-hand rung that clearly fails; cross-model rungs use
+  bits-per-byte + rule-21 scored benchmarks, never raw PPL (rule 6).
 - **Spot-read long greedy transcripts for repetition loops** before trusting
   their tokens or timings — greedy makes a loop deterministic, and a looping
   transcript inflates t/s and token counts with garbage.

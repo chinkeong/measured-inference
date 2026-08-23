@@ -138,6 +138,14 @@ it justifies.**
    two numbers that screened them, so no reader mistakes a pruned file for an
    untested one; the challenger callout if a cheaper file won (Voice 1 says "the
    smaller file scored better"; the "dark horse" framing is Voice 2 at best).
+   **When the campaign measures a size ladder** (how small can this model's
+   file get and still work): the PPL-vs-GiB curve with its knee named; a
+   right-hand anchor where the answer is clearly "no"; detector verdicts
+   beside the curve (perplexity ranks, detectors disqualify — repetition,
+   format collapse, template sanity); and, where an equal-budget competitor
+   model exists at a rung's size, the fixed-size comparison row — judged by
+   bits-per-byte and scored benchmarks, never raw cross-model PPL
+   (METHODOLOGY rule 6).
 9. **Effort and energy** (if the model has an effort knob) — cost table
    (tokens/wall per level, 2 runs); blind-judged quality, with ties reported as
    ties and the within-level spread beside each mean; accuracy per level with
