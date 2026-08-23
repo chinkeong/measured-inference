@@ -1,0 +1,64 @@
+==============================================================================
+ENERGY ATTRIBUTION - in-band GPU board power (NVML via nvidia-smi)
+PSU losses, rest-of-node and PUE are EXCLUDED and unmeasured.
+==============================================================================
+power log : E:\AI\measured-inference\results\qwen38-27b-blind\data\power\power-matrix-20260823-132140.csv  (5098 usable rows)
+log span  : 2026-08-23 13:21:49.752000 .. 2026-08-23 14:05:20.828000
+power col : index 1 (power.draw)
+idle W    : 31.00  (flag --idle-w; loaded-idle reference on this box 30.7-31.1 W)
+max gap   : 2.0 s (segments longer than this are credited at most 2.0 s)
+
+--- ARM SUMMARY ------------------------------------------------------------------------------------------
+label                     n    wall_s   cov%   mean_W   peak_W     J_gross  Wh_gross       J_net    Wh_net
+B1-spec-none              3     53.67 100.0%    325.2    347.8     17453.1    4.8481     15789.3    4.3859
+B2-spec-mtp-n4-p075       3     27.53 100.0%    308.4    347.1      8490.0    2.3583      7636.5    2.1213
+B3-spec-mtp-n10-p05       3     24.41 100.0%    302.4    348.9      7380.3    2.0501      6623.6    1.8399
+C1-quant-iq4xs            3     54.14 100.0%    327.0    348.4     17704.8    4.9180     16026.5    4.4518
+C2-quant-q4km             3     58.24 100.0%    326.9    348.9     19038.2    5.2884     17232.7    4.7869
+C3-quant-nvfp4-high       3     61.61 100.0%    332.0    348.6     20452.8    5.6813     18542.8    5.1508
+D1-kv-f16                 3     54.86 100.0%    328.2    348.2     18006.6    5.0018     16306.0    4.5294
+D2-kv-q8                  3     54.97 100.0%    331.0    348.0     18196.8    5.0547     16492.8    4.5813
+E1-think-on               3     42.52 100.0%    321.2    346.6     13660.0    3.7944     12341.8    3.4283
+E2-think-off              3     27.60 100.0%    307.2    346.2      8479.5    2.3554      7623.8    2.1177
+F1-depth-1k5              3     29.25 100.0%    305.9    346.1      8946.6    2.4852      8040.0    2.2333
+F2-depth-28k              3    106.40 100.0%    332.7    348.7     35395.8    9.8322     32097.2    8.9159
+F3-depth-91k              3    373.19 100.0%    338.9    349.9    126472.9   35.1314    114904.0   31.9178
+
+--- PHASE ATTRIBUTION ----------------------------------------------------------------------------------------------
+label                  prefill_s  J_prefill  J/prompt_tok  decode_s   J_decode   J/dec_tok   tokens/kWh      EDP_J.s
+B1-spec-none                4.29      434.4        0.0993     49.38    17018.7       8.104       444218        93380
+B2-spec-mtp-n4-p075         4.53      630.1        0.1441     23.00     7859.9       3.743       961846        20091
+B3-spec-mtp-n10-p05         4.64      638.6        0.1460     19.77     6741.7       3.210      1121380        14811
+C1-quant-iq4xs              4.22      489.8        0.1120     49.92    17214.9       8.198       439154        95495
+C2-quant-q4km               4.48      447.0        0.1022     53.77    18591.2       8.853       406644       111069
+C3-quant-nvfp4-high         5.28      937.7        0.2144     56.33    19515.1       9.293       387392       122145
+D1-kv-f16                   4.47      611.1        0.1397     50.39    17395.5       8.284       434594        97401
+D2-kv-q8                    4.25      680.5        0.1556     50.71    17516.3       8.341       431599        98703
+E1-think-on                 5.05      922.2        0.2052     37.47    12737.8       6.066       593511        53040
+E2-think-off                4.57      617.3        0.1411     23.03     7862.2       3.744       961565        20123
+F1-depth-1k5                4.66      715.9        0.1637     24.58     8230.7       3.919       918509        22595
+F2-depth-28k               78.75    26044.7        0.3058     27.65     9351.0       4.453       808466        28798
+F3-depth-91k              337.02   114716.3        0.4209     36.18    11756.6       5.598       643042        47370
+
+--- IDLE-SUBTRACTED (idle 31.0 W removed over covered seconds) ------------
+label                     dec_tok/s    J/dec_tok  J/dec_tok_net  tok/kWh_net    Wh/answer
+B1-spec-none                  42.53        8.104          7.375       488125        1.616
+B2-spec-mtp-n4-p075           91.29        3.743          3.403      1057816        0.786
+B3-spec-mtp-n10-p05          106.22        3.210          2.918      1233512        0.683
+C1-quant-iq4xs                42.07        8.198          7.461       482531        1.639
+C2-quant-q4km                 39.06        8.853          8.059       446691        1.763
+C3-quant-nvfp4-high           37.28        9.293          8.461       425462        1.894
+D1-kv-f16                     41.67        8.284          7.540       477471        1.667
+D2-kv-q8                      41.41        8.341          7.592       474156        1.685
+E1-think-on                   56.04        6.066          5.512       653066        1.265
+E2-think-off                  91.17        3.744          3.404      1057622        0.785
+F1-depth-1k5                  85.43        3.919          3.557      1012224        0.828
+F2-depth-28k                  75.94        4.453          4.045       890058        3.277
+F3-depth-91k                  58.05        5.598          5.064       710849       11.710
+
+CAVEAT clock-ramp: a request issued on a cold/idle board runs at a reduced SM
+clock for its first seconds (measured here: 900-990 MHz vs 1455 settled), so
+its watts read LOW and its J/token reads misleadingly good. Drop the first
+request of every arm (--drop-first) or warm the board first.
+wrote E:\AI\measured-inference\results\qwen38-27b-blind\data\power-matrix\arms.json
+wrote E:\AI\measured-inference\results\qwen38-27b-blind\data\power-matrix\arms.csv

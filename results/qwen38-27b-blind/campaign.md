@@ -1070,3 +1070,42 @@ wholly inside the log (caught: impossible 5.32 J/tok). (3) server-down !=
 GPU-idle: plot rendering spiked the "idle" tail to 121-124 W five times.
 (4) suite-file settings block records sampling the --greedy runner
 overrides - result JSONs are authoritative for conditions.
+
+## 2026-08-23 - Power matrix complete: 19 arms, 43.7 min, 100% coverage
+Full tables: data/power-matrix/report.txt + arms.csv. In-band NVML board
+power; PSU/CPU/node excluded. Idle baselines (settled, quiet desktop):
+A1 no-server 29.9 W, A2 loaded 34.1 W (+4.2 W for a resident model -
+the physically sane ordering; the published 33.2-vs-30.7 was a cooling
+board). NOTE: the runner net columns used -IdleW 31.0 (hardcoded), not
+A2 34.1 - uniform ~1% shift, no ranking changes; re-attribution is
+zero-GPU when wanted.
+HEADLINES:
+- Speculation is an ENERGY feature: n10/p0.5 = 3.210 J/dec-token vs
+  8.104 no-spec (2.52x less energy, 2.50x t/s, 6.3x better EDP). And
+  board W FELL with more aggressive speculation (325->308->302 W): the
+  runbook assumed constant W; the win compounds.
+- Batching (spec OFF): --parallel 2 = +60.3% aggregate t/s, -39.6%
+  J/token (5.19 vs 8.59), -62% EDP. CONTRADICTS the earlier campaign
+  +11% aggregate claim - likely because that was measured with the
+  drafter ON (drafting already amortizes weight reads). A matched
+  spec-on pair is required before publishing either number as general.
+- Depth in energy: at 91k fill, 90.7% of the arm joules are PREFILL;
+  J/prompt-token 0.164->0.306->0.421 (quadratic attention as joules);
+  same 700-token answer costs 0.83 Wh at 1.5k vs 11.71 Wh at 91k (14x).
+- Quant energy: Q4_K_M +7.8%, NVFP4-HIGH +13.1% J/token vs IQ4_XS
+  (real, outside floor). KV f16 vs q8_0: 0.7% = clean null.
+- Regime: think-on 6.07 vs think-off 3.74 J/token (1.63x decode-rate
+  penalty - independently cross-validates the 1.69x draft-length
+  mechanism).
+- NOISE FLOOR (B1/C1/D2 triplicate): 2.9% on J/token, 5.6% on EDP,
+  monotonic with board heat - config-dependent (fast MTP arms agree to
+  0.03%). Do not believe slow-arm gaps under ~3%.
+- H power-cap arms SKIPPED needs-admin (probe: exit 4 Insufficient
+  Permissions; commands recorded; cap never changed, left at 350 W).
+OPEN ITEMS from this run: (1) matched spec-ON parallel pair before the
+batching number ships; (2) F3 depth arm 10.4% below the cooled-ladder
+reference (machine state suspect - recheck before publishing ladder);
+(3) B3 t/s 13% above the matched re-sweep (ranking intact, level
+unexplained); (4) E1 Wh/answer is per-700-tokens (ceiling hit), not per
+complete answer; (5) SPILL heuristic fires on shr>0 - wants a
+threshold (132-426 MiB WDDM shared mapping is benign; no arm spilled).
