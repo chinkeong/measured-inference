@@ -262,6 +262,16 @@ beyond its retrieval-tested depth is labeled
     - **Schedule the budget-eater last.** A run whose only failure mode is
       consuming the time budget goes at the END of the campaign; then its
       failure ships as a finding instead of blocking the report.
+      **And an escalation is a decision, not a reflex**: rule-7 cap-raises
+      on SECONDARY arms are deliberate, priced choices — never automatic —
+      because an unbounded secondary queued ahead of a deadline-bound
+      primary is priority inversion (dated case, 2026-08-23: an automatic
+      gemma cap-32k rerun consumed 4.1 GPU-hours while the quant ladder —
+      the campaign primary — sat gate-blocked until its 8-hour wall
+      expired cleanly and silently; every safety mechanism worked, the
+      schedule was wrong). A deadline runner that exits with pending work
+      says so loudly, and its watchdog treats pending>0 at exit as an
+      alarm, not a completion.
     - **A blind reproduction declares three things**: its SEAL (the exact
       paths and globs never opened), its EXCEPTIONS (inputs, not results —
       a shared corpus is input data), and its INHERITANCE (which distilled
