@@ -423,3 +423,21 @@ diagnose the death from the runner log tail, restart, it skips completed
 work. Treat idle-GPU-with-pending-work as an alarm, never a rest.
 EARNED BY: the quant-ladder stall (2026-08-23 21:14 - 00:45) - two GPU
 hours lost, caught only by the user asking for status.
+
+## Runner exits cleanly at its wall while gate-blocked behind another GPU job
+
+SYMPTOM: the run-ladder/runner log ends with "GPU gate never opened
+before the deadline ... DONE" - no error, no crash; hours earlier the
+gate line names another llama process; meanwhile the pending work count
+never moved.
+CAUSE: priority inversion - a secondary job (often an AUTOMATIC rule-7
+cap-raise rerun, unbounded by design) held the single-file GPU ahead of
+the deadline-bound primary. Every safety mechanism worked; the schedule
+was wrong. The exit is clean, so completion-based notifications read it
+as success.
+FIX: primaries before unbounded secondaries; secondary escalations are
+deliberate priced decisions (rule 25); a deadline runner that exits with
+pending work must say so LOUDLY in its last line and its watchdog must
+treat pending>0 at exit as an alarm, not a completion.
+EARNED BY: the quant-ladder deadline exit (2026-08-23 22:08) behind the
+gemma decisive-arm rerun - 2.5 h of invisible idle followed.
