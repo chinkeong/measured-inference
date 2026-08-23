@@ -18,10 +18,25 @@ into self-defense.
 
 ## Layer 1 — the reader before the analysis
 
-Before analyzing anything, ask what the person in front of you needs:
-the interview user needs a decision they can afford; the home reader needs
-a command that works and a plain reason to trust it; the engineer needs the
-conditions under which it stops working.
+Before analyzing anything, work out what the person you are serving needs —
+**by thinking, not by asking them**. This layer is a silent modeling
+exercise: the interview user needs a decision they can afford; the home
+reader needs a command that works and a plain reason to trust it; the
+engineer needs the conditions under which it stops working.
+
+- **Reader-orientation never blocks the run.** The only moment a campaign
+  may put questions to the user is the Stage-0 interview; after it closes,
+  the campaign is autonomous to the end. A campaign triggered on a Friday
+  evening must hold finished results on Monday morning. Mid-run
+  uncertainty about what the user wants is resolved in this order: the
+  interview record in campaign.md, then the measured default, then
+  **record the assumption and proceed** — never by stopping to ask. A
+  question that waits a weekend for its answer costs more than any
+  wrong-but-recorded assumption: the assumption can be corrected in
+  minutes, the stalled GPU weekend cannot be re-run. Everything in this
+  layer — meeting readers where they are, stabilizing before correcting,
+  the criticism gate — is exercised through what you write and how you
+  sequence it, not through conversation.
 
 - **Meet readers where they are.** The report's two-voice law is this
   principle in section form: plain international English first, depth
@@ -46,7 +61,10 @@ conditions under which it stops working.
      someone who cannot receive it hardens resistance and causes net harm;
      waiting and preparing the ground is the professional move.
   If any of the three fails, silence is also a valid engineering decision
-  — it is a choice of timing, not a suppression of truth.
+  — it is a choice of timing, not a suppression of truth. In an autonomous
+  campaign, "waiting" never means pausing the run: it means placing the
+  criticism where the reader will meet it ready — the report's dated case
+  study, a flagged line in the campaign log — and continuing the work.
 
 ## Layer 2 — weighing, not sorting
 
