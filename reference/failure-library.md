@@ -351,3 +351,16 @@ The example report's §10 documents the spill, the -ngl off-by-one and the
 busy-spin non-failure with their full measured signatures and a distinguishing
 table. Any campaign that meets a new failure adds it **here**, symptom first —
 not to `AGENTS.md`.
+
+## Get-Content -Tail hangs for minutes on a single-huge-line file
+
+SYMPTOM: `Get-Content -Tail N` on a file that is one enormous line (e.g.
+`llama-tokenize --ids` output, ~1.7 MB on one line) spins for minutes at
+high CPU with no output.
+CAUSE: -Tail walks the file backwards character by character looking for
+line breaks; a file with none makes it scan nearly the whole file in the
+slowest possible way.
+FIX: seek-read the tail directly - open a FileStream, `Seek(-4096,
+[IO.SeekOrigin]::End)`, read the block (measured: 47 ms vs minutes).
+EARNED BY: the quant-ladder build (2026-08-23), parsing tokenizer output
+for the cross-model bits-per-byte rows.
