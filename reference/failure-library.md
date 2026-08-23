@@ -364,3 +364,20 @@ FIX: seek-read the tail directly - open a FileStream, `Seek(-4096,
 [IO.SeekOrigin]::End)`, read the block (measured: 47 ms vs minutes).
 EARNED BY: the quant-ladder build (2026-08-23), parsing tokenizer output
 for the cross-model bits-per-byte rows.
+
+## tail -f from Git Bash silently blocks and drops PowerShell Add-Content lines
+
+SYMPTOM: a runner writes ledger lines with Add-Content; some lines never
+appear in the file, with no error anywhere - the runner believes it wrote
+them. Meanwhile someone is watching the file with Git Bash `tail -f`.
+CAUSE: Git Bash tail opens Windows files without FILE_SHARE_WRITE, so the
+writer is intermittently denied the handle; PowerShell Add-Content can
+fail non-terminating and the line vanishes.
+FIX: never tail a file the runner appends to (poll with a seek-read copy
+instead); make ledger writers retry (~30 s) and spill to a side file
+rather than drop; keep every result ALSO in the phase's own log so a
+dropped ledger line is recoverable, not gone.
+EARNED BY: quant-ladder rig gate (2026-08-23) - three ledger lines
+(RESULT, RIGGATE, DETECT) swallowed; recovered from the runner log. The
+class of failure this repo cares most about: a measurement that happened
+but the report would never know about.
