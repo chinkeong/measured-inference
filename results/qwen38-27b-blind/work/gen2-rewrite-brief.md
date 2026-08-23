@@ -312,3 +312,16 @@ count, BEFORE the first number), states the true date span and scope, and
 passes review gate 4 front-matter-vs-trail check. Keep the second line
 ("Every setting, with the number that justifies it") - it is true, it is
 the pledge, and it survives the rewrite.
+
+---
+
+## PART 4 (2026-08-23 staleness sweep): apply work/staleness-registers.md
+
+Three registers, all input to this rewrite: 17 NOW-FALSE negations in the
+blind report (N1-N17: the no-benchmark family, the one-quant family, the
+no-agent family - each with its quoted line and one-line fix), the
+count/date/scope register, and the published-guide register (missing
+rule-21 effort tie, energy metrics, 306-341 W range, 29.9/34.1 W idle
+pair, drafter-halves-J/token, the 16k-cap reversal as section 09 teaching
+material). The REPORT-SPEC republication rule now makes this check a
+standing obligation on every result-adding commit.

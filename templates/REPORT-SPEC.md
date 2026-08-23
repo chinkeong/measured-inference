@@ -48,6 +48,15 @@ copies its way around.
   before any evidence chapter; the evidence follows, in causal order.
 - A Sources / fact-check trail section listing own-run methodology and every
   external citation.
+- **A report is stale the moment its campaign outlives it.** Every commit
+  that adds results to a campaign re-runs the self-reference check on the
+  published page: negations ("no X was run"), counts, dates, and scope
+  claims are re-verified against the log before the push. A standing "not
+  measured" claim lives ONLY in the negative-results register — the one
+  place that is maintained; prose elsewhere points at the register instead
+  of asserting a negation that later work will silently falsify (reference:
+  one post-publication day produced 17 now-false negations on the blind
+  report, including a callout that named the exact protocol that then ran).
 
 ## The two-voice writing law (non-negotiable)
 
