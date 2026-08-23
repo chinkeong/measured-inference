@@ -37,6 +37,15 @@ copies its way around.
 - **"Publish and disclaim" is banned.** A number the report tells the reader
   not to use for its stated purpose is removed or replaced, not annotated: the
   disclaimed number is still the most quotable one on the page.
+- **The title states directly what the document is.** The H1 and the browser
+  `<title>` name the model, the hardware, and what the reader gets — e.g. the
+  shape "⟨Model⟩ on a 24 GB RTX 3090: the measured settings" — never a
+  slogan, a metaphor, or a pledge. A pledge or tagline may follow as a
+  sub-line under the title, never as the title. The same rule governs every
+  section heading and TOC label: a heading tells the reader in plain words
+  what the section contains or the question it answers ("Which file should I
+  download?"), and Voice 1 applies to headings first of all — a reader
+  scanning only the TOC must already know what the document covers.
 - The front matter declares the **evidence tier before the first number** —
   hours measured, arms run, what is smoke and what is solid, and the count of
   the report's own self-corrections.
