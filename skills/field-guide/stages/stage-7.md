@@ -1,6 +1,6 @@
 ---
 name: stage-7
-description: Load when executing Stage 7 (PUBLISH + review gates) — build results/<slug>/index.html per REPORT-SPEC, then run the three fresh-subagent review passes (numeric, structural, reader-experience) before calling the campaign done.
+description: Load when executing Stage 7 (PUBLISH + review gates) — build results/<slug>/index.html per REPORT-SPEC, then run the four fresh-subagent review passes (numeric, structural, reader-experience, internal consistency) before calling the campaign done.
 ---
 
 # Stage 7 — PUBLISH + review gates

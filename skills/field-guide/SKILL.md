@@ -132,7 +132,7 @@ references**.
 | **4** | APPETITE PROBES — two cheap probes per effort level | ~30 min | the thinking-appetite distribution per level (skip only if there is no effort knob) | `stages/stage-4.md` |
 | **5** | **RECIPE LOCK** — turn the map into recipe cards | **no GPU** | **the hard gate**: no expensive run may start above the dated RECIPE LOCK line | `stages/stage-5.md` |
 | **6** | CHARACTERIZATION — 6a quality · 6b effort · 6c vision · 6d agents · 6e energy | ~6–10 h | every arm on a locked recipe, at a locked cap, inside a locked window | `stages/stage-6.md` |
-| **7** | PUBLISH + review gates | ~1 h | three fresh-subagent passes (numeric, structural, reader-experience) applied, then ship | `stages/stage-7.md` |
+| **7** | PUBLISH + review gates | ~1 h | four fresh-subagent passes (numeric, structural, reader-experience) applied, then ship | `stages/stage-7.md` |
 
 **The sequencing law — METHODOLOGY rule 25, read it before Stage 1.** Cheap
 probes buy the map; the map locks the recipes; only locked recipes earn

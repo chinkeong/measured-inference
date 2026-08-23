@@ -32,7 +32,7 @@ within 1.6 pts), but it does NOT transfer across token regimes.
   draft len 2.99, 36.6 t/s; answer stream: accept 0.907, draft len 4.31,
   62.0 t/s — same server, same 91k prompt, same flags). Acceptance explains the
   mechanism; mean draft length predicts the throughput.
-- Record floor / real-work band / ceiling per regime for the report's spec strip
+- Record four-band strip: floor / short-context work / at-depth (anchored) / ceiling per regime for the report's spec strip
   and for the Stage-5 recipe cards — every band labeled with the regime, depth
   and desktop state that produced it.
 

@@ -8,7 +8,7 @@ the situation below triggers it.
 
 ## THE INVARIANTS
 
-`methodology/METHODOLOGY.md`'s 25 rules, one line each, plus the interview rule
+`methodology/METHODOLOGY.md`'s 26 rules, one line each, plus the interview rule
 — enough to know WHEN a decision is governed. Open the rule before acting on it.
 
 1. Measured, cited, or labeled-derived — there is no fourth category [1]
@@ -36,7 +36,8 @@ the situation below triggers it.
 23. Frozen inputs, offline-first: frozen file → local cache → network; two reports compare only if their suite hashes match [23]
 24. Every watt carries its instrumentation tier and every joule its phase; energy is measured or it is absent — TDP is not a measurement [24]
 25. Cheap probes buy the map; the map locks the recipes; only locked recipes earn expensive hours — no expensive run before the written RECIPE LOCK [25]
-26. Questions to the user happen at Stage 0 ONLY; after the interview closes the campaign is autonomous to the end — mid-run uncertainty resolves interview-record → measured default → record-the-assumption-and-proceed, never by stopping to ask [interview rule]
+26. Publish the noise floor ONCE, page-wide, with the class of claim that survives it; printed precision respects the band, and the report's one reproduction check carries a PASS BAND derived from it [26]
+27. Questions to the user happen at Stage 0 ONLY; after the interview closes the campaign is autonomous to the end — mid-run uncertainty resolves interview-record → measured default → record-the-assumption-and-proceed, never by stopping to ask [interview rule]
 
 Three failures no rule number catches:
 - Separate "the effect is real" from "the explanation is right" — independent claims, judged separately (81.7 t/s was a real number with a wrong story; the "debunked" verdict was wrong too).

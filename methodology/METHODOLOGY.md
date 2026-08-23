@@ -6,17 +6,50 @@ measured failure.
 
 ## Epistemics
 1. **Measured, cited, or labeled-derived.** Nothing else ships.
+   (a) A number labeled **measured** resolves to a NAMED RUN in the Sources
+   trail; one that resolves to nothing is downgraded to an estimate (a
+   published "the card draws a measured ~310 W" had no trail entry and was a
+   guess). (b) **CITED carries a grade** — primary-document-linked /
+   arithmetic-on-published-specs / carried-from-a-dated-prior-fact-check
+   (name the fact-check and its date) — and a DERIVED number inherits its
+   WEAKEST input's grade, with its derivation DEPTH counted: name every
+   borrowed constant it passes through (reference: roster rows derived twice
+   over — bandwidth formula, then this machine's 1.91× drafting speed-up —
+   and the non-CUDA rows a third time, because they also assume a speculator
+   on a backend nobody ran). Laundering someone else's homework through a
+   tag that says DERIVED is the failure this grades against.
+   (c) **An unrun configuration is never printed as an unlabeled copy-paste
+   block.** Format is an epistemic claim: a guess in a monospace block reads
+   exactly like a measurement. Verification status is the block's FIRST line
+   (`UNVERIFIED — DERIVED CONFIG`), never a trailing comment — which is what
+   legitimizes printing derived recipes instead of dropping them.
 2. **No reader measures less than promised.** Publish the number a reader will
    actually get under their realistic conditions; best cases are labeled best
    cases, with the condition that produced them.
 3. **A number without its conditions is unfalsifiable.** Speculative speedups
    need their acceptance rate; benchmark scores need their max_tokens cap and
    truncation count; decode speeds need content, TOKEN REGIME (thinking vs answer tokens - a blind reproduction measured the same file at 39 vs 70 t/s at equal depth across regimes), depth, and desktop state;
-   offload/iGPU speeds need RAM type and channel count.
-4. **Two independent cheap metrics agreeing beats one expensive one.**
+   offload/iGPU speeds need RAM type and channel count; every speed needs its
+   **SAMPLING SETTINGS**. Acceptance is a property of which token the drafter
+   must guess, so sampling moves it directly: both reference reports published
+   greedy speculative bands while shipping `temp 1.0` recipes. A speculative
+   band is measured at the sampling its recipe ships, or it is labeled
+   greedy-only and non-transferable. **Every table declares its comparability
+   scope** — which other tables in the same report its numbers may NOT be
+   compared against, and what differs (build, workload, run state).
+4. **Two independent cheap metrics agreeing beats one expensive one** — but
+   only when at least ONE of the differences exceeds its own error bar. Two
+   null results agreeing in sign is a tie, not corroboration (reference:
+   PPL 6.535 vs 6.596 and GSM8K 94.0 vs 93.0, each already declared
+   within noise, published as "two independent metrics agreeing" — two coin
+   flips). A tie is broken on a named NON-QUALITY axis — file size, VRAM,
+   load time — and the axis is named in the verdict.
 5. **When a claim dies, keep it as a dated case study** — how a clean benchmark
    misled is worth more than the number ever was (see the example's drafter-sweep
    section: "measured history, and proof that any single-prompt sweep overfits").
+   A superseded number carries its marker at EVERY occurrence — chart label,
+   table row, figcaption, recipe comment — not only at the case study. A reader
+   lands on one occurrence, not on the tour.
 
 ## Statistics
 6. **Sample-size law**: accuracy at n≤25 is a smoke test (detects ~20-pt
@@ -57,7 +90,17 @@ measured failure.
     classes, **DGX Spark (GB10, 128 GB unified, 273 GB/s)**, Intel Arc Pro
     B70/B50, and the Arc B390-class iGPU with its RAM-channel caveat — each
     row marked measured or derived-by-bandwidth; cards the machine cannot
-    represent stay as derived rows, never dropped.
+    represent stay as derived rows, never dropped. **Prefill is compute-bound
+    — bandwidth ÷ file size does NOT scale it**, and a decode-ordered roster
+    is the wrong buying advice for agentic work: any report recommending for
+    agentic or long-context use publishes a PREFILL-SCALED row beside the
+    decode row, and every wall-clock estimate states its prompt:completion
+    ratio (reference: DeepSWE measured 1.01M prompt against 21.7k completion
+    tokens per task — the wall clock is prompt-bound end to end). A recipe for
+    a card the campaign did not run marks each flag **measured-here** or
+    **carried-over-unverified**, and the block carries a derived banner: tuned
+    flags travel silently otherwise, and a KV-quant verdict verified on CUDA
+    is not verified on the backend it was pasted onto.
 11. **Acceptance IS the speculative speedup — but MEAN DRAFT LENGTH is the
     throughput predictor.** Content decides acceptance; flags only tune where
     you sit on one curve. Refinement (measured 2026-08-23): the p-min gate
@@ -66,8 +109,13 @@ measured failure.
     draft len 2.99, 36.6 t/s; answer stream: accept 0.907, draft len 4.31,
     62.0 t/s — same server, same 91k prompt, same flags). The
     highest-acceptance config can be the slowest. Report mean draft length
-    beside acceptance, always. Sweep drafting knobs on realistic content;
-    acceptance is a property of the drafter head, not the quant (matched-pair
+    beside acceptance, always — and report the **drafting PAIR**: drafted/pass
+    AND accepted/pass, with the counter formula printed
+    (`draft_n_accepted ÷ (predicted_n − draft_n_accepted)`), because
+    throughput ≈ (1 + accepted/pass) per verify pass. Acceptance percentage
+    alone is the wrong quantity: two rows reading 100% and 99% acceptance ran
+    3.96 vs 10.54 accepted per target pass. Sweep drafting knobs on realistic
+    content; acceptance is a property of the drafter head, not the quant (matched-pair
     sweep: same optimum, acceptance within 1.6 pts across quants).
 12. **Depth costs**: decode declines with loaded context even with acceptance
     steady (KV reads/token grow); measure a depth series with server timings,
@@ -90,13 +138,23 @@ bytes-per-element (cache dtype)** — the 2 is K and V; count only
 full-attention layers (linear/gated-delta/sliding-window layers cost less or
 nothing); bytes-per-element is 2 for fp16, 1 for q8_0. Compute it per model
 before any budget table; never carry another model's number forward.
+**The arithmetic is a FLOOR, not the budget**: step `-c`, read the VRAM
+delta, and budget from the measured slope — the reference model computed
+34,816 B/token by arithmetic and measured 39,936 (drafter off) / 45,056
+(drafter on), a 15% under-prediction that lands inside the slack fence.
 KV-cache quantization to q8_0 is recommended only when verified per model
 (reference: +0.23%/+0.31% PPL); **q4_0 K-cache is NOT a free next step** —
 it is known to disproportionately damage some architectures, so it may not
 be recommended without a measured per-model PPL check, and absent that check
 a report says "unverified here" rather than staying silent (reference model
 measured: +0.693% PPL vs f16 — superlinear, more than double q8_0's
-+0.309%, with 1-SE error-bar overlap).
++0.309%, with 1-SE error-bar overlap). **A cache-dtype verdict requires a
+long-context RETRIEVAL check, not only a short-context perplexity delta**: a
+perplexity pass at `-c 8192` structurally cannot see the retrieval failure at
+200k that the verdict is justified by. Both reference reports refused q4_0 on
+a retrieval argument and verified with an 8k PPL delta. A window shipped
+beyond its retrieval-tested depth is labeled
+**"speed-verified, quality-unverified at depth"**.
 
 13. **Two ceilings, not one — and ceilings belong to configurations, not
     files**: fully-resident (VRAM fills; fast even when the window fills) vs
@@ -115,7 +173,14 @@ measured: +0.693% PPL vs f16 — superlinear, more than double q8_0's
     and projector costs are model-specific — derive them from this model's
     measured KV bytes/token and mmproj file size (reference finding — recompute
     per model: each 32k of q8 window ≈ 1 GiB; the vision projector ≈ 0.9 GiB ≈
-    27k tokens).
+    27k tokens). **The desktop's own appetite is a dated RANGE, never a
+    carried constant**: measure it across the campaign's own loads, from
+    llama-server's dedicated counter against the board total (reference:
+    133–1,181 MiB across 26 loads — nothing but what else was on screen).
+    A recipe's slack must exceed (measured desktop MAXIMUM + the campaign's
+    own load-to-load VRAM variance); a fence inside the noise is not a fence
+    (reference: 1,260 MiB of slack against a 1,181 MiB desktop maximum, while
+    two loads of the same config differed by 128 MiB — a 79 MiB margin).
 15. **The -ngl off-by-one**: output projection counts as layer n+1; always
     `-ngl 99`; the miss pins CPU threads and costs real decode speed
     (reference finding — recompute per model: ~35%).
@@ -124,7 +189,15 @@ measured: +0.693% PPL vs f16 — superlinear, more than double q8_0's
 16. **The window sets an effort ceiling**: measure each effort level's thinking
     appetite; a level whose appetite exceeds the window doesn't degrade — it
     truncates. On small-VRAM cards, medium is not the budget option, it is the
-    best quality the VRAM affords.
+    best quality the VRAM affords. Where reasoning is PRESERVED across turns,
+    the ceiling is a **turns-per-window budget**, not a per-answer one —
+    declare the preserve setting with the table (reference: xhigh = one turn
+    in 131k) — and the **overflow event is measured, not assumed**: what the
+    server actually does on turn N+1 past the window (error, context shift, or
+    full re-prefill) and what that costs in wall clock. A level published as
+    **not offered** names its BINDING CONSTRAINT — window or wall-clock —
+    because the two have different fixes: a 12 GB card refusing xhigh at
+    6–8 t/s is out of patience, not out of memory.
 17. **Effort buys completeness, not easy-task accuracy** (reference finding —
     re-verify per model): lowest effort shipped crashing code on hard generative
     work while matching everyone on easy math.
@@ -144,6 +217,51 @@ measured: +0.693% PPL vs f16 — superlinear, more than double q8_0's
     for degenerate repetition loops first — a looping transcript inflates
     t/s and token counts with garbage, and greedy decoding makes the loop
     deterministic, not rare.
+    - **Every branch runs before publication.** Parse-checking covers the
+      campaign's own scripts; code a REPORT ships is executed on every branch
+      it advertises, and the advertised range is trimmed to what runs (the
+      shipped launcher advertised `[1-8]` with only `pick_1`..`pick_4`
+      defined — options 5–8 died on "cannot find the batch label").
+    - **Artifact read-back.** A probe whose claim carries a content label
+      ("copying", "prose", "code") must have its generated text SAVED and
+      READ; discarded output cannot support a claim about what was generated.
+      The signature is empty `content` with `finish_reason=length` — both
+      reference copy probes had copied nothing and spent the whole budget
+      thinking, and the read-back produced the campaign's largest correction.
+    - **Knob-took-effect.** A server-side knob under test is proven to have
+      reached the model by a cheap observable BEFORE its arms are believed
+      (reference: `prompt_n` 1,689 vs 1,659 from an identical user message
+      proves `--chat-template-kwargs` reached the template). A silently
+      ignored kwarg produces three identical arms and a null result nobody
+      can see.
+    - **Instrument-first.** A surprising result runs a control isolating the
+      MEASURING APPARATUS before it becomes a finding, and the report states
+      which anomalies were traced to the instrument rather than the system
+      (reference: a 30.61 t/s "collapse" was the meter; wall-clock read 9.2
+      t/s where decode was 47.1).
+    - **Resource-flag proof.** A flag whose stated purpose is a RESOURCE is
+      measured on that resource, or it is not recommended. Two reference
+      campaigns shipped opposite `--load-mode` defaults, each having measured
+      only load time — one flag, two directions, zero system-RAM
+      measurements. Closing it costs no GPU time.
+    - **Schedule the budget-eater last.** A run whose only failure mode is
+      consuming the time budget goes at the END of the campaign; then its
+      failure ships as a finding instead of blocking the report.
+    - **A blind reproduction declares three things**: its SEAL (the exact
+      paths and globs never opened), its EXCEPTIONS (inputs, not results —
+      a shared corpus is input data), and its INHERITANCE (which distilled
+      artifacts of the sealed campaign — rules, templates, reference
+      constants — it was permitted to use). An undeclared inheritance turns
+      a front-matter "nothing is carried over" into a false scope claim.
+    - **Name the measurement base once.** The campaign names the
+      configuration every number was measured on, in one place, and marks
+      every number measured on anything else — otherwise the whole report is
+      silently about a config the reader is not running.
+    - **The campaign log opens with a deviations register**: every departure
+      from protocol, its justification, the AXIS on which that justification
+      was verified, and the cheapest measurement that would close the rest.
+      "Decode-neutrality was checked and held; the system-RAM half was never
+      examined" is the shape — a justification is scoped to what it covers.
 
 ## Power
 24. **Every watt carries its instrumentation tier; every joule carries its
@@ -261,6 +379,37 @@ measured: +0.693% PPL vs f16 — superlinear, more than double q8_0's
       noise floor by replicating ONE configuration across arms, never every arm.
       Over-measurement is not the safe error: it spends the hours the runs a
       reader actually needs were going to use.
+    - **The added-phase register** is the retrospective half of that test:
+      every unplanned probe is logged with the QUESTION that forced it and
+      whether the answer changed a published conclusion (reference: nine
+      phases added, six of the nine changed one). A plan that never deviates
+      was not measuring anything.
+    - **The cost ledger.** The campaign log carries GPU-hours and Wh per
+      phase against what each phase bought, so the who-consumes test can one
+      day be tuned by data instead of by anecdote.
+
+## Noise
+26. **The noise floor is published once, page-wide, and it bounds what may be
+    claimed.** Every campaign derives its probe repeatability from the ONE
+    configuration rule 25 had it replicate, and publishes the resulting band
+    as a reading instruction for the whole report, naming the class of claim
+    that survives it — levels, ratios, or categorical (reference: "read every
+    single-probe level on this page as carrying about ±25% of clock-state
+    noise; the shapes and the ratios are what survive it", derived from
+    18.27 / 18.82 / 19.21 / 26.60 t/s on one config). **Printed precision
+    respects the band**: four significant figures on a ±25% probe is a lie of
+    precision, and a header strip naming `79.26` is claiming a level it
+    cannot hold. **One noise band per phenomenon**, stated once, with the
+    arithmetic connecting any second figure to it — a page carrying both
+    "a 45% swing" and "±25%" with nothing joining them has two noise floors
+    and therefore none. A baseline used as a DIAGNOSTIC THRESHOLD is
+    replicated across the conditions it claims invariance to and shipped as a
+    band, not a point (reference: the decode floor established across four
+    contents and both token streams, published as a 3% band). And every
+    report ends with ONE reproduction check: the exact command, the value it
+    should return, and a **PASS BAND derived from this campaign's own noise
+    floor**. Without the band a reader cannot tell a broken setup from probe
+    noise, which is the only thing the check was for.
 
 ## The standard benchmark protocol
 21. **Every reasoning-effort sweep runs the standard suite** under fixed

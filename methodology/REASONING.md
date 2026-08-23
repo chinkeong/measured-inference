@@ -132,6 +132,17 @@ one bin.
   METHODOLOGY rule 3 is this audit in numeric form: the conditions ARE the
   exemplars, and "conditions travel with numbers" means every published
   claim ships with the boundary where it stops being true.
+  Two consequences that get skipped in practice:
+  - **Every published sanity check ships the value that would have FAILED
+    it** — the negative exemplar in numeric form. "A broken quantization
+    shows up here as an obviously wrong figure" is not a check until
+    "obviously wrong" has a number. Done right it reads: "landing at 0.65 of
+    raw bandwidth is the signature of a fully offloaded model; landing at
+    0.45 is the signature of the first failure mode."
+  - **Self-inclusion.** Where a report warns readers about a class of
+    unreliable claim — one-run quant rankings, single probes, derived rows —
+    it states whether its OWN numbers fall in that class. A warning the
+    author is silently exempt from is positioning, not skepticism.
 - **Citation discipline.** Cite because the argument needs support, not to
   decorate a conclusion already reached. One precise citation beats ten
   stacked ones; a citation found after the conclusion was formed is
