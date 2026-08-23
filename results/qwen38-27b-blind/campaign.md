@@ -1021,3 +1021,29 @@ throughput - identical acceptance (0.895/0.907), draft len 2.99 vs 4.31 ->
 1.69x). Corrected depth ladder (answer regime, n4/p0.75): 86.30 @ 1,458 ->
 80.20 @ 28,388 -> 64.76 @ 90,854. xhigh real speed at 91k depth: ~37-39
 t/s; n10/p0.5 recovers only 5.6% there vs 12% on shallow code.
+
+## 2026-08-23 - Rule-21 live effort sweep (suite 1cdf54f8eb9d3f8f, n=25, greedy, seed 42, no MTP)
+Composite Mean over 5 scored sets (ALPACA/MT-Bench unscored - no independent
+judge; transcripts kept):
+| cap | low | medium | xhigh | truncations |
+|---|---|---|---|---|
+| 16,384 | 81.3 | 80.5 | 77.3 | 1 / 2 / 9 |
+| 32,768 (rule-7 rerun, affected arms only) | 82.1 | 80.5 | 81.3 | 0 / 0 / 3 |
+At 16k the sweep reads as quality FALLING with effort - a truncation
+artifact (11 of 12 truncations returned empty content: the runaway lives
+inside the reasoning block). With room to finish, all three efforts land
+within 1.6 points: indistinguishable at n=25. EFFORT BUYS WALL CLOCK, NOT
+MEASURABLE QUALITY ON THIS SUITE (walls 1.00 / 1.47 / 2.70 h; mean output
+830 / 1,228 / 2,217 tokens; ~42 t/s decode). Three xhigh prompts exceed
+32,768 - genuine non-terminating loops, reported as such. MATH-500[3]
+needed 18,273 tokens and was CORRECT - the budget rule's poster child.
+Determinism: 139/139 non-truncated prompts byte-identical across cap
+raise - empirically licenses rule 7's rerun-only-affected-arms.
+Per-benchmark (32k): GSM8K 100/100/100, MATH-500 92/100/92, HumanEval
+100/96/84, MBPP 92/84/88, MeetingBank ROUGE-L 22.6/22.4/22.3.
+Scorer bugs found by the live run and fixed symmetrically (selftest
+78/78): MATH-500 presentation-vs-value normalization (low arm 60->92),
+GSM8K unit-suffix compare (xhigh 92->100), newline squeeze; all arms
+re-graded offline from kept transcripts. Full log: work/rule21-live.md.
+Power: 500ms logger covered 10:48-13:19 (xhigh-cap32k tail + all rerun
+arms + trailing idle), 17,716 samples -> data/power/rule21-power.csv.

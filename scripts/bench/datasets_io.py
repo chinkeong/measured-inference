@@ -299,10 +299,45 @@ def _last_boxed(text):
     return "".join(out) if not depth else None
 
 
+# Two spellings of the same value must compare equal, or the scorer measures
+# LaTeX style instead of mathematics. Every rewrite below is presentation-only
+# and is applied to the prediction AND the reference, so two *different* values
+# can never be normalized into a match — only one value written two ways.
+_LATEX_SYNONYMS = (("\\dfrac", "\\frac"), ("\\tfrac", "\\frac"),
+                   ("\\dbinom", "\\binom"), ("\\tbinom", "\\binom"))
+# markup that carries no value: spacing macros and the unit marks a reference
+# spells out but an answer often doesn't (145 vs 145^\circ)
+_LATEX_JUNK = ("\\left", "\\right", "\\!", "\\,", "\\;", "\\:",
+               "\\quad", "\\qquad", "~", "^\\circ", "^{\\circ}", "\\degree",
+               "°", "\\%", "%", "\\$")
+# "\ " is a thin space, but the second half of a "\\ " row break is not one:
+# stripping that blindly turns a matrix's \\ separator into a single backslash
+_THIN_SPACE = re.compile(r"(?<!\\)\\ ")
+_GSM8K_NUMBER = re.compile(r"-?\d[\d,]*\.?\d*")       # the number in "#### 156 kg"
+_WHITESPACE = re.compile(r"\s+")
+_ROW_SPACING = re.compile(r"\\\\\[[^\]]*\]")          # \\[6pt] between rows
+_INT_FRAC = re.compile(r"(?<![\d/])(\d+)/(\d+)(?![\d/])")   # 16/49 -> \frac{16}{49}
+
+
 def _norm_answer(s):
-    s = s.strip().replace("$", "").replace(",", "").replace(" ", "")
-    for junk in ("\\left", "\\right", "\\!", "\\,", "\\;"):
+    """Canonical form of one answer string, for exact match.
+
+    The spacing macros are stripped *before* whitespace is squeezed out: "\\ "
+    is backslash-space, so removing spaces first would leave a bare backslash
+    behind and (6,\\ 31,\\ -1) would never match (6,31,-1).
+    """
+    s = s.strip()
+    for a, b in _LATEX_SYNONYMS:
+        s = s.replace(a, b)
+    s = _ROW_SPACING.sub(lambda m: "\\\\", s)
+    s = _THIN_SPACE.sub("", s)
+    for junk in _LATEX_JUNK:
         s = s.replace(junk, "")
+    s = s.replace("$", "").replace(",", "")
+    # all whitespace, not just spaces: a boxed matrix is often laid out over
+    # several lines, and a newline is layout, never value
+    s = _WHITESPACE.sub("", s)
+    s = _INT_FRAC.sub(lambda m: "\\frac{%s}{%s}" % (m.group(1), m.group(2)), s)
     return s.rstrip(".")
 
 
@@ -313,6 +348,13 @@ def grade(name, response, ref):
     if name == "GSM8K":
         if "####" in response:
             pred = response.rsplit("####", 1)[-1].strip().splitlines()[0]
+            # GSM8K references are bare numbers, but a model that reasoned in
+            # units answers "#### 156 kg" or "#### 5 hours". Take the number
+            # out of the answer line, as the canonical GSM8K scorer does —
+            # comparing the whole line marks a right answer wrong.
+            m = _GSM8K_NUMBER.search(pred)
+            if m:
+                pred = m.group(0)
         else:
             nums = re.findall(r"-?\d[\d,]*\.?\d*", response)
             pred = nums[-1] if nums else ""

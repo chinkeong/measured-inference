@@ -460,6 +460,9 @@ def main():
                     help="don't launch llama-server; use whatever is already "
                          "listening on --port")
     args = ap.parse_args()
+    # remember whether the operator named datasets before a preset fills the
+    # flag in: only an explicit --datasets may narrow a --suite run
+    explicit_datasets = args.datasets is not None
 
     # --rule21 only fills in the flags the operator left alone
     preset = RULE21 if args.rule21 else DEFAULTS
@@ -530,6 +533,18 @@ def main():
     if args.suite:
         suite = load_suite(args.suite)
         prompts_by_ds = suite["prompts"]
+        # An explicit --datasets narrows a suite run to a subset — what a rule 7
+        # raised-cap re-run or a rule 21 escalation needs, since greedy decoding
+        # makes the untouched datasets byte-identical anyway. The suite file and
+        # its hash stay as they are: the run JSON still records the parent hash
+        # and lists only the datasets that actually ran.
+        if explicit_datasets:
+            missing = [d for d in datasets if d not in prompts_by_ds]
+            if missing:
+                sys.exit(f"--datasets {missing} not in suite {args.suite} "
+                         f"(it has {sorted(prompts_by_ds)})")
+            prompts_by_ds = {d: prompts_by_ds[d] for d in datasets}
+            print(f"suite narrowed to {datasets} by --datasets")
         s = suite["settings"]
         args.samples, args.max_tokens = s["samples"], s["max_tokens"]
         args.seed = s.get("seed", args.seed)
