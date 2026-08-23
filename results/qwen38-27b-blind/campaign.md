@@ -1004,8 +1004,9 @@ agentic wall time is prompt-processing-bound on this harness.
 M1 MTP matched-pair re-sweep (-c 32768, thinking off, temp 0, code probe):
 n10/p0.5 wins BOTH quants - IQ4_XS 93.86 t/s (2.18x, accept 61.4%), Q4_K_M
 81.71 (2.04x, 60.0%); shipped n4/p0.75 = 83.50/69.82 (11-15% off peak).
-Acceptance within 1.6 pts per config across quants -> property of the MTP
-head, not the quant. The campaign-era 81.7 reproduces exactly: mislabeled
+Acceptance within 1.6 pts on six of seven configs across quants (one
+pair, n6/p0.5, differs by 3.7) -> property of the MTP head, not the
+quant. (CORRECTED from "at every config" 2026-08-23.) The campaign-era 81.7 reproduces exactly: mislabeled
 token regime, not a phantom.
 M2 Projector at depth (90,862 tok, ABBA, byte-identical prompts): decode
 delta 0.04% (drafter off) / 0.09% (on) -> projector is decode-free; cost is
@@ -1086,9 +1087,14 @@ A2 34.1 - uniform ~1% shift, no ranking changes; re-attribution is
 zero-GPU when wanted.
 HEADLINES:
 - Speculation is an ENERGY feature: n10/p0.5 = 3.210 J/dec-token vs
-  8.104 no-spec (2.52x less energy, 2.50x t/s, 6.3x better EDP). And
-  board W FELL with more aggressive speculation (325->308->302 W): the
-  runbook assumed constant W; the win compounds.
+  8.104 no-spec (2.52x less energy, 2.50x t/s, 6.3x better EDP).
+  (CORRECTION 2026-08-23 evening, from the guide refactor consistency
+  pass: the earlier "board W FELL 325->308->302, the win compounds"
+  claim was a WHOLE-WINDOW artifact - those means fold each request
+  prefill segment in, and prefill is a larger share of a shorter run.
+  Decode-phase watts are FLAT: 344.6 -> 341.7 -> 341.0 W. The 2.52x
+  energy saving IS the 2.50x throughput gain, exactly. J/token = W /
+  t/s closes only against decode watts.)
 - Batching (spec OFF): --parallel 2 = +60.3% aggregate t/s, -39.6%
   J/token (5.19 vs 8.59), -62% EDP. CONTRADICTS the earlier campaign
   +11% aggregate claim - likely because that was measured with the
