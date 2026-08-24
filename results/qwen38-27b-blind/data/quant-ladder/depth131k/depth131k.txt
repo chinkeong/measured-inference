@@ -1,0 +1,4 @@
+﻿# 131k drafter-ON replication, n=5 settled probes - opened 2026-08-25T03:53:25
+REP iq4xs | GiB=13.274 | ctx=131072 | drafter=on n4/p0.75 | n=5 | mean=34.66 t/s | min=34.24 | max=34.84 | sd=0.22 | spread_pct=1.7 | acceptance=0.94444 | mean_draft_len=3.43 | probes=[34.67 34.73 34.80 34.84 34.24]
+REP q3kxl | GiB=12.244 | ctx=131072 | drafter=on n4/p0.75 | n=5 | mean=41.44 t/s | min=38.43 | max=42.34 | sd=1.51 | spread_pct=9.4 | acceptance=0.88462 | mean_draft_len=3.30 | probes=[42.15 42.34 42.20 38.43 42.10]
+REP q2kxl | GiB=9.154 | ctx=131072 | drafter=on n4/p0.75 | n=5 | mean=29.46 t/s | min=26.83 | max=30.27 | sd=1.32 | spread_pct=11.7 | acceptance=0.91667 | mean_draft_len=3.20 | probes=[30.16 26.83 30.07 29.96 30.27]

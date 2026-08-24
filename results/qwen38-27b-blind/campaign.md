@@ -1647,3 +1647,41 @@ Read naively it says the 3.9-bpw file is **21% faster than the 4-bit file at dep
 n=2 settled probes cannot separate 21% from clock state or a warm-up artefact, and rule 26 puts this campaign's own floor at ~3% on slow arms and up to +/-25% on single probes. So work/depth131k-replicate.ps1 is running: the same three configurations at n=**5** settled probes, first post-prefill probe discarded, and a 30-second settle after the fill so clocks are steady (rule 12's ramp trap reads up to 45% low). It reports mean, min, max, standard deviation and the full probe list.
 
 **If the ordering survives at n=5 it is real and gets published. If it collapses, the 131k row gets a BAND and no ranking** - which is what rule 26 requires of a level nobody replicated. Either way the write-up waits for it, because the sentence at stake is "which file is fastest at long context on a 24 GB card", and that is exactly the kind of tidy story REASONING's expertise-blindness check says to probe once more before believing.
+
+## 2026-08-25 04:04 - THE 131k RESULT SURVIVED REPLICATION. I was wrong to doubt it, and the mechanism is now the open question.
+
+n=5 settled probes per arm, first post-prefill probe discarded, 30 s settle after the fill:
+
+| file | n=2 sweep | n=5 replication | sd | spread | acceptance | mean draft len |
+|---|---|---|---|---|---|---|
+| UD-IQ4_XS | 34.35 | **34.66** | 0.22 | 1.7% | 0.944 | 3.43 |
+| UD-Q3_K_XL | 41.68 | **41.44** | 1.51 | 9.4% | 0.885 | 3.30 |
+| UD-Q2_K_XL | 28.76 | **29.46** | 1.32 | 11.7% | 0.917 | 3.20 |
+
+**UD-Q3_K_XL leads UD-IQ4_XS by 6.78 t/s = 19.6%, at 4.4 sigma on the combined spread.** The ordering is real. My pre-registered doubt was recorded and is now retired: the design could return "the claim survived" and it did, which is the only reason the doubt was worth writing down.
+
+### The effect is real. The EXPLANATION I would have reached for is wrong.
+
+Rule 11's model - throughput proportional to (1 + accepted per verify pass) divided by the cost of a verify pass, which scales with file size - predicts these three files should land at:
+
+| file | accepted/pass | verify cost | predicted index | MEASURED |
+|---|---|---|---|---|
+| UD-IQ4_XS | 3.24 | 13.274 GiB | 0.3194 | 34.66 |
+| UD-Q3_K_XL | 2.92 | 12.244 GiB | 0.3201 | 41.44 |
+| UD-Q2_K_XL | 2.93 | 9.154 GiB | **0.4297** | **29.46** |
+
+It fails in **both** directions. It puts IQ4_XS and Q3_K_XL within 0.2% of each other when they differ by 20%, and it makes UD-Q2_K_XL comfortably the fastest when it is comfortably the slowest. Bandwidth alone predicts 8.4% for the Q3_K_XL/IQ4_XS pair, not 19.6%.
+
+**So: the effect is published, the mechanism is not.** AGENTS.md's standing warning applies exactly - "separate the effect is real from the explanation is right; 81.7 t/s was a real number with a wrong story". Recorded as an OPEN MECHANISM QUESTION rather than dressed in a plausible one. Candidate hypotheses, none tested, none to be published as though it were: memory pressure or allocator behaviour near 20.8 GiB of a 24.0 GiB board; a K-quant versus IQ-format kernel difference at depth (Q3_K_XL is the only K-quant of the three at this window); or the `mean len` counter measuring the verify batch rather than the accepted run, which this campaign has already flagged as an instrument quirk, making the draft-length column unfit for this comparison.
+
+### What it changes for a 24 GB reader, and it adds a THIRD file to the picture
+
+At -c 131,072 with the drafter on, **UD-Q3_K_XL is the fastest file measured** - 41.44 t/s against the 4-bit default's 34.66 and the 2.9-bpw file's 29.46 - and it needs 19,724 MiB, leaving 4,852 MiB free, far above the 1,308 MiB reserve. The window-dependent picture is now:
+
+- **up to ~65k**: all three within a few percent; stay on the shipped UD-IQ4_XS.
+- **~131k**: UD-Q3_K_XL, by 20%, replicated.
+- **the full 262,144**: UD-Q2_K_XL, because it is the only one that still fits WITH speculation (21.33 t/s against the 4-bit file's 15.96 with the drafter forced off).
+
+Three different files win at three different windows. That is a more useful answer than any single recommendation, and every leg of it is measured.
+
+Launched work/depth98k-crossover.ps1 at -c 98,304, same protocol, to locate where UD-Q3_K_XL overtakes - at 32k the 4-bit file leads (41.35 vs 39.59), at 65k they are level (42.69 vs 42.98), at 131k Q3_K_XL leads by 20%.
