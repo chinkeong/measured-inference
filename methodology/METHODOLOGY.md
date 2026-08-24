@@ -71,6 +71,25 @@ measured failure.
    affected arm only (greedy determinism makes other arms byte-identical).
    **Never filter to non-truncating questions** — that selects the test set on
    one arm's behavior and drops exactly the hard items.
+   **The raise is mandatory ONCE, and it is a diagnostic as much as a remedy.**
+   A truncation has two possible causes and the rerun tells them apart: a
+   budget shortfall (the raised cap completes the answer) or a
+   **non-terminating generation** (the raised cap reproduces the truncation).
+   If the raised-cap rerun reproduces it, **no further raise is licensed** —
+   the item never terminates, the cap is merely what stops it, and escalating
+   again only buys the same zero at more GPU hours. Say which of the two it
+   was, keep the item in the denominator, retire the "provisional" mark the
+   first raise earned, and stop. A campaign that keeps doubling caps against a
+   non-terminating generation is measuring its own patience.
+   **A reproduced truncation is a FINDING, not an inconvenience**: it says the
+   model enters a state it does not leave, which no accuracy cell can show.
+   Report it beside the score with whatever the mechanism probe found — and
+   check the completion's content, because the worst shape is an unterminated
+   thinking block that returns an EMPTY answer while consuming the whole
+   budget (measured 2026-08-23/24 in two different model families: gemma-4-12B
+   at 19 items, unchanged across a doubled cap; Qwen at xhigh, ALPACA item 21,
+   empty at 16,384 and empty again at 32,768 while all 24 sibling answers
+   reproduced byte-identically).
 8. **Small-n quality judging** (n=2 per setting): blind judges, spec checklists,
    ties allowed; report variance beside means; categorical findings (works vs
    crashes) are real at n=2, point differences are not.

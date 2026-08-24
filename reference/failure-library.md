@@ -469,3 +469,31 @@ The live poller was PID 32148, started 11:20:35 - matching the chain log
 exactly. THREE HOURS of idle GPU followed, with a rule-7 rerun queued
 behind a gate that could not open. The watchdog caught it; the
 self-verification did not, because it verified the wrong proposition.
+
+## Raising the cap reproduces the truncation exactly
+
+SYMPTOM: an arm truncates, you apply the rule-7 remedy and rerun at double
+the cap, and the rerun returns the SAME score, the same per-benchmark
+cells and the same truncation count - at roughly double the wall clock.
+Or, on a single item: empty at 16,384 and empty again at 32,768.
+CAUSE: the truncation was never a budget shortfall. It is a
+NON-TERMINATING generation - the model enters a state it does not leave,
+and the cap is only what eventually stops it. The signature is a
+completion whose content length is ZERO while the token count sits
+exactly on the cap: the runaway is inside an unterminated thinking block,
+so the harness stores an empty content field (llama-server with --jinja
+splits thoughts into reasoning_content, and bench.py stores content).
+FIX: the raise is a DIAGNOSTIC. One raise distinguishes the two causes;
+a second raise is not licensed and only buys the same zero at more GPU
+hours. Retire the provisional mark the first raise earned, keep the item
+in the denominator (rule 7 forbids filtering it out), and report it as a
+termination finding beside the score. To find the mechanism, spend
+minutes not hours: rerun the offending prompt with --reasoning-format
+none to make the raw thought stream visible, and again with --reasoning
+off. If it terminates cleanly with thinking disabled, the runaway lives
+in the thinking block and is a property of that model's default mode.
+EARNED BY: three cases, two model families, 2026-08-23/24. gemma-4-12B-QAT
+19 of 75 items - identical scores at 16,384 and 32,768, 5,365 s -> 9,552 s
+to reproduce a number already in hand. Qwen UD-IQ2_XXS MBPP, 1 item.
+Qwen UD-IQ4_XS at xhigh, ALPACA item 21 - empty at both caps, while all
+24 sibling answers reproduced byte-identically.

@@ -1262,3 +1262,23 @@ Caught by the scheduled watchdog, not by the self-check. Fixed at 15:46:28 by re
 Filed as a failure-library entry ("A .pid file names a process that is no longer that process"). The rule it earns: **resolve a runner by command line, never by .pid alone; and verify a kill by the effect you wanted - the chain advancing, the gate opening - never by the absence of a PID. Absence of a PID is absence of evidence.**
 
 This is the third liveness failure of this campaign and the second where every safety mechanism worked and the schedule or the verification was wrong. The watchdog earned its keep again.
+
+## 2026-08-24 16:08 - the rule-7 remedy has a limit, and this is the third case that proves it
+
+The xhigh ALPACA rerun at cap 32,768 finished in 1,236 s. Result:
+
+- **ALPACA[21] hit the 32,768 cap and is STILL EMPTY** (tokens=32768, chars=0). Doubling the budget bought nothing.
+- **All 24 other answers reproduced BYTE-IDENTICALLY** (0 of 25 changed). Greedy determinism confirmed a third time on this rig, and it means the raise touched nothing it should not have.
+
+Two consequences, and the second is the important one.
+
+**(1) No re-judging is needed and the score does not move.** The judged content of item 21 is unchanged - still empty - so the panel's three ratings of 1 stand, xhigh ALPACA stays **72.9**, and the seven-set xhigh composite stays **79.8**. What changes is the LABEL: the cell is no longer PROVISIONAL-pending-a-rerun. The rerun happened. The number is final, carrying a disclosed non-terminating item.
+
+**(2) THREE independent cases in this campaign now show the same thing: raising the cap does not cure a runaway.**
+- gemma-4-12B-QAT default thinking: 19 of 75 items truncated at 16,384; at 32,768 the scores, the per-benchmark cells and the truncation count were all identical, at 1.78x the wall clock.
+- Qwen UD-IQ2_XXS, MBPP: 1 truncation at 16,384, still 1 at 32,768.
+- Qwen UD-IQ4_XS at xhigh, ALPACA[21]: empty at 16,384, empty at 32,768.
+
+These are not budget shortfalls. They are **non-terminating generations** - the model enters a state it never leaves, and the cap is only the thing that eventually stops it. The gemma probe established the mechanism directly: with thinking left visible the runaway emits no end-of-thinking marker at all, and the same prompts with thinking disabled finish in a few hundred tokens.
+
+RULE 7 AMENDED accordingly. The raise-the-cap remedy is mandatory once, and it is DIAGNOSTIC as much as remedial: if the raised-cap rerun reproduces the truncation, the item is a non-terminating generation and no further raise is licensed. Escalating a cap indefinitely against a non-terminating generation burns GPU hours to reproduce the same zero - the gemma pair cost 2.65 h to reproduce a number already in hand. Report the item, keep it in the denominator, and stop.

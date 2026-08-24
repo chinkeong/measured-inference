@@ -1,0 +1,10 @@
+{
+  "arm": "xhigh-alpaca-cap32k",
+  "effort": "xhigh",
+  "wall_s": 1236.2,
+  "wall_h": 0.343,
+  "suite": "E:\\AI\\measured-inference\\results\\qwen38-27b-blind\\work\\rule21-n25-cap32768.json",
+  "server_args": "-ctk q8_0 -ctv q8_0 --chat-template-kwargs {\"reasoning_effort\":\"xhigh\"}",
+  "model": "C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf",
+  "finished": "2026-08-24T16:08:04"
+}
