@@ -1359,3 +1359,21 @@ ARMS SO FAR (frozen 3-benchmark suite, identical conditions):
 | UD-IQ2_XXS | 2.15 | **78.70** | 80.0 | 84.0 | 72.0 | 1 | 3 |
 
 The 3-bit rung is 1.3 points off the anchor - far inside the +/-16-point smoke-test band, i.e. a tie, which is the strongest thing n=25 is licensed to say and it supports the guide's 16 GB recommendation. The 2.15-bpw rung is 18.6 points down, which clears the band and is a genuine collapse.
+
+## 2026-08-24 21:05 - RULE 25 DECISION (pre-registered) and the paired ladder
+
+**UD-IQ1_M landed at 85.30** (GSM8K 96.0, HumanEval 88.0, MBPP 72.0, **0 truncations, 0 empties**, 1,766 s).
+
+**RULE 25 DECISION: LET UD-IQ1_S RUN.** The rule was pre-registered before any of these numbers existed: cut the bottom arm only if the curve had collapsed hard at IQ1_M (roughly below 70). It did not - 85.30 is in the 80s, and IQ1_M is a TIE with UD-IQ3_XXS and with UD-IQ2_S. With the curve still alive at 1.99 bpw, the 1.83-bpw anchor is genuinely informative about where the floor is rather than a screened-out file being carried through treatment to earn one word. Twenty minutes is also not the *hours* rule 25's case study is about. Decision made on the data, as written.
+
+**THE NON-MONOTONICITY, tested rather than narrated.** IQ1_M (1.994 bpw, 6.267 GiB) scored 85.30 against UD-IQ2_XXS (2.153 bpw, 6.767 GiB) at 78.70 - a SMALLER, lower-bit file apparently beating a larger one by 6.6 points. Paired McNemar says **b=5, c=10, p=0.302: a TIE.** It is not a reversal and must never be written as one. What IS notable is the churn: those two disagree on **15 of 75 items** while roughly cancelling - more discordance than any adjacent pair above them, which is what two files failing in different places looks like.
+
+**And they fail differently at the same score.** UD-IQ2_XXS carries **3 empty answers and 1 truncation**; UD-IQ1_M carries **zero of both** and loses its items to plainly wrong answers instead. Same statistical performance, different failure shape - which is precisely why rule 20 now requires empties and truncations as separate columns. A reader who only sees the Mean cannot tell "gets things wrong" from "sometimes returns nothing at all", and those need different mitigations.
+
+**THE PAIRED LADDER, final form for the rungs measured so far** (McNemar, exact two-sided, on the identical 75 items; b = left correct & right wrong):
+
+- Indistinguishable from the 4-bit anchor: **UD-Q3_K_XL** (p=1.00), **UD-Q2_K_XL** (p=1.00), **UD-IQ3_XXS** (p=0.25), **UD-IQ2_S** (p=0.0625, the weakest tie and right at the edge).
+- Measurably worse than the anchor: **UD-IQ2_XXS** (b=14 c=0, p=0.0001) and **UD-IQ1_M** (b=9 c=0, p=0.0039).
+- So **the boundary lies between 2.48 and 2.15 bits per weight**, and n=25 cannot place it more finely. Say the interval, never a point.
+
+Losses are near-perfectly one-directional (c=0 in most rows): the smaller file almost never wins an item the larger one lost. Quality IS degrading monotonically all the way down - it is simply unresolvable by this instrument until the cliff. That is the honest reconciliation of a monotone perplexity curve with a flat accuracy curve, and it is the sentence the chapter should carry.
