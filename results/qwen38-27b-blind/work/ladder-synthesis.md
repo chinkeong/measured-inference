@@ -7,7 +7,8 @@
 | UD-Q3_K_XL | pass1 | 12.244 | 3.895 | 6.7691 +/- 0.04667 | +2.63% | 0.6353 | 1.60 | -0.99 | PASS |
 | UD-IQ3_XXS | pass1 | 10.184 | 3.240 | 6.9187 +/- 0.04777 | +4.90% | 0.6426 | 2.06 | 1.07 | PASS |
 | UD-Q2_K_XL | pass1 | 9.154 | 2.912 | 6.9957 +/- 0.04794 | +6.07% | 0.6463 | 1.03 | 1.08 | PASS |
-| UD-IQ2_XXS | pass1 | 6.767 | 2.153 | 8.0079 +/- 0.05695 | +21.41% | 0.6912 | 2.39 | 6.06 | PASS |
+| UD-IQ2_S | pass2 | 7.797 | 2.481 | 7.5481 +/- 0.05383 | +14.44% | 0.6715 | 1.36 | 5.82 | PASS |
+| UD-IQ2_XXS | pass1 | 6.767 | 2.153 | 8.0079 +/- 0.05695 | +21.41% | 0.6912 | 1.03 | 5.91 | PASS |
 | UD-IQ1_M | pass1 | 6.267 | 1.994 | 8.1418 +/- 0.05586 | +23.44% | 0.6967 | 0.50 | 3.34 | PASS |
 | UD-IQ1_S | right-anchor | 5.767 | 1.835 | 8.9265 +/- 0.06202 | +35.34% | 0.7272 | 0.50 | 19.28 | FAIL (rep=CLEAN json=FAIL(empty) fence=PASS(fences=2)) |
 
@@ -18,11 +19,12 @@
 | NVFP4-MTP-VERY-LOW -> UD-Q3_K_XL | 1.60 | -1.57 | -0.99 | - |
 | UD-Q3_K_XL -> UD-IQ3_XXS | 2.06 | +2.21 | 1.07 | - |
 | UD-IQ3_XXS -> UD-Q2_K_XL | 1.03 | +1.11 | 1.08 | 1.0x |
-| UD-Q2_K_XL -> UD-IQ2_XXS | 2.39 | +14.47 | 6.06 | 5.7x |
+| UD-Q2_K_XL -> UD-IQ2_S | 1.36 | +7.90 | 5.82 | 5.4x |
+| UD-IQ2_S -> UD-IQ2_XXS | 1.03 | +6.09 | 5.91 | 5.5x |
 | UD-IQ2_XXS -> UD-IQ1_M | 0.50 | +1.67 | 3.34 | 3.1x |
-| UD-IQ1_M -> UD-IQ1_S | 0.50 | +9.64 | 19.28 | 17.8x |
+| UD-IQ1_M -> UD-IQ1_S | 0.50 | +9.64 | 19.28 | 5.8x |
 
-**KNEE: UD-Q2_K_XL.** The UD-Q2_K_XL -> UD-IQ2_XXS segment costs 6.06 %PPL per GiB, 5.7x the median 1.07 of every segment above it. UD-Q2_K_XL is the last rung before the curve turns up.
+**KNEE: UD-Q2_K_XL.** The UD-Q2_K_XL -> UD-IQ2_S segment costs 5.82 %PPL per GiB, 5.4x the median 1.07 of every segment above it. UD-Q2_K_XL is the last rung before the curve turns up.
 
 ## Detector matrix
 
@@ -34,6 +36,7 @@
 | UD-Q3_K_XL | PASS | PASS(0) | PASS(0) | PASS(0) | PASS(0) | PASS(exact) | PASS(fences=2) | 1047 | 42.58 |
 | UD-IQ3_XXS | PASS | PASS(0) | PASS(0) | PASS(0) | PASS(0) | PASS(exact) | PASS(fences=2) | 1133 | 44.03 |
 | UD-Q2_K_XL | PASS | PASS(0) | PASS(0) | PASS(0) | PASS(0) | PASS(exact) | PASS(fences=2) | 915 | 45.90 |
+| UD-IQ2_S | PASS | PASS(0) | PASS(0) | PASS(0) | PASS(0) | PASS(exact) | PASS(fences=2) | 993 | 47.85 |
 | UD-IQ2_XXS | PASS | PASS(0) | PASS(0) | PASS(0) | PASS(0) | PASS(exact) | PASS(fences=2) | 1136 | 49.44 |
 | UD-IQ1_M | PASS | PASS(0) | PASS(0) | PASS(0) | PASS(0) | PASS(exact) | PASS(fences=2) | 1287 | 50.96 |
 | UD-IQ1_S | FAIL | PASS(0) | PASS(0) | PASS(0) | PASS(0) | FAIL(empty) | PASS(fences=2) | 1276 | 53.25 |

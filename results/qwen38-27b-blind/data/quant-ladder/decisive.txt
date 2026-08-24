@@ -1,0 +1,9 @@
+﻿# decisive (equal-budget) arm ledger - opened 2026-08-23T18:41:29
+ARM gemma-12b-qat-q4_0 | model=gemma-4-12B-it-QAT-Q4_0 | cap=16384 | mean=73.30 | GSM8K=72.0(n=25,trunc=7) HumanEval=88.0(n=25,trunc=3) MBPP=60.0(n=25,trunc=9) | truncations=19 | wall_s=5365.5 | suite=1cdf54f8eb9d3f8f | ts=2026-08-23T20:10:57
+RULE7 gemma-12b-qat-q4_0 | 19 truncation(s) at cap 16384 - raising the cap to 32768 and rerunning THIS ARM ONLY (greedy determinism leaves the others byte-identical)
+ARM gemma-12b-qat-q4_0-cap32k | model=gemma-4-12B-it-QAT-Q4_0 | cap=32768 | mean=73.30 | GSM8K=72.0(n=25,trunc=7) HumanEval=88.0(n=25,trunc=3) MBPP=60.0(n=25,trunc=9) | truncations=19 | wall_s=9551.6 | suite=1cdf54f8eb9d3f8f | ts=2026-08-23T22:50:12
+DECISION qwen-iq2xxs | rule-7 cap raise on truncation PRE-AUTHORIZED by the session 2026-08-24T11:20 before launch - primary decisive arm, comparator already has a cap-32k arm (rule 25: escalation is a decision, made here, in advance)
+ARM qwen-iq2xxs | FAILED - no result json (see arm-qwen-iq2xxs.console.err) | wall_s=39
+ARM qwen-iq2xxs | model=Qwen3.8-27B-UD-IQ2_XXS | cap=16384 | mean=78.70 | GSM8K=80.0(n=25,trunc=0) HumanEval=84.0(n=25,trunc=0) MBPP=72.0(n=25,trunc=1) | truncations=1 | wall_s=1705.2 | suite=1cdf54f8eb9d3f8f | ts=2026-08-24T11:53:52
+RULE7 qwen-iq2xxs | 1 truncation(s) at cap 16384 - raising the cap to 32768 and rerunning THIS ARM ONLY (greedy determinism leaves the others byte-identical)
+ARM qwen-iq2xxs-cap32k | model=Qwen3.8-27B-UD-IQ2_XXS | cap=32768 | mean=78.70 | GSM8K=80.0(n=25,trunc=0) HumanEval=84.0(n=25,trunc=0) MBPP=72.0(n=25,trunc=1) | truncations=1 | wall_s=2105.6 | suite=1cdf54f8eb9d3f8f | ts=2026-08-24T12:29:01

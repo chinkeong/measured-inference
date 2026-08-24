@@ -441,3 +441,31 @@ pending work must say so LOUDLY in its last line and its watchdog must
 treat pending>0 at exit as an alarm, not a completion.
 EARNED BY: the quant-ladder deadline exit (2026-08-23 22:08) behind the
 gemma decisive-arm rerun - 2.5 h of invisible idle followed.
+
+## A .pid file names a process that is no longer that process
+
+SYMPTOM: you kill the PID in a runner's .pid file, verify with
+`Get-Process -Id <pid>` that it is gone, and report the job stopped - but
+the job keeps writing to its log, keeps holding its gate, and every
+downstream waiter stays blocked. The "verification" passed because
+nothing with that PID was running: the PID was stale, and the check
+you ran cannot tell "I killed it" from "it was never there".
+CAUSE: the .pid file was written by an EARLIER invocation of the same
+script (check its mtime against the run you care about - hours apart is
+the tell). PIDs are also reused by the OS, so a stale PID can name an
+unrelated live process; killing it is worse than a no-op.
+FIX: never resolve a runner by .pid alone. Resolve it by COMMAND LINE:
+`Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" |
+Select ProcessId, CreationDate, CommandLine` and match both the script
+path and a CreationDate consistent with the log line that started it.
+Then verify the kill by the EFFECT you wanted - the chain log advancing,
+the gate opening - never by the absence of a PID. Absence of a PID is
+absence of evidence.
+EARNED BY: the ladder poller (2026-08-24). run-ladder.ps1 finished its
+last rung at 12:35 and sat in an empty poll loop. The session killed
+`runner.pid` = 9984, written at 00:46 by a PREVIOUS run, confirmed
+"runner alive: 0", and ended the turn believing the chain was released.
+The live poller was PID 32148, started 11:20:35 - matching the chain log
+exactly. THREE HOURS of idle GPU followed, with a rule-7 rerun queued
+behind a gate that could not open. The watchdog caught it; the
+self-verification did not, because it verified the wrong proposition.

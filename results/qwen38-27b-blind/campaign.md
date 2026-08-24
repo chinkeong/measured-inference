@@ -1240,3 +1240,25 @@ Speed across the whole ladder (detector probe A, depth 218, no drafter, -c 8192,
 Rig gates: the IQ4_XS anchor reproduced 6.5956 twice at delta 0.000%, and the IQ4_XS-vs-NVFP4 pair resolved a 4.27% same-size quality gap against +/-0.045 error bars - the rig both reproduces and still discriminates.
 
 Still open in the ladder: UD-IQ2_S (7.79 GiB, sits INSIDE the cliff - it is the one rung that decides where the cliff starts) is downloaded and queued behind the GPU; the qwen-iq2xxs cap-32k rule-7 rerun is running.
+
+## 2026-08-24 12:29-12:35 - the last two ladder measurements landed
+
+**UD-IQ2_S, the rung that located the cliff.** GiB 7.797, bpw 2.4806, **PPL 7.5481 +/- 0.05383**, bpb 0.6715, detectors PASS (uniq 0.5081, 993 tokens, 47.85 t/s), ts 12:34:27. It was enabled automatically by the steepening rule (bracket gap 14.47% vs 1.11% reference, ratio 13.0 against a 1.5 threshold).
+
+What it answers: the two halves of the cliff cost **5.82 and 5.91 %PPL per GiB** - near enough identical. So the steep regime does NOT begin somewhere inside the 2.91-to-2.15 bpw interval; **it begins immediately below the knee**, at 2.91 bpw. Both halves clear their error bars by a wide margin (7.7 and 5.9 standard errors). The rule then evaluated UD-IQ3_S and DECLINED it (ratio 0.84 < 1.5). **The ladder is closed at nine files of this model.**
+
+Corrected median: the marginal cost of the three segments above the cliff is **1.08 %PPL/GiB** (2.55, 1.07, 1.08), not the 1.07 recorded earlier - the earlier figure omitted the anchor-to-Q3_K_XL segment, which is 2.55. Ratio column now reads 5.4x and 5.5x for the two cliff halves against that median.
+
+**qwen-iq2xxs cap-32k (rule-7 rerun), ts 12:29:01.** mean=78.70, GSM8K 80.0, HumanEval 84.0, MBPP 72.0 - **identical to the 16,384-cap arm**, and the single MBPP truncation SURVIVED the doubled cap. So the raise-the-cap remedy did not clear it; that prompt does not terminate at 32,768 either. The arm's status is now symmetric with the comparator's and its provisional mark is retired. True composite margin over gemma is 5.3 points, not 5.4 (the ledger's one-decimal rounding inflated it).
+
+## 2026-08-24 15:46 - LIVENESS FAILURE, mine: three GPU hours lost to a stale .pid file
+
+At 12:49 the session observed the ladder poller idling with nothing runnable and moved to stop it so the chain gate would open for the queued rule-7 ALPACA rerun. It killed the PID in `runner.pid` = 9984, confirmed `runner alive: 0`, and ended the turn believing the chain was released.
+
+**runner.pid was written at 00:46:53 by the PREVIOUS ladder run.** The live poller was PID 32148, started 11:20:35 - exactly matching the chain log's `step start: chain-ladder-pass2`. The verification passed because nothing with PID 9984 was running: the check could not distinguish "I killed it" from "it was never there". The GPU then sat idle from 12:35 to 15:46 with a rule-7 rerun queued behind a gate that could not open. Killing a stale PID is also worse than a no-op, because the OS reuses PIDs and the kill may land on an unrelated live process.
+
+Caught by the scheduled watchdog, not by the self-check. Fixed at 15:46:28 by resolving the process via `Get-CimInstance Win32_Process` COMMAND LINE and CreationDate, killing 32148, and confirming the EFFECT - `CHAIN DONE` appeared and the waiter opened its gate at 15:47:28.
+
+Filed as a failure-library entry ("A .pid file names a process that is no longer that process"). The rule it earns: **resolve a runner by command line, never by .pid alone; and verify a kill by the effect you wanted - the chain advancing, the gate opening - never by the absence of a PID. Absence of a PID is absence of evidence.**
+
+This is the third liveness failure of this campaign and the second where every safety mechanism worked and the schedule or the verification was wrong. The watchdog earned its keep again.
