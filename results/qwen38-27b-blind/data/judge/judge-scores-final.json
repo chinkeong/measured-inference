@@ -1,0 +1,184 @@
+{
+ "protocol": "rule21-judge-panel-v1",
+ "sources": {
+  "ALPACA": "pass-2 (xhigh from the 32,768-cap rule-7 re-run; low and medium answers unchanged, re-rated in the same batch so all three arms share one session)",
+  "MT-Bench": "pass-1 (16,384-cap generations)"
+ },
+ "judge": "Claude Opus 5, 3 blind seats per pass",
+ "normalization": "(r-1)/9*100",
+ "arms": {
+  "low": {
+   "ALPACA": {
+    "n": 25,
+    "mean_rating_1_10": 7.32,
+    "score_0_100": 70.2,
+    "sd_across_items": 1.438,
+    "mean_seat_spread": 0.64,
+    "max_seat_spread": 3,
+    "at_cap_items": [],
+    "provisional": false,
+    "note": null
+   },
+   "MT-Bench": {
+    "n": 25,
+    "mean_rating_1_10": 8.267,
+    "score_0_100": 80.7,
+    "sd_across_items": 1.681,
+    "mean_seat_spread": 0.28,
+    "max_seat_spread": 1,
+    "at_cap_items": [],
+    "provisional": false,
+    "note": null
+   }
+  },
+  "medium": {
+   "ALPACA": {
+    "n": 25,
+    "mean_rating_1_10": 7.667,
+    "score_0_100": 74.1,
+    "sd_across_items": 1.566,
+    "mean_seat_spread": 0.6,
+    "max_seat_spread": 2,
+    "at_cap_items": [],
+    "provisional": false,
+    "note": null
+   },
+   "MT-Bench": {
+    "n": 25,
+    "mean_rating_1_10": 8.68,
+    "score_0_100": 85.3,
+    "sd_across_items": 0.683,
+    "mean_seat_spread": 0.64,
+    "max_seat_spread": 3,
+    "at_cap_items": [],
+    "provisional": false,
+    "note": null
+   }
+  },
+  "xhigh": {
+   "ALPACA": {
+    "n": 25,
+    "mean_rating_1_10": 7.493,
+    "score_0_100": 72.1,
+    "sd_across_items": 1.831,
+    "mean_seat_spread": 0.56,
+    "max_seat_spread": 1,
+    "at_cap_items": [
+     21
+    ],
+    "provisional": false,
+    "note": "the at-cap item was re-run at 32,768 and reproduced the truncation, so rule 7's remedy is exhausted and the score is final with a disclosed non-terminating item"
+   },
+   "MT-Bench": {
+    "n": 25,
+    "mean_rating_1_10": 8.173,
+    "score_0_100": 79.7,
+    "sd_across_items": 0.706,
+    "mean_seat_spread": 0.44,
+    "max_seat_spread": 1,
+    "at_cap_items": [],
+    "provisional": false,
+    "note": null
+   }
+  }
+ },
+ "paired": [
+  {
+   "dataset": "ALPACA",
+   "a": "low",
+   "b": "medium",
+   "n": 25,
+   "mean_diff_b_minus_a": 0.347,
+   "ci95": [
+    -0.04,
+    0.733
+   ],
+   "b_better_on": 11,
+   "b_worse_on": 4,
+   "tied_on": 10,
+   "verdict": "TIE"
+  },
+  {
+   "dataset": "ALPACA",
+   "a": "low",
+   "b": "xhigh",
+   "n": 25,
+   "mean_diff_b_minus_a": 0.173,
+   "ci95": [
+    -0.587,
+    0.893
+   ],
+   "b_better_on": 13,
+   "b_worse_on": 7,
+   "tied_on": 5,
+   "verdict": "TIE"
+  },
+  {
+   "dataset": "ALPACA",
+   "a": "medium",
+   "b": "xhigh",
+   "n": 25,
+   "mean_diff_b_minus_a": -0.173,
+   "ci95": [
+    -0.987,
+    0.64
+   ],
+   "b_better_on": 8,
+   "b_worse_on": 13,
+   "tied_on": 4,
+   "verdict": "TIE"
+  },
+  {
+   "dataset": "MT-Bench",
+   "a": "low",
+   "b": "medium",
+   "n": 25,
+   "mean_diff_b_minus_a": 0.413,
+   "ci95": [
+    -0.107,
+    1.213
+   ],
+   "b_better_on": 10,
+   "b_worse_on": 5,
+   "tied_on": 10,
+   "verdict": "TIE"
+  },
+  {
+   "dataset": "MT-Bench",
+   "a": "low",
+   "b": "xhigh",
+   "n": 25,
+   "mean_diff_b_minus_a": -0.093,
+   "ci95": [
+    -0.613,
+    0.693
+   ],
+   "b_better_on": 6,
+   "b_worse_on": 14,
+   "tied_on": 5,
+   "verdict": "TIE"
+  },
+  {
+   "dataset": "MT-Bench",
+   "a": "medium",
+   "b": "xhigh",
+   "n": 25,
+   "mean_diff_b_minus_a": -0.507,
+   "ci95": [
+    -0.8,
+    -0.213
+   ],
+   "b_better_on": 3,
+   "b_worse_on": 14,
+   "tied_on": 8,
+   "verdict": "DIFFERENT"
+  }
+ ],
+ "judge_repeatability": {
+  "n_identical_answers": 74,
+  "mean_abs_rating_change": 0.333,
+  "max_abs_rating_change": 1.333,
+  "unchanged_exactly": 25,
+  "note": "the same answers, rated by three fresh blind seats in a second pass; this is the judge's repeatability, not the model's"
+ }
+}

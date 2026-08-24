@@ -1,0 +1,31 @@
+{
+ "protocol": "rule21-judge-panel-v1 (re-judge)",
+ "input_change": "xhigh ALPACA answers taken from the rule-7 raised-cap re-run (cap 32,768, 2026-08-24 16:08); low and medium unchanged",
+ "arms": {
+  "low": {
+   "n": 25,
+   "mean_rating_1_10": 7.32,
+   "score_0_100": 70.2,
+   "pass1_score_0_100": 70.2
+  },
+  "medium": {
+   "n": 25,
+   "mean_rating_1_10": 7.667,
+   "score_0_100": 74.1,
+   "pass1_score_0_100": 75.1
+  },
+  "xhigh": {
+   "n": 25,
+   "mean_rating_1_10": 7.493,
+   "score_0_100": 72.1,
+   "pass1_score_0_100": 72.9
+  }
+ },
+ "repeatability": {
+  "n_identical_answers": 74,
+  "mean_abs_rating_change": 0.333,
+  "max_abs_rating_change": 1.333,
+  "unchanged_exactly": 25,
+  "note": "the same answers, rated by three fresh blind seats in a second pass; this is the judge's repeatability, not the model's"
+ }
+}

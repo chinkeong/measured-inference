@@ -28,7 +28,7 @@ import sys
 
 BENCH = r"E:\AI\measured-inference\scripts\bench"
 R21 = r"E:\AI\measured-inference\results\qwen38-27b-blind\data\rule21"
-JUDGE = r"E:\AI\measured-inference\results\qwen38-27b-blind\data\judge\judge-scores.json"
+JUDGE = r"E:\AI\measured-inference\results\qwen38-27b-blind\data\judge\judge-scores-final.json"
 sys.path.insert(0, BENCH)
 
 import datasets_io as D  # noqa: E402
@@ -39,13 +39,15 @@ PAIR = ["ALPACA", "MT-Bench"]
 
 def main():
     js = json.load(open(JUDGE, encoding="utf-8"))
-    print("judge: %s | seats %s | rated %d/%d"
-          % (js["judge"], js["seats"], js["answers_rated"], js["answers_total"]))
-    if js["missing"] or js["partial"]:
-        print("  REFUSING: %d unrated, %d partially rated - every answer needs "
-              "all seats before a score publishes (rule 7: no filtering)"
-              % (len(js["missing"]), len(js["partial"])))
-        return 1
+    print("judge: %s" % js["judge"])
+    for ds, s in js["sources"].items():
+        print("  %-9s %s" % (ds, s))
+    rep = js.get("judge_repeatability")
+    if rep:
+        print("  repeatability: %.3f mean abs rating change on %d identical "
+              "answers (max %.3f, %d unchanged)"
+              % (rep["mean_abs_rating_change"], rep["n_identical_answers"],
+                 rep["max_abs_rating_change"], rep["unchanged_exactly"]))
 
     for arm in ARMS:
         base_path = os.path.join(R21, "arm-%s-cap32k-merged.json" % arm)
@@ -90,9 +92,11 @@ def main():
         base["judge_panel"] = {
             "protocol": js["protocol"],
             "judge": js["judge"],
-            "rubric": js["rubric"],
+            "rubric": "canonical MT-Bench single-answer grading rubric, 1-10",
             "normalization": js["normalization"],
-            "seats": js["seats"],
+            "seats": js.get("seats", [1, 2, 3]),
+            "sources": js["sources"],
+            "judge_repeatability": js.get("judge_repeatability"),
             "blinding": "opaque salted ids; arm identity sealed in "
                         "key-SEALED.json, which no seat reads; per-seat "
                         "shuffle seeds so ordering effects do not correlate",
@@ -105,7 +109,9 @@ def main():
                                   "this report's author are both Claude "
                                   "models, which is a correlated instrument "
                                   "and is disclosed with every number",
-            "pair_generation_cap": 16384,
+            "pair_generation_cap": "MT-Bench 16,384; ALPACA 16,384 for low and "
+                                   "medium, 32,768 for xhigh (the rule-7 "
+                                   "re-run, which reproduced the truncation)",
             "provisional": provisional or "none",
         }
         out = os.path.join(R21, "arm-%s-judged.json" % arm)

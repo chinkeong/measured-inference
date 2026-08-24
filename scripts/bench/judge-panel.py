@@ -188,6 +188,254 @@ def score():
           % (len(by_id), len(key), len(missing), len(partial), p))
 
 
+RJ = os.path.join(OUT, "rejudge-alpaca")
+CAP32K = os.path.join(R21, "arm-xhigh-alpaca-cap32k-"
+                           "Qwen3_8-27B-UD-IQ4_XS_20260824_154740_transcripts.json")
+
+
+def rebuild():
+    """Re-judge ALL of ALPACA with xhigh's answers taken from the rule-7 re-run.
+
+    Rule 7's raise ran and REPRODUCED the truncation, so the published 72.9
+    still rested on the 16,384-cap generations. Arguing that the score cannot
+    move because the answers are byte-identical is reasoning where a
+    measurement is available; this measures it.
+
+    All THREE arms are re-judged, not just xhigh. The original pass showed each
+    seat a shuffled batch containing all three arms, so judging xhigh alone
+    would change the conditions (no cross-arm anchoring) and the result would
+    not be comparable to the number it replaces. Same protocol, same shape,
+    one input changed.
+
+    It doubles as the only reproducibility check this campaign has on the judge
+    itself: 74 of the 75 answers are byte-identical to ones already rated by
+    three seats, so the spread between the two passes on those 74 is the
+    judge's own repeatability.
+    """
+    os.makedirs(RJ, exist_ok=True)
+    os.makedirs(os.path.join(RJ, "packets"), exist_ok=True)
+    os.makedirs(os.path.join(RJ, "ratings"), exist_ok=True)
+
+    new_xhigh = {int(it["index"]): it for it in
+                 json.load(open(CAP32K, encoding="utf-8"))["generations"]["ALPACA"]}
+    key, pool = {}, []
+    for arm in ARMS:
+        gen = json.load(open(_transcript(arm), encoding="utf-8"))["generations"]
+        for it in gen["ALPACA"]:
+            idx = int(it["index"])
+            src = "16384"
+            if arm == "xhigh":
+                it = new_xhigh[idx]          # the raised-cap answer
+                src = "32768"
+            body = str(it.get("response", ""))
+            toks = int(it.get("tokens", 0))
+            # v2 salt: ids cannot be matched to pass-1 ids by any seat
+            oid = hashlib.sha256(("rule21-judge-v2|%s|ALPACA|%d" % (arm, idx))
+                                 .encode()).hexdigest()[:10]
+            key[oid] = {"arm": arm, "dataset": "ALPACA", "index": idx,
+                        "tokens": toks, "chars": len(body), "cap": src,
+                        "at_cap": (toks >= 32768 if src == "32768" else toks >= CAP),
+                        "empty": not body.strip()}
+            pool.append({"id": oid, "index": idx,
+                         "question": str(it["prompt"]), "answer": body})
+
+    json.dump(key, open(os.path.join(RJ, "key-SEALED.json"), "w",
+                        encoding="utf-8"), indent=1)
+    n = 0
+    for half, rng in HALVES.items():
+        items = [x for x in pool if x["index"] in rng]
+        for seat in SEATS:
+            sh = list(items)
+            random.Random(SEAT_SEED[seat] + 7000 + hash(half) % 1000).shuffle(sh)
+            clean = [{"id": x["id"], "question": x["question"],
+                      "answer": x["answer"]} for x in sh]
+            json.dump({"rubric": RUBRIC, "dataset": "ALPACA", "seat": seat,
+                       "n": len(clean), "answers": clean},
+                      open(os.path.join(RJ, "packets",
+                                        "alpaca-%s-seat%d.json" % (half, seat)),
+                           "w", encoding="utf-8"), indent=1)
+            n += 1
+    print("rebuilt %d packets, %d answers (xhigh from the 32,768-cap re-run)"
+          % (n, len(key)))
+    for k, v in key.items():
+        if v["at_cap"]:
+            print("  AT-CAP: %s ALPACA[%d] cap=%s tokens=%d empty=%s"
+                  % (v["arm"], v["index"], v["cap"], v["tokens"], v["empty"]))
+
+
+def rescore():
+    """Score the re-judge, and measure the judge against itself on the 74
+    answers that did not change."""
+    key2 = json.load(open(os.path.join(RJ, "key-SEALED.json"), encoding="utf-8"))
+    by2 = {}
+    import glob
+    for p in glob.glob(os.path.join(RJ, "ratings", "*.json")):
+        d = json.load(open(p, encoding="utf-8"))
+        for r in d["ratings"]:
+            by2.setdefault(r["id"], {})[d["seat"]] = int(r["rating"])
+    missing = [k for k in key2 if k not in by2]
+    partial = [k for k, v in by2.items() if len(v) < len(SEATS)]
+    if missing or partial:
+        print("REFUSING: %d unrated, %d partial" % (len(missing), len(partial)))
+        return 1
+
+    # pass-1 ratings, for the repeatability comparison
+    key1 = json.load(open(KEYFILE, encoding="utf-8"))
+    by1 = {}
+    for p in glob.glob(os.path.join(RATINGS, "*.json")):
+        d = json.load(open(p, encoding="utf-8"))
+        for r in d["ratings"]:
+            by1.setdefault(r["id"], {})[d["seat"]] = int(r["rating"])
+    p1 = {(v["arm"], v["index"]): statistics.mean(by1[k].values())
+          for k, v in key1.items() if v["dataset"] == "ALPACA" and k in by1}
+
+    out = {"protocol": "rule21-judge-panel-v1 (re-judge)",
+           "input_change": "xhigh ALPACA answers taken from the rule-7 "
+                           "raised-cap re-run (cap 32,768, 2026-08-24 16:08); "
+                           "low and medium unchanged",
+           "arms": {}, "repeatability": {}}
+    same, diffs = [], []
+    for arm in ARMS:
+        ids = [k for k, v in key2.items() if v["arm"] == arm]
+        per = [statistics.mean(by2[k].values()) for k in ids]
+        mean_r = statistics.mean(per)
+        out["arms"][arm] = {
+            "n": len(ids),
+            "mean_rating_1_10": round(mean_r, 3),
+            "score_0_100": round((mean_r - 1.0) / 9.0 * 100.0, 1),
+            "pass1_score_0_100": round(
+                (statistics.mean([p1[(arm, key2[k]["index"])] for k in ids]) - 1.0)
+                / 9.0 * 100.0, 1),
+        }
+        for k in ids:
+            a = p1[(arm, key2[k]["index"])]
+            b = statistics.mean(by2[k].values())
+            # 74 of 75 answers are byte-identical between passes
+            if not (arm == "xhigh" and key2[k]["index"] == 21):
+                same.append(abs(b - a))
+            diffs.append((arm, key2[k]["index"], round(a, 2), round(b, 2)))
+    out["repeatability"] = {
+        "n_identical_answers": len(same),
+        "mean_abs_rating_change": round(statistics.mean(same), 3),
+        "max_abs_rating_change": round(max(same), 3),
+        "unchanged_exactly": sum(1 for x in same if x == 0),
+        "note": "the same answers, rated by three fresh blind seats in a second "
+                "pass; this is the judge's repeatability, not the model's",
+    }
+    json.dump(out, open(os.path.join(OUT, "judge-rejudge.json"), "w",
+                        encoding="utf-8"), indent=1)
+    print(json.dumps(out, indent=1))
+    return 0
+
+
+def _ratings(dirpath):
+    import glob
+    by = {}
+    for p in glob.glob(os.path.join(dirpath, "*.json")):
+        d = json.load(open(p, encoding="utf-8"))
+        for r in d["ratings"]:
+            by.setdefault(r["id"], {})[d["seat"]] = int(r["rating"])
+    return by
+
+
+def _merged_by_arm_index():
+    """Per-(arm, dataset, index) seat ratings, with ALPACA taken from the
+    re-judge when one exists.
+
+    ALPACA's published numbers must come from the rule-7 REMEDIED generations,
+    so once the raised-cap arm exists, pass 1's ALPACA is superseded whole.
+    All three arms move together: they were rated in one batch, and mixing a
+    pass-1 arm with a pass-2 arm inside one dataset would compare two
+    different judging sessions rather than two effort levels.
+    """
+    key1 = json.load(open(KEYFILE, encoding="utf-8"))
+    by1 = _ratings(RATINGS)
+    out, src = {}, {}
+    for oid, v in key1.items():
+        if oid in by1:
+            out[(v["arm"], v["dataset"], v["index"])] = by1[oid]
+            src[v["dataset"]] = "pass-1 (16,384-cap generations)"
+    k2p = os.path.join(RJ, "key-SEALED.json")
+    if os.path.exists(k2p):
+        key2 = json.load(open(k2p, encoding="utf-8"))
+        by2 = _ratings(os.path.join(RJ, "ratings"))
+        if all(o in by2 for o in key2):
+            for oid, v in key2.items():
+                out[(v["arm"], v["dataset"], v["index"])] = by2[oid]
+            src["ALPACA"] = ("pass-2 (xhigh from the 32,768-cap rule-7 re-run; "
+                             "low and medium answers unchanged, re-rated in the "
+                             "same batch so all three arms share one session)")
+    return out, src
+
+
+def finalize():
+    """The publishable scores: ALPACA from the re-judge, MT-Bench from pass 1."""
+    import itertools
+    by, src = _merged_by_arm_index()
+    key1 = json.load(open(KEYFILE, encoding="utf-8"))
+    atcap = {(v["arm"], v["dataset"], v["index"]) for v in key1.values()
+             if v["at_cap"]}
+    out = {"protocol": "rule21-judge-panel-v1", "sources": src,
+           "judge": "Claude Opus 5, 3 blind seats per pass",
+           "normalization": "(r-1)/9*100", "arms": {}, "paired": []}
+    for arm in ARMS:
+        out["arms"][arm] = {}
+        for ds in DATASETS:
+            ks = [k for k in by if k[0] == arm and k[1] == ds]
+            per = [statistics.mean(by[k].values()) for k in ks]
+            spr = [max(by[k].values()) - min(by[k].values()) for k in ks]
+            mr = statistics.mean(per)
+            out["arms"][arm][ds] = {
+                "n": len(ks), "mean_rating_1_10": round(mr, 3),
+                "score_0_100": round((mr - 1.0) / 9.0 * 100.0, 1),
+                "sd_across_items": round(statistics.pstdev(per), 3),
+                "mean_seat_spread": round(statistics.mean(spr), 3),
+                "max_seat_spread": max(spr),
+                "at_cap_items": sorted(k[2] for k in ks if k in atcap),
+                "provisional": False,
+                "note": ("the at-cap item was re-run at 32,768 and reproduced "
+                         "the truncation, so rule 7's remedy is exhausted and "
+                         "the score is final with a disclosed non-terminating "
+                         "item") if any(k in atcap for k in ks) else None,
+            }
+    rng = random.Random(42)
+    for ds in DATASETS:
+        for a, b in itertools.combinations(ARMS, 2):
+            A = {k[2]: statistics.mean(by[k].values()) for k in by
+                 if k[0] == a and k[1] == ds}
+            B = {k[2]: statistics.mean(by[k].values()) for k in by
+                 if k[0] == b and k[1] == ds}
+            idx = sorted(set(A) & set(B))
+            d = [B[i] - A[i] for i in idx]
+            boot = sorted(statistics.mean([rng.choice(d) for _ in d])
+                          for _ in range(20000))
+            lo, hi = boot[500], boot[19500]
+            rec = {"dataset": ds, "a": a, "b": b, "n": len(d),
+                   "mean_diff_b_minus_a": round(statistics.mean(d), 3),
+                   "ci95": [round(lo, 3), round(hi, 3)],
+                   "b_better_on": sum(1 for x in d if x > 0),
+                   "b_worse_on": sum(1 for x in d if x < 0),
+                   "tied_on": sum(1 for x in d if x == 0),
+                   "verdict": "DIFFERENT" if (lo > 0 or hi < 0) else "TIE"}
+            if rec["verdict"] == "DIFFERENT" and min(abs(lo), abs(hi)) < 0.05:
+                rec["verdict"] = "DIFFERENT (marginal)"
+            out["paired"].append(rec)
+    rj = os.path.join(OUT, "judge-rejudge.json")
+    if os.path.exists(rj):
+        out["judge_repeatability"] = json.load(open(rj, encoding="utf-8"))["repeatability"]
+    p = os.path.join(OUT, "judge-scores-final.json")
+    json.dump(out, open(p, "w", encoding="utf-8"), indent=1)
+    for arm in ARMS:
+        print("%-7s ALPACA %5.1f   MT-Bench %5.1f"
+              % (arm, out["arms"][arm]["ALPACA"]["score_0_100"],
+                 out["arms"][arm]["MT-Bench"]["score_0_100"]))
+    for r in out["paired"]:
+        print("  %-9s %-6s vs %-6s  %+.3f  [%+.3f,%+.3f]  %s"
+              % (r["dataset"], r["a"], r["b"], r["mean_diff_b_minus_a"],
+                 r["ci95"][0], r["ci95"][1], r["verdict"]))
+    print("-> %s" % p)
+
+
 def compare():
     """Paired arm-vs-arm test on the judged pair.
 
@@ -249,4 +497,5 @@ def compare():
 
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "build"
-    {"build": build, "score": score, "compare": compare}[cmd]()
+    {"build": build, "score": score, "compare": compare,
+     "rebuild": rebuild, "rescore": rescore, "finalize": finalize}[cmd]()

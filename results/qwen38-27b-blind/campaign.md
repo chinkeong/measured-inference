@@ -1282,3 +1282,19 @@ Two consequences, and the second is the important one.
 These are not budget shortfalls. They are **non-terminating generations** - the model enters a state it never leaves, and the cap is only the thing that eventually stops it. The gemma probe established the mechanism directly: with thinking left visible the runaway emits no end-of-thinking marker at all, and the same prompts with thinking disabled finish in a few hundred tokens.
 
 RULE 7 AMENDED accordingly. The raise-the-cap remedy is mandatory once, and it is DIAGNOSTIC as much as remedial: if the raised-cap rerun reproduces the truncation, the item is a non-terminating generation and no further raise is licensed. Escalating a cap indefinitely against a non-terminating generation burns GPU hours to reproduce the same zero - the gemma pair cost 2.65 h to reproduce a number already in hand. Report the item, keep it in the denominator, and stop.
+
+## 2026-08-24 17:05 - the re-judge: one finding survives, one dies, and the judge gets a noise floor
+
+I was wrong earlier today. When the ALPACA rerun reproduced its truncation I argued no re-judging was needed, because the judged content was byte-identical and so the ratings could not move. That is REASONING WHERE A MEASUREMENT WAS AVAILABLE - the review gate caught it, and the measurement disagreed with the argument.
+
+All three ALPACA arms were re-judged together (three fresh blind seats, v2 salted ids, 225 ratings) because one arm's generations had been replaced and mixing a pass-1 arm with a pass-2 arm inside one dataset would compare two judging sessions rather than two effort levels. MT-Bench never truncated and keeps its first-pass numbers.
+
+FINAL: ALPACA 70.2 / 74.1 / 72.1 (was 70.2 / 75.1 / 72.9). Seven-set composite 80.2 / 80.3 / 79.7 (was 80.2 / 80.4 / 79.8). Five-set unchanged at 82.1 / 80.5 / 81.3.
+
+**(1) THE MARGINAL RESULT DIED.** Pass 1 called ALPACA medium-over-low DIFFERENT (marginal) at +0.44, CI +0.013 to +0.907 - it cleared zero by thirteen thousandths and six comparisons had been run. Pass 2: **+0.35, CI -0.04 to +0.73, TIE.** It was noise. Labelling it marginal in advance is the only reason it never became a claim, and this is now the campaign's worked example of a pre-registered caution doing its job. **MT-Bench medium-over-xhigh is untouched** (-0.507, CI -0.800 to -0.213, 14 prompts to 3) and is now the ONLY surviving separation between effort levels - one of six comparisons.
+
+**(2) THE JUDGE HAS A MEASURED NOISE FLOOR.** 74 of 75 answers were byte-identical between passes, so any rating change on them is the instrument, not the model: **mean absolute change 0.333 rating points, max 1.333, 25 unchanged exactly.** Averaged over 25 items an arm score moves at most ~1.0 point on the 0-100 scale. That band is exactly why a 0.51-point paired gap is a result and a 0.44-point one was not - the campaign can now SAY that with a number instead of asserting it. Measured on ALPACA only; MT-Bench was not re-judged, so applying the band there is an assumption and is labelled as one.
+
+Cross-pass qualitative agreement is its own check: the second panel, with no knowledge of the first, independently flagged the same three degeneracies (the empty answer, the 100 near-duplicate season sets, the ripple/crash padding) and the same instruction failure (the noun phrase where a sentence was demanded).
+
+ARTIFACTS: judge-panel.py gains rebuild/rescore/finalize; judge-scores-final.json is now the publishable record and rule21-merge-judge.py reads it; the guide is updated and pushed (cf62823); example-report.html re-cut and pinned to cf62823; the draft update is in flight.
