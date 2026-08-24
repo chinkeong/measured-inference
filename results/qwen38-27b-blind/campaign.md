@@ -1317,3 +1317,20 @@ The four gates the campaign owed are now all closed:
 - Gate 2, the audit amendments - closed 2026-08-23 (rules 24-26, gate 4, the title law).
 - Gate 3, the marriage - closed here.
 - Gate 4, internal consistency - closed here.
+
+## 2026-08-24 18:10 - the republication sweep, closed (zero GPU, ran alongside the accuracy ladder)
+
+The spec's republication rule had been in debt since the ladder finished at 12:35: five places on the published guide still described a round that was running, contributing two results, or shipping nothing. Closed. Each site gained the evidence rather than merely losing the stale clause:
+
+- **The 3-bit row for 16 GB cards** said "Unmeasured here" - for the file the guide actually recommends at that size. It is now the best-evidenced row in the table: PPL 6.7691 +/- 0.047, +2.63% vs the 4-bit default, the cheapest quality step on the whole ladder at 1.03 GiB saved, detectors clean. And what is STILL unmeasured for it - speed and fit on a real 16 GB card - is now stated rather than implied, because this rig owns one 24 GB card (rule 1, rule 13b).
+- The Arc B580 row dismissed 2-bit in passing; 2-bit now carries its price.
+- The 262,144 fp16 row called UD-IQ1_S merely too big; it is also the one rung that FAILS a functional check.
+- Evidence tier and run log: the ladder is complete, and the log names what ships here and what does not.
+
+Added the one honest summary section 08 owed, in Voice 1: quality falls ~1%/GiB down to 2.91 bpw and ~5x that below it, so the advice is **stop at about 9 GiB**, not "go as small as you can" - and the rung where the model stops WORKING is not the rung where quality turns. It closes by naming what is missing (speed at depth, window on a smaller board, the accuracy ladder in flight) and states that none of it is yet a recommendation to run a sub-4-bit file. Guide 6924755, pushed; example-report.html re-cut and re-pinned to it.
+
+**A rule-6 constraint recorded BEFORE the accuracy ladder reports, so it cannot be rationalised afterwards.** Rule 6: accuracy at n<=25 is a smoke test detecting ~20-point collapses only; quants are ranked by PERPLEXITY. The running ladder is n=25 per cell. It therefore **may not rank the rungs** - that stays perplexity's job - and may only answer the collapse question: WHERE does the model break, not WHICH rung is better than which. The composite over three benchmarks pools 75 samples per arm, which is more power than one cell but still not a fine-grained ranking instrument. Rule 21's guardrail says the same from the other side.
+
+**A rule-25 decision, also recorded in advance.** UD-IQ1_S already failed the detector screen, and rule 25's own dated case study is UD-Q4_K_XL carried through full treatment to publish one word. IQ1_S is LAST in the arm queue: if the curve has already collapsed at IQ1_M, **cut the IQ1_S arm** and publish its screen numbers instead of spending 30 minutes proving a screened-out file is bad.
+
+**A REASONING self-check, recorded against myself.** "The accuracy cliff sits somewhere other than the perplexity cliff" is a TIDY story and I pitched it before any number existed - which is exactly the expertise-blindness trap (the tidier the story, the more it needs the extra probe; the acceptance-predicts-throughput story was tidy for a full day). The reversal check passes: if perplexity turns out to predict accuracy well, the two curves simply track and that is equally publishable. Writing it up either way, not hunting the divergence.
