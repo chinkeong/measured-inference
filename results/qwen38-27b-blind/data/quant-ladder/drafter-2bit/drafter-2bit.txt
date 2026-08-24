@@ -1,0 +1,5 @@
+﻿# does the MTP drafter survive below 4 bits - opened 2026-08-24T20:24:41
+PAIR iq4xs-off | file=iq4xs | GiB=13.274 | drafter=off | decode_tps_mean=42.34 | min=42.30 | max=42.37 | probes=3 | tokens_mean=700 | acceptance=n/a | mean_draft_len=n/a | load_s=11.7
+PAIR iq4xs-on | file=iq4xs | GiB=13.274 | drafter=on | decode_tps_mean=86.91 | min=86.49 | max=87.69 | probes=3 | tokens_mean=700 | acceptance=n/a | mean_draft_len=5.70 | load_s=8
+PAIR q2kxl-off | file=q2kxl | GiB=9.154 | drafter=off | decode_tps_mean=45.66 | min=45.56 | max=45.79 | probes=3 | tokens_mean=700 | acceptance=n/a | mean_draft_len=n/a | load_s=8
+PAIR q2kxl-on | file=q2kxl | GiB=9.154 | drafter=on | decode_tps_mean=77.01 | min=75.00 | max=79.87 | probes=3 | tokens_mean=694 | acceptance=n/a | mean_draft_len=5.10 | load_s=6

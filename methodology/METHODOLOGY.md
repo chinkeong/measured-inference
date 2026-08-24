@@ -415,6 +415,41 @@ beyond its retrieval-tested depth is labeled
       above longest-prompt + cap, so truncation is impossible by construction.
       Truncation discovered afterwards is a sequencing failure, not a data
       point.
+    - **Sweep at the SHIPPED RECIPE, not at a clean-room default.** Once
+      Stage 5 has locked the recipes, every comparison arm runs with the flags
+      the recipes actually ship — drafter and its tuned n-max/p-min, KV dtype,
+      effort level, projector — because a ranking measured under a
+      configuration no reader runs is a ranking of something nobody will
+      experience. Where an arm MUST deviate (greedy scoring wants determinism;
+      a scored suite wants the drafter's speed out of the timing), the
+      deviation is NAMED, its axis is stated, and its immateriality is
+      MEASURED ONCE rather than assumed — the campaign's own energy table
+      already does this correctly with its "named difference" paragraph.
+      **Dated case study, 2026-08-24/25 — this rule cost four GPU hours and
+      inverted a verdict.** A quant ladder scored eight rungs drafter-OFF for
+      clean determinism, and on those numbers UD-Q2_K_XL (9.154 GiB) tied the
+      4-bit UD-IQ4_XS (13.274 GiB) on accuracy while running FASTER
+      (45.66 vs 42.34 t/s) — an obvious daily-driver upgrade freeing 4.12 GiB.
+      A follow-up probe at the shipped drafter setting reversed it: with
+      `--spec-type draft-mtp` on, the 4-bit file runs **86.91 t/s against the
+      2.9-bit file's 77.01** — 12.9% FASTER despite being 45% larger, because
+      the draft head degrades with bit-width (acceptance 0.611 → 0.551, mean
+      draft length 5.70 → 5.08, speculation worth 2.05× → 1.69×). **The
+      ranking INVERTS when the drafter is switched on.** Had the sweep shipped
+      the recipe's flags from the first arm, the right answer would have been
+      in hand at no extra cost; instead it needed a separate probe, and the
+      wrong answer was briefly the obvious one.
+    - **Appetite is a property of the QUANT, not only of the effort level.**
+      Rule 25 already requires appetite probes before effort arms; the same
+      applies per rung of a quant ladder. Generation length grows as bit-width
+      falls — at the bottom a model stops terminating at all — so a cap chosen
+      once for the top of the ladder is a truncation machine at the bottom.
+      Probe two or three prompts per rung and read the token counts before
+      committing the arm: it costs minutes and it either raises that rung's
+      cap up front or screens the rung out. Dated case study, 2026-08-24:
+      UD-IQ1_S at 1.835 bpw truncated **20 of 75** items at a 16,384 cap
+      inherited from the 4-bit rung, answering in 7k–16k tokens where the
+      anchor used a few hundred, and its arm ran 2.5 h — five times any other.
     - **Prune before you treat.** A candidate file earns expensive treatment
       only after surviving a cheap screen (throughput probe + file size + a
       short perplexity screen over identical chunks). A file that is both slower

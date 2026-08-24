@@ -1399,3 +1399,26 @@ Compounding it: I did not reschedule the session watchdog on my last turn, so no
 ### THE LESSON, and it is a script change not just a note
 
 `decisive-arm.ps1` escalates on truncation with no gate. It should require the raise to be explicitly enabled per arm, so that "escalation is a decision" is enforced by the harness rather than by my memory. Recorded as the change to make before this script is used again.
+
+## 2026-08-25 01:10 - THE DRAFTER PROBE INVERTS THE VERDICT (and proves the user right)
+
+Four matched loads, three settled probes each, first post-prefill probe discarded (rule 12), 700-token novel-code generations at -c 32768, q8_0 KV, thinking off, temperature 0:
+
+| file | GiB | drafter | decode t/s | acceptance | mean draft len |
+|---|---|---|---|---|---|
+| UD-IQ4_XS | 13.274 | off | 42.34 | - | - |
+| UD-IQ4_XS | 13.274 | **on** | **86.91** | 0.611 | 5.70 |
+| UD-Q2_K_XL | 9.154 | off | 45.66 | - | - |
+| UD-Q2_K_XL | 9.154 | **on** | **77.01** | 0.551 | 5.08 |
+
+**THE RANKING INVERTS WITH THE DRAFTER.** Drafter OFF, the smaller 2.9-bpw file is FASTER (45.66 vs 42.34, +7.8%) - which is what the whole accuracy ladder was measured under, and it says "swap your daily driver". Drafter ON, which is how every recipe on the published page actually ships, the 4-bit file is **12.9% faster** (86.91 vs 77.01) **despite being 45% larger**.
+
+MECHANISM, and rule 11 predicts it almost exactly: the draft head degrades with bit-width. Acceptance falls 0.611 -> 0.551 (-9.8%) and **mean draft length falls 5.70 -> 5.08 (-10.9%)**, against a throughput fall of -11.4%. Draft length is again the throughput predictor, to within half a point. Speculation is worth **2.05x** on the 4-bit file and only **1.69x** on the 2.9-bpw one, and that difference is larger than the entire size advantage.
+
+**ANSWER TO THE READER'S QUESTION: do NOT swap the daily driver.** UD-Q2_K_XL ties the anchor on accuracy (paired p=1.00, one discordant item of 75) and frees 4.12 GiB, but in the configuration the recipes ship it is materially slower. It remains the right pick where VRAM is the binding constraint - a 16 GB card - and the wrong pick on 24 GB where the 4-bit file fits with the drafter.
+
+**THE LAW THIS EARNS, and the user identified it before the number came back:** *sweep at the shipped recipe, not at a clean-room default.* The ladder scored eight rungs drafter-off for clean determinism and produced the WRONG ORDERING for the configuration anyone runs. Had the sweep carried the recipe's flags from its first arm, the correct answer would have been in hand at no extra cost; instead it needed a separate probe, four hours were lost to the escalation that starved that probe, and the wrong answer was briefly the obvious one. Rule 25 now carries it, with this as its dated case study, plus the companion clause: **appetite is a property of the quant, not only of the effort level** - probe two or three prompts per rung before committing the arm, because a cap chosen for the top of the ladder is a truncation machine at the bottom (UD-IQ1_S: 20 truncations of 75, 2.5 h).
+
+`decisive-arm.ps1` is fixed: the rule-7 raise is now opt-in per arm via `-EscalateArms`, so "escalation is a decision" is enforced by the harness instead of by my memory. Truncations are still always reported; only the rerun is gated.
+
+INSTRUMENT NOTE: the probe script's acceptance regex did not match this build's log format and wrote `n/a`; the numbers above were recovered from the server logs directly (`draft acceptance = 0.61283 ( 573 accepted / 935 generated), mean len = 5.78`). Draft length parsed correctly throughout. The script's parser should be fixed before reuse.

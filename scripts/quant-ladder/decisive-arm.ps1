@@ -15,7 +15,10 @@ param(
     [string[]]$Arms,
     [string]$Manifest = 'E:\AI\measured-inference\scripts\quant-ladder\ladder-manifest.json',
     [int]$DeadlineMinutes = 300,
-    [switch]$SkipGate
+    [switch]$SkipGate,
+    # Rule 25: the rule-7 cap raise fires ONLY for arms named here. Truncations
+    # are always reported; the RERUN is a priced decision made before launch.
+    [string[]]$EscalateArms = @()
 )
 
 $ErrorActionPreference = 'Continue'
@@ -80,8 +83,18 @@ function Invoke-Arm {
         [math]::Round($sw.Elapsed.TotalSeconds, 1), $j.suite_hash, (Get-Date -Format 's'))
 
     if ($trunc -gt 0 -and $MaxTokens -eq '16384') {
-        Write-Ledger $LOG ('RULE7 {0} | {1} truncation(s) at cap 16384 - raising the cap to 32768 and rerunning THIS ARM ONLY (greedy determinism leaves the others byte-identical)' -f $Tag, $trunc)
-        Invoke-Arm -Tag ($Tag + '-cap32k') -Path $Path -Family $Family -MaxTokens '32768'
+        # RULE 25: an escalation is a DECISION, not a reflex. This used to fire
+        # automatically, and on 2026-08-24 it fired on UD-IQ1_S - a file that
+        # had already FAILED its detector screen - consuming 1.6 h of a
+        # projected 4-5 h and starving the probe that answered the reader's
+        # actual question, which died on its own deadline having run nothing.
+        # The raise is now opt-in per arm.
+        if ($EscalateArms -contains $Tag) {
+            Write-Ledger $LOG ('RULE7 {0} | {1} truncation(s) at cap 16384 - raise PRE-AUTHORISED for this arm, rerunning THIS ARM ONLY at 32768 (greedy determinism leaves the others byte-identical)' -f $Tag, $trunc)
+            Invoke-Arm -Tag ($Tag + '-cap32k') -Path $Path -Family $Family -MaxTokens '32768'
+        } else {
+            Write-Ledger $LOG ('RULE7 {0} | {1} truncation(s) at cap 16384 - raise NOT authorised for this arm, so NOT run (rule 25: escalation is a decision). Pass -EscalateArms {0} to authorise it. Truncations are reported with the score; if this arm is a screened-out file or a secondary, the raise usually buys nothing - rule 7 makes the raise a DIAGNOSTIC, and a reproduced truncation is already established for this model family.' -f $Tag, $trunc)
+        }
     }
 }
 
