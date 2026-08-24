@@ -1377,3 +1377,25 @@ The 3-bit rung is 1.3 points off the anchor - far inside the +/-16-point smoke-t
 - So **the boundary lies between 2.48 and 2.15 bits per weight**, and n=25 cannot place it more finely. Say the interval, never a point.
 
 Losses are near-perfectly one-directional (c=0 in most rows): the smaller file almost never wins an item the larger one lost. Quality IS degrading monotonically all the way down - it is simply unresolvable by this instrument until the cliff. That is the honest reconciliation of a monotone perplexity curve with a flat accuracy curve, and it is the sentence the chapter should carry.
+
+## 2026-08-25 01:05 - the accuracy ladder is COMPLETE, and two failures of mine to record
+
+**UD-IQ1_S, the right anchor, landed at 34.70** (GSM8K 36.0, HumanEval 32.0, MBPP 36.0) with **20 truncations of 75** and a wall clock of **8,965.8 s - 2.5 hours**, five times any other arm. The rung the ladder was designed to prove "clearly no" proved it emphatically, and the MECHANISM is the interesting part: at 1.835 bpw this model loses the ability to STOP. Its own console log shows routine answers of 7,154 / 8,556 / 9,756 / 16,384 tokens where the 4-bit anchor answered the same prompts in a few hundred. It is not that the answers are wrong; it is that they never end. That is a qualitatively different failure from anything above it on the ladder, and neither the perplexity number (8.9265) nor the single detector probe revealed it.
+
+This VINDICATES the rule-25 decision to let the arm run rather than cut it. The pre-registered rule said cut only if the curve had collapsed at IQ1_M; it had not, so IQ1_S ran, and it produced the most informative failure at the bottom of the ladder. A cut would have saved time and lost the finding.
+
+### FAILURE 1 (mine): an automatic rule-7 escalation on a screened-out file ate the GPU
+
+IQ1_S's 20 truncations triggered decisive-arm.ps1's AUTOMATIC cap-32k rerun at 23:28. That is **exactly the priority inversion rule 25 forbids** - "rule-7 cap-raises on SECONDARY arms are deliberate, priced choices, never automatic" - and it is the same shape as the dated gemma case study that earned the clause. It ran 1.6 h of a projected 4-5 h before I killed it at 01:05.
+
+I pre-authorised that raise **thinking only of primary arms** and then launched a runner that escalates automatically. The rule existed, I had amended rule 7 myself twelve hours earlier, and I still walked into it. What the rerun would have bought: **nothing.** Rule 7 as amended makes the raise a DIAGNOSTIC distinguishing a budget shortfall from a non-terminating generation - and that answer was already in hand from 20 truncations at 16k on a file whose detector screen had already failed. No reader-facing number consumes an IQ1_S cap-32k Mean. The 16,384-cap arm stands as published, truncations reported.
+
+### FAILURE 2 (mine): the drafter probe was starved and I let the watchdog lapse
+
+work/drafter-at-2bit.ps1 - the probe that answers the user's live question about replacing the 4-bit daily driver - waited politely behind the runaway rerun and hit its own 120-minute deadline at **22:24 without running a single load**. It failed SAFELY and said so in its log, which is the design working; but the campaign lost four hours because a screened-out file's automatic escalation outranked the one measurement a reader was actually waiting for.
+
+Compounding it: I did not reschedule the session watchdog on my last turn, so nothing was watching between ~21:30 and 01:04. Relaunched at 01:05 on a free card; first load healthy in 11.7 s.
+
+### THE LESSON, and it is a script change not just a note
+
+`decisive-arm.ps1` escalates on truncation with no gate. It should require the raise to be explicitly enabled per arm, so that "escalation is a decision" is enforced by the harness rather than by my memory. Recorded as the change to make before this script is used again.
