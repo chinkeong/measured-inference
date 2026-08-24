@@ -1530,3 +1530,46 @@ That is the complete answer to the reader's question, and it is a better answer 
 Honest costs that ship with it: filling 218k tokens takes 424 s at 514.7 t/s prefill - seven minutes before the first answer token - and mean draft length collapses from 5.70 shallow to 2.43 at depth, so the drafter is worth +18.8% there rather than the ~2x it gives shallow.
 
 DATA COLLECTION FOR THE SUB-Q4 STORY IS NOW COMPLETE: the 8-rung accuracy ladder, the empty-answer audit, paired McNemar across all rungs, the drafter on/off pair on both candidate files, the matched drafter-ON parallel pair (entry 9 closed at +22%), and this full-native-window trial. Remaining register work (entries 17 and 6) is unrelated to sub-Q4 and does not gate the write-up.
+
+# ==========================================================================
+# PLAN OF RECORD - autonomous run, 2026-08-25 02:50 to ~10:50 (8 hours)
+# Written BEFORE any of it is spent (rule 25: the plan is a gate, not a summary)
+# ==========================================================================
+
+## PHASE A - 02:50-03:20, NO GPU. Close the guide.
+Apply the six numeric defects the publish verifier found and refused to certify:
+  G1 "every other took under thirty minutes" (L1527, L1631) - FALSE, UD-IQ2_S ran 36 m -> "the next longest took thirty-six minutes"
+  G2 "five times any other arm" (L2192) - 8,965.8/2,166.0 = 4.14x -> "more than four times the next-longest arm"
+  G3 "each user waits about 35% longer" (L1110) - a 35.4% per-slot FALL is a 55% longer WAIT -> "about 55% longer - 12.6 s against 8.2 s for a 700-token answer"
+  G4 "one user gets their tokens 35% faster" (L861) - inverted; 85.79/55.41 = +54.8% -> "about 55% faster"
+  G5 glossary "section 08 measures nine of them" (L281) - the ladder table has eight rows -> "eight"
+  G6 "roughly 2.8 GB" (L1687) - that is a GiB figure wearing a GB label -> GiB
+Then collect the plain-words audit result, apply it, validate, commit+push the guide, re-cut templates/example-report.html with a matching pin in the SAME commit, and update memory qwen-3090-ground-truth.md.
+CONSUMER: G3 and G4 are wrong numbers in advice a reader acts on. Nothing ships until they are right.
+
+## PHASE B - 03:20-04:00, GPU ~40 min. The drawer.
+Negative-register entry 17 (two cross-checks, ~15 min) and entry 6 (image budget + withheld-image control, ~15 min).
+CONSUMER: two open register entries closed. WHY NOW: both are Qwen-rig-specific and expire the moment the machine is re-tooled for a different model.
+
+## PHASE C - 04:00-06:00, GPU ~2 h. The 16 GB and 12 GB budget emulation.
+The user asked for corrected recommendations for 16 GB and lower. EVERY claim this campaign makes about those cards is currently DERIVED, because the rig owns one 24 GiB card. A ballast process holds VRAM so that only 16,384 / 12,288 MiB remains free, then the candidate files load against that budget and are deep-filled.
+Arms: UD-Q3_K_XL and UD-Q2_K_XL x {16,384, 12,288 MiB free} x {drafter on, off}, each with a deep-fill probe near the top of whatever window fits (rule 13b).
+WHAT IT LICENSES, precisely: "fits in 16 GB" moves from DERIVED to MEASURED-UNDER-AN-EMULATED-BUDGET-ON-A-3090. It is NOT a 16 GB card measurement - it emulates capacity only, not that board's bandwidth, driver or desktop - and it must be chipped as its own evidence class, never as measured-on-a-16GB-card.
+CONSUMER: the 16 GB and 12 GB rows of the card table in both documents, which today carry derived chips and an explicit "not measured here".
+
+## PHASE D - 06:00-09:00, GPU ~3 h. The depth curve at the shipped recipe.
+UD-IQ4_XS and UD-Q2_K_XL at ~4k / 16k / 32k / 64k depth, DRAFTER ON at the shipped flags (rule 25's new sweep-at-the-shipped-recipe clause - this campaign already got the ranking wrong once by measuring drafter-off), logging acceptance and mean draft length at every depth, first post-prefill probe discarded (rule 12), n=3 settled probes.
+CONSUMER: the "expected speed" line of every recipe card, and the sub-Q4 story's missing middle - today it has shallow speed and ONE deep point at 218k and nothing between.
+
+## PHASE E - 09:00-10:50, NO GPU. Fold in and draw.
+Write C and D into both documents; build the three-instrument overlay chart the user asked for (perplexity, empty-answer rate, accuracy Mean on one bits-per-weight axis, each normalised against the anchor - the picture that shows three instruments breaking at three different points); final verify; commit+push; re-cut the example.
+A figure never carries a number alone (REPORT-SPEC): charts go BESIDE the tables, never instead of them.
+
+## DISCIPLINE, carried from tonight's failures - every one of these cost real hours
+- NO automatic rule-7 escalation. decisive-arm.ps1 now gates it behind -EscalateArms; any raise is a decision made and priced before launch.
+- Appetite probe before committing any arm with a new file or config: generation length grows as bit-width falls, and a cap chosen for the top of a ladder is a truncation machine at the bottom.
+- Anything speed-related runs at the SHIPPED recipe, drafter ON. Measured drafter-off, this campaign got the quant ranking backwards and the batching figure wrong by 38 points.
+- Resolve every runner by COMMAND LINE (Get-CimInstance Win32_Process), never by .pid - a stale .pid cost three GPU hours - and verify every kill by the EFFECT, not by the absence of a process.
+- The watchdog reschedules EVERY tick. It lapsed once tonight and four hours went missing.
+- Every arm names the reader-facing number that consumes it before it starts. No run earns its hours on completeness or curiosity.
+- Empties and truncations are counted separately from artifacts, never inferred from a counter.
