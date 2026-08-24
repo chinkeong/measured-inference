@@ -1161,3 +1161,30 @@ GEMMA NON-TERMINATION: MECHANISM ANSWERED (data/quant-ladder/gemma-trunc/trunc-p
 SCORER DEFECT (new, exposed by the 2.15-bpw quant): UD-IQ2_XXS's GSM8K prompt 5 response ends in a bare "####" with nothing after it; datasets_io.py grade() did .splitlines()[0] on the empty tail and crashed the whole arm (IndexError, wall 39 s). No previous model on this rig ever produced that shape - the ladder's low rungs are exactly where new failure shapes appear. Fixed: empty tail now grades WRONG instead of raising (verified: bare-#### False, empty False, normal True). The fix cannot alter any recorded score: any earlier run reaching this path would have crashed, and none did. The bare-#### response itself is a degradation observation for the IQ2_XXS rung, recorded here.
 
 Also: bench-arm.py's finally block wrote wall.json even on crash, which would have made the resumable rerun skip the arm as done - crashed artifacts archived as crashed1-arm-qwen-iq2xxs.* and the arm relaunched (11:35) under the fixed scorer. UD-IQ2_S download healthy in parallel (hf names the in-flight blob by hash in .cache; 2.8 of 8.4 GB at 11:24).
+
+## 2026-08-24 11:54 - the equal-budget verdict: a 27B crushed to 2.15 bits beats a 12B at Q4_0
+
+Both arms of the decisive comparison are now measured on the identical frozen suite (hash 1cdf54f8eb9d3f8f, SEED=42, n=25 greedy, GSM8K/HumanEval/MBPP - tokenizer-independent, which is why this and not perplexity carries the cross-family comparison per rule 6).
+
+| arm | file | bpw | Mean | GSM8K | HumanEval | MBPP | truncs | wall |
+|---|---|---|---|---|---|---|---|---|
+| Qwen3.8-27B UD-IQ2_XXS | 6.767 GiB | 2.15 | **78.70** | 80.0 | 84.0 | 72.0 | 1 | 1,705 s |
+| gemma-4-12B-it-QAT-Q4_0 | 6.497 GiB | 4.65 | 73.30 | 72.0 | 88.0 | 60.0 | 19 | 9,551 s |
+
+At the same weight budget the crushed 27B wins the composite by 5.4 points and wins two benchmarks of three; gemma keeps HumanEval (88 vs 84). The wall-clock gap is real but is NOT a clean speed comparison - most of gemma's 2.65 h is its 19 never-terminating generations burning the full cap, not slower decoding (its decode is FASTER: 82-84 t/s vs 49).
+
+CONDITIONS ASYMMETRY, unchanged and still disclosed: qwen ran at reasoning_effort=low with q8_0 KV; gemma ran at its own defaults (no effort knob). This is a deliberate difference, not a fair-fight claim.
+
+RULE 7 fired as pre-authorized: the qwen arm truncated once (MBPP) at cap 16,384, so the cap-32k rerun of THIS ARM ONLY started at 11:53. The Mean above is PROVISIONAL until it lands.
+
+## 2026-08-24 11:45 - the judge-gated pair gets its judge (rule 21's scoring gate, opened)
+
+Rule 21 has always said ALPACA and MT-Bench are "judge-scored when an independent judge endpoint is configured; otherwise speed + transcripts only". No endpoint existed, so the published Mean has been a FIVE-of-seven composite, labelled as such. An endpoint now exists: scripts/bench/judge-panel.py, a blind three-seat panel of Claude Opus 5 subagents.
+
+Protocol pinned: canonical MT-Bench single-answer rubric, 1-10; rule 21's (r-1)/9 x 100 normalization; MT-Bench turn 1 only; every answer rated by all three seats; each seat gets its own shuffle seed so ordering effects do not correlate; arm identity lives only in key-SEALED.json, which no seat reads.
+
+Scoring gate satisfied, and its limit stated: the answers were written by Qwen, so no model grades its own output. It is NOT independence in the strong sense - the judge and this report's author are both Claude models. That is a correlated instrument, disclosed with every number the panel produces, and the reason the panel publishes inter-rater spread beside every mean.
+
+KNOWN CONDITION, not hidden: a seat sees several answers to the same question inside one shuffled batch. This is not a clean-room single-answer protocol and travels with the numbers.
+
+RULE 7 IN THE PAIR: of 150 kept answers exactly one hit its cap - xhigh ALPACA[21], 16,384 tokens, content EMPTY (the never-closed-thinking-block signature again, this time in Qwen at xhigh). Rerun queued (work/chain-0824b-rule7-alpaca.ps1, GPU-gated behind the ladder chain), decided in advance per rule 25. low ALPACA tops out at 2,033 tokens and medium at 1,714, so under greedy decoding their answers are byte-identical at any higher cap - raising xhigh's cap alone changes nothing else.
