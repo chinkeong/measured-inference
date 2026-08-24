@@ -325,3 +325,17 @@ rule-21 effort tie, energy metrics, 306-341 W range, 29.9/34.1 W idle
 pair, drafter-halves-J/token, the 16k-cap reversal as section 09 teaching
 material). The REPORT-SPEC republication rule now makes this check a
 standing obligation on every result-adding commit.
+
+## USER CORRECTION (2026-08-23 evening) to the front-matter item
+
+The earlier note "keep the pledge line as the title" is WRONG. The user
+wants the title DIRECT about what this document is: name the model, the
+hardware, and what the reader gets - e.g. the shape of "Qwen3.8-27B on a
+24 GB RTX 3090: the measured settings" (agent crafts final wording under
+the two-voice law: plain, no slogan, no metaphor). The pledge sentence may
+survive as a sub-line under the title, never as the title itself.
+DRAFT-NOW DECISION: the Gen-2 rewrite proceeds immediately without the
+quant ladder; section 05 carries the rig-gate results already measured
+(both anchors bit-identical, pair resolved 4.27%) plus an explicit
+IN-FLIGHT marker for the rungs and the decisive arm, to be folded in as a
+bounded second pass when the ladder lands.

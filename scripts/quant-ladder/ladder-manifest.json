@@ -1,0 +1,212 @@
+﻿{
+  "campaign": "how-small-can-a-27b-go",
+  "created": "2026-08-23",
+  "slug": "qwen38-27b-blind",
+  "outdir": "E:\\AI\\measured-inference\\results\\qwen38-27b-blind\\data\\quant-ladder",
+  "corpus": "E:\\AI\\measured-inference\\corpora\\wikitext-2-raw-test.raw",
+  "corpus_bytes": 1290590,
+  "corpus_md5": "7c0137fc034ddbc56a296bce31b4f7fb",
+  "ppl": {
+    "exe": "E:\\AI\\llama.cpp\\llama-perplexity.exe",
+    "flags": ["-ngl", "99", "-c", "8192", "-fa", "on", "--load-mode", "mmap"],
+    "n_ctx": 8192,
+    "kv": "f16 (default) - the anchors 6.5348 / 6.5956 / 6.8774 were measured with f16 KV",
+    "note": "phase-6 conditions; -fa on + --load-mode mmap reproduced the no-fa anchor bit-for-bit (6.5956 both ways)"
+  },
+  "tokenize": {
+    "exe": "E:\\AI\\llama.cpp\\llama-tokenize.exe",
+    "flags": ["--show-count"],
+    "note": "each model's OWN token count for the corpus - rule 6 requires it for bits-per-byte"
+  },
+  "gate": {
+    "holder_pid": 26632,
+    "holder_start_iso": "2026-08-23T13:21:40.4416422+08:00",
+    "holder_what": "power-matrix.ps1 (another session) - restarts llama-server between cooldowns, so momentary idle is NOT free",
+    "max_vram_mib": 2000,
+    "poll_s": 60,
+    "llama_procs": ["llama-server", "llama-perplexity", "llama-cli", "llama-bench", "llama-tokenize", "llama-mtmd-cli", "llama-completion"]
+  },
+  "file_gate": {
+    "recheck_s": 60,
+    "min_frac_of_expected": 0.95,
+    "suspect_passes_before_accept": 20,
+    "note": "another session downloads into the unsloth dir - never download, never delete, never touch except to read"
+  },
+  "detectors": {
+    "repcheck_py": "E:\\AI\\measured-inference\\results\\qwen38-27b-blind\\data\\followup\\m4-repcheck.py",
+    "server_flags": ["-ngl", "99", "-c", "8192", "-fa", "on", "--parallel", "1", "--jinja", "--reasoning", "off"],
+    "port": 1235,
+    "max_tokens_a": 2048
+  },
+  "rungs": [
+    {
+      "name": "UD-IQ4_XS",
+      "order": 1,
+      "role": "rig-gate",
+      "path": "C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf",
+      "expected_gib": 13.274,
+      "params": 27000000000,
+      "expected_ppl": 6.5956,
+      "tolerance_pct": 0.5,
+      "abort_on_drift": true,
+      "chunks": 36,
+      "enabled": true,
+      "conditional": false,
+      "delete": false,
+      "note": "RIG GATE 1 - anchor. Outside +/-0.5% = rig drift, abort everything."
+    },
+    {
+      "name": "NVFP4-MTP-VERY-LOW",
+      "order": 2,
+      "role": "rig-gate",
+      "path": "C:\\Users\\chink\\.lmstudio\\models\\esatapedico\\Qwen3.8-27B-NVFP4-MTP-GGUF\\Qwen3.8-27B-NVFP4-MTP-VERY-LOW.gguf",
+      "expected_gib": 13.842,
+      "params": 27000000000,
+      "expected_ppl": 6.8774,
+      "tolerance_pct": 0.5,
+      "abort_on_drift": false,
+      "pair_with": "UD-IQ4_XS",
+      "pair_min_gap_pct": 2.0,
+      "chunks": 36,
+      "enabled": true,
+      "conditional": false,
+      "delete": false,
+      "note": "RIG GATE 2 - the pair proves the rig still RESOLVES a same-size quality gap (4.3% apart vs +/-0.045 err). Q4_K_M 6.5348 known, not re-run."
+    },
+    {
+      "name": "gemma-4-12B-QAT-Q4_0",
+      "order": 3,
+      "role": "cross-model",
+      "path": "C:\\Users\\chink\\.lmstudio\\models\\lmstudio-community\\gemma-4-12B-it-QAT-GGUF\\gemma-4-12B-it-QAT-Q4_0.gguf",
+      "expected_gib": 6.497,
+      "params": 12000000000,
+      "expected_ppl": null,
+      "chunks": null,
+      "enabled": true,
+      "conditional": false,
+      "delete": false,
+      "ppl_comparable": false,
+      "note": "PPL RECORDED BUT NON-COMPARABLE (different tokenizer, rule 6). Comparable numbers: bits-per-byte and the scored benchmark arm. chunks=null: let its OWN tokenizer set the chunk count."
+    },
+    {
+      "name": "UD-Q3_K_XL",
+      "order": 4,
+      "role": "pass1",
+      "path": "C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-Q3_K_XL.gguf",
+      "expected_gib": 12.24,
+      "params": 27000000000,
+      "expected_ppl": null,
+      "chunks": 36,
+      "enabled": true,
+      "conditional": false,
+      "delete": false
+    },
+    {
+      "name": "UD-IQ3_S",
+      "order": 5,
+      "role": "pass2",
+      "path": "C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ3_S.gguf",
+      "expected_gib": 11.21,
+      "params": 27000000000,
+      "expected_ppl": null,
+      "chunks": 36,
+      "enabled": false,
+      "conditional": true,
+      "condition": {
+        "between": ["UD-Q3_K_XL", "UD-IQ3_XXS"],
+        "reference_pair": ["UD-IQ4_XS", "UD-Q3_K_XL"],
+        "factor": 1.5,
+        "rule": "enable when the relative PPL gap across the bracket is >= factor x the gap of the pair above it (the curve is steepening)"
+      },
+      "delete": false
+    },
+    {
+      "name": "UD-IQ3_XXS",
+      "order": 6,
+      "role": "pass1",
+      "path": "C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ3_XXS.gguf",
+      "expected_gib": 10.18,
+      "params": 27000000000,
+      "expected_ppl": null,
+      "chunks": 36,
+      "enabled": true,
+      "conditional": false,
+      "delete": false
+    },
+    {
+      "name": "UD-Q2_K_XL",
+      "order": 7,
+      "role": "pass1",
+      "path": "C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-Q2_K_XL.gguf",
+      "expected_gib": 9.15,
+      "params": 27000000000,
+      "expected_ppl": null,
+      "chunks": 36,
+      "enabled": true,
+      "conditional": false,
+      "delete": false
+    },
+    {
+      "name": "UD-IQ2_S",
+      "order": 8,
+      "role": "pass2",
+      "path": "C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ2_S.gguf",
+      "expected_gib": 7.79,
+      "params": 27000000000,
+      "expected_ppl": null,
+      "chunks": 36,
+      "enabled": false,
+      "conditional": true,
+      "condition": {
+        "between": ["UD-Q2_K_XL", "UD-IQ2_XXS"],
+        "reference_pair": ["UD-IQ3_XXS", "UD-Q2_K_XL"],
+        "factor": 1.5,
+        "rule": "enable when the relative PPL gap across the bracket is >= factor x the gap of the pair above it (the curve is steepening)"
+      },
+      "delete": false
+    },
+    {
+      "name": "UD-IQ2_XXS",
+      "order": 9,
+      "role": "pass1",
+      "path": "C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ2_XXS.gguf",
+      "expected_gib": 6.76,
+      "params": 27000000000,
+      "expected_ppl": null,
+      "chunks": 36,
+      "enabled": true,
+      "conditional": false,
+      "delete": false,
+      "note": "size-matched with gemma-4-12B-QAT-Q4_0 (6.50 GiB) - the equal-budget candidate"
+    },
+    {
+      "name": "UD-IQ1_M",
+      "order": 10,
+      "role": "pass1",
+      "path": "C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ1_M.gguf",
+      "expected_gib": 6.27,
+      "params": 27000000000,
+      "expected_ppl": null,
+      "chunks": 36,
+      "enabled": true,
+      "conditional": false,
+      "delete": false
+    },
+    {
+      "name": "UD-IQ1_S",
+      "order": 11,
+      "role": "right-anchor",
+      "path": "C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ1_S.gguf",
+      "expected_gib": 5.76,
+      "params": 27000000000,
+      "expected_ppl": null,
+      "chunks": 36,
+      "enabled": true,
+      "conditional": false,
+      "delete": false,
+      "opportunistic": true,
+      "note": "include ONLY if the other session pulls it - a curve needs a rung where the answer is clearly no. Never downloaded by this runner."
+    }
+  ]
+}
+
