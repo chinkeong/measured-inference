@@ -1334,3 +1334,28 @@ Added the one honest summary section 08 owed, in Voice 1: quality falls ~1%/GiB 
 **A rule-25 decision, also recorded in advance.** UD-IQ1_S already failed the detector screen, and rule 25's own dated case study is UD-Q4_K_XL carried through full treatment to publish one word. IQ1_S is LAST in the arm queue: if the curve has already collapsed at IQ1_M, **cut the IQ1_S arm** and publish its screen numbers instead of spending 30 minutes proving a screened-out file is bad.
 
 **A REASONING self-check, recorded against myself.** "The accuracy cliff sits somewhere other than the perplexity cliff" is a TIDY story and I pitched it before any number existed - which is exactly the expertise-blindness trap (the tidier the story, the more it needs the extra probe; the acceptance-predicts-throughput story was tidy for a full day). The reversal check passes: if perplexity turns out to predict accuracy well, the two curves simply track and that is equally publishable. Writing it up either way, not hunting the divergence.
+
+## 2026-08-24 18:35 - the rule-20 repetition audit found something the scorer could not
+
+Ran the mandatory greedy-repetition check (work/ladder-repcheck.py, zero GPU) over the arms that had landed, BEFORE trusting their numbers. It reused the campaign's own detectors and added the unique-word ratio, because the judge panel proved this morning that those detectors are blind to a degeneration that merely counts upward.
+
+**The detectors found no repetition loops anywhere.** What they found instead is better.
+
+**EMPTY ANSWERS THAT ARE NOT TRUNCATIONS.** UD-IQ2_XXS returned **3 empty answers of 75**, and only ONE of them was a truncation. The other two - HumanEval[9] at 3,939 tokens and MBPP[18] at 7,296 - **terminated normally against a 16,384 cap** and emitted zero characters. The model spent its reasoning budget, stopped by itself, and returned nothing. No cap was hit, so no truncation counter moved: the arm reported `truncations=1` while the real failure count was three.
+
+Control, and it is decisive: **the same three items at the 4.2-bpw anchor all scored 100.0**, using 701 / 4,152 / 1,829 tokens of real content. So this is the RUNG, not the prompts. And both the anchor and UD-Q3_K_XL returned **zero empties of 75**.
+
+This is the OTHER shape of the failure rule 7 was amended for this morning. That amendment covered `finish_reason=length` - the runaway that a raised cap reproduces. This is `finish_reason=stop` with an empty body, which no cap governs and no truncation count sees.
+
+LAW AMENDED (rule 20, artifact read-back): **the empty-answer rate is its own metric and is published separately from truncations**, because the truncation counter is structurally blind to half the failure. Empty answers stay in the denominator - rule 7 forbids filtering - and a rising empty rate is a degradation signal no accuracy cell explains. Failure-library entry added, keyed to the symptom an agent would actually grep: an arm scoring badly while the truncation count says nothing is wrong.
+
+A LOWUNIQ note, recorded so it is not mistaken for a finding later: GSM8K[16] and HumanEval[19] flag low unique-word ratio at EVERY rung including the 4.2-bpw anchor (0.264 and 0.255 there). Same items, same flag, best possible quality - so that flag is a property of those prompts (repetitive code and table structure), not of any quant. This is exactly the control that separates an instrument artifact from a model result, and it is why the audit compares against the anchor rather than reading absolute thresholds.
+
+ARMS SO FAR (frozen 3-benchmark suite, identical conditions):
+| rung | bpw | Mean | GSM8K | HumanEval | MBPP | truncs | empties |
+|---|---|---|---|---|---|---|---|
+| UD-IQ4_XS (anchor) | 4.22 | **97.30** | 100.0 | 100.0 | 92.0 | 0 | 0 |
+| UD-Q3_K_XL | 3.90 | **96.00** | 96.0 | 100.0 | 92.0 | 0 | 0 |
+| UD-IQ2_XXS | 2.15 | **78.70** | 80.0 | 84.0 | 72.0 | 1 | 3 |
+
+The 3-bit rung is 1.3 points off the anchor - far inside the +/-16-point smoke-test band, i.e. a tie, which is the strongest thing n=25 is licensed to say and it supports the guide's 16 GB recommendation. The 2.15-bpw rung is 18.6 points down, which clears the band and is a genuine collapse.

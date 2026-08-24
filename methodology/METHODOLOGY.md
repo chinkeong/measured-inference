@@ -262,6 +262,22 @@ beyond its retrieval-tested depth is labeled
       The signature is empty `content` with `finish_reason=length` — both
       reference copy probes had copied nothing and spent the whole budget
       thinking, and the read-back produced the campaign's largest correction.
+      **The EMPTY-ANSWER RATE is its own metric, and the truncation counter
+      cannot see it.** An empty completion has two shapes and only one of them
+      trips a cap: `finish_reason=length` (the runaway rule 7 diagnoses) and
+      **`finish_reason=stop` with zero characters** — the model spends its
+      reasoning budget, terminates normally, and returns nothing. The second
+      shape is invisible to every truncation count, so any scored arm reports
+      empties and truncations as SEPARATE numbers. Measured 2026-08-24 on one
+      model's quant ladder, same suite, same conditions: the 4.2-bpw and
+      3.9-bpw rungs returned **0 empties of 75**; the 2.15-bpw rung returned
+      **3 of 75, of which only 1 was a truncation** — the other two stopped
+      by themselves after 3,939 and 7,296 tokens, and the identical three
+      items scored 100 at the anchor. A report counting only truncations would
+      have published "1" and missed two-thirds of the failure. Empty answers
+      stay in the denominator (rule 7 forbids filtering) and their rate is
+      published beside the score, because a rising empty rate is a
+      degradation signal no accuracy cell explains.
     - **Knob-took-effect.** A server-side knob under test is proven to have
       reached the model by a cheap observable BEFORE its arms are believed
       (reference: `prompt_n` 1,689 vs 1,659 from an identical user message

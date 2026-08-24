@@ -497,3 +497,27 @@ EARNED BY: three cases, two model families, 2026-08-23/24. gemma-4-12B-QAT
 to reproduce a number already in hand. Qwen UD-IQ2_XXS MBPP, 1 item.
 Qwen UD-IQ4_XS at xhigh, ALPACA item 21 - empty at both caps, while all
 24 sibling answers reproduced byte-identically.
+
+## An arm scores badly and the truncation count says almost nothing is wrong
+
+SYMPTOM: a scored arm's mean drops sharply against its reference, but the
+truncation column reads 0 or 1. The per-item scores show zeros you
+cannot account for by wrong answers.
+CAUSE: EMPTY completions that terminated NORMALLY. The model spent its
+budget inside the reasoning block, emitted its end-of-turn marker, and
+returned zero characters of content. `finish_reason` is `stop`, not
+`length`, so no cap was hit and no truncation counter incremented. The
+harness stores `msg["content"]`, which is empty, and the scorer marks it
+wrong - correctly - but silently.
+FIX: count EMPTY ANSWERS as their own metric, separate from truncations,
+and publish both. The check is one line over the saved transcripts -
+`not str(it["response"]).strip()` - and it needs the transcripts, which
+is the whole reason rule 20 makes read-back mandatory. Compare the same
+item indices against a high-quality reference arm before blaming the
+prompt: if the anchor answers them fine, it is the rung, not the item.
+EARNED BY: the accuracy ladder, 2026-08-24. UD-IQ2_XXS (2.15 bpw) on the
+frozen 3-benchmark suite: 3 empty answers of 75, of which only ONE was a
+truncation. The other two stopped by themselves at 3,939 and 7,296 tokens
+against a 16,384 cap. The same three items at the 4.2-bpw anchor all
+scored 100.0 with 701 / 4,152 / 1,829 tokens of real content. The arm
+reported "truncations=1"; the real failure count was three.
