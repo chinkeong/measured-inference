@@ -1712,3 +1712,37 @@ Two signals were visible before the 98k point and I did not weight them enough:
 Running work/q3kxl-instability.ps1 now: UD-Q3_K_XL alone at -c 98,304, independent reload, n=5. If it returns ~41 rather than ~33, the file's depth numbers are load-dependent and the whole UD-Q3_K_XL depth row must ship as a BAND with an instability note. If it returns ~33 again, the non-monotonicity is reproducible and stranger still, and it becomes a documented open anomaly.
 
 **What survives untouched:** the 16 GB answer (UD-Q2_K_XL at -c 65,536 with the drafter, 13,982 MiB, 1,094 spare, 40.30 t/s), the 12 GB "no", the whole accuracy ladder, the empty-answer table, the paired McNemar results, the drafter inversion at shallow depth, and the full-262k finding - none of which depend on UD-Q3_K_XL's depth series.
+
+## 2026-08-25 04:52 - the re-run REPRODUCED, and my retraction was half wrong. Correcting the correction.
+
+UD-Q3_K_XL at -c 98,304, two independent loads:
+
+| run | mean | sd | acceptance | mean draft len | probes |
+|---|---|---|---|---|---|
+| first | 32.86 | 1.07 | 1.00000 | 2.89 | 33.42 30.73 33.43 33.49 33.23 |
+| reload | **32.95** | 1.25 | 1.00000 | 2.89 | 33.57 30.44 33.52 33.58 33.63 |
+
+**Reproducible to 0.3%**, with identical acceptance, identical draft length, and the same one-low-outlier shape. So 98k is not noise and not load-dependent. It is a solid ~32.9.
+
+### What I got wrong in the retraction, and it matters
+
+I wrote: *"a decode rate cannot RISE from 98k to 131k... deeper context means more KV to read per token; the curve must fall."* **That argument is wrong for a SPECULATIVE decoder**, and this campaign's own rule 11 says why. With speculation the observed rate is not raw decode - it is decode divided by how many tokens each verify pass delivers, and that depends on MEAN DRAFT LENGTH, which is gated by `--spec-draft-p-min` on the drafter's confidence. Confidence depends on the content at that depth. So the effective rate CAN move non-monotonically with depth even though raw decode falls monotonically underneath it.
+
+The counters say exactly that, and they say it cleanly:
+
+| file | 98,304 | 131,072 |
+|---|---|---|
+| UD-Q3_K_XL | acceptance **1.000**, draft len **2.89** -> 32.9 t/s | acceptance 0.885, draft len **3.30** -> **41.4** |
+
+Acceptance FALLS and the file gets FASTER, because the draft got LONGER. That is rule 11's headline claim - *acceptance is the speedup but mean draft length is the throughput predictor* - reproducing in a place I did not expect it. And an acceptance of exactly **1.00000** paired with a SHORT draft is the degenerate signature this campaign already documented: the p-min gate is cutting the draft early, so everything guessed is accepted because almost nothing is guessed.
+
+### What still stands from the retraction
+
+The **ranking** stays withdrawn, for a different and narrower reason than I gave. 98k now has two independent loads; **131k still has only one**. Before any sentence says which file is fastest at 131k, the 131k point needs the same treatment 98k just got. work/q3kxl-131k-reload.ps1 is running now - UD-Q3_K_XL alone at -c 131,072, independent reload, n=5, same protocol.
+
+So the honest state of this thread, in three parts kept separate on purpose:
+- **EFFECT**: UD-Q3_K_XL is ~32.9 t/s at 98k (reproduced twice) and measured 41.4 at 131k (once).
+- **MECHANISM**: rule 11's draft-length story fits it, and fits it better than my "not physical" objection did.
+- **CLAIM**: no ranking between files at 131k until that window is reproduced across loads.
+
+That is the second time in two hours this thread has moved, and both moves came from one more probe rather than from more thinking about the probes I had.
