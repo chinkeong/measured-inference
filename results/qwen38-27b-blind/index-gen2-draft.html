@@ -214,6 +214,7 @@ pre .c{color:var(--ink-muted)}
 .pv.c{color:var(--ink-muted)}
 .pv.x{color:var(--warn)}
 .pv.h{color:var(--hold)}
+.pv.j{color:var(--hold)}
 thead th .pv{border-color:rgba(255,255,255,.7);color:#fff}
 .n1{font-family:var(--mono);font-size:10.5px;color:var(--warn);font-weight:600;
   letter-spacing:.04em}
@@ -3033,14 +3034,15 @@ correspondingly softer.</code></pre>
       <tr><td>HumanEval</td><td class="small">execution pass@1</td><td class="num">100</td><td class="num">96 <span class="small">1 trunc</span></td><td class="num">84 <span class="small">4 trunc</span></td><td class="num">100</td><td class="num">96</td><td class="num"><b>92</b> <span class="small">2 trunc</span></td></tr>
       <tr><td>MBPP</td><td class="small">execution pass@1</td><td class="num">92</td><td class="num">84 <span class="small">1 trunc</span></td><td class="num">88 <span class="small">2 trunc</span></td><td class="num">92</td><td class="num">84</td><td class="num"><b>92</b> <span class="small">1 trunc</span></td></tr>
       <tr><td>MeetingBank</td><td class="small">ROUGE-L F1</td><td class="num">22.6</td><td class="num">22.4</td><td class="num">22.3</td><td class="num">22.6</td><td class="num">22.4</td><td class="num">22.3</td></tr>
-      <tr class="dim"><td>ALPACA</td><td class="small">judge 1&ndash;10</td><td colspan="6" style="text-align:center"><b>unscored by design &mdash; no independent judge on this machine; transcripts kept</b></td></tr>
-      <tr class="dim"><td>MT-Bench</td><td class="small">judge 1&ndash;10</td><td colspan="6" style="text-align:center"><b>unscored by design &mdash; same reason</b></td></tr>
+      <tr><td>ALPACA</td><td class="small">judge 1&ndash;10 <span class="pv j">JUDGED</span></td><td colspan="3" class="small" style="text-align:center">generated at this cap; scored 2026-08-24</td><td class="num">70.2</td><td class="num"><b>75.1</b></td><td class="num">72.9 <span class="small">1 empty</span></td></tr>
+      <tr><td>MT-Bench <span class="small">turn 1</span></td><td class="small">judge 1&ndash;10 <span class="pv j">JUDGED</span></td><td colspan="3" class="small" style="text-align:center">never truncated at either cap</td><td class="num">80.7</td><td class="num"><b>85.3</b></td><td class="num">79.7</td></tr>
       <tr class="hi"><td colspan="2"><b>Mean &mdash; composite index over &#10216;GSM8K, MATH-500, HumanEval, MBPP, MeetingBank&#10217;</b></td><td class="num">81.3</td><td class="num">80.5</td><td class="num" style="color:var(--warn)"><b>77.3</b></td><td class="num"><b>82.1</b></td><td class="num"><b>80.5</b></td><td class="num"><b>81.3</b></td></tr>
+      <tr class="hi"><td colspan="2"><b>Mean &mdash; composite index over all seven sets</b> <span class="small">what the protocol actually specifies</span></td><td colspan="3" class="small" style="text-align:center">&mdash;</td><td class="num"><b>80.2</b></td><td class="num"><b>80.4</b></td><td class="num"><b>79.8</b></td></tr>
       <tr><td colspan="2">Truncations, scored sets</td><td class="num">1</td><td class="num">2</td><td class="num" style="color:var(--warn)">8</td><td class="num">0</td><td class="num">0</td><td class="num">3</td></tr>
       <tr><td colspan="2">Wall time, base arm</td><td class="num">1.00 h</td><td class="num">1.47 h</td><td class="num">2.70 h</td><td class="num" colspan="3" style="text-align:right">re-runs: 0.38 / 0.53 / 2.40 h</td></tr>
       <tr><td colspan="2">Mean output tokens, all 7 sets</td><td class="num">830</td><td class="num">1,228</td><td class="num">2,217</td><td class="num" colspan="3" style="text-align:right">decode 42.2 / 42.0 / 41.9 t/s<br><span class="small">base arms, harness unweighted mean</span></td></tr>
       <tr><td colspan="8" class="small"><b>Three decode figures exist for this sweep and they are three different things.</b> <b>42.2 / 42.0 / 41.9</b> is the <em>base</em> arms (<code>-c 32768</code>, 16,384-token cap) as the <em>harness</em> reports them, which is an unweighted mean over requests. <b>41.0&ndash;41.7</b> is the <em>raised-cap re-run</em> arms (<code>-c 65536</code>, 32,768-token cap) on the same harness statistic. <b>38.4&ndash;40.2</b> is those same raised-cap arms as the <em>server</em> reports them, token-weighted &mdash; lower because the harness average is dominated by short, shallow-cache answers. &sect;11 and &sect;15.01 quote the last two as a pair; this cell is the first. None of the three is wrong and no two of them belong in one column.</td></tr>
-      <tr><td colspan="8" class="small"><b>Counting note.</b> The 16,384-cap truncation counts are 1 / 2 / 8 in the five <em>scored</em> sets; including the unscored ALPACA set, <code>xhigh</code> truncated <b>9</b> times. Both counts appear in the log and they are not the same number.</td></tr>
+      <tr><td colspan="8" class="small"><b>Counting note.</b> The 16,384-cap truncation counts are 1 / 2 / 8 in the five <em>scored</em> sets; including the ALPACA set &mdash; unscored when this count was taken, judged since &mdash; <code>xhigh</code> truncated <b>9</b> times. Both counts appear in the log and they are not the same number.</td></tr>
     </tbody>
   </table></div>
 
@@ -3461,7 +3463,127 @@ correspondingly softer.</code></pre>
   runs in this section do not suffer from it: excluding each arm's first
   60&nbsp;seconds changes their watt-hours by 0.01 to 0.63&nbsp;%.</p>
 
-  <h3 id="s09-09"><span class="sigil">09</span>Guidance &mdash; which level for which work</h3>
+  <h3 id="s09-judge"><span class="sigil">09</span>The two sets a machine cannot mark, and what a judge found in them</h3>
+  <p>Five of the seven benchmark sets can be marked by a computer, because
+  there is a right answer or the code runs. The other two ask for open-ended
+  writing, and the only way to score writing is to have something read it. For
+  most of this campaign nothing suitable was available, so this page published
+  a five-of-seven index and kept the transcripts. On <b>2026-08-24</b> they
+  were read.</p>
+  <p>The reader was a panel of <b>three independent Claude Opus&nbsp;5 seats</b>,
+  blind. Every answer carried an opaque salted identifier; the map from
+  identifier to effort arm was sealed in a key file no seat opened; each seat
+  received its packet under its own shuffle seed, so ordering effects could not
+  line up across seats. All three seats rated all <b>150</b> answers &mdash;
+  <b>450 ratings, none missing, none partial</b> &mdash; on the standard
+  1&ndash;10 single-answer rubric, normalised
+  <code>(r&minus;1)&divide;9&times;100</code>. Builder, scorer and paired test:
+  <code>scripts/bench/judge-panel.py</code>.</p>
+  <div class="tablebox"><table>
+    <caption><b>The judged pair, per effort arm.</b> Generations are the
+    16,384-cap arms; of these two sets only <code>xhigh</code> ALPACA ever hit
+    a cap, so nothing else needed the raised-cap re-run. Seat spread is the
+    mean per-item range across the three seats, in rating points out of ten.</caption>
+    <thead><tr><th scope="col">Set</th><th scope="col">Measure</th><th scope="col" class="num">low</th><th scope="col" class="num">medium</th><th scope="col" class="num">xhigh</th></tr></thead>
+    <tbody>
+      <tr><td rowspan="3">ALPACA</td><td class="small">mean rating 1&ndash;10</td><td class="num">7.32</td><td class="num"><b>7.76</b></td><td class="num">7.56</td></tr>
+      <tr><td class="small">score 0&ndash;100</td><td class="num">70.2</td><td class="num"><b>75.1</b></td><td class="num">72.9 <span class="pv h">PROVISIONAL</span></td></tr>
+      <tr><td class="small">seat spread &middot; max</td><td class="num">0.92 &middot; 3</td><td class="num">0.56 &middot; 2</td><td class="num">0.56 &middot; 2</td></tr>
+      <tr><td rowspan="3">MT-Bench <span class="small">turn 1</span></td><td class="small">mean rating 1&ndash;10</td><td class="num">8.27</td><td class="num"><b>8.68</b></td><td class="num">8.17</td></tr>
+      <tr><td class="small">score 0&ndash;100</td><td class="num">80.7</td><td class="num"><b>85.3</b></td><td class="num">79.7</td></tr>
+      <tr><td class="small">seat spread &middot; max</td><td class="num">0.28 &middot; 1</td><td class="num">0.64 &middot; 3</td><td class="num">0.44 &middot; 1</td></tr>
+      <tr><td colspan="5" class="small"><b>Why <code>xhigh</code> ALPACA is provisional.</b> One of its 25 answers
+      spent all 16,384 tokens inside a reasoning block and returned <b>zero
+      characters</b>; all three seats rated it 1. Rule 7 forbids both publishing
+      an arm with an unremedied truncation and quietly dropping the item, so the
+      raised-cap re-run of that arm is queued and this cell will be replaced.
+      The other five cells are final. Note the signature: this is the same
+      never-closed-thinking-block failure the cross-family arm showed, appearing
+      here in Qwen at its highest effort setting.</td></tr>
+    </tbody>
+  </table></div>
+  <p><b>The finding, and it is the first thing in this campaign that separates
+  the effort levels at all.</b> Because the same 25 prompts went to every arm,
+  the arms can be compared prompt against prompt rather than mean against mean,
+  which is far more sensitive. A 20,000-resample bootstrap over the per-prompt
+  differences (seed 42, 95&nbsp;% interval, item score = mean of three seats):</p>
+  <div class="tablebox"><table>
+    <caption><b>Paired arm comparison.</b> Six comparisons were run; at
+    95&nbsp;% that is roughly one false positive every three runs, so an
+    interval that barely clears zero is reported as marginal and never as a
+    result on its own.</caption>
+    <thead><tr><th scope="col">Set</th><th scope="col">Comparison</th><th scope="col" class="num">Mean diff</th><th scope="col" class="num">95&nbsp;% interval</th><th scope="col" class="num">Won &middot; lost &middot; tied</th><th scope="col">Verdict</th></tr></thead>
+    <tbody>
+      <tr class="hi"><td>MT-Bench</td><td><code>medium</code> over <code>xhigh</code></td><td class="num">+0.51</td><td class="num">+0.21 to +0.80</td><td class="num">14 &middot; 3 &middot; 8</td><td><b>Different</b></td></tr>
+      <tr><td>ALPACA</td><td><code>medium</code> over <code>low</code></td><td class="num">+0.44</td><td class="num">+0.013 to +0.91</td><td class="num">12 &middot; 5 &middot; 8</td><td>Different, <b>marginal</b></td></tr>
+      <tr><td>MT-Bench</td><td><code>medium</code> over <code>low</code></td><td class="num">+0.41</td><td class="num">&minus;0.11 to +1.21</td><td class="num">10 &middot; 5 &middot; 10</td><td>Tie</td></tr>
+      <tr><td>ALPACA</td><td><code>xhigh</code> over <code>low</code></td><td class="num">+0.24</td><td class="num">&minus;0.59 to +1.04</td><td class="num">11 &middot; 9 &middot; 5</td><td>Tie</td></tr>
+      <tr><td>ALPACA</td><td><code>xhigh</code> over <code>medium</code></td><td class="num">&minus;0.20</td><td class="num">&minus;1.03 to +0.63</td><td class="num">9 &middot; 11 &middot; 5</td><td>Tie</td></tr>
+      <tr><td>MT-Bench</td><td><code>xhigh</code> over <code>low</code></td><td class="num">&minus;0.09</td><td class="num">&minus;0.61 to +0.69</td><td class="num">6 &middot; 14 &middot; 5</td><td>Tie</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout warn">
+    <span class="label">This sharpens the <code>xhigh</code> recommendation rather than reversing it</span>
+    <p>The case for <code>xhigh</code> was never a higher score &mdash; it was
+    <em>completeness</em> on complex code tasks, where it was the only level to
+    deliver the whole specification with no fatal defect, twice out of two.
+    That is a categorical finding and it stands. What the judged pair adds is
+    the other half: <b>on open-ended writing, more thinking made the answers
+    measurably worse.</b> Longer deliberation produced more places to go wrong.
+    So: <code>xhigh</code> for hard code you need finished, <code>medium</code>
+    for writing.</p>
+  </div>
+  <p><b>What the seats caught that no mechanical scorer could.</b> The score is
+  the smaller half of what a judge buys. Three failure modes turned up that
+  perplexity, exact match and code execution are all structurally blind to.</p>
+  <p><b>Confident invention.</b> The travel-writing prompts drew fluent,
+  well-organised answers containing things that are not true &mdash; a
+  &ldquo;Hawaiian&nbsp;$2 bill&rdquo;, a claim that the first surfers ever to
+  ride a wave did so at Sunset Beach, a misdated battle, a hula centre that
+  does not exist, mistranslated Hawaiian words. A transit prompt produced
+  invented rail line names, expressways matched to the wrong interstate
+  numbers, and a count of &ldquo;14 L lines&rdquo;. A finance prompt turned a
+  1-for-4 bonus issue on 1,000 shares into 1,500 shares. Every one of these
+  sits inside an answer that reads well.</p>
+  <p><b>Degeneration far short of any limit.</b> One <code>low</code> MT-Bench
+  answer, asked for a short story, began spelling out numbers &mdash;
+  &ldquo;one hundred and one, one hundred and two&hellip;&rdquo; &mdash; and
+  never returned to the story. It used <b>1,682 tokens</b>, nowhere near a cap,
+  so no truncation counter saw it and no detector on this page would have
+  caught it; all three seats rated it 1. One <code>xhigh</code> ALPACA answer
+  expanded into 100 near-duplicate list entries that collapsed into nonsense.
+  Another repeated the same two words three times each to pad a list to the
+  requested length. <b>This is a gap in this page's own instruments, not a
+  footnote:</b> the repetition detectors used elsewhere in this campaign look
+  for immediate and line-level repeats, and none of these three shapes trips
+  them.</p>
+  <p><b>One failure that belongs to the model, not the dial.</b> On an ALPACA
+  prompt demanding a full sentence, <code>low</code> and <code>medium</code>
+  independently returned the same bare noun phrase, and every seat rated both
+  a 3. When two settings fail a prompt identically, the effort dial is not the
+  variable under test.</p>
+  <div class="callout">
+    <span class="label">What kind of instrument this is &mdash; the limit, stated with the result</span>
+    <p>The answers were written by Qwen and read by Claude, so nothing here
+    grades its own work; that is the rule this page was waiting on and it is
+    satisfied. It is <b>not</b> independence in the strong sense: the judge and
+    this report's author are both Claude models, a <em>correlated</em>
+    instrument. The mitigations are real and partial &mdash; three seats rather
+    than one, blinding by sealed key, a separate shuffle seed per seat, seat
+    spread published beside every mean, and arm-against-arm conclusions drawn
+    from the paired test rather than the raw means. A known residual bias is
+    that judges reward length; these seats were instructed against it and
+    reported correcting for it, which is self-report, not proof. <b>Still
+    open:</b> a judge from another vendor, or human raters. The blinded
+    packets, the sealed key and all 450 ratings are kept, so any other judge
+    can be run over exactly these answers and compared.</p>
+    <p><b>One condition that is not eliminated.</b> A seat sees several answers
+    to the same question inside one shuffled batch. This is not a clean-room
+    single-answer protocol, and the condition travels with the numbers rather
+    than being asserted away.</p>
+  </div>
+
+  <h3 id="s09-10"><span class="sigil">10</span>Guidance &mdash; which level for which work</h3>
   <p>Here is the whole section as one decision. Pick by what you can afford in
   time and electricity, not by expected quality, because the quality difference
   between the three did not survive measurement at this sample size.</p>
@@ -3551,9 +3673,13 @@ correspondingly softer.</code></pre>
   </table></div>
 
   <h3 id="s10-03"><span class="sigil">03</span>The composite, and the arithmetic that licenses calling it a tie</h3>
-  <p>A single cell is a smoke test. The composite over five sets is a different
-  object: it pools about 125 scored samples per arm, and pooling is what buys
-  precision. Take just the four all-or-nothing sets &mdash; GSM8K, MATH-500,
+  <p>A single cell is a smoke test. The composite over five mechanically scored
+  sets is a different object: it pools about 125 scored samples per arm, and
+  pooling is what buys precision. (The seven-set composite adds the two judged
+  sets, 175 samples per arm; the arithmetic below is unchanged by that, because
+  a judged 1&ndash;10 rating is not a binary item and does not enter this
+  particular calculation &mdash; <a href="#s09-judge">&sect;09.09</a> tests those
+  two sets on their own terms, prompt against prompt.) Take just the four all-or-nothing sets &mdash; GSM8K, MATH-500,
   HumanEval and MBPP &mdash; and each arm is exactly 100 binary items:</p>
 
   <div class="table-wrap"><table>
@@ -4487,15 +4613,34 @@ chrome --headless=new --disable-gpu --hide-scrollbars \
   </div>
 
   <div class="reg">
-    <h4>11. Two of the seven benchmark sets carry no score at all</h4>
-    <p>ALPACA and MT-Bench are judge-gated and there was no independent judge
-    endpoint on this machine. They ran, their <b>transcripts are kept</b>, and
-    they are <b>unscored by design</b> &mdash; a model must never judge its own
-    outputs. Every composite index on this page is therefore over
-    <em>five</em> sets and says so.
-    <em>Closed by:</em> a separate judge model, or human scoring of the kept
-    transcripts.</p>
-    <p class="price">Price: zero GPU on this machine &mdash; it needs a second model or a person</p>
+    <h4>11. Two of the seven benchmark sets carried no score &mdash; <span style="color:var(--good)">closed 2026-08-24</span></h4>
+    <p>ALPACA and MT-Bench are judge-gated, and for most of this campaign no
+    judge endpoint existed, so every composite index was over <em>five</em>
+    sets and said so. That gap is now closed. On 2026-08-24 a blind panel of
+    three Claude Opus&nbsp;5 seats read all <b>150 kept answers</b> and
+    returned <b>450 ratings with none missing</b>: opaque salted identifiers,
+    the identifier-to-arm map sealed in a key no seat opened, a separate
+    shuffle seed per seat, the standard 1&ndash;10 single-answer rubric,
+    normalised (r&minus;1)&divide;9&times;100. Both indices are published &mdash;
+    the five-set one because every earlier comparison on this page is against
+    it, the seven-set one because that is what the protocol specifies.</p>
+    <p><b>What it bought.</b> The judged pair is the only instrument in this
+    campaign that separates the effort levels at all. On a paired bootstrap
+    over the same 25 prompts, <code>medium</code> beats <code>xhigh</code> on
+    MT-Bench by 0.51 rating points (95% interval &minus;0.80 to &minus;0.21),
+    winning 14 prompts to 3 with 8 tied. Every other pairing is a tie, and
+    <code>medium</code>'s 0.44-point ALPACA lead over <code>low</code> clears
+    zero by 0.013 and is reported as marginal, not as a result.</p>
+    <p><b>What did not close.</b> The answers are Qwen's and the judge is
+    Claude, so the rule that a model must not grade its own outputs is
+    satisfied &mdash; but the judge and this report's author are both Claude
+    models, which is a <em>correlated</em> instrument rather than an
+    independent one. Three seats, a published seat spread of 0.28&ndash;0.92
+    rating points, and paired tests are mitigations, not a fix.
+    <em>Still open:</em> a judge from a different vendor, or human raters. The
+    blinded packets, the sealed key and all 450 ratings are kept, so any other
+    judge can be run over exactly the same answers and compared.</p>
+    <p class="price">Price paid: zero GPU. Price of what remains open: one judging pass by a non-Claude model, or a human panel &mdash; the packets are already built and blinded</p>
   </div>
 
   <div class="reg">

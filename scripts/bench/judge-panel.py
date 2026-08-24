@@ -188,6 +188,65 @@ def score():
           % (len(by_id), len(key), len(missing), len(partial), p))
 
 
+def compare():
+    """Paired arm-vs-arm test on the judged pair.
+
+    Rule 8 forbids reading a point difference at small n as a finding, and
+    rule 9 calls a lower score at higher effort a tie until proven. So the
+    arms are compared PAIRED — the same 25 prompts, each item scored as the
+    mean of its three seats — and a difference is only called when a 20,000-
+    resample bootstrap CI of the per-item differences excludes zero.
+
+    Six comparisons are run. At 95% that is roughly one false positive every
+    three runs, so a CI that barely clears zero is reported as marginal and
+    never as a result on its own.
+    """
+    import itertools
+    import glob
+    key = json.load(open(KEYFILE, encoding="utf-8"))
+    by = {}
+    for p in glob.glob(os.path.join(RATINGS, "*.json")):
+        d = json.load(open(p, encoding="utf-8"))
+        for r in d["ratings"]:
+            by.setdefault(r["id"], {})[d["seat"]] = int(r["rating"])
+
+    def items(arm, ds):
+        return {key[o]["index"]: statistics.mean(by[o].values())
+                for o in key
+                if key[o]["arm"] == arm and key[o]["dataset"] == ds and o in by}
+
+    rng = random.Random(42)
+    out = {"method": "paired bootstrap, 20000 resamples, seed 42, "
+                     "item = mean of 3 seats",
+           "multiplicity": "6 comparisons at 95% — a CI that barely clears "
+                           "zero is marginal, not a finding",
+           "comparisons": []}
+    for ds in DATASETS:
+        for a, b in itertools.combinations(ARMS, 2):
+            A, B = items(a, ds), items(b, ds)
+            idx = sorted(set(A) & set(B))
+            d = [B[i] - A[i] for i in idx]
+            boot = sorted(statistics.mean([rng.choice(d) for _ in d])
+                          for _ in range(20000))
+            lo, hi = boot[500], boot[19500]
+            rec = {"dataset": ds, "a": a, "b": b, "n": len(d),
+                   "mean_diff_b_minus_a": round(statistics.mean(d), 3),
+                   "ci95": [round(lo, 3), round(hi, 3)],
+                   "b_better_on": sum(1 for x in d if x > 0),
+                   "b_worse_on": sum(1 for x in d if x < 0),
+                   "tied_on": sum(1 for x in d if x == 0),
+                   "verdict": "DIFFERENT" if (lo > 0 or hi < 0) else "TIE"}
+            if rec["verdict"] == "DIFFERENT" and min(abs(lo), abs(hi)) < 0.05:
+                rec["verdict"] = "DIFFERENT (marginal — CI barely clears zero)"
+            out["comparisons"].append(rec)
+            print("%-9s %-6s vs %-6s  diff %+.3f  CI [%+.3f,%+.3f]  %s"
+                  % (ds, a, b, rec["mean_diff_b_minus_a"], lo, hi,
+                     rec["verdict"]))
+    p = os.path.join(OUT, "judge-paired.json")
+    json.dump(out, open(p, "w", encoding="utf-8"), indent=1)
+    print("-> %s" % p)
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "build"
-    {"build": build, "score": score}[cmd]()
+    {"build": build, "score": score, "compare": compare}[cmd]()

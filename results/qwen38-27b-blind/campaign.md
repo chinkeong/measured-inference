@@ -1188,3 +1188,31 @@ Scoring gate satisfied, and its limit stated: the answers were written by Qwen, 
 KNOWN CONDITION, not hidden: a seat sees several answers to the same question inside one shuffled batch. This is not a clean-room single-answer protocol and travels with the numbers.
 
 RULE 7 IN THE PAIR: of 150 kept answers exactly one hit its cap - xhigh ALPACA[21], 16,384 tokens, content EMPTY (the never-closed-thinking-block signature again, this time in Qwen at xhigh). Rerun queued (work/chain-0824b-rule7-alpaca.ps1, GPU-gated behind the ladder chain), decided in advance per rule 25. low ALPACA tops out at 2,033 tokens and medium at 1,714, so under greedy decoding their answers are byte-identical at any higher cap - raising xhigh's cap alone changes nothing else.
+
+## 2026-08-24 12:30 - the judge panel returned: the effort levels separate for the first time
+
+150 answers, 3 blind Claude Opus 5 seats, 450 ratings, none missing or partial. Seat spread 0.28-0.92 rating points out of ten.
+
+| set | low | medium | xhigh |
+|---|---|---|---|
+| ALPACA (0-100) | 70.2 | **75.1** | 72.9 PROVISIONAL |
+| MT-Bench turn 1 (0-100) | 80.7 | **85.3** | 79.7 |
+| **7-set composite** | 80.2 | **80.4** | 79.8 |
+| 5-set composite (unchanged) | 82.1 | 80.5 | 81.3 |
+
+THE FINDING. Paired bootstrap over the same 25 prompts (20,000 resamples, seed 42): on MT-Bench **medium beats xhigh by 0.51 rating points, 95% CI +0.21 to +0.80, winning 14 prompts to 3 with 8 tied**. That is the FIRST instrument in this entire campaign that distinguishes the effort levels at all - five mechanically scored benchmarks could not, and the 7-set composite (0.6 spread) still cannot. ALPACA medium-over-low is +0.44 with CI +0.013 to +0.91: it clears zero by 0.013, six comparisons were run, and it is recorded as MARGINAL, not a finding. Every other pairing is a tie.
+
+This SHARPENS rather than reverses the xhigh guidance. xhigh's case was always completeness on complex code (categorical, n=2, still stands). The judged pair adds the other half: on open-ended writing more thinking made answers measurably worse. Guidance is now: xhigh for hard code you need finished, medium for writing.
+
+WHAT THE JUDGES CAUGHT THAT NO MECHANICAL SCORER CAN:
+- Confident invention inside fluent prose: a "Hawaiian $2 bill", the first surfers ever riding a wave at Sunset Beach, a misdated battle, a nonexistent hula centre, mistranslated Hawaiian words; invented Metra line names and expressways matched to wrong interstate numbers; a 1-for-4 bonus issue on 1,000 shares turned into 1,500.
+- **A degeneration our own detectors are blind to**: low MT-Bench[2], asked for a short story, began spelling out numbers ("one hundred and one, one hundred and two...") and never returned to the story - at **1,682 tokens**, nowhere near any cap, so no truncation counter saw it and none of D1-D4 would trip. All three seats rated it 1. Recorded as a measured INSTRUMENT GAP, not a footnote. Also: xhigh ALPACA[16] expanded to 100 near-duplicate list entries; low ALPACA[23] repeated two words three times each to pad a list.
+- A failure that is the model's, not the dial's: low and medium independently returned the same bare noun phrase on an ALPACA prompt demanding a sentence, both rated 3 by every seat.
+
+RULE 7: xhigh ALPACA[21] was empty at the 16,384 cap (all three seats rated it 1) - the same never-closed-thinking-block signature as the gemma runaway, here in Qwen at its highest effort. Its score is PROVISIONAL and the cap-32k rerun is queued GPU-gated (work/chain-0824b-rule7-alpaca.ps1). The other five cells are final.
+
+INSTRUMENT LIMIT, published with the numbers everywhere they appear: Qwen wrote the answers and Claude read them, so the self-grading gate is satisfied - but judge and report author are both Claude models, a CORRELATED instrument. Mitigations (3 seats, sealed-key blinding, per-seat shuffle seeds, published spread, paired tests) are partial. "A second-vendor or human judge" is now an open negative-register entry; the packets, key and all 450 ratings are kept so another judge can be run over identical answers.
+
+LAW AMENDED. Rule 21 gains: publish BOTH Means when a judge exists; a pinned judge protocol (different family, blind with sealed key, >=3 seats all rating everything, 1-10 rubric, (r-1)/9, and rule 7's no-filtering clause binds the judge - an empty answer is a 1, not an exclusion); paired-or-not-made for arm claims; correlated-judge disclosure; and the ruling that "unscored BY DESIGN" is the wrong label for a missing instrument - an absent judge is a GAP, and calling it a design choice dresses a hole up as a decision.
+
+ARTIFACTS UPDATED: published guide (chinkeong.github.io commit 20721af, correction 26, new section 09-judge, footer fourth pass), templates/example-report.html re-cut and re-pinned to 20721af in this commit, index-gen2-draft.html (new 09.09, guidance renumbered to 09.10, register entry 11 closed), scripts/bench/README.md, METHODOLOGY rule 21.

@@ -101,6 +101,44 @@ A judge on this machine (different port) is allowed but warned about: it
 competes for the GPU. Timings come from llama.cpp's own counters so tok/s stays
 valid, but wall clock inflates.
 
+### Judging transcripts after the fact — `judge-panel.py`
+
+The live `--judge-url` path needs a second endpoint at benchmark time. When you
+did not have one, the transcripts are still kept, and `judge-panel.py` scores
+them later with **zero GPU** — it never touches the model, only the recorded
+answers:
+
+```powershell
+python judge-panel.py build     # blinded packets + the sealed key
+#   ... hand each packet to one judge seat; each writes ratings/<packet>.json
+python judge-panel.py score     # per-arm scores + inter-rater spread
+python judge-panel.py compare   # paired bootstrap, arm against arm
+```
+
+`build` emits one packet per ⟨dataset × half × seat⟩ holding `{id, question,
+answer}` with **opaque salted ids**, and seals the id→arm map in
+`key-SEALED.json`. Each seat gets its own shuffle seed, so ordering effects do
+not correlate across seats. A judge seat is told to read its packet and nothing
+else — reading the key would void the blinding.
+
+`score` refuses to publish if any answer is unrated or rated by only some
+seats: rule 7 forbids filtering, so a partial panel is not a smaller panel, it
+is no result. Empty and truncated answers are rated like any other (an empty
+answer is a 1) and are flagged `at_cap`, which marks that arm's score
+`provisional` until the rule-7 re-run lands.
+
+`compare` is how arm-against-arm claims are made — a 20,000-resample paired
+bootstrap over per-prompt differences, because the same prompts went to every
+arm. It prints the win/loss/tie counts with each interval and labels an
+interval that barely clears zero as **marginal**.
+
+**Disclose a correlated judge.** If the judge shares a vendor or family with
+whoever wrote the report, the self-grading gate is satisfied but independence
+is not. Say so beside the numbers, publish the seat spread, and carry
+"a second-vendor or human judge" as an open item. The packets, the key and
+every rating are kept precisely so another judge can be run over the identical
+answers.
+
 ### Code execution
 
 HumanEval and MBPP pass@1 **runs model-generated code on this machine**. That is

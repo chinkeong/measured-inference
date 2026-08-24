@@ -446,10 +446,16 @@ beyond its retrieval-tested depth is labeled
     (other models; the same model on other machines) requires the identical
     suite: a missing benchmark breaks apples-to-apples and voids the Mean.
     - GSM8K (`gsm8k/gsm8k`) — exact-match accuracy
-    - ALPACA (`tatsu-lab/alpaca`) — judge-scored when an independent judge
-      endpoint is configured; otherwise speed + transcripts only (a model
-      judging its own outputs is not a score — this is a scoring gate, the
-      benchmark still RUNS and its transcripts are kept)
+    - ALPACA (`tatsu-lab/alpaca`) — judge-scored when a conforming judge
+      endpoint is configured (see the pinned judge protocol below); otherwise
+      speed + transcripts only (a model judging its own outputs is not a score
+      — this is a scoring gate, the benchmark still RUNS and its transcripts
+      are kept). "Unscored **by design**" is the wrong label for a missing
+      judge: an absent instrument is a GAP, and calling it a design choice
+      dresses a hole up as a decision. Say "unscored — no judge configured",
+      and keep the transcripts so the gap can be closed later without
+      re-running the GPU. The reference endpoint is
+      `scripts/bench/judge-panel.py`.
     - HumanEval (`openai/openai_humaneval`) — execution pass@1 (isolated
       subprocess: `python -I -E`, temp cwd, timeout — isolation, not a true
       container sandbox; run untrusted-model code with `--no-exec` where that
@@ -473,7 +479,44 @@ beyond its retrieval-tested depth is labeled
     over ⟨list⟩", never presented as an accuracy. Two reports' Means are
     comparable only when their scored sets AND suite hashes match — a report
     without a judge endpoint states that its Mean excludes the judge-gated
-    pair.
+    pair. **When a judge is configured, publish BOTH Means** — the five-set
+    one, because every earlier comparison in that campaign is against it, and
+    the seven-set one, because that is what this rule specifies. Dropping
+    either silently breaks one comparison or the other.
+    **The judge protocol is pinned** (same reason turn-1 is pinned —
+    comparability requires every report to agree). A judge endpoint is
+    conforming only if it is: (a) a model family *different from the model
+    under test* — the scoring gate is about self-grading, so a same-family
+    judge is not a judge; (b) **blind** — opaque per-answer identifiers, the
+    identifier→arm map sealed in a file no judge reads, and a per-seat shuffle
+    seed so ordering effects do not correlate across seats; (c) a **panel of
+    ≥3 seats**, every seat rating every answer, with the seat spread published
+    beside every mean — a single seat is an anecdote; (d) scored on the
+    standard 1–10 single-answer rubric, normalized (r−1)/9 → 0–100; (e) run
+    over **every** answer including empty, truncated and degenerate ones —
+    rule 7's no-filtering clause binds the judge exactly as it binds the
+    scorer, and an empty answer is a 1, not an exclusion.
+    **Arm-against-arm claims from judged sets are PAIRED or they are not
+    made.** The same prompts went to every arm, so compare per-prompt
+    differences with a bootstrap interval, not mean against mean; report the
+    win/loss/tie counts beside the interval; and when several comparisons run,
+    say how many, and call an interval that barely clears zero *marginal*, not
+    a finding (rule 8: point differences are not real at small n).
+    **A correlated judge is disclosed, never presented as independence.** If
+    the judge and the report's author share a vendor or model family, the
+    scoring gate is satisfied but independence is not: say so wherever the
+    numbers appear, and carry the stronger judge — another vendor, or humans —
+    as an open negative-register entry with its price. Keep the blinded
+    packets, the sealed key and every rating, so a different judge can be run
+    over the identical answers and compared.
+    **What a judge is FOR is not only the score.** Judged sets are the only
+    instrument in this suite that can see confident invention, degeneration
+    that stops short of any cap, and instruction-following failures. Report
+    those findings beside the score — and when a degeneration shape gets past
+    the campaign's own detectors, that is a measured instrument gap and is
+    published as one (2026-08-24: a story prompt that became an endless
+    spelled-out number count at 1,682 tokens tripped no truncation counter and
+    no repetition detector; three seats rated it 1).
     **Interpretation guardrails**: a single N=25 cell is a smoke test
     (±~16 pts) — never rank efforts by one cell. The cross-suite Mean
     aggregates ~175 samples per effort and carries near-n=200 power; it and

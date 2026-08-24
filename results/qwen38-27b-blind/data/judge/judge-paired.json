@@ -1,0 +1,96 @@
+{
+ "method": "paired bootstrap, 20000 resamples, seed 42, item = mean of 3 seats",
+ "multiplicity": "6 comparisons at 95% \u2014 a CI that barely clears zero is marginal, not a finding",
+ "comparisons": [
+  {
+   "dataset": "ALPACA",
+   "a": "low",
+   "b": "medium",
+   "n": 25,
+   "mean_diff_b_minus_a": 0.44,
+   "ci95": [
+    0.013,
+    0.907
+   ],
+   "b_better_on": 12,
+   "b_worse_on": 5,
+   "tied_on": 8,
+   "verdict": "DIFFERENT (marginal \u2014 CI barely clears zero)"
+  },
+  {
+   "dataset": "ALPACA",
+   "a": "low",
+   "b": "xhigh",
+   "n": 25,
+   "mean_diff_b_minus_a": 0.24,
+   "ci95": [
+    -0.587,
+    1.04
+   ],
+   "b_better_on": 11,
+   "b_worse_on": 9,
+   "tied_on": 5,
+   "verdict": "TIE"
+  },
+  {
+   "dataset": "ALPACA",
+   "a": "medium",
+   "b": "xhigh",
+   "n": 25,
+   "mean_diff_b_minus_a": -0.2,
+   "ci95": [
+    -1.027,
+    0.627
+   ],
+   "b_better_on": 9,
+   "b_worse_on": 11,
+   "tied_on": 5,
+   "verdict": "TIE"
+  },
+  {
+   "dataset": "MT-Bench",
+   "a": "low",
+   "b": "medium",
+   "n": 25,
+   "mean_diff_b_minus_a": 0.413,
+   "ci95": [
+    -0.107,
+    1.213
+   ],
+   "b_better_on": 10,
+   "b_worse_on": 5,
+   "tied_on": 10,
+   "verdict": "TIE"
+  },
+  {
+   "dataset": "MT-Bench",
+   "a": "low",
+   "b": "xhigh",
+   "n": 25,
+   "mean_diff_b_minus_a": -0.093,
+   "ci95": [
+    -0.613,
+    0.693
+   ],
+   "b_better_on": 6,
+   "b_worse_on": 14,
+   "tied_on": 5,
+   "verdict": "TIE"
+  },
+  {
+   "dataset": "MT-Bench",
+   "a": "medium",
+   "b": "xhigh",
+   "n": 25,
+   "mean_diff_b_minus_a": -0.507,
+   "ci95": [
+    -0.8,
+    -0.213
+   ],
+   "b_better_on": 3,
+   "b_worse_on": 14,
+   "tied_on": 8,
+   "verdict": "DIFFERENT"
+  }
+ ]
+}

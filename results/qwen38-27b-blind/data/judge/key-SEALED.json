@@ -1,0 +1,1352 @@
+{
+ "1a4c8ad442": {
+  "arm": "low",
+  "dataset": "ALPACA",
+  "index": 0,
+  "tokens": 211,
+  "chars": 711,
+  "at_cap": false,
+  "empty": false
+ },
+ "54900df378": {
+  "arm": "low",
+  "dataset": "ALPACA",
+  "index": 1,
+  "tokens": 1905,
+  "chars": 6257,
+  "at_cap": false,
+  "empty": false
+ },
+ "d7f9bf2dab": {
+  "arm": "low",
+  "dataset": "ALPACA",
+  "index": 2,
+  "tokens": 199,
+  "chars": 23,
+  "at_cap": false,
+  "empty": false
+ },
+ "86660eb1ed": {
+  "arm": "low",
+  "dataset": "ALPACA",
+  "index": 3,
+  "tokens": 413,
+  "chars": 331,
+  "at_cap": false,
+  "empty": false
+ },
+ "7a29eedd10": {
+  "arm": "low",
+  "dataset": "ALPACA",
+  "index": 4,
+  "tokens": 482,
+  "chars": 1068,
+  "at_cap": false,
+  "empty": false
+ },
+ "58788fa4b0": {
+  "arm": "low",
+  "dataset": "ALPACA",
+  "index": 5,
+  "tokens": 568,
+  "chars": 1936,
+  "at_cap": false,
+  "empty": false
+ },
+ "1d59e79451": {
+  "arm": "low",
+  "dataset": "ALPACA",
+  "index": 6,
+  "tokens": 99,
+  "chars": 81,
+  "at_cap": false,
+  "empty": false
+ },
+ "b0f27541fe": {
+  "arm": "low",
+  "dataset": "ALPACA",
+  "index": 7,
+  "tokens": 303,
+  "chars": 184,
+  "at_cap": false,
+  "empty": false
+ },
+ "73232a5dca": {
+  "arm": "low",
+  "dataset": "ALPACA",
+  "index": 8,
+  "tokens": 749,
+  "chars": 2224,
+  "at_cap": false,
+  "empty": false
+ },
+ "6fe2ddf41c": {
+  "arm": "low",
+  "dataset": "ALPACA",
+  "index": 9,
+  "tokens": 433,
+  "chars": 682,
+  "at_cap": false,
+  "empty": false
+ },
+ "35f2f0917e": {
+  "arm": "low",
+  "dataset": "ALPACA",
+  "index": 10,
+  "tokens": 1032,
+  "chars": 3364,
+  "at_cap": false,
+  "empty": false
+ },
+ "fe623d85ed": {
+  "arm": "low",
+  "dataset": "ALPACA",
+  "index": 11,
+  "tokens": 510,
+  "chars": 1771,
+  "at_cap": false,
+  "empty": false
+ },
+ "b012794eed": {
+  "arm": "low",
+  "dataset": "ALPACA",
+  "index": 12,
+  "tokens": 584,
+  "chars": 1074,
+  "at_cap": false,
+  "empty": false
+ },
+ "3c222d4949": {
+  "arm": "low",
+  "dataset": "ALPACA",
+  "index": 13,
+  "tokens": 978,
+  "chars": 2729,
+  "at_cap": false,
+  "empty": false
+ },
+ "a9249da60e": {
+  "arm": "low",
+  "dataset": "ALPACA",
+  "index": 14,
+  "tokens": 379,
+  "chars": 325,
+  "at_cap": false,
+  "empty": false
+ },
+ "1d342124d9": {
+  "arm": "low",
+  "dataset": "ALPACA",
+  "index": 15,
+  "tokens": 198,
+  "chars": 100,
+  "at_cap": false,
+  "empty": false
+ },
+ "980f0febc2": {
+  "arm": "low",
+  "dataset": "ALPACA",
+  "index": 16,
+  "tokens": 872,
+  "chars": 1773,
+  "at_cap": false,
+  "empty": false
+ },
+ "9b941d90ed": {
+  "arm": "low",
+  "dataset": "ALPACA",
+  "index": 17,
+  "tokens": 107,
+  "chars": 100,
+  "at_cap": false,
+  "empty": false
+ },
+ "03f144dea0": {
+  "arm": "low",
+  "dataset": "ALPACA",
+  "index": 18,
+  "tokens": 169,
+  "chars": 377,
+  "at_cap": false,
+  "empty": false
+ },
+ "30f6cf8fd1": {
+  "arm": "low",
+  "dataset": "ALPACA",
+  "index": 19,
+  "tokens": 854,
+  "chars": 2415,
+  "at_cap": false,
+  "empty": false
+ },
+ "052544bc07": {
+  "arm": "low",
+  "dataset": "ALPACA",
+  "index": 20,
+  "tokens": 1060,
+  "chars": 4441,
+  "at_cap": false,
+  "empty": false
+ },
+ "255bfa4365": {
+  "arm": "low",
+  "dataset": "ALPACA",
+  "index": 21,
+  "tokens": 928,
+  "chars": 626,
+  "at_cap": false,
+  "empty": false
+ },
+ "0f24e02f24": {
+  "arm": "low",
+  "dataset": "ALPACA",
+  "index": 22,
+  "tokens": 71,
+  "chars": 180,
+  "at_cap": false,
+  "empty": false
+ },
+ "33aa68f883": {
+  "arm": "low",
+  "dataset": "ALPACA",
+  "index": 23,
+  "tokens": 2033,
+  "chars": 1216,
+  "at_cap": false,
+  "empty": false
+ },
+ "4dd1c8c764": {
+  "arm": "low",
+  "dataset": "ALPACA",
+  "index": 24,
+  "tokens": 745,
+  "chars": 2219,
+  "at_cap": false,
+  "empty": false
+ },
+ "0442a83371": {
+  "arm": "low",
+  "dataset": "MT-Bench",
+  "index": 0,
+  "tokens": 2147,
+  "chars": 7427,
+  "at_cap": false,
+  "empty": false
+ },
+ "0a571b5f09": {
+  "arm": "low",
+  "dataset": "MT-Bench",
+  "index": 1,
+  "tokens": 612,
+  "chars": 1585,
+  "at_cap": false,
+  "empty": false
+ },
+ "93f46af48f": {
+  "arm": "low",
+  "dataset": "MT-Bench",
+  "index": 2,
+  "tokens": 1682,
+  "chars": 5900,
+  "at_cap": false,
+  "empty": false
+ },
+ "073b5caca0": {
+  "arm": "low",
+  "dataset": "MT-Bench",
+  "index": 3,
+  "tokens": 1312,
+  "chars": 1170,
+  "at_cap": false,
+  "empty": false
+ },
+ "3637cbdaff": {
+  "arm": "low",
+  "dataset": "MT-Bench",
+  "index": 4,
+  "tokens": 805,
+  "chars": 2560,
+  "at_cap": false,
+  "empty": false
+ },
+ "b101777e31": {
+  "arm": "low",
+  "dataset": "MT-Bench",
+  "index": 5,
+  "tokens": 1010,
+  "chars": 2846,
+  "at_cap": false,
+  "empty": false
+ },
+ "3cfce209f5": {
+  "arm": "low",
+  "dataset": "MT-Bench",
+  "index": 6,
+  "tokens": 762,
+  "chars": 1964,
+  "at_cap": false,
+  "empty": false
+ },
+ "9346fa737c": {
+  "arm": "low",
+  "dataset": "MT-Bench",
+  "index": 7,
+  "tokens": 353,
+  "chars": 623,
+  "at_cap": false,
+  "empty": false
+ },
+ "ed17f8f6c8": {
+  "arm": "low",
+  "dataset": "MT-Bench",
+  "index": 8,
+  "tokens": 310,
+  "chars": 497,
+  "at_cap": false,
+  "empty": false
+ },
+ "b7a5f2c06f": {
+  "arm": "low",
+  "dataset": "MT-Bench",
+  "index": 9,
+  "tokens": 569,
+  "chars": 801,
+  "at_cap": false,
+  "empty": false
+ },
+ "c147798b3e": {
+  "arm": "low",
+  "dataset": "MT-Bench",
+  "index": 10,
+  "tokens": 397,
+  "chars": 437,
+  "at_cap": false,
+  "empty": false
+ },
+ "45fed851a8": {
+  "arm": "low",
+  "dataset": "MT-Bench",
+  "index": 11,
+  "tokens": 350,
+  "chars": 354,
+  "at_cap": false,
+  "empty": false
+ },
+ "48149f2c49": {
+  "arm": "low",
+  "dataset": "MT-Bench",
+  "index": 12,
+  "tokens": 191,
+  "chars": 275,
+  "at_cap": false,
+  "empty": false
+ },
+ "a80e7f0bdf": {
+  "arm": "low",
+  "dataset": "MT-Bench",
+  "index": 13,
+  "tokens": 871,
+  "chars": 2287,
+  "at_cap": false,
+  "empty": false
+ },
+ "7c71ff2550": {
+  "arm": "low",
+  "dataset": "MT-Bench",
+  "index": 14,
+  "tokens": 1998,
+  "chars": 3564,
+  "at_cap": false,
+  "empty": false
+ },
+ "dabe5dbcd3": {
+  "arm": "low",
+  "dataset": "MT-Bench",
+  "index": 15,
+  "tokens": 1571,
+  "chars": 2716,
+  "at_cap": false,
+  "empty": false
+ },
+ "5013d6af4d": {
+  "arm": "low",
+  "dataset": "MT-Bench",
+  "index": 16,
+  "tokens": 150,
+  "chars": 42,
+  "at_cap": false,
+  "empty": false
+ },
+ "4e52283020": {
+  "arm": "low",
+  "dataset": "MT-Bench",
+  "index": 17,
+  "tokens": 429,
+  "chars": 577,
+  "at_cap": false,
+  "empty": false
+ },
+ "d23792ca6e": {
+  "arm": "low",
+  "dataset": "MT-Bench",
+  "index": 18,
+  "tokens": 879,
+  "chars": 1119,
+  "at_cap": false,
+  "empty": false
+ },
+ "33ba5dc89b": {
+  "arm": "low",
+  "dataset": "MT-Bench",
+  "index": 19,
+  "tokens": 1004,
+  "chars": 2502,
+  "at_cap": false,
+  "empty": false
+ },
+ "b02abb4ba7": {
+  "arm": "low",
+  "dataset": "MT-Bench",
+  "index": 20,
+  "tokens": 1167,
+  "chars": 2110,
+  "at_cap": false,
+  "empty": false
+ },
+ "e15038e31d": {
+  "arm": "low",
+  "dataset": "MT-Bench",
+  "index": 21,
+  "tokens": 1572,
+  "chars": 5550,
+  "at_cap": false,
+  "empty": false
+ },
+ "b9b2a01f3a": {
+  "arm": "low",
+  "dataset": "MT-Bench",
+  "index": 22,
+  "tokens": 1766,
+  "chars": 7279,
+  "at_cap": false,
+  "empty": false
+ },
+ "33486d6d42": {
+  "arm": "low",
+  "dataset": "MT-Bench",
+  "index": 23,
+  "tokens": 4810,
+  "chars": 18157,
+  "at_cap": false,
+  "empty": false
+ },
+ "9e35e77dfa": {
+  "arm": "low",
+  "dataset": "MT-Bench",
+  "index": 24,
+  "tokens": 762,
+  "chars": 2487,
+  "at_cap": false,
+  "empty": false
+ },
+ "ffffb06b76": {
+  "arm": "medium",
+  "dataset": "ALPACA",
+  "index": 0,
+  "tokens": 251,
+  "chars": 959,
+  "at_cap": false,
+  "empty": false
+ },
+ "7dd623f45d": {
+  "arm": "medium",
+  "dataset": "ALPACA",
+  "index": 1,
+  "tokens": 1515,
+  "chars": 4718,
+  "at_cap": false,
+  "empty": false
+ },
+ "1dc21deafb": {
+  "arm": "medium",
+  "dataset": "ALPACA",
+  "index": 2,
+  "tokens": 231,
+  "chars": 23,
+  "at_cap": false,
+  "empty": false
+ },
+ "42a78de8a6": {
+  "arm": "medium",
+  "dataset": "ALPACA",
+  "index": 3,
+  "tokens": 791,
+  "chars": 711,
+  "at_cap": false,
+  "empty": false
+ },
+ "81a849dd92": {
+  "arm": "medium",
+  "dataset": "ALPACA",
+  "index": 4,
+  "tokens": 730,
+  "chars": 1995,
+  "at_cap": false,
+  "empty": false
+ },
+ "ae5e137415": {
+  "arm": "medium",
+  "dataset": "ALPACA",
+  "index": 5,
+  "tokens": 738,
+  "chars": 2761,
+  "at_cap": false,
+  "empty": false
+ },
+ "f2c99ef555": {
+  "arm": "medium",
+  "dataset": "ALPACA",
+  "index": 6,
+  "tokens": 88,
+  "chars": 81,
+  "at_cap": false,
+  "empty": false
+ },
+ "8e1d921306": {
+  "arm": "medium",
+  "dataset": "ALPACA",
+  "index": 7,
+  "tokens": 634,
+  "chars": 312,
+  "at_cap": false,
+  "empty": false
+ },
+ "0885e87e57": {
+  "arm": "medium",
+  "dataset": "ALPACA",
+  "index": 8,
+  "tokens": 968,
+  "chars": 2944,
+  "at_cap": false,
+  "empty": false
+ },
+ "c8a4670c85": {
+  "arm": "medium",
+  "dataset": "ALPACA",
+  "index": 9,
+  "tokens": 497,
+  "chars": 827,
+  "at_cap": false,
+  "empty": false
+ },
+ "910f59bb41": {
+  "arm": "medium",
+  "dataset": "ALPACA",
+  "index": 10,
+  "tokens": 1065,
+  "chars": 3320,
+  "at_cap": false,
+  "empty": false
+ },
+ "85bb940ddd": {
+  "arm": "medium",
+  "dataset": "ALPACA",
+  "index": 11,
+  "tokens": 776,
+  "chars": 2325,
+  "at_cap": false,
+  "empty": false
+ },
+ "188a8558d5": {
+  "arm": "medium",
+  "dataset": "ALPACA",
+  "index": 12,
+  "tokens": 730,
+  "chars": 1616,
+  "at_cap": false,
+  "empty": false
+ },
+ "eddfd04106": {
+  "arm": "medium",
+  "dataset": "ALPACA",
+  "index": 13,
+  "tokens": 977,
+  "chars": 2627,
+  "at_cap": false,
+  "empty": false
+ },
+ "473226f11a": {
+  "arm": "medium",
+  "dataset": "ALPACA",
+  "index": 14,
+  "tokens": 414,
+  "chars": 350,
+  "at_cap": false,
+  "empty": false
+ },
+ "d12e17c763": {
+  "arm": "medium",
+  "dataset": "ALPACA",
+  "index": 15,
+  "tokens": 266,
+  "chars": 158,
+  "at_cap": false,
+  "empty": false
+ },
+ "757cdced72": {
+  "arm": "medium",
+  "dataset": "ALPACA",
+  "index": 16,
+  "tokens": 1029,
+  "chars": 2196,
+  "at_cap": false,
+  "empty": false
+ },
+ "7f01d79461": {
+  "arm": "medium",
+  "dataset": "ALPACA",
+  "index": 17,
+  "tokens": 100,
+  "chars": 81,
+  "at_cap": false,
+  "empty": false
+ },
+ "d2604a7f94": {
+  "arm": "medium",
+  "dataset": "ALPACA",
+  "index": 18,
+  "tokens": 192,
+  "chars": 425,
+  "at_cap": false,
+  "empty": false
+ },
+ "615cf642d7": {
+  "arm": "medium",
+  "dataset": "ALPACA",
+  "index": 19,
+  "tokens": 1219,
+  "chars": 3183,
+  "at_cap": false,
+  "empty": false
+ },
+ "b660c564d9": {
+  "arm": "medium",
+  "dataset": "ALPACA",
+  "index": 20,
+  "tokens": 1109,
+  "chars": 4996,
+  "at_cap": false,
+  "empty": false
+ },
+ "0502fd25fc": {
+  "arm": "medium",
+  "dataset": "ALPACA",
+  "index": 21,
+  "tokens": 1714,
+  "chars": 1170,
+  "at_cap": false,
+  "empty": false
+ },
+ "76771891a8": {
+  "arm": "medium",
+  "dataset": "ALPACA",
+  "index": 22,
+  "tokens": 97,
+  "chars": 190,
+  "at_cap": false,
+  "empty": false
+ },
+ "59714298c4": {
+  "arm": "medium",
+  "dataset": "ALPACA",
+  "index": 23,
+  "tokens": 911,
+  "chars": 939,
+  "at_cap": false,
+  "empty": false
+ },
+ "ae90d24f1d": {
+  "arm": "medium",
+  "dataset": "ALPACA",
+  "index": 24,
+  "tokens": 892,
+  "chars": 2771,
+  "at_cap": false,
+  "empty": false
+ },
+ "1701e8b174": {
+  "arm": "medium",
+  "dataset": "MT-Bench",
+  "index": 0,
+  "tokens": 1966,
+  "chars": 6113,
+  "at_cap": false,
+  "empty": false
+ },
+ "dd428757a3": {
+  "arm": "medium",
+  "dataset": "MT-Bench",
+  "index": 1,
+  "tokens": 820,
+  "chars": 2199,
+  "at_cap": false,
+  "empty": false
+ },
+ "5c6ce162be": {
+  "arm": "medium",
+  "dataset": "MT-Bench",
+  "index": 2,
+  "tokens": 2309,
+  "chars": 5314,
+  "at_cap": false,
+  "empty": false
+ },
+ "73219e68f5": {
+  "arm": "medium",
+  "dataset": "MT-Bench",
+  "index": 3,
+  "tokens": 1216,
+  "chars": 1267,
+  "at_cap": false,
+  "empty": false
+ },
+ "ccf5639b5c": {
+  "arm": "medium",
+  "dataset": "MT-Bench",
+  "index": 4,
+  "tokens": 1172,
+  "chars": 3926,
+  "at_cap": false,
+  "empty": false
+ },
+ "a10212a0f5": {
+  "arm": "medium",
+  "dataset": "MT-Bench",
+  "index": 5,
+  "tokens": 1513,
+  "chars": 4566,
+  "at_cap": false,
+  "empty": false
+ },
+ "e66fa7e086": {
+  "arm": "medium",
+  "dataset": "MT-Bench",
+  "index": 6,
+  "tokens": 1294,
+  "chars": 3831,
+  "at_cap": false,
+  "empty": false
+ },
+ "f2c1994d6a": {
+  "arm": "medium",
+  "dataset": "MT-Bench",
+  "index": 7,
+  "tokens": 532,
+  "chars": 1057,
+  "at_cap": false,
+  "empty": false
+ },
+ "c23c95d39d": {
+  "arm": "medium",
+  "dataset": "MT-Bench",
+  "index": 8,
+  "tokens": 334,
+  "chars": 557,
+  "at_cap": false,
+  "empty": false
+ },
+ "96d0ef97a6": {
+  "arm": "medium",
+  "dataset": "MT-Bench",
+  "index": 9,
+  "tokens": 642,
+  "chars": 882,
+  "at_cap": false,
+  "empty": false
+ },
+ "64a306c5ac": {
+  "arm": "medium",
+  "dataset": "MT-Bench",
+  "index": 10,
+  "tokens": 451,
+  "chars": 614,
+  "at_cap": false,
+  "empty": false
+ },
+ "660d4b85bf": {
+  "arm": "medium",
+  "dataset": "MT-Bench",
+  "index": 11,
+  "tokens": 333,
+  "chars": 296,
+  "at_cap": false,
+  "empty": false
+ },
+ "2bb7ae132c": {
+  "arm": "medium",
+  "dataset": "MT-Bench",
+  "index": 12,
+  "tokens": 210,
+  "chars": 325,
+  "at_cap": false,
+  "empty": false
+ },
+ "410d0fea1b": {
+  "arm": "medium",
+  "dataset": "MT-Bench",
+  "index": 13,
+  "tokens": 813,
+  "chars": 1680,
+  "at_cap": false,
+  "empty": false
+ },
+ "89e143762d": {
+  "arm": "medium",
+  "dataset": "MT-Bench",
+  "index": 14,
+  "tokens": 1696,
+  "chars": 3058,
+  "at_cap": false,
+  "empty": false
+ },
+ "78c455edde": {
+  "arm": "medium",
+  "dataset": "MT-Bench",
+  "index": 15,
+  "tokens": 1230,
+  "chars": 2539,
+  "at_cap": false,
+  "empty": false
+ },
+ "9bbe23607b": {
+  "arm": "medium",
+  "dataset": "MT-Bench",
+  "index": 16,
+  "tokens": 285,
+  "chars": 42,
+  "at_cap": false,
+  "empty": false
+ },
+ "75aa629106": {
+  "arm": "medium",
+  "dataset": "MT-Bench",
+  "index": 17,
+  "tokens": 511,
+  "chars": 854,
+  "at_cap": false,
+  "empty": false
+ },
+ "908a7caf7d": {
+  "arm": "medium",
+  "dataset": "MT-Bench",
+  "index": 18,
+  "tokens": 729,
+  "chars": 79,
+  "at_cap": false,
+  "empty": false
+ },
+ "4db2e14af8": {
+  "arm": "medium",
+  "dataset": "MT-Bench",
+  "index": 19,
+  "tokens": 1311,
+  "chars": 3678,
+  "at_cap": false,
+  "empty": false
+ },
+ "e0237db9ae": {
+  "arm": "medium",
+  "dataset": "MT-Bench",
+  "index": 20,
+  "tokens": 1309,
+  "chars": 2786,
+  "at_cap": false,
+  "empty": false
+ },
+ "eee0a0ab67": {
+  "arm": "medium",
+  "dataset": "MT-Bench",
+  "index": 21,
+  "tokens": 1850,
+  "chars": 7133,
+  "at_cap": false,
+  "empty": false
+ },
+ "29d2aa35c7": {
+  "arm": "medium",
+  "dataset": "MT-Bench",
+  "index": 22,
+  "tokens": 2774,
+  "chars": 11932,
+  "at_cap": false,
+  "empty": false
+ },
+ "e347e2a357": {
+  "arm": "medium",
+  "dataset": "MT-Bench",
+  "index": 23,
+  "tokens": 6213,
+  "chars": 21530,
+  "at_cap": false,
+  "empty": false
+ },
+ "614fe101f9": {
+  "arm": "medium",
+  "dataset": "MT-Bench",
+  "index": 24,
+  "tokens": 905,
+  "chars": 2966,
+  "at_cap": false,
+  "empty": false
+ },
+ "f1b55b78d9": {
+  "arm": "xhigh",
+  "dataset": "ALPACA",
+  "index": 0,
+  "tokens": 90,
+  "chars": 302,
+  "at_cap": false,
+  "empty": false
+ },
+ "5a8d55eb76": {
+  "arm": "xhigh",
+  "dataset": "ALPACA",
+  "index": 1,
+  "tokens": 949,
+  "chars": 2817,
+  "at_cap": false,
+  "empty": false
+ },
+ "b075e44ac4": {
+  "arm": "xhigh",
+  "dataset": "ALPACA",
+  "index": 2,
+  "tokens": 385,
+  "chars": 23,
+  "at_cap": false,
+  "empty": false
+ },
+ "dd28e15d8e": {
+  "arm": "xhigh",
+  "dataset": "ALPACA",
+  "index": 3,
+  "tokens": 300,
+  "chars": 146,
+  "at_cap": false,
+  "empty": false
+ },
+ "5f55006e8d": {
+  "arm": "xhigh",
+  "dataset": "ALPACA",
+  "index": 4,
+  "tokens": 299,
+  "chars": 326,
+  "at_cap": false,
+  "empty": false
+ },
+ "a7225dad03": {
+  "arm": "xhigh",
+  "dataset": "ALPACA",
+  "index": 5,
+  "tokens": 265,
+  "chars": 722,
+  "at_cap": false,
+  "empty": false
+ },
+ "0181a254a9": {
+  "arm": "xhigh",
+  "dataset": "ALPACA",
+  "index": 6,
+  "tokens": 55,
+  "chars": 31,
+  "at_cap": false,
+  "empty": false
+ },
+ "47000bc882": {
+  "arm": "xhigh",
+  "dataset": "ALPACA",
+  "index": 7,
+  "tokens": 2013,
+  "chars": 58,
+  "at_cap": false,
+  "empty": false
+ },
+ "c10fb2314d": {
+  "arm": "xhigh",
+  "dataset": "ALPACA",
+  "index": 8,
+  "tokens": 704,
+  "chars": 2210,
+  "at_cap": false,
+  "empty": false
+ },
+ "f8f8c996e7": {
+  "arm": "xhigh",
+  "dataset": "ALPACA",
+  "index": 9,
+  "tokens": 87,
+  "chars": 124,
+  "at_cap": false,
+  "empty": false
+ },
+ "54a6ab9c09": {
+  "arm": "xhigh",
+  "dataset": "ALPACA",
+  "index": 10,
+  "tokens": 1196,
+  "chars": 3088,
+  "at_cap": false,
+  "empty": false
+ },
+ "0298e06a48": {
+  "arm": "xhigh",
+  "dataset": "ALPACA",
+  "index": 11,
+  "tokens": 312,
+  "chars": 242,
+  "at_cap": false,
+  "empty": false
+ },
+ "5942aab305": {
+  "arm": "xhigh",
+  "dataset": "ALPACA",
+  "index": 12,
+  "tokens": 233,
+  "chars": 255,
+  "at_cap": false,
+  "empty": false
+ },
+ "54eeebf6a8": {
+  "arm": "xhigh",
+  "dataset": "ALPACA",
+  "index": 13,
+  "tokens": 422,
+  "chars": 823,
+  "at_cap": false,
+  "empty": false
+ },
+ "3be2ba6467": {
+  "arm": "xhigh",
+  "dataset": "ALPACA",
+  "index": 14,
+  "tokens": 239,
+  "chars": 387,
+  "at_cap": false,
+  "empty": false
+ },
+ "e3b14c9e80": {
+  "arm": "xhigh",
+  "dataset": "ALPACA",
+  "index": 15,
+  "tokens": 173,
+  "chars": 74,
+  "at_cap": false,
+  "empty": false
+ },
+ "0ca1552364": {
+  "arm": "xhigh",
+  "dataset": "ALPACA",
+  "index": 16,
+  "tokens": 3923,
+  "chars": 11478,
+  "at_cap": false,
+  "empty": false
+ },
+ "b6b760650a": {
+  "arm": "xhigh",
+  "dataset": "ALPACA",
+  "index": 17,
+  "tokens": 67,
+  "chars": 25,
+  "at_cap": false,
+  "empty": false
+ },
+ "a5d4c4c239": {
+  "arm": "xhigh",
+  "dataset": "ALPACA",
+  "index": 18,
+  "tokens": 72,
+  "chars": 20,
+  "at_cap": false,
+  "empty": false
+ },
+ "3635a3c093": {
+  "arm": "xhigh",
+  "dataset": "ALPACA",
+  "index": 19,
+  "tokens": 1196,
+  "chars": 3837,
+  "at_cap": false,
+  "empty": false
+ },
+ "cb04baed63": {
+  "arm": "xhigh",
+  "dataset": "ALPACA",
+  "index": 20,
+  "tokens": 424,
+  "chars": 1687,
+  "at_cap": false,
+  "empty": false
+ },
+ "37fc986c2c": {
+  "arm": "xhigh",
+  "dataset": "ALPACA",
+  "index": 21,
+  "tokens": 16384,
+  "chars": 0,
+  "at_cap": true,
+  "empty": true
+ },
+ "43599236c3": {
+  "arm": "xhigh",
+  "dataset": "ALPACA",
+  "index": 22,
+  "tokens": 108,
+  "chars": 211,
+  "at_cap": false,
+  "empty": false
+ },
+ "7803c6d308": {
+  "arm": "xhigh",
+  "dataset": "ALPACA",
+  "index": 23,
+  "tokens": 149,
+  "chars": 201,
+  "at_cap": false,
+  "empty": false
+ },
+ "bd3d8ad6b7": {
+  "arm": "xhigh",
+  "dataset": "ALPACA",
+  "index": 24,
+  "tokens": 736,
+  "chars": 2763,
+  "at_cap": false,
+  "empty": false
+ },
+ "1614343caa": {
+  "arm": "xhigh",
+  "dataset": "MT-Bench",
+  "index": 0,
+  "tokens": 1966,
+  "chars": 8327,
+  "at_cap": false,
+  "empty": false
+ },
+ "360b584fff": {
+  "arm": "xhigh",
+  "dataset": "MT-Bench",
+  "index": 1,
+  "tokens": 302,
+  "chars": 824,
+  "at_cap": false,
+  "empty": false
+ },
+ "99351ab760": {
+  "arm": "xhigh",
+  "dataset": "MT-Bench",
+  "index": 2,
+  "tokens": 8315,
+  "chars": 4702,
+  "at_cap": false,
+  "empty": false
+ },
+ "fb18beeeba": {
+  "arm": "xhigh",
+  "dataset": "MT-Bench",
+  "index": 3,
+  "tokens": 1334,
+  "chars": 295,
+  "at_cap": false,
+  "empty": false
+ },
+ "4e0778df3b": {
+  "arm": "xhigh",
+  "dataset": "MT-Bench",
+  "index": 4,
+  "tokens": 2460,
+  "chars": 5302,
+  "at_cap": false,
+  "empty": false
+ },
+ "1f9c33e5ce": {
+  "arm": "xhigh",
+  "dataset": "MT-Bench",
+  "index": 5,
+  "tokens": 2633,
+  "chars": 7353,
+  "at_cap": false,
+  "empty": false
+ },
+ "e1897663f6": {
+  "arm": "xhigh",
+  "dataset": "MT-Bench",
+  "index": 6,
+  "tokens": 480,
+  "chars": 1451,
+  "at_cap": false,
+  "empty": false
+ },
+ "587b2cb1aa": {
+  "arm": "xhigh",
+  "dataset": "MT-Bench",
+  "index": 7,
+  "tokens": 329,
+  "chars": 353,
+  "at_cap": false,
+  "empty": false
+ },
+ "185c33784a": {
+  "arm": "xhigh",
+  "dataset": "MT-Bench",
+  "index": 8,
+  "tokens": 320,
+  "chars": 249,
+  "at_cap": false,
+  "empty": false
+ },
+ "029d581183": {
+  "arm": "xhigh",
+  "dataset": "MT-Bench",
+  "index": 9,
+  "tokens": 1545,
+  "chars": 508,
+  "at_cap": false,
+  "empty": false
+ },
+ "1dc05603c9": {
+  "arm": "xhigh",
+  "dataset": "MT-Bench",
+  "index": 10,
+  "tokens": 253,
+  "chars": 313,
+  "at_cap": false,
+  "empty": false
+ },
+ "0a8ad5154b": {
+  "arm": "xhigh",
+  "dataset": "MT-Bench",
+  "index": 11,
+  "tokens": 338,
+  "chars": 141,
+  "at_cap": false,
+  "empty": false
+ },
+ "6a2e6d62d7": {
+  "arm": "xhigh",
+  "dataset": "MT-Bench",
+  "index": 12,
+  "tokens": 131,
+  "chars": 166,
+  "at_cap": false,
+  "empty": false
+ },
+ "9d9a54fc2c": {
+  "arm": "xhigh",
+  "dataset": "MT-Bench",
+  "index": 13,
+  "tokens": 447,
+  "chars": 903,
+  "at_cap": false,
+  "empty": false
+ },
+ "43c023811f": {
+  "arm": "xhigh",
+  "dataset": "MT-Bench",
+  "index": 14,
+  "tokens": 10735,
+  "chars": 1839,
+  "at_cap": false,
+  "empty": false
+ },
+ "b9d936dd43": {
+  "arm": "xhigh",
+  "dataset": "MT-Bench",
+  "index": 15,
+  "tokens": 936,
+  "chars": 1417,
+  "at_cap": false,
+  "empty": false
+ },
+ "6cf68a48fa": {
+  "arm": "xhigh",
+  "dataset": "MT-Bench",
+  "index": 16,
+  "tokens": 134,
+  "chars": 30,
+  "at_cap": false,
+  "empty": false
+ },
+ "e4f8578cb1": {
+  "arm": "xhigh",
+  "dataset": "MT-Bench",
+  "index": 17,
+  "tokens": 780,
+  "chars": 334,
+  "at_cap": false,
+  "empty": false
+ },
+ "ffe10fcf15": {
+  "arm": "xhigh",
+  "dataset": "MT-Bench",
+  "index": 18,
+  "tokens": 426,
+  "chars": 74,
+  "at_cap": false,
+  "empty": false
+ },
+ "745aa3a07e": {
+  "arm": "xhigh",
+  "dataset": "MT-Bench",
+  "index": 19,
+  "tokens": 464,
+  "chars": 1065,
+  "at_cap": false,
+  "empty": false
+ },
+ "c0f62ea703": {
+  "arm": "xhigh",
+  "dataset": "MT-Bench",
+  "index": 20,
+  "tokens": 469,
+  "chars": 854,
+  "at_cap": false,
+  "empty": false
+ },
+ "5f8695cab2": {
+  "arm": "xhigh",
+  "dataset": "MT-Bench",
+  "index": 21,
+  "tokens": 961,
+  "chars": 3564,
+  "at_cap": false,
+  "empty": false
+ },
+ "62ac307dc7": {
+  "arm": "xhigh",
+  "dataset": "MT-Bench",
+  "index": 22,
+  "tokens": 2040,
+  "chars": 5588,
+  "at_cap": false,
+  "empty": false
+ },
+ "b0753b7636": {
+  "arm": "xhigh",
+  "dataset": "MT-Bench",
+  "index": 23,
+  "tokens": 10589,
+  "chars": 30711,
+  "at_cap": false,
+  "empty": false
+ },
+ "e2b93148c9": {
+  "arm": "xhigh",
+  "dataset": "MT-Bench",
+  "index": 24,
+  "tokens": 459,
+  "chars": 1357,
+  "at_cap": false,
+  "empty": false
+ }
+}
