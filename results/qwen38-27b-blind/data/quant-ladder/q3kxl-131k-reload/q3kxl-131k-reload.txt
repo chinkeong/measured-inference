@@ -1,0 +1,2 @@
+﻿# 98k crossover point, n=5 settled probes - opened 2026-08-25T05:12:00
+REP q3kxl-131k-r2 | GiB=12.244 | ctx=131072 | drafter=on n4/p0.75 | n=5 | mean=42.04 t/s | min=41.63 | max=42.54 | sd=0.36 | spread_pct=2.2 | acceptance=0.88462 | mean_draft_len=3.30 | probes=[41.89 41.75 41.63 42.54 42.40]

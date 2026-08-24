@@ -1746,3 +1746,31 @@ So the honest state of this thread, in three parts kept separate on purpose:
 - **CLAIM**: no ranking between files at 131k until that window is reproduced across loads.
 
 That is the second time in two hours this thread has moved, and both moves came from one more probe rather than from more thinking about the probes I had.
+
+## 2026-08-25 05:15 - RESOLVED: the non-monotonicity is real, and rule 11 explains it
+
+UD-Q3_K_XL, both windows, two independent loads each:
+
+| window | load 1 | load 2 | acceptance | mean draft len |
+|---|---|---|---|---|
+| 98,304 | 32.86 (sd 1.07) | **32.95** (sd 1.25) | 1.00000 | 2.89 |
+| 131,072 | 41.44 (sd 1.51) | **42.04** (sd 0.36) | 0.88462 | 3.30 |
+
+**Reproducible at both windows across independent server loads.** The 131k reload came back tighter than the original (sd 0.36, 2.2% spread), which retires the instability hypothesis entirely. This file really does run ~33 t/s at 98k and ~42 at 131k.
+
+**The mechanism is rule 11, and it is unusually clean here.** Acceptance FALLS from 1.000 to 0.885 while mean draft length RISES from 2.89 to 3.30, and throughput follows the DRAFT LENGTH, not the acceptance. An acceptance of exactly 1.00000 beside a 2.89 draft is the p-min gate cutting the draft early on low-confidence content: everything guessed is accepted because almost nothing is guessed, and the file crawls. At 131k the content is such that the drafter keeps guessing, accepts a bit less of what it guesses, and delivers 28% more throughput. This campaign wrote rule 11 from a 1.69x reasoning-vs-answer contrast; it now has a second, independent instance of the same mechanism from a completely different axis.
+
+### The full arc of this thread, kept because it is worth more than the number
+
+1. Measured 41.68 at 131k with n=2 and **doubted it** - bandwidth predicted 8%, not 20%, and the draft-length column seemed to contradict it.
+2. Replicated at n=5: **survived**, 4.4 sigma. Published it.
+3. Measured the neighbouring 98k window: **contradicted it**. Retracted the ranking, and reasoned that decode "cannot rise with depth".
+4. That reasoning was **wrong for a speculative decoder** - the observed rate is decode divided by tokens per verify pass, and p-min gates draft length on content confidence. Corrected the correction.
+5. Reloaded both windows independently: **both reproduce**. The effect is real, the mechanism is rule 11, and the original number was right for a reason I had not understood when I published it OR when I retracted it.
+
+**Two lessons, both new to this campaign:**
+- **Replicating within a condition cannot test whether the condition is anomalous** - n=5 at one window passed every internal check twice over; only a neighbouring window could interrogate it. That stands, and it is why step 3 was correct even though its stated reason was not.
+- **A retraction needs the same evidentiary standard as the claim.** I withdrew a replicated 4.4-sigma result on a physical argument I had not checked against this campaign's own rule 11. Retracting on a bad argument is not safer than publishing on one - it just fails in the other direction, and it nearly buried a real finding.
+
+### Claim status
+UD-Q3_K_XL's depth series is now publishable WITH its mechanism. The between-file RANKING at 131k still waits on one thing: UD-IQ4_XS and UD-Q2_K_XL each have only ONE load at that window. work/depth131k-crossload.ps1 is running both now. If they reproduce, the 131k ordering ships; if not, that row ships as bands.
