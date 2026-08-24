@@ -1452,3 +1452,34 @@ So the ladder now has three instruments with three different sensitivities, and 
 - **Accuracy Mean** - flat until the cliff at 2.153; the only one that speaks in the reader's units, and the least sensitive of the three.
 
 And the runaway signature is quantified: median answer length holds at 416-502 tokens for every rung from 4.223 down to 1.994, then **jumps to 932 at 1.835 bpw** - the rung that stops terminating.
+
+## 2026-08-25 01:26 - NEGATIVE-REGISTER ENTRY 9 CLOSED: batching is worth +22%, not +60%
+
+Matched pair on UD-IQ4_XS, drafter ON at the shipped n10/p0.5, three reps each, first post-prefill probe discarded:
+
+| --parallel | aggregate t/s | per-slot t/s | acceptance | mean draft len |
+|---|---|---|---|---|
+| 1 | 82.98 | 85.79 | 0.618 | 5.70 |
+| 2 | **101.25** | **55.41** | 0.620 | 5.61 |
+
+**+22.0% aggregate, -35.4% per slot.** The quarantined §06.06 figure was +60.3% aggregate / -39.6% J-per-token measured with the drafter OFF; the prior campaign's drafter-ON figure was about +11%. The truth is between them and much nearer the prior campaign: **once the drafter is already amortising the weight read, batching has far less left to amortise.** That was the stated hypothesis for the quarantine and it is now measured rather than assumed. Acceptance is unchanged (0.618 -> 0.620) so the drafter is not being disturbed by the second slot; the cost is purely that each user waits ~35% longer for their own tokens.
+
+**This is the SECOND time in twelve hours that a drafter-off measurement gave the wrong answer for the shipped configuration** - the first being the whole quant ladder. The user identified the pattern before either measurement came back, and rule 25 now carries it.
+
+## 2026-08-25 01:30 - a gap the user's own question opened, and it is worth closing
+
+Asked whether the 2.9-bpw file is worth taking on a 24 GB card for near-full context. The arithmetic says something better than "maybe", using this campaign's own measured KV slopes (39,936 B/token drafter-off, 45,056 with the drafter, plus 1,008 MiB fixed):
+
+| window | UD-Q2_K_XL drafter off | UD-Q2_K_XL drafter on | UD-IQ4_XS drafter off |
+|---|---|---|---|
+| 131,072 | 14.03 GiB | 15.64 GiB | - |
+| 180,224 | 15.86 GiB | 17.70 GiB | - |
+| **262,144 (full native)** | **18.90 GiB** | **21.14 GiB** | **23.02 GiB** |
+
+Board is 24.00 GiB and the rule-14 fence is 1.28 GiB (measured desktop max 1,181 MiB + 127 MiB load-to-load variance). So UD-IQ4_XS at the full native window leaves 24.00 - 23.02 - 1.28 = **negative**, which is exactly why the guide says full native is headless-only and requires --spec-type none. UD-Q2_K_XL at the same window leaves **3.8 GiB spare drafter-off and about 1.6 GiB drafter-on**.
+
+If that holds, the smaller file buys something the 4-bit file cannot have at any speed: **the entire 262,144-token window, with speculation, on a machine you are also using.** That reframes the whole sub-Q4 recommendation for 24 GB owners - not a speed play (the drafter probe killed that) but a CONTEXT play.
+
+**RULE 13b FORBIDS SHIPPING THAT AS A WINDOW LABEL.** It is arithmetic, and a blind reproduction in this same campaign already caught a window labelled "fully resident" collapsing to 8 t/s at depth once the drafter's VRAM was aboard. So work/q2kxl-fullcontext.ps1 is running: three arms at -c 262144 (Q2_K_XL drafter-on, Q2_K_XL drafter-off, IQ4_XS drafter-off as the control that should struggle), each loaded, VRAM read as a drafter on/off pair (rule 13a), then filled to ~236,000 real tokens and probed with the first post-prefill probe discarded (rules 12/13b).
+
+**ANSWER TO "ARE WE FINISHED COLLECTING": NO, and this is why.** The question a reader asks changes which measurement matters. The ladder answered "how good is it"; it did not answer "what does it let me do that the bigger file cannot", and that is the actually useful question for a 24 GB owner. Outstanding after this: negative-register entries 17 (two cross-checks, ~15 min) and 6 (image budget + withheld-image control, ~15 min). The write-up waits until all of it is in, per the user's instruction.
