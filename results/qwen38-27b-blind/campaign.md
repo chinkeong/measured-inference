@@ -1774,3 +1774,38 @@ UD-Q3_K_XL, both windows, two independent loads each:
 
 ### Claim status
 UD-Q3_K_XL's depth series is now publishable WITH its mechanism. The between-file RANKING at 131k still waits on one thing: UD-IQ4_XS and UD-Q2_K_XL each have only ONE load at that window. work/depth131k-crossload.ps1 is running both now. If they reproduce, the 131k ordering ships; if not, that row ships as bands.
+
+## 2026-08-25 05:42 - ALL THREE FILES REPRODUCE AT 131k. The ranking ships, with its condition.
+
+| file | load 1 | load 2 | sd (load 2) | acceptance | mean draft len |
+|---|---|---|---|---|---|
+| UD-Q3_K_XL | 41.44 | **42.04** | 0.36 | 0.885 | 3.30 |
+| UD-IQ4_XS | 34.66 | **34.70** | 0.16 | 0.944 | 3.43 |
+| UD-Q2_K_XL | 29.46 | **29.41** | 1.07 | 0.917 | 3.20 |
+
+Every file within 1.4% of its first load. **The 131k ordering is real: UD-Q3_K_XL ~41.7, UD-IQ4_XS ~34.7, UD-Q2_K_XL ~29.4.** The retraction is fully reversed and the ranking is publishable - with the mechanism, and with the condition below.
+
+### The complete depth picture, drafter ON (means across loads where measured twice)
+
+| file | 32,768 | 65,536 | 98,304 | 131,072 |
+|---|---|---|---|---|
+| UD-IQ4_XS | 41.35 | 42.69 | **36.09** | 34.68 |
+| UD-Q3_K_XL | 39.59 | 42.98 | 32.90 | **41.74** |
+| UD-Q2_K_XL | **43.19** | 40.30 | 34.08 | 29.44 |
+
+A different file is fastest at three of the four windows. That is not noise - every one of those numbers is reproduced or carries a tight spread - and it is the most useful thing this sweep produced.
+
+### THE CONDITION THAT MUST TRAVEL WITH IT, or the recommendation is dishonest
+
+The mechanism is `--spec-draft-p-min` gating draft length on the drafter's CONFIDENCE, and confidence is a property of **the content at that depth**. Every one of these numbers was measured on the same filler: wikitext-2-raw prose. A reader's actual content - code, a codebase, a chat transcript - may put the p-min gate somewhere else entirely and move the ordering with it. So this ships as **"measured on prose fill; worth ten minutes of testing on your own content"**, never as a universal law of these files. UD-Q3_K_XL's own 98k-vs-131k reversal is the proof that the ordering is content-sensitive rather than fixed.
+
+### The 24 GB answer, final, every leg reproduced
+
+- **up to ~65k**: all three within a few percent - stay on the shipped **UD-IQ4_XS**, no reason to move.
+- **~98k**: **UD-IQ4_XS** (36.09 against 34.08 and 32.90).
+- **~131k**: **UD-Q3_K_XL**, 20% faster than the 4-bit default, 19,724 MiB with 4,852 free, and it ties the reference on accuracy (paired McNemar p=1.00).
+- **the full 262,144**: **UD-Q2_K_XL** - 21.33 t/s against the 4-bit file's 15.96, and the only one that still fits WITH speculation.
+
+Unchanged: 16 GB is UD-Q2_K_XL at -c 65,536 with the drafter (13,982 MiB, 1,094 spare, 40.30 t/s). 12 GB is no.
+
+DATA COLLECTION FOR THIS CAMPAIGN IS COMPLETE. Everything remaining is writing.
