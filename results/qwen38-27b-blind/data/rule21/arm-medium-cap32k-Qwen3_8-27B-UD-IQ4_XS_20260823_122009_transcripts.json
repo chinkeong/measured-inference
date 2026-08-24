@@ -1,0 +1,360 @@
+{
+  "model_label": "Qwen3.8-27B-UD-IQ4_XS",
+  "suite_hash": "1cdf54f8eb9d3f8f",
+  "generations": {
+    "HumanEval": [
+      {
+        "index": 0,
+        "prompt": "Complete the following Python function. Return the full function implementation in a single code block.\n\n```python\nfrom typing import List\n\n\ndef has_close_elements(numbers: List[float], threshold: float) -> bool:\n    \"\"\" Check if in given list of numbers, are any two numbers closer to each other than\n    given threshold.\n    >>> has_close_elements([1.0, 2.0, 3.0], 0.5)\n    False\n    >>> has_close_elements([1.0, 2.8, 3.0, 4.0, 5.0, 2.0], 0.3)\n    True\n    \"\"\"\n\n```",
+        "response": "```python\nfrom typing import List\n\n\ndef has_close_elements(numbers: List[float], threshold: float) -> bool:\n    \"\"\" Check if in given list of numbers, are any two numbers closer to each other than\n    given threshold.\n    >>> has_close_elements([1.0, 2.0, 3.0], 0.5)\n    False\n    >>> has_close_elements([1.0, 2.8, 3.0, 4.0, 5.0, 2.0], 0.3)\n    True\n    \"\"\"\n    sorted_numbers = sorted(numbers)\n    for i in range(len(sorted_numbers) - 1):\n        if abs(sorted_numbers[i + 1] - sorted_numbers[i]) < threshold:\n            return True\n    return False\n```",
+        "tokens": 605,
+        "score": 100.0
+      },
+      {
+        "index": 1,
+        "prompt": "Complete the following Python function. Return the full function implementation in a single code block.\n\n```python\nfrom typing import List\n\n\ndef parse_nested_parens(paren_string: str) -> List[int]:\n    \"\"\" Input to this function is a string represented multiple groups for nested parentheses separated by spaces.\n    For each of the group, output the deepest level of nesting of parentheses.\n    E.g. (()()) has maximum two levels of nesting while ((())) has three.\n\n    >>> parse_nested_parens('(()()) ((())) () ((())()())')\n    [2, 3, 1, 3]\n    \"\"\"\n\n```",
+        "response": "```python\nfrom typing import List\n\n\ndef parse_nested_parens(paren_string: str) -> List[int]:\n    \"\"\" Input to this function is a string represented multiple groups for nested parentheses separated by spaces.\n    For each of the group, output the deepest level of nesting of parentheses.\n    E.g. (()()) has maximum two levels of nesting while ((())) has three.\n\n    >>> parse_nested_parens('(()()) ((())) () ((())()())')\n    [2, 3, 1, 3]\n    \"\"\"\n    result = []\n    for group in paren_string.split():\n        depth = 0\n        max_depth = 0\n        for char in group:\n            if char == '(':\n                depth += 1\n                max_depth = max(max_depth, depth)\n            elif char == ')':\n                depth -= 1\n        result.append(max_depth)\n    return result\n```",
+        "tokens": 611,
+        "score": 100.0
+      },
+      {
+        "index": 2,
+        "prompt": "Complete the following Python function. Return the full function implementation in a single code block.\n\n```python\n\n\ndef greatest_common_divisor(a: int, b: int) -> int:\n    \"\"\" Return a greatest common divisor of two integers a and b\n    >>> greatest_common_divisor(3, 5)\n    1\n    >>> greatest_common_divisor(25, 15)\n    5\n    \"\"\"\n\n```",
+        "response": "```python\ndef greatest_common_divisor(a: int, b: int) -> int:\n    \"\"\" Return a greatest common divisor of two integers a and b\n    >>> greatest_common_divisor(3, 5)\n    1\n    >>> greatest_common_divisor(25, 15)\n    5\n    \"\"\"\n    a, b = abs(a), abs(b)\n    while b:\n        a, b = b, a % b\n    return a\n```",
+        "tokens": 413,
+        "score": 100.0
+      },
+      {
+        "index": 3,
+        "prompt": "Complete the following Python function. Return the full function implementation in a single code block.\n\n```python\nfrom typing import List\n\n\ndef sort_numbers(numbers: str) -> str:\n    \"\"\" Input is a space-delimited string of numberals from 'zero' to 'nine'.\n    Valid choices are 'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight' and 'nine'.\n    Return the string with numbers sorted from smallest to largest\n    >>> sort_numbers('three one five')\n    'one three five'\n    \"\"\"\n\n```",
+        "response": "```python\nfrom typing import List\n\n\ndef sort_numbers(numbers: str) -> str:\n    \"\"\" Input is a space-delimited string of numberals from 'zero' to 'nine'.\n    Valid choices are 'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight' and 'nine'.\n    Return the string with numbers sorted from smallest to largest\n    >>> sort_numbers('three one five')\n    'one three five'\n    \"\"\"\n    word_to_num = {\n        'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4,\n        'five': 5, 'six': 6, 'seven': 7, 'eight': 8, 'nine': 9\n    }\n    words = numbers.split()\n    words.sort(key=lambda w: word_to_num[w])\n    return ' '.join(words)\n```",
+        "tokens": 541,
+        "score": 100.0
+      },
+      {
+        "index": 4,
+        "prompt": "Complete the following Python function. Return the full function implementation in a single code block.\n\n```python\nfrom typing import List\n\n\ndef remove_duplicates(numbers: List[int]) -> List[int]:\n    \"\"\" From a list of integers, remove all elements that occur more than once.\n    Keep order of elements left the same as in the input.\n    >>> remove_duplicates([1, 2, 3, 2, 4])\n    [1, 3, 4]\n    \"\"\"\n\n```",
+        "response": "```python\nfrom typing import List\n\n\ndef remove_duplicates(numbers: List[int]) -> List[int]:\n    \"\"\" From a list of integers, remove all elements that occur more than once.\n    Keep order of elements left the same as in the input.\n    >>> remove_duplicates([1, 2, 3, 2, 4])\n    [1, 3, 4]\n    \"\"\"\n    counts = {}\n    for n in numbers:\n        counts[n] = counts.get(n, 0) + 1\n    return [n for n in numbers if counts[n] == 1]\n```",
+        "tokens": 365,
+        "score": 100.0
+      },
+      {
+        "index": 5,
+        "prompt": "Complete the following Python function. Return the full function implementation in a single code block.\n\n```python\nimport math\n\n\ndef poly(xs: list, x: float):\n    \"\"\"\n    Evaluates polynomial with coefficients xs at point x.\n    return xs[0] + xs[1] * x + xs[1] * x^2 + .... xs[n] * x^n\n    \"\"\"\n    return sum([coeff * math.pow(x, i) for i, coeff in enumerate(xs)])\n\n\ndef find_zero(xs: list):\n    \"\"\" xs are coefficients of a polynomial.\n    find_zero find x such that poly(x) = 0.\n    find_zero returns only only zero point, even if there are many.\n    Moreover, find_zero only takes list xs having even number of coefficients\n    and largest non zero coefficient as it guarantees\n    a solution.\n    >>> round(find_zero([1, 2]), 2) # f(x) = 1 + 2x\n    -0.5\n    >>> round(find_zero([-6, 11, -6, 1]), 2) # (x - 1) * (x - 2) * (x - 3) = -6 + 11x - 6x^2 + x^3\n    1.0\n    \"\"\"\n\n```",
+        "response": "```python\nimport math\n\n\ndef poly(xs: list, x: float):\n    \"\"\"\n    Evaluates polynomial with coefficients xs at point x.\n    return xs[0] + xs[1] * x + xs[1] * x^2 + .... xs[n] * x^n\n    \"\"\"\n    return sum([coeff * math.pow(x, i) for i, coeff in enumerate(xs)])\n\n\ndef find_zero(xs: list):\n    \"\"\" xs are coefficients of a polynomial.\n    find_zero find x such that poly(x) = 0.\n    find_zero returns only only zero point, even if there are many.\n    Moreover, find_zero only takes list xs having even number of coefficients\n    and largest non zero coefficient as it guarantees\n    a solution.\n    >>> round(find_zero([1, 2]), 2) # f(x) = 1 + 2x\n    -0.5\n    >>> round(find_zero([-6, 11, -6, 1]), 2) # (x - 1) * (x - 2) * (x - 3) = -6 + 11x - 6x^2 + x^3\n    1.0\n    \"\"\"\n    # Determine search range using Cauchy's bound\n    leading = xs[-1]\n    bound = 1 + max(abs(c / leading) for c in xs[:-1])\n    \n    # Scan for a sign change\n    num_steps = 10000\n    step = (2 * bound) / num_steps\n    prev_x = -bound\n    prev_y = poly(xs, prev_x)\n    \n    for i in range(1, num_steps + 1):\n        x = -bound + i * step\n        y = poly(xs, x)\n        \n        if prev_y == 0:\n            return prev_x\n        if prev_y * y < 0:\n            # Sign change detected, use bisection\n            a, b = prev_x, x\n            for _ in range(200):\n                mid = (a + b) / 2\n                if poly(xs, a) * poly(xs, mid) <= 0:\n                    b = mid\n                else:\n                    a = mid\n            return (a + b) / 2\n        \n        prev_x = x\n        prev_y = y\n    \n    # Fallback: return the last point if it's close to zero\n    return prev_x\n```",
+        "tokens": 2229,
+        "score": 100.0
+      },
+      {
+        "index": 6,
+        "prompt": "Complete the following Python function. Return the full function implementation in a single code block.\n\n```python\n\n\ndef prime_fib(n: int):\n    \"\"\"\n    prime_fib returns n-th number that is a Fibonacci number and it's also prime.\n    >>> prime_fib(1)\n    2\n    >>> prime_fib(2)\n    3\n    >>> prime_fib(3)\n    5\n    >>> prime_fib(4)\n    13\n    >>> prime_fib(5)\n    89\n    \"\"\"\n\n```",
+        "response": "",
+        "tokens": 17007,
+        "score": 0.0
+      },
+      {
+        "index": 7,
+        "prompt": "Complete the following Python function. Return the full function implementation in a single code block.\n\n```python\n\n\ndef triangle_area(a, h):\n    \"\"\"Given length of a side and high return area for a triangle.\n    >>> triangle_area(5, 3)\n    7.5\n    \"\"\"\n\n```",
+        "response": "```python\ndef triangle_area(a, h):\n    \"\"\"Given length of a side and high return area for a triangle.\n    >>> triangle_area(5, 3)\n    7.5\n    \"\"\"\n    return a * h / 2\n```",
+        "tokens": 142,
+        "score": 100.0
+      },
+      {
+        "index": 8,
+        "prompt": "Complete the following Python function. Return the full function implementation in a single code block.\n\n```python\n\n\ndef below_threshold(l: list, t: int):\n    \"\"\"Return True if all numbers in the list l are below threshold t.\n    >>> below_threshold([1, 2, 4, 10], 100)\n    True\n    >>> below_threshold([1, 20, 4, 10], 5)\n    False\n    \"\"\"\n\n```",
+        "response": "```python\ndef below_threshold(l: list, t: int):\n    \"\"\"Return True if all numbers in the list l are below threshold t.\n    >>> below_threshold([1, 2, 4, 10], 100)\n    True\n    >>> below_threshold([1, 20, 4, 10], 5)\n    False\n    \"\"\"\n    return all(x < t for x in l)\n```",
+        "tokens": 322,
+        "score": 100.0
+      },
+      {
+        "index": 9,
+        "prompt": "Complete the following Python function. Return the full function implementation in a single code block.\n\n```python\n\n\ndef largest_prime_factor(n: int):\n    \"\"\"Return the largest prime factor of n. Assume n > 1 and is not a prime.\n    >>> largest_prime_factor(13195)\n    29\n    >>> largest_prime_factor(2048)\n    2\n    \"\"\"\n\n```",
+        "response": "```python\ndef largest_prime_factor(n: int):\n    \"\"\"Return the largest prime factor of n. Assume n > 1 and is not a prime.\n    >>> largest_prime_factor(13195)\n    29\n    >>> largest_prime_factor(2048)\n    2\n    \"\"\"\n    largest = 2\n    while n % 2 == 0:\n        largest = 2\n        n //= 2\n    i = 3\n    while i * i <= n:\n        while n % i == 0:\n            largest = i\n            n //= i\n        i += 2\n    if n > 1:\n        largest = n\n    return largest\n```",
+        "tokens": 792,
+        "score": 100.0
+      },
+      {
+        "index": 10,
+        "prompt": "Complete the following Python function. Return the full function implementation in a single code block.\n\n```python\n\ndef circular_shift(x, shift):\n    \"\"\"Circular shift the digits of the integer x, shift the digits right by shift\n    and return the result as a string.\n    If shift > number of digits, return digits reversed.\n    >>> circular_shift(12, 1)\n    \"21\"\n    >>> circular_shift(12, 2)\n    \"12\"\n    \"\"\"\n\n```",
+        "response": "```python\n\ndef circular_shift(x, shift):\n    \"\"\"Circular shift the digits of the integer x, shift the digits right by shift\n    and return the result as a string.\n    If shift > number of digits, return digits reversed.\n    >>> circular_shift(12, 1)\n    \"21\"\n    >>> circular_shift(12, 2)\n    \"12\"\n    \"\"\"\n    s = str(x)\n    n = len(s)\n    if shift > n:\n        return s[::-1]\n    else:\n        return s[-shift:] + s[:-shift]\n\n```",
+        "tokens": 1115,
+        "score": 100.0
+      },
+      {
+        "index": 11,
+        "prompt": "Complete the following Python function. Return the full function implementation in a single code block.\n\n```python\n\ndef will_it_fly(q,w):\n    '''\n    Write a function that returns True if the object q will fly, and False otherwise.\n    The object q will fly if it's balanced (it is a palindromic list) and the sum of its elements is less than or equal the maximum possible weight w.\n\n    Example:\n    will_it_fly([1, 2], 5) ➞ False \n    # 1+2 is less than the maximum possible weight, but it's unbalanced.\n\n    will_it_fly([3, 2, 3], 1) ➞ False\n    # it's balanced, but 3+2+3 is more than the maximum possible weight.\n\n    will_it_fly([3, 2, 3], 9) ➞ True\n    # 3+2+3 is less than the maximum possible weight, and it's balanced.\n\n    will_it_fly([3], 5) ➞ True\n    # 3 is less than the maximum possible weight, and it's balanced.\n    '''\n\n```",
+        "response": "```python\ndef will_it_fly(q, w):\n    '''\n    Write a function that returns True if the object q will fly, and False otherwise.\n    The object q will fly if it's balanced (it is a palindromic list) and the sum of its elements is less than or equal the maximum possible weight w.\n\n    Example:\n    will_it_fly([1, 2], 5) ➞ False \n    # 1+2 is less than the maximum possible weight, but it's unbalanced.\n\n    will_it_fly([3, 2, 3], 1) ➞ False\n    # it's balanced, but 3+2+3 is more than the maximum possible weight.\n\n    will_it_fly([3, 2, 3], 9) ➞ True\n    # 3+2+3 is less than the maximum possible weight, and it's balanced.\n\n    will_it_fly([3], 5) ➞ True\n    # 3 is less than the maximum possible weight, and it's balanced.\n    '''\n    return q == q[::-1] and sum(q) <= w\n```",
+        "tokens": 561,
+        "score": 100.0
+      },
+      {
+        "index": 12,
+        "prompt": "Complete the following Python function. Return the full function implementation in a single code block.\n\n```python\n\ndef hex_key(num):\n    \"\"\"You have been tasked to write a function that receives \n    a hexadecimal number as a string and counts the number of hexadecimal \n    digits that are primes (prime number, or a prime, is a natural number \n    greater than 1 that is not a product of two smaller natural numbers).\n    Hexadecimal digits are 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, A, B, C, D, E, F.\n    Prime numbers are 2, 3, 5, 7, 11, 13, 17,...\n    So you have to determine a number of the following digits: 2, 3, 5, 7, \n    B (=decimal 11), D (=decimal 13).\n    Note: you may assume the input is always correct or empty string, \n    and symbols A,B,C,D,E,F are always uppercase.\n    Examples:\n    For num = \"AB\" the output should be 1.\n    For num = \"1077E\" the output should be 2.\n    For num = \"ABED1A33\" the output should be 4.\n    For num = \"123456789ABCDEF0\" the output should be 6.\n    For num = \"2020\" the output should be 2.\n    \"\"\"\n\n```",
+        "response": "```python\ndef hex_key(num):\n    \"\"\"You have been tasked to write a function that receives \n    a hexadecimal number as a string and counts the number of hexadecimal \n    digits that are primes (prime number, or a prime, is a natural number \n    greater than 1 that is not a product of two smaller natural numbers).\n    Hexadecimal digits are 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, A, B, C, D, E, F.\n    Prime numbers are 2, 3, 5, 7, 11, 13, 17,...\n    So you have to determine a number of the following digits: 2, 3, 5, 7, \n    B (=decimal 11), D (=decimal 13).\n    Note: you may assume the input is always correct or empty string, \n    and symbols A,B,C,D,E,F are always uppercase.\n    Examples:\n    For num = \"AB\" the output should be 1.\n    For num = \"1077E\" the output should be 2.\n    For num = \"ABED1A33\" the output should be 4.\n    For num = \"123456789ABCDEF0\" the output should be 6.\n    For num = \"2020\" the output should be 2.\n    \"\"\"\n    prime_hex_digits = set('2357BD')\n    return sum(1 for c in num if c in prime_hex_digits)\n```",
+        "tokens": 929,
+        "score": 100.0
+      },
+      {
+        "index": 13,
+        "prompt": "Complete the following Python function. Return the full function implementation in a single code block.\n\n```python\n\ndef add(lst):\n    \"\"\"Given a non-empty list of integers lst. add the even elements that are at odd indices..\n\n\n    Examples:\n        add([4, 2, 6, 7]) ==> 2 \n    \"\"\"\n\n```",
+        "response": "```python\n\ndef add(lst):\n    \"\"\"Given a non-empty list of integers lst. add the even elements that are at odd indices..\n\n\n    Examples:\n        add([4, 2, 6, 7]) ==> 2 \n    \"\"\"\n    return sum(lst[i] for i in range(1, len(lst), 2) if lst[i] % 2 == 0)\n\n```",
+        "tokens": 410,
+        "score": 100.0
+      },
+      {
+        "index": 14,
+        "prompt": "Complete the following Python function. Return the full function implementation in a single code block.\n\n```python\n\ndef is_bored(S):\n    \"\"\"\n    You'll be given a string of words, and your task is to count the number\n    of boredoms. A boredom is a sentence that starts with the word \"I\".\n    Sentences are delimited by '.', '?' or '!'.\n   \n    For example:\n    >>> is_bored(\"Hello world\")\n    0\n    >>> is_bored(\"The sky is blue. The sun is shining. I love this weather\")\n    1\n    \"\"\"\n\n```",
+        "response": "```python\n\ndef is_bored(S):\n    \"\"\"\n    You'll be given a string of words, and your task is to count the number\n    of boredoms. A boredom is a sentence that starts with the word \"I\".\n    Sentences are delimited by '.', '?' or '!'.\n   \n    For example:\n    >>> is_bored(\"Hello world\")\n    0\n    >>> is_bored(\"The sky is blue. The sun is shining. I love this weather\")\n    1\n    \"\"\"\n    import re\n    sentences = re.split(r'[.?!]', S)\n    count = 0\n    for sentence in sentences:\n        sentence = sentence.strip()\n        if sentence == \"I\" or sentence.startswith(\"I \"):\n            count += 1\n    return count\n\n```",
+        "tokens": 966,
+        "score": 100.0
+      },
+      {
+        "index": 15,
+        "prompt": "Complete the following Python function. Return the full function implementation in a single code block.\n\n```python\n\ndef count_upper(s):\n    \"\"\"\n    Given a string s, count the number of uppercase vowels in even indices.\n    \n    For example:\n    count_upper('aBCdEf') returns 1\n    count_upper('abcdefg') returns 0\n    count_upper('dBBE') returns 0\n    \"\"\"\n\n```",
+        "response": "```python\n\ndef count_upper(s):\n    \"\"\"\n    Given a string s, count the number of uppercase vowels in even indices.\n    \n    For example:\n    count_upper('aBCdEf') returns 1\n    count_upper('abcdefg') returns 0\n    count_upper('dBBE') returns 0\n    \"\"\"\n    count = 0\n    for i in range(0, len(s), 2):\n        if s[i] in 'AEIOU':\n            count += 1\n    return count\n\n```",
+        "tokens": 517,
+        "score": 100.0
+      },
+      {
+        "index": 16,
+        "prompt": "Complete the following Python function. Return the full function implementation in a single code block.\n\n```python\n\ndef unique_digits(x):\n    \"\"\"Given a list of positive integers x. return a sorted list of all \n    elements that hasn't any even digit.\n\n    Note: Returned list should be sorted in increasing order.\n    \n    For example:\n    >>> unique_digits([15, 33, 1422, 1])\n    [1, 15, 33]\n    >>> unique_digits([152, 323, 1422, 10])\n    []\n    \"\"\"\n\n```",
+        "response": "```python\n\ndef unique_digits(x):\n    \"\"\"Given a list of positive integers x. return a sorted list of all \n    elements that hasn't any even digit.\n\n    Note: Returned list should be sorted in increasing order.\n    \n    For example:\n    >>> unique_digits([15, 33, 1422, 1])\n    [1, 15, 33]\n    >>> unique_digits([152, 323, 1422, 10])\n    []\n    \"\"\"\n    return sorted(num for num in x if all(int(d) % 2 == 1 for d in str(num)))\n\n```",
+        "tokens": 677,
+        "score": 100.0
+      },
+      {
+        "index": 17,
+        "prompt": "Complete the following Python function. Return the full function implementation in a single code block.\n\n```python\n\ndef histogram(test):\n    \"\"\"Given a string representing a space separated lowercase letters, return a dictionary\n    of the letter with the most repetition and containing the corresponding count.\n    If several letters have the same occurrence, return all of them.\n    \n    Example:\n    histogram('a b c') == {'a': 1, 'b': 1, 'c': 1}\n    histogram('a b b a') == {'a': 2, 'b': 2}\n    histogram('a b c a b') == {'a': 2, 'b': 2}\n    histogram('b b b b a') == {'b': 4}\n    histogram('') == {}\n\n    \"\"\"\n\n```",
+        "response": "```python\n\ndef histogram(test):\n    \"\"\"Given a string representing a space separated lowercase letters, return a dictionary\n    of the letter with the most repetition and containing the corresponding count.\n    If several letters have the same occurrence, return all of them.\n    \n    Example:\n    histogram('a b c') == {'a': 1, 'b': 1, 'c': 1}\n    histogram('a b b a') == {'a': 2, 'b': 2}\n    histogram('a b c a b') == {'a': 2, 'b': 2}\n    histogram('b b b b a') == {'b': 4}\n    histogram('') == {}\n\n    \"\"\"\n    if not test:\n        return {}\n    \n    letters = test.split()\n    counts = {}\n    for letter in letters:\n        counts[letter] = counts.get(letter, 0) + 1\n    \n    max_count = max(counts.values())\n    \n    return {letter: count for letter, count in counts.items() if count == max_count}\n\n```",
+        "tokens": 759,
+        "score": 100.0
+      },
+      {
+        "index": 18,
+        "prompt": "Complete the following Python function. Return the full function implementation in a single code block.\n\n```python\n\ndef get_closest_vowel(word):\n    \"\"\"You are given a word. Your task is to find the closest vowel that stands between \n    two consonants from the right side of the word (case sensitive).\n    \n    Vowels in the beginning and ending doesn't count. Return empty string if you didn't\n    find any vowel met the above condition. \n\n    You may assume that the given string contains English letter only.\n\n    Example:\n    get_closest_vowel(\"yogurt\") ==> \"u\"\n    get_closest_vowel(\"FULL\") ==> \"U\"\n    get_closest_vowel(\"quick\") ==> \"\"\n    get_closest_vowel(\"ab\") ==> \"\"\n    \"\"\"\n\n```",
+        "response": "```python\n\ndef get_closest_vowel(word):\n    \"\"\"You are given a word. Your task is to find the closest vowel that stands between \n    two consonants from the right side of the word (case sensitive).\n    \n    Vowels in the beginning and ending doesn't count. Return empty string if you didn't\n    find any vowel met the above condition. \n\n    You may assume that the given string contains English letter only.\n\n    Example:\n    get_closest_vowel(\"yogurt\") ==> \"u\"\n    get_closest_vowel(\"FULL\") ==> \"U\"\n    get_closest_vowel(\"quick\") ==> \"\"\n    get_closest_vowel(\"ab\") ==> \"\"\n    \"\"\"\n    vowels = set('aeiouAEIOU')\n    for i in range(len(word) - 2, 0, -1):\n        if word[i] in vowels:\n            if word[i - 1] not in vowels and word[i + 1] not in vowels:\n                return word[i]\n    return \"\"\n\n```",
+        "tokens": 1116,
+        "score": 100.0
+      },
+      {
+        "index": 19,
+        "prompt": "Complete the following Python function. Return the full function implementation in a single code block.\n\n```python\n\ndef valid_date(date):\n    \"\"\"You have to write a function which validates a given date string and\n    returns True if the date is valid otherwise False.\n    The date is valid if all of the following rules are satisfied:\n    1. The date string is not empty.\n    2. The number of days is not less than 1 or higher than 31 days for months 1,3,5,7,8,10,12. And the number of days is not less than 1 or higher than 30 days for months 4,6,9,11. And, the number of days is not less than 1 or higher than 29 for the month 2.\n    3. The months should not be less than 1 or higher than 12.\n    4. The date should be in the format: mm-dd-yyyy\n\n    for example: \n    valid_date('03-11-2000') => True\n\n    valid_date('15-01-2012') => False\n\n    valid_date('04-0-2040') => False\n\n    valid_date('06-04-2020') => True\n\n    valid_date('06/04/2020') => False\n    \"\"\"\n\n```",
+        "response": "```python\ndef valid_date(date):\n    \"\"\"You have to write a function which validates a given date string and\n    returns True if the date is valid otherwise False.\n    The date is valid if all of the following rules are satisfied:\n    1. The date string is not empty.\n    2. The number of days is not less than 1 or higher than 31 days for months 1,3,5,7,8,10,12. And the number of days is not less than 1 or higher than 30 days for months 4,6,9,11. And, the number of days is not less than 1 or higher than 29 for the month 2.\n    3. The months should not be less than 1 or higher than 12.\n    4. The date should be in the format: mm-dd-yyyy\n\n    for example: \n    valid_date('03-11-2000') => True\n\n    valid_date('15-01-2012') => False\n\n    valid_date('04-0-2040') => False\n\n    valid_date('06-04-2020') => True\n\n    valid_date('06/04/2020') => False\n    \"\"\"\n    # Rule 1: The date string is not empty\n    if not date:\n        return False\n\n    # Rule 4: The date should be in the format mm-dd-yyyy\n    parts = date.split('-')\n    if len(parts) != 3:\n        return False\n\n    mm, dd, yyyy = parts\n\n    # Check exact digit counts for format compliance\n    if len(mm) != 2 or len(dd) != 2 or len(yyyy) != 4:\n        return False\n\n    # Ensure all parts are numeric\n    if not mm.isdigit() or not dd.isdigit() or not yyyy.isdigit():\n        return False\n\n    month = int(mm)\n    day = int(dd)\n\n    # Rule 3: Month must be between 1 and 12\n    if month < 1 or month > 12:\n        return False\n\n    # Rule 2: Validate days based on month\n    if month in (1, 3, 5, 7, 8, 10, 12):\n        if day < 1 or day > 31:\n            return False\n    elif month in (4, 6, 9, 11):\n        if day < 1 or day > 30:\n            return False\n    elif month == 2:\n        if day < 1 or day > 29:\n            return False\n\n    return True\n```",
+        "tokens": 1633,
+        "score": 100.0
+      },
+      {
+        "index": 20,
+        "prompt": "Complete the following Python function. Return the full function implementation in a single code block.\n\n```python\n\ndef digits(n):\n    \"\"\"Given a positive integer n, return the product of the odd digits.\n    Return 0 if all digits are even.\n    For example:\n    digits(1)  == 1\n    digits(4)  == 0\n    digits(235) == 15\n    \"\"\"\n\n```",
+        "response": "```python\n\ndef digits(n):\n    \"\"\"Given a positive integer n, return the product of the odd digits.\n    Return 0 if all digits are even.\n    For example:\n    digits(1)  == 1\n    digits(4)  == 0\n    digits(235) == 15\n    \"\"\"\n    product = 1\n    has_odd = False\n    for d in str(n):\n        if int(d) % 2 != 0:\n            product *= int(d)\n            has_odd = True\n    return product if has_odd else 0\n\n```",
+        "tokens": 482,
+        "score": 100.0
+      },
+      {
+        "index": 21,
+        "prompt": "Complete the following Python function. Return the full function implementation in a single code block.\n\n```python\n\ndef compare_one(a, b):\n    \"\"\"\n    Create a function that takes integers, floats, or strings representing\n    real numbers, and returns the larger variable in its given variable type.\n    Return None if the values are equal.\n    Note: If a real number is represented as a string, the floating point might be . or ,\n\n    compare_one(1, 2.5) ➞ 2.5\n    compare_one(1, \"2,3\") ➞ \"2,3\"\n    compare_one(\"5,1\", \"6\") ➞ \"6\"\n    compare_one(\"1\", 1) ➞ None\n    \"\"\"\n\n```",
+        "response": "```python\n\ndef compare_one(a, b):\n    \"\"\"\n    Create a function that takes integers, floats, or strings representing\n    real numbers, and returns the larger variable in its given variable type.\n    Return None if the values are equal.\n    Note: If a real number is represented as a string, the floating point might be . or ,\n\n    compare_one(1, 2.5) ➞ 2.5\n    compare_one(1, \"2,3\") ➞ \"2,3\"\n    compare_one(\"5,1\", \"6\") ➞ \"6\"\n    compare_one(\"1\", 1) ➞ None\n    \"\"\"\n    def to_float(val):\n        if isinstance(val, str):\n            return float(val.replace(',', '.'))\n        return float(val)\n    \n    a_val = to_float(a)\n    b_val = to_float(b)\n    \n    if a_val > b_val:\n        return a\n    elif b_val > a_val:\n        return b\n    else:\n        return None\n\n```",
+        "tokens": 660,
+        "score": 100.0
+      },
+      {
+        "index": 22,
+        "prompt": "Complete the following Python function. Return the full function implementation in a single code block.\n\n```python\n\ndef simplify(x, n):\n    \"\"\"Your task is to implement a function that will simplify the expression\n    x * n. The function returns True if x * n evaluates to a whole number and False\n    otherwise. Both x and n, are string representation of a fraction, and have the following format,\n    <numerator>/<denominator> where both numerator and denominator are positive whole numbers.\n\n    You can assume that x, and n are valid fractions, and do not have zero as denominator.\n\n    simplify(\"1/5\", \"5/1\") = True\n    simplify(\"1/6\", \"2/1\") = False\n    simplify(\"7/10\", \"10/2\") = False\n    \"\"\"\n\n```",
+        "response": "```python\n\ndef simplify(x, n):\n    \"\"\"Your task is to implement a function that will simplify the expression\n    x * n. The function returns True if x * n evaluates to a whole number and False\n    otherwise. Both x and n, are string representation of a fraction, and have the following format,\n    <numerator>/<denominator> where both numerator and denominator are positive whole numbers.\n\n    You can assume that x, and n are valid fractions, and do not have zero as denominator.\n\n    simplify(\"1/5\", \"5/1\") = True\n    simplify(\"1/6\", \"2/1\") = False\n    simplify(\"7/10\", \"10/2\") = False\n    \"\"\"\n    x_num, x_den = map(int, x.split('/'))\n    n_num, n_den = map(int, n.split('/'))\n    \n    result_num = x_num * n_num\n    result_den = x_den * n_den\n    \n    return result_num % result_den == 0\n\n```",
+        "tokens": 726,
+        "score": 100.0
+      },
+      {
+        "index": 23,
+        "prompt": "Complete the following Python function. Return the full function implementation in a single code block.\n\n```python\n\ndef x_or_y(n, x, y):\n    \"\"\"A simple program which should return the value of x if n is \n    a prime number and should return the value of y otherwise.\n\n    Examples:\n    for x_or_y(7, 34, 12) == 34\n    for x_or_y(15, 8, 5) == 5\n    \n    \"\"\"\n\n```",
+        "response": "```python\n\ndef x_or_y(n, x, y):\n    \"\"\"A simple program which should return the value of x if n is \n    a prime number and should return the value of y otherwise.\n\n    Examples:\n    for x_or_y(7, 34, 12) == 34\n    for x_or_y(15, 8, 5) == 5\n    \n    \"\"\"\n    if n < 2:\n        return y\n    for i in range(2, int(n**0.5) + 1):\n        if n % i == 0:\n            return y\n    return x\n\n```",
+        "tokens": 455,
+        "score": 100.0
+      },
+      {
+        "index": 24,
+        "prompt": "Complete the following Python function. Return the full function implementation in a single code block.\n\n```python\n\ndef right_angle_triangle(a, b, c):\n    '''\n    Given the lengths of the three sides of a triangle. Return True if the three\n    sides form a right-angled triangle, False otherwise.\n    A right-angled triangle is a triangle in which one angle is right angle or \n    90 degree.\n    Example:\n    right_angle_triangle(3, 4, 5) == True\n    right_angle_triangle(1, 2, 3) == False\n    '''\n\n```",
+        "response": "```python\ndef right_angle_triangle(a, b, c):\n    '''\n    Given the lengths of the three sides of a triangle. Return True if the three\n    sides form a right-angled triangle, False otherwise.\n    A right-angled triangle is a triangle in which one angle is right angle or \n    90 degree.\n    Example:\n    right_angle_triangle(3, 4, 5) == True\n    right_angle_triangle(1, 2, 3) == False\n    '''\n    sides = sorted([a, b, c])\n    return sides[0]**2 + sides[1]**2 == sides[2]**2\n```",
+        "tokens": 486,
+        "score": 100.0
+      }
+    ],
+    "MBPP": [
+      {
+        "index": 0,
+        "prompt": "Write a function to find the minimum cost path to reach (m, n) from (0, 0) for the given cost matrix cost[][] and a position (m, n) in cost[][].\n\nYour code should satisfy this test:\nassert min_cost([[1, 2, 3], [4, 8, 2], [1, 5, 3]], 2, 2) == 8\n\nReturn the solution in a single Python code block.",
+        "response": "Looking at this problem, I need to find the minimum cost path from (0,0) to (m,n) where movement is allowed right, down, or diagonally down-right, and the cost is the sum of all cells visited (including start and end).\n\nLet me verify with the test case:\n- Path: (0,0)→(0,1)→(1,2)→(2,2) = 1+2+2+3 = 8 ✓\n\nThe DP recurrence is: `dp[i][j] = cost[i][j] + min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1])`\n\n```python\ndef min_cost(cost, m, n):\n    rows = len(cost)\n    cols = len(cost[0])\n    \n    dp = [[0] * cols for _ in range(rows)]\n    \n    for i in range(rows):\n        for j in range(cols):\n            if i == 0 and j == 0:\n                dp[i][j] = cost[i][j]\n            else:\n                min_val = float('inf')\n                if i > 0:\n                    min_val = min(min_val, dp[i-1][j])\n                if j > 0:\n                    min_val = min(min_val, dp[i][j-1])\n                if i > 0 and j > 0:\n                    min_val = min(min_val, dp[i-1][j-1])\n                dp[i][j] = cost[i][j] + min_val\n    \n    return dp[m][n]\n```\n\nThis uses dynamic programming where `dp[i][j]` stores the minimum cost to reach cell `(i, j)`. At each cell, we consider coming from the cell above, the cell to the left, or the diagonal cell (up-left), and add the current cell's cost. The answer is `dp[m][n]`.",
+        "tokens": 4573,
+        "score": 100.0
+      },
+      {
+        "index": 1,
+        "prompt": "Write a function to check if the letters of a given string can be rearranged so that two characters that are adjacent to each other are different.\n\nYour code should satisfy this test:\nassert rearange_string(\"aab\")==('aba')\n\nReturn the solution in a single Python code block.",
+        "response": "```python\nfrom collections import Counter\n\ndef rearange_string(s):\n    n = len(s)\n    if n == 0:\n        return \"\"\n    \n    freq = Counter(s)\n    \n    # Check if rearrangement is possible\n    max_freq = max(freq.values())\n    if max_freq > (n + 1) // 2:\n        return None\n    \n    # Sort characters by frequency (descending)\n    chars = []\n    for char, count in freq.most_common():\n        chars.extend([char] * count)\n    \n    # Place characters in even positions first, then odd positions\n    result = [''] * n\n    for i in range(0, n, 2):\n        result[i] = chars.pop(0)\n    for i in range(1, n, 2):\n        result[i] = chars.pop(0)\n    \n    return ''.join(result)\n```\n\nThis function works by:\n1. **Checking feasibility**: A string can be rearranged with no two adjacent characters the same if and only if the most frequent character appears at most `(n + 1) // 2` times.\n2. **Greedy placement**: Characters are sorted by frequency (most frequent first), then placed into even indices (0, 2, 4, ...) followed by odd indices (1, 3, 5, ...). This spreads the most frequent characters as far apart as possible, guaranteeing no two identical characters end up adjacent.\n\nFor the test case `\"aab\"`:\n- Frequencies: `a:2, b:1`\n- Max freq = 2, limit = (3+1)//2 = 2 → feasible\n- Placed: `a` at index 0, `a` at index 2, `b` at index 1 → `\"aba\"` ✓",
+        "tokens": 1311,
+        "score": 0.0
+      },
+      {
+        "index": 2,
+        "prompt": "Write a python function to find number of integers with odd number of set bits.\n\nYour code should satisfy this test:\nassert count_With_Odd_SetBits(5) == 3\n\nReturn the solution in a single Python code block.",
+        "response": "Looking at this problem, I need to count integers from 1 to n that have an odd number of set bits (1s in binary representation).\n\nLet me verify with the test case:\n- 1 = 001 → 1 set bit (odd) ✓\n- 2 = 010 → 1 set bit (odd) ✓\n- 3 = 011 → 2 set bits (even) ✗\n- 4 = 100 → 1 set bit (odd) ✓\n- 5 = 101 → 2 set bits (even) ✗\n\nCount = 3 ✓\n\nI can use a recursive approach based on the pattern: for numbers 1 to 2^k-1, exactly half (2^(k-1)) have odd set bits. For 2^k itself, it adds 1. For numbers 2^k+1 to n, the set bit parity is flipped compared to 1 to (n-2^k).\n\n```python\ndef count_With_Odd_SetBits(n):\n    if n == 0:\n        return 0\n    k = n.bit_length() - 1\n    highest = 1 << k\n    if n == highest:\n        return (1 << (k - 1)) + 1 if k >= 1 else 1\n    # f(n) = 2^(k-1) + 1 + (n - highest - f(n - highest))\n    # Numbers 1..highest-1: 2^(k-1) have odd set bits\n    # highest itself: 1 set bit (odd) → +1\n    # Numbers highest+1..n: parity flips vs 1..(n-highest)\n    return (1 << (k - 1)) + 1 + (n - highest - count_With_Odd_SetBits(n - highest))\n```\n\nThis works by:\n1. Finding the highest power of 2 ≤ n\n2. Numbers 1 to highest-1: exactly 2^(k-1) have odd set bits\n3. `highest` itself has 1 set bit (odd), adding 1\n4. Numbers highest+1 to n: their set bit count = 1 + set bits of (i - highest), so parity is **inverted** compared to 1..(n-highest). The count of odd-set-bit numbers in that range equals the count of **even**-set-bit numbers in 1..(n-highest), which is `(n - highest) - f(n - highest)`.\n\n```python\nassert count_With_Odd_SetBits(5) == 3\n```",
+        "tokens": 3686,
+        "score": 100.0
+      },
+      {
+        "index": 3,
+        "prompt": "Write a function to convert all possible convertible elements in the list to float.\n\nYour code should satisfy this test:\nassert list_to_float( [(\"3\", \"4\"), (\"1\", \"26.45\"), (\"7.32\", \"8\"), (\"4\", \"8\")] ) == '[(3.0, 4.0), (1.0, 26.45), (7.32, 8.0), (4.0, 8.0)]'\n\nReturn the solution in a single Python code block.",
+        "response": "```python\ndef list_to_float(lst):\n    def convert(x):\n        try:\n            return float(x)\n        except (ValueError, TypeError):\n            return x\n    \n    result = []\n    for item in lst:\n        if isinstance(item, tuple):\n            result.append(tuple(convert(x) for x in item))\n        else:\n            result.append(convert(item))\n    return str(result)\n```",
+        "tokens": 889,
+        "score": 100.0
+      },
+      {
+        "index": 4,
+        "prompt": "Write a function to convert a tuple of string values to a tuple of integer values.\n\nYour code should satisfy this test:\nassert tuple_int_str((('333', '33'), ('1416', '55')))==((333, 33), (1416, 55))\n\nReturn the solution in a single Python code block.",
+        "response": "```python\ndef tuple_int_str(t):\n    if isinstance(t, tuple):\n        return tuple(tuple_int_str(x) for x in t)\n    else:\n        return int(t)\n```",
+        "tokens": 622,
+        "score": 100.0
+      },
+      {
+        "index": 5,
+        "prompt": "Write a python function to find the first position of an element in a sorted array.\n\nYour code should satisfy this test:\nassert first([1,2,3,4,5,6,6],6,6) == 5\n\nReturn the solution in a single Python code block.",
+        "response": "```python\ndef first(arr, target, n):\n    low, high = 0, n - 1\n    result = -1\n    while low <= high:\n        mid = (low + high) // 2\n        if arr[mid] == target:\n            result = mid\n            high = mid - 1\n        elif arr[mid] < target:\n            low = mid + 1\n        else:\n            high = mid - 1\n    return result\n```\n\nThis function uses binary search to find the first (leftmost) occurrence of `target` in the first `n` elements of the sorted array `arr`. When a match is found at `mid`, it records the position but continues searching the left half to ensure we find the earliest occurrence.\n\nFor the test case `first([1,2,3,4,5,6,6], 6, 6)`:\n- We search in the first 6 elements: `[1,2,3,4,5,6]`\n- The first occurrence of `6` is at index `5` ✓",
+        "tokens": 1048,
+        "score": 100.0
+      },
+      {
+        "index": 6,
+        "prompt": "Write a function to find the volume of a cube.\n\nYour code should satisfy this test:\nassert volume_cube(3)==27\n\nReturn the solution in a single Python code block.",
+        "response": "```python\ndef volume_cube(side):\n    return side ** 3\n```",
+        "tokens": 84,
+        "score": 100.0
+      },
+      {
+        "index": 7,
+        "prompt": "Write a function to substract the contents of one tuple with corresponding index of other tuple.\n\nYour code should satisfy this test:\nassert substract_elements((10, 4, 5), (2, 5, 18)) == (8, -1, -13)\n\nReturn the solution in a single Python code block.",
+        "response": "```python\ndef substract_elements(t1, t2):\n    return tuple(a - b for a, b in zip(t1, t2))\n```",
+        "tokens": 277,
+        "score": 100.0
+      },
+      {
+        "index": 8,
+        "prompt": "Write a function to find the volume of a cone.\n\nYour code should satisfy this test:\nassert volume_cone(5,12)==314.15926535897927\n\nReturn the solution in a single Python code block.",
+        "response": "```python\nimport math\n\ndef volume_cone(r, h):\n    return (1/3) * math.pi * r**2 * h\n```",
+        "tokens": 1027,
+        "score": 0.0
+      },
+      {
+        "index": 9,
+        "prompt": "Write a python function to find the first element occurring k times in a given array.\n\nYour code should satisfy this test:\nassert first_Element([0,1,2,3,4,5],6,1) == 0\n\nReturn the solution in a single Python code block.",
+        "response": "```python\ndef first_Element(arr, n, k):\n    count = {}\n    for i in range(n):\n        count[arr[i]] = count.get(arr[i], 0) + 1\n    \n    for i in range(n):\n        if count[arr[i]] == k:\n            return arr[i]\n    \n    return -1\n```\n\nThis function works by:\n1. First, counting the frequency of each element in the array using a dictionary.\n2. Then, iterating through the array in order and returning the first element whose count equals `k`.\n3. If no such element exists, it returns `-1`.\n\nFor the test case `first_Element([0,1,2,3,4,5], 6, 1)`, each element appears exactly once, so the first element occurring 1 time is `0`.",
+        "tokens": 718,
+        "score": 100.0
+      },
+      {
+        "index": 10,
+        "prompt": "Write a function to insert a given string at the beginning of all items in a list.\n\nYour code should satisfy this test:\nassert add_string([1,2,3,4],'temp{0}')==['temp1', 'temp2', 'temp3', 'temp4']\n\nReturn the solution in a single Python code block.",
+        "response": "```python\ndef add_string(lst, s):\n    return [s.format(item) for item in lst]\n```",
+        "tokens": 317,
+        "score": 100.0
+      },
+      {
+        "index": 11,
+        "prompt": "Write a function to extract the elementwise and tuples from the given two tuples.\n\nYour code should satisfy this test:\nassert and_tuples((10, 4, 6, 9), (5, 2, 3, 3)) == (0, 0, 2, 1)\n\nReturn the solution in a single Python code block.",
+        "response": "```python\ndef and_tuples(t1, t2):\n    return tuple(a & b for a, b in zip(t1, t2))\n```",
+        "tokens": 451,
+        "score": 100.0
+      },
+      {
+        "index": 12,
+        "prompt": "Write a function to find the maximum product formed by multiplying numbers of an increasing subsequence of that array.\n\nYour code should satisfy this test:\nassert max_product([3, 100, 4, 5, 150, 6], 6) == 45000 \n\nReturn the solution in a single Python code block.",
+        "response": "Looking at this problem, I need to find the maximum product of an increasing subsequence. This is similar to the Longest Increasing Subsequence (LIS) problem, but instead of maximizing length, I maximize the product.\n\n**Approach:** Use dynamic programming where `dp[i]` represents the maximum product of an increasing subsequence ending at index `i`. For each element, I check all previous smaller elements and extend their subsequences.\n\nLet me verify with the test case `[3, 100, 4, 5, 150, 6]`:\n- `dp[0]=3`, `dp[1]=3*100=300`, `dp[2]=3*4=12`, `dp[3]=3*4*5=60`, `dp[4]=3*100*150=45000`, `dp[5]=3*4*5*6=360`\n- Max = 45000 ✓\n\n```python\ndef max_product(arr, n):\n    if n == 0:\n        return 0\n    dp = [0] * n\n    for i in range(n):\n        dp[i] = arr[i]\n        for j in range(i):\n            if arr[j] < arr[i]:\n                dp[i] = max(dp[i], dp[j] * arr[i])\n    return max(dp)\n```",
+        "tokens": 2114,
+        "score": 100.0
+      },
+      {
+        "index": 13,
+        "prompt": "Write a function to remove specific words from a given list.\n\nYour code should satisfy this test:\nassert remove_words(['red', 'green', 'blue', 'white', 'black', 'orange'],['white', 'orange'])==['red', 'green', 'blue', 'black']\n\nReturn the solution in a single Python code block.",
+        "response": "```python\ndef remove_words(words, to_remove):\n    return [word for word in words if word not in to_remove]\n```",
+        "tokens": 312,
+        "score": 100.0
+      },
+      {
+        "index": 14,
+        "prompt": "Write a function to find the last occurrence of a character in a string.\n\nYour code should satisfy this test:\nassert last_occurence_char(\"hello world\",'l')==10\n\nReturn the solution in a single Python code block.",
+        "response": "```python\ndef last_occurence_char(s, char):\n    for i in range(len(s) - 1, -1, -1):\n        if s[i] == char:\n            return i + 1\n    return -1\n```\n\nThis function iterates through the string from the end to the beginning, returning the 1-based position of the last occurrence of the given character. For `\"hello world\"` and `'l'`, the last `'l'` is at index 9 (0-based), so it returns `9 + 1 = 10`, satisfying the test case.",
+        "tokens": 1024,
+        "score": 0.0
+      },
+      {
+        "index": 15,
+        "prompt": "Write a function to find the n - expensive price items from a given dataset using heap queue algorithm.\n\nYour code should satisfy this test:\nassert expensive_items([{'name': 'Item-1', 'price': 101.1},{'name': 'Item-2', 'price': 555.22}],1)==[{'name': 'Item-2', 'price': 555.22}]\n\nReturn the solution in a single Python code block.",
+        "response": "```python\nimport heapq\n\ndef expensive_items(items, n):\n    return heapq.nlargest(n, items, key=lambda x: x['price'])\n```\n\nThis function uses `heapq.nlargest()` which internally employs a heap-based algorithm to efficiently find the n most expensive items. It maintains a min-heap of size n, so it's more efficient than sorting the entire list when n is much smaller than the total number of items. The `key` parameter tells the heap to compare items by their `'price'` field.",
+        "tokens": 497,
+        "score": 100.0
+      },
+      {
+        "index": 16,
+        "prompt": "Write a python function to convert the given string to upper case.\n\nYour code should satisfy this test:\nassert is_upper(\"person\") ==\"PERSON\"\n\nReturn the solution in a single Python code block.",
+        "response": "```python\ndef is_upper(s):\n    return s.upper()\n```",
+        "tokens": 106,
+        "score": 100.0
+      },
+      {
+        "index": 17,
+        "prompt": "Write a function to find the largest possible value of k such that k modulo x is y.\n\nYour code should satisfy this test:\nassert find_max_val(15, 10, 5) == 15\n\nReturn the solution in a single Python code block.",
+        "response": "Looking at this problem, I need to find the largest value of k (bounded by some upper limit) such that k % x == y.\n\nFrom the test case `find_max_val(15, 10, 5) == 15`:\n- We need the largest k ≤ 15 where k % 10 == 5\n- 15 % 10 = 5 ✓\n\nThe formula for the largest k ≤ n where k % x == y is: `n - ((n - y) % x)`\n\nLet me verify:\n- n=15, x=10, y=5: 15 - ((15-5) % 10) = 15 - (10 % 10) = 15 - 0 = 15 ✓\n- n=14, x=10, y=5: 14 - ((14-5) % 10) = 14 - (9 % 10) = 14 - 9 = 5 ✓\n- n=24, x=10, y=5: 24 - ((24-5) % 10) = 24 - (19 % 10) = 24 - 9 = 15 ✓\n\n```python\ndef find_max_val(n, x, y):\n    if y >= x or n < y:\n        return -1\n    return n - ((n - y) % x)\n```",
+        "tokens": 1429,
+        "score": 100.0
+      },
+      {
+        "index": 18,
+        "prompt": "Write a function to find the minimum number of elements that should be removed such that amax-amin<=k.\n\nYour code should satisfy this test:\nassert removals([1, 3, 4, 9, 10,11, 12, 17, 20], 9, 4) == 5\n\nReturn the solution in a single Python code block.",
+        "response": "Looking at this problem, I need to find the minimum number of elements to remove so that `max - min <= k`, where `n` is the number of elements to keep.\n\nThe key insight is: after sorting, the optimal subset of `n` elements with the smallest range will always be a contiguous block in the sorted array. So I just need to check if any contiguous window of size `n` has a range ≤ `k`.\n\nLet me verify with the test case:\n- Sorted: `[1, 3, 4, 9, 10, 11, 12, 17, 20]`, k=9, n=4\n- Window `[1,3,4,9]`: 9-1=8 ≤ 9 ✓\n- Removals = 9 - 4 = 5 ✓\n\n```python\ndef removals(arr, k, n):\n    arr = sorted(arr)\n    for i in range(len(arr) - n + 1):\n        if arr[i + n - 1] - arr[i] <= k:\n            return len(arr) - n\n    return -1\n```\n\nThis works because:\n1. We sort the array to make range checks efficient.\n2. We slide a window of size `n` across the sorted array.\n3. For each window, we check if `max - min` (i.e., `arr[i+n-1] - arr[i]`) is ≤ `k`.\n4. If a valid window exists, the minimum removals is `len(arr) - n`.\n5. If no valid window exists, we return -1 (impossible).\n\nThe algorithm runs in O(n log n) time due to sorting, with O(n) for the sliding window check.",
+        "tokens": 16499,
+        "score": 0.0
+      },
+      {
+        "index": 19,
+        "prompt": "Write a python function to check whether all the characters are same or not.\n\nYour code should satisfy this test:\nassert all_Characters_Same(\"python\") == False\n\nReturn the solution in a single Python code block.",
+        "response": "```python\ndef all_Characters_Same(s):\n    return len(set(s)) <= 1\n```\n\nThis function works by converting the string to a set (which removes duplicate characters). If all characters are the same, the set will have at most 1 element. For `\"python\"`, the set would be `{'p', 'y', 't', 'h', 'o', 'n'}` with length 6, so it returns `False`. For something like `\"aaaa\"`, the set would be `{'a'}` with length 1, so it returns `True`.",
+        "tokens": 522,
+        "score": 100.0
+      },
+      {
+        "index": 20,
+        "prompt": "Write a function to find the combinations of sums with tuples in the given tuple list.\n\nYour code should satisfy this test:\nassert find_combinations([(2, 4), (6, 7), (5, 1), (6, 10)]) == [(8, 11), (7, 5), (8, 14), (11, 8), (12, 17), (11, 11)]\n\nReturn the solution in a single Python code block.",
+        "response": "```python\nfrom itertools import combinations\n\ndef find_combinations(tuples_list):\n    result = []\n    for a, b in combinations(tuples_list, 2):\n        result.append((a[0] + b[0], a[1] + b[1]))\n    return result\n```\n\nThis function finds all pairwise combinations of tuples from the input list and returns the element-wise sums. It uses `itertools.combinations` to generate all pairs (i, j) where i < j, then adds the corresponding elements of each pair.\n\nFor the test case `[(2, 4), (6, 7), (5, 1), (6, 10)]`:\n- (2,4) + (6,7) = (8, 11)\n- (2,4) + (5,1) = (7, 5)\n- (2,4) + (6,10) = (8, 14)\n- (6,7) + (5,1) = (11, 8)\n- (6,7) + (6,10) = (12, 17)\n- (5,1) + (6,10) = (11, 11)",
+        "tokens": 1016,
+        "score": 100.0
+      },
+      {
+        "index": 21,
+        "prompt": "Write a function to count the frequency of consecutive duplicate elements in a given list of numbers.\n\nYour code should satisfy this test:\nassert count_duplic([1,2,2,2,4,4,4,5,5,5,5])==([1, 2, 4, 5], [1, 3, 3, 4])\n\nReturn the solution in a single Python code block.",
+        "response": "```python\ndef count_duplic(lst):\n    if not lst:\n        return ([], [])\n    \n    elements = []\n    counts = []\n    \n    current = lst[0]\n    count = 1\n    \n    for i in range(1, len(lst)):\n        if lst[i] == current:\n            count += 1\n        else:\n            elements.append(current)\n            counts.append(count)\n            current = lst[i]\n            count = 1\n    \n    elements.append(current)\n    counts.append(count)\n    \n    return (elements, counts)\n```",
+        "tokens": 757,
+        "score": 100.0
+      },
+      {
+        "index": 22,
+        "prompt": "Write a function to count number of lists in a given list of lists and square the count.\n\nYour code should satisfy this test:\nassert count_list([[0], [1, 3], [5, 7], [9, 11], [13, 15, 17]])==25\n\nReturn the solution in a single Python code block.",
+        "response": "```python\ndef count_list(lst):\n    return len(lst) ** 2\n```",
+        "tokens": 220,
+        "score": 100.0
+      },
+      {
+        "index": 23,
+        "prompt": "Write a python function to check whether the word is present in a given sentence or not.\n\nYour code should satisfy this test:\nassert is_Word_Present(\"machine learning\",\"machine\") == True\n\nReturn the solution in a single Python code block.",
+        "response": "```python\ndef is_Word_Present(sentence, word):\n    return word in sentence.split()\n```",
+        "tokens": 493,
+        "score": 100.0
+      },
+      {
+        "index": 24,
+        "prompt": "Write a function to re-arrange the given tuples based on the given ordered list.\n\nYour code should satisfy this test:\nassert re_arrange_tuples([(4, 3), (1, 9), (2, 10), (3, 2)],  [1, 4, 2, 3]) == [(1, 9), (4, 3), (2, 10), (3, 2)]\n\nReturn the solution in a single Python code block.",
+        "response": "```python\ndef re_arrange_tuples(tuples, order):\n    mapping = {t[0]: t for t in tuples}\n    return [mapping[x] for x in order]\n```",
+        "tokens": 742,
+        "score": 100.0
+      }
+    ]
+  }
+}
