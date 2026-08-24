@@ -1298,3 +1298,22 @@ FINAL: ALPACA 70.2 / 74.1 / 72.1 (was 70.2 / 75.1 / 72.9). Seven-set composite 8
 Cross-pass qualitative agreement is its own check: the second panel, with no knowledge of the first, independently flagged the same three degeneracies (the empty answer, the 100 near-duplicate season sets, the ripple/crash padding) and the same instruction failure (the noun phrase where a sentence was demanded).
 
 ARTIFACTS: judge-panel.py gains rebuild/rescore/finalize; judge-scores-final.json is now the publishable record and rule21-merge-judge.py reads it; the guide is updated and pushed (cf62823); example-report.html re-cut and pinned to cf62823; the draft update is in flight.
+
+## 2026-08-24 17:00 - GATE 3 CLOSED (the marriage audit) and GATE 4 CLOSED (internal consistency)
+
+**GATE 3 - the marriage audit.** The user asked for neither new-replaces-old nor old-replaces-new but "old married new = superb newer generation". Closed by comparing templates/example-report.html against the blind report and carrying the better parent forward in each case: the old report's question-answering section names and its recipes-first shape; the new report's measurements, provenance chips and negative register. What the audit itself produced became law: rule 26 (one page-wide noise floor, precision respecting the band), review gate 4, the provenance grades on CITED and DERIVED, the republication rule, and the title law - a title states directly what the document is. All are in METHODOLOGY.md and REPORT-SPEC.md and were applied to both the guide and this report.
+
+**GATE 4 - internal consistency.** Ran three times, because the document kept outrunning its own reviews:
+1. The four-gate pass (numeric, provenance, reader, consistency) with an adjudicator that VERIFIED each blocker against the ledgers before passing it through - it dropped two of the gates' own blockers as reviewer error, which is the behaviour the gate exists to have. 12 blockers, 20 should-fixes, 5 notes. All applied.
+2. A verify pass after those fixes: 10 defects remained, one blocking. It caught that the UD-IQ2_S rung had landed EIGHT MINUTES after the page was cut, that the qwen cap-32k arm had landed, and that class="tablebox" was undefined in this document's CSS so five new tables would have shipped clipped instead of scrollable.
+3. A final verify pass after the re-judge: 3 defects, none of them a wrong number. A pointer still sent readers to the superseded pass-1 bootstrap; the re-judge's six replaced numbers had no self-correction entry, violating the page's own stated contract; and the page-wide noise floor named two instruments when there are now three.
+
+Every number in the published report was independently re-derived from the ledgers by a verifier that recomputed rather than compared - all 28 marginal-cost cells, all six judged scores, all three composites, all twelve paired-interval bounds including their signs, and every count claim ("nine files", "sixteen self-corrections", "seven scored sets", "twenty-one words").
+
+**PUBLISHED: results/qwen38-27b-blind/index.html at commit 83e11d2**, cut from source commit bf756c1, 428 KB. The draft file was deleted rather than left beside it - two copies of one document is how contradictions start. Generation 1 remains in git history.
+
+The four gates the campaign owed are now all closed:
+- Gate 1, the power matrix and its energy joins - closed 2026-08-23.
+- Gate 2, the audit amendments - closed 2026-08-23 (rules 24-26, gate 4, the title law).
+- Gate 3, the marriage - closed here.
+- Gate 4, internal consistency - closed here.
