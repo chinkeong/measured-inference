@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Qwen3.8-27B on a 24 GiB RTX 3090 &mdash; the measured settings</title>
-<meta name="description" content="Every setting for Qwen3.8-27B on a single 24 GiB RTX 3090, with the number that justifies it. Speed, memory, energy, accuracy and image cost, measured 2026-08-23 to 08-24.">
+<meta name="description" content="Every setting for Qwen3.8-27B on a single 24 GiB RTX 3090, with the number that justifies it. Speed, memory, energy, accuracy and image cost, measured 2026-08-23 to 08-25.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Inter+Tight:wght@400;500;600;700;800&family=Intel+One+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -372,7 +372,7 @@ footer a{color:#dceaf6;text-decoration:underline;text-underline-offset:2px}
 
 <div class="uband"><div class="in">
   <div>Measured-inference field guide &nbsp;/&nbsp; generation 2</div>
-  <div class="tag">RTX 3090 24 GiB &middot; Windows 11 &middot; measured 2026-08-23 to 08-24</div>
+  <div class="tag">RTX 3090 24 GiB &middot; Windows 11 &middot; measured 2026-08-23 to 08-25</div>
 </div></div>
 
 <nav class="top"><div class="in">
@@ -388,16 +388,17 @@ footer a{color:#dceaf6;text-decoration:underline;text-underline-offset:2px}
 
 <header class="hero"><div class="in">
   <div>
-    <span class="eyebrow">Measured on one machine &middot; 2026-08-23 to 08-24</span>
+    <span class="eyebrow">Measured on one machine &middot; 2026-08-23 to 08-25</span>
     <h1>Qwen3.8-27B on a 24&nbsp;GiB RTX&nbsp;3090: the <span class="accent">measured</span> settings.</h1>
     <p class="pledge">Every setting, with the number that justifies it.</p>
     <p class="lede"><b>Evidence tier, before the first result.</b> Everything on
     this page was measured on one machine &mdash; an RTX&nbsp;3090 with
-    24&nbsp;GiB, driver 596.36, Windows&nbsp;11 &mdash; across six rounds, five
-    on 2026-08-23 between 00:19 and 14:05 local and the ladder finishing
-    2026-08-24, totalling about <b>19&nbsp;h&nbsp;16&nbsp;m of GPU time</b>
-    (12&nbsp;h&nbsp;53&nbsp;m over rounds 1&ndash;5, about 6&nbsp;h for the
-    ladder). One of those rounds used no GPU
+    24&nbsp;GiB, driver 596.36, Windows&nbsp;11 &mdash; across eight rounds, five
+    on 2026-08-23 between 00:19 and 14:05 local, the ladder finishing
+    2026-08-24 and the scored arms 2026-08-25, totalling about
+    <b>24&nbsp;h&nbsp;55&nbsp;m of GPU time</b>
+    (13&nbsp;h&nbsp;14&nbsp;m over rounds 1&ndash;5, 6&nbsp;h&nbsp;03&nbsp;m for the
+    ladder, 5&nbsp;h&nbsp;39&nbsp;m for the scored arms). Two of those rounds used no GPU
     time at all, because it re-analysed logs already on disk.</p>
     <p class="lede"><b>Solid:</b> speed, memory, energy and image cost. Behind
     them are <b>17 instrumented power runs</b> &mdash; a <em>run</em> here means
@@ -427,7 +428,12 @@ footer a{color:#dceaf6;text-decoration:underline;text-underline-offset:2px}
     budget, reproduced this page's own quality score for the shipped file twice,
     and threw out one reading as a broken
     instrument rather than a fact about a model &mdash;
-    <a href="#s08-04">&sect;08.04</a>.</p>
+    <a href="#s08-04">&sect;08.04</a>. A follow-up pass on 2026-08-24 and
+    2026-08-25 then scored eight of those files on a frozen benchmark suite and
+    tested them pairwise, ran the two arms this page had been refusing for want
+    of them &mdash; a matched drafter-ON batching pair and the same two files at
+    the full 262,144-token window, filled with 218,233 real tokens &mdash; and
+    found that the ladder had been swept at a configuration nobody runs.</p>
     <p class="lede">Four hardware figures in <a href="#s07">&sect;07</a> are
     carried from the report template's own fact-checked reference set &mdash; a
     prior campaign's work, dated 2026-08-22 &mdash; rather than re-read here, and
@@ -440,7 +446,7 @@ footer a{color:#dceaf6;text-decoration:underline;text-underline-offset:2px}
     <a href="#s06-07">&sect;06.07</a>.</p>
   </div>
   <dl class="hero-stats">
-    <div class="hero-stat"><dt>GPU time measured, six rounds, one machine</dt><dd>19:16<span>h:m</span></dd></div>
+    <div class="hero-stat"><dt>GPU time measured, all eight rounds, one machine</dt><dd>24:55<span>h:m</span></dd></div>
     <div class="hero-stat"><dt>Instrumented runs &mdash; power &middot; benchmark <span style="text-transform:none">(2 power-cap runs skipped)</span></dt><dd>17 &middot; 6</dd></div>
     <div class="hero-stat"><dt>Benchmark generations &mdash; all 525 scored</dt><dd>525<span>+ re-runs</span></dd></div>
     <div class="hero-stat"><dt>Self-corrections, all kept in place</dt><dd>16</dd></div>
@@ -528,13 +534,14 @@ is retired rather than pending (<a href="#s09-09">&sect;09.09</a>).</p>
   times, up to twelve hours apart, with three different instruments, and the repeat
   spread is published in &sect;06.07 so you can check any claim against it.
   <b>Quality is a first look.</b> Three quantisation files were ranked on speed
-  and on energy; only one of them has a perplexity number of its own, and no two
-  quantisations of <em>this</em> model were compared with each other on benchmark
-  accuracy &mdash; the one benchmark comparison between files, in
-  <a href="#s08-04">&sect;08.04</a>, is across model families at an equal weight
-  budget. The accuracy suite that does
-  exist ran 25 questions per benchmark per effort level, which detects a broken
-  file and nothing finer.</p>
+  and on energy, and only one of them has a perplexity number of its own. Eight
+  files of this model <em>are</em> now compared with each other on benchmark
+  accuracy, in <a href="#s08-04">&sect;08.04</a> &mdash; but at <b>25 questions
+  per benchmark</b>, which detects a broken file and nothing finer. That
+  comparison is therefore published as a <b>paired test on the identical
+  items</b>, and what it yields is a set of ties and a boundary interval rather
+  than an ordering. <b>No rung on that ladder is called better than another
+  rung.</b></p>
   <p>What this page is not: a review, a general comparison of models &mdash;
   &sect;08.04's single equal-weight-budget arm is scoped and captioned as the
   exception &mdash; or a claim about
@@ -545,7 +552,7 @@ is retired rather than pending (<a href="#s09-09">&sect;09.09</a>).</p>
 
 <section id="s01">
   <div class="section-tag"><span class="num">01</span>What this page is</div>
-  <h2>One model, one card, six rounds of measurement.</h2>
+  <h2>One model, one card, eight rounds of measurement.</h2>
 
   <p class="lead1">This page tells you how to run Qwen3.8-27B on a single
   NVIDIA RTX&nbsp;3090 with 24&nbsp;GiB of memory, using llama.cpp's
@@ -584,9 +591,10 @@ is retired rather than pending (<a href="#s09-09">&sect;09.09</a>).</p>
   margin.</p>
 
   <h3 id="s01-01"><span class="sigil">01</span>What was measured, in one table</h3>
-  <p>Six measurement rounds ran on one machine across 2026-08-23 and 08-24, one
-  job on the card at a time, plus a seventh zero-GPU pass on 08-24 &mdash; the
-  judge panel.
+  <p>Eight measurement rounds ran on one machine across 2026-08-23, 08-24 and
+  08-25, one job on the card at a time, and two of the eight used no GPU at
+  all &mdash; the blind judge panel on 08-24, and the empty-answer audit that
+  re-read every kept transcript on 08-25.
   Every round has a log, a directory of raw output, and an entry in
   <a href="#s15-01">&sect;15.01</a>.</p>
 
@@ -601,7 +609,8 @@ is retired rather than pending (<a href="#s09-09">&sect;09.09</a>).</p>
       <tr><td><b>5 &mdash; power matrix</b></td><td class="num">13:21&ndash;14:05</td><td class="num">44 m</td><td><b>17 instrumented arms</b> isolating speculation, quantisation, KV width, token regime, depth, batching and idle. Two further arms &mdash; the power cap at 250&nbsp;W and at 300&nbsp;W &mdash; are recorded in the log as <code>SKIPPED reason=needs-admin</code>: the cap was never changed and never instrumented, so this round produced 17 results, not 19.</td></tr>
       <tr><td><b>6 &mdash; quantisation ladder</b></td><td class="num">08-23 14:13 &ndash; 08-24 12:35</td><td class="num">~6 h</td><td>Nine files of this model ranked on 294,912 scored positions each, with functional detectors beside every rung; the knee named and priced; the equal-weight-budget arm against a different model. One published anchor reproduced twice at 0.000&nbsp;% drift and one first measurement gated against its own value, which is arithmetic and not a reproduction (<a href="#s08-03">&sect;08.03</a>); one resolved same-size pair; one withdrawn instrument reading &mdash; <a href="#s08-04">&sect;08.04</a>.</td></tr>
       <tr><td><b>7 &mdash; judge panel</b><br><span class="small">two passes</span></td><td class="num">zero-GPU</td><td class="num">&mdash;</td><td>The two open-ended writing sets &mdash; ALPACA and MT-Bench turn 1 &mdash; read on 2026-08-24 by a blind three-seat Claude Opus&nbsp;5 panel: 150 answers, 450 ratings, none missing, plus the paired bootstrap between effort levels (<a href="#s09-09">&sect;09.09</a>). A <b>second pass</b> followed the same day, after the <code>xhigh</code> ALPACA raised-cap re-run replaced one arm's answers: all three ALPACA arms were re-judged together by three fresh blind seats &mdash; <b>75 answers, 225 further ratings</b>, so 675 ratings in total. MT-Bench never truncated and was not re-judged. No GPU time in either pass, because the generations were already on disk.</td></tr>
-      <tr><td colspan="4" class="small"><b>Total GPU time: 13 h 14 m over rounds 1&ndash;5, about 6 h for round 6 &mdash; roughly 19 h 16 m.</b> Rounds 1&ndash;5 gained 21 m on 2026-08-24 from the last raised-cap re-run, <code>xhigh</code> ALPACA, which belongs to round 3. Round 6's figure is the sum of the ledgers' own <code>wall_s</code> fields (2,990 s of perplexity plus 18,767 s of equal-budget arms = 6 h 03 m) and does not include the detector probes or the eleven-arm gemma isolation. Report writing and four review passes ran alongside the GPU work.</td></tr>
+      <tr class="hi"><td><b>8 &mdash; the accuracy ladder and the two missing arms</b></td><td class="num">08-24 17:30 &ndash;<br>08-25 02:05</td><td class="num">~5 h 39 m<br><span class="small">+ 1 h 37 m lost</span></td><td>Eight files of this model scored on <b>one frozen suite, 75 items each, matched conditions</b>, then tested pairwise on the identical items; the empty-answer audit that turned out to be the ladder's most sensitive column; the matched drafter-ON <code>--parallel</code> pair that closed &sect;06.06's quarantine; the shallow drafter pair that <b>inverted the ladder's own ordering</b>; and three arms at the full 262,144-token window filled with 218,233 real tokens &mdash; <a href="#s08-04">&sect;08.04</a>, <a href="#s06-06">&sect;06.06</a>. The 1 h 37 m is an <b>automatic cap-raise on a screened-out file</b> that ran until it was killed and bought nothing; it is counted here rather than quietly dropped.</td></tr>
+      <tr><td colspan="4" class="small"><b>Total GPU time: 13 h 14 m over rounds 1&ndash;5, about 6 h for round 6, about 5 h 39 m for round 8 &mdash; roughly 24 h 55 m of arms that produced a number, plus 1 h 37 m that produced none.</b> Rounds 1&ndash;5 gained 21 m on 2026-08-24 from the last raised-cap re-run, <code>xhigh</code> ALPACA, which belongs to round 3. Round 6's figure is the sum of the ledgers' own <code>wall_s</code> fields (2,990 s of perplexity plus 18,767 s of equal-budget arms = 6 h 03 m) and does not include the detector probes or the eleven-arm gemma isolation. Round 8's figure is the same arithmetic over its eight scored arms (20,323 s = 5 h 39 m <span class="pv d">DERIVED</span>) and likewise excludes the three probe scripts, which took about half an hour between them. Report writing and the review passes ran alongside the GPU work.</td></tr>
     </tbody>
   </table></div>
 
@@ -638,8 +647,9 @@ is retired rather than pending (<a href="#s09-09">&sect;09.09</a>).</p>
   reference set, a prior campaign's fact-check dated 2026-08-22, rather than
   from this campaign's own roster check at 00:37 on 2026-08-23. The benchmark suite and its
   scorer are shared code, not written for this run. One comparison in
-  &sect;06.06 quotes a prior campaign's batching figure in order to contradict
-  it. One troubleshooting reading in &sect;11 and one file size in &sect;08.02
+  &sect;06.06 quotes a prior campaign's batching figure, originally in order to
+  contradict it and now in order to report that this campaign's own matched arm
+  came down on its side. One troubleshooting reading in &sect;11 and one file size in &sect;08.02
   are likewise carried rather than re-taken. Each is chipped
   <span class="pv c">CITED</span> where it appears, and <b>the complete,
   maintained list with its three grades is &sect;15.02</b> &mdash; this
@@ -1182,8 +1192,9 @@ is retired rather than pending (<a href="#s09-09">&sect;09.09</a>).</p>
 #   Energy: 3.21 J per decode token, 0.68 Wh per 700-token answer - ALSO
 #     measured with thinking off. At the medium this block ships, expect
 #     nearer 6 J per token while the model is thinking (section 03.06).
-# DELIBERATELY ABSENT: --parallel 2 (measured +60% aggregate throughput with
-#   the drafter OFF, but no matched drafter-ON pair exists - section 06.06);
+# DELIBERATELY ABSENT: --parallel 2 (matched pair at THESE drafter flags:
+#   +22.0 pct aggregate, -35.4 pct per slot - a trade, and one user pays
+#   the whole per-slot cost. Turn it on only to serve two people - sec 06.06);
 #   --image-max-tokens (cuts a 1440p shot 3.6x, detail cost unmeasured);
 #   -ctk q4_0 (costs +0.69% perplexity, but only tested at -c 8192).
 # SAMPLING is left to your client. The model card recommends temperature 1.0,
@@ -1871,6 +1882,7 @@ RTX 3090 :  936 GB/s &divide; 14.25 GB = 65.7 t/s theoretical
       <tr><td class="num">196,608</td><td class="num">20,720 <span class="small">(3,856)</span></td><td class="num">21,858 <span class="small">(2,718)</span></td><td class="num" style="color:var(--warn)">23,826 <span class="small">(750 left)</span></td><td class="num" style="color:var(--warn)">23,586 <span class="small">(990 left)</span></td><td class="num" style="color:var(--warn)">24,724 &mdash; will not fit</td></tr>
       <tr><td class="num">229,376</td><td class="num">21,968 <span class="small">(2,608)</span></td><td class="num">23,106 <span class="small">(1,470)</span></td><td class="num" style="color:var(--warn)">25,234 &mdash; will not fit</td><td class="num" style="color:var(--warn)">24,994 &mdash; will not fit</td><td class="num" style="color:var(--warn)">26,132 &mdash; will not fit</td></tr>
       <tr><td class="num">262,144</td><td class="num">23,216 <span class="small">(1,360)</span></td><td class="num" style="color:var(--warn)">24,354 <span class="small">(222 left)</span></td><td class="num" style="color:var(--warn)">26,642 &mdash; will not fit</td><td class="num" style="color:var(--warn)">26,402 &mdash; will not fit</td><td class="num" style="color:var(--warn)">27,540 &mdash; will not fit</td></tr>
+      <tr><td colspan="6" class="small"><b>One cell of this table has since been loaded, and it read high.</b> The <b>262,144 / no MTP / text-only</b> cell predicts <b>23,216&nbsp;MiB</b> with 1,360 left. A real load of <code>UD-IQ4_XS</code> at <code>-c 262144</code>, filled with 218,233 tokens on 2026-08-25, measured <b>23,821&nbsp;MiB</b> with <b>755&nbsp;MiB</b> left <span class="pv m">MEASURED</span> &mdash; <b>605&nbsp;MiB more resident than predicted</b> <span class="pv d">DERIVED</span>, which moves that cell from clear of the 1,181&nbsp;MiB desktop maximum to <em>inside</em> it. The same pass measured the model under-predicting by about <b>1,213&nbsp;MiB</b> on a different file at the same window (<a href="#s08-04">&sect;08.04</a>). The residual is compute buffers, which these two constants do not carry and which do not scale with the window the way the cache does. <b>The model stays exact where it was tested &mdash; to the megabyte at 32,768 and at 131,072 &mdash; and the deepest rows here are floors.</b> At the top of the window, load it and read the board.</td></tr>
     </tbody>
   </table></div>
 
@@ -1882,6 +1894,14 @@ RTX 3090 :  936 GB/s &divide; 14.25 GB = 65.7 t/s theoretical
     <b>up to 2.2&times; decode speed</b>, <b>the ability to send images</b>, and
     <b>the last 100k tokens of window</b>. You cannot have all three on
     24&nbsp;GiB.</p>
+    <p><b>That trade has since been loaded rather than computed, and there is a
+    fourth thing you can trade.</b> On the shipped 13.3&nbsp;GiB file the full
+    window measures <b>23,821&nbsp;MiB</b> with the drafter already off &mdash;
+    inside the desktop fence, so it is headless-only in practice and not merely
+    on paper. Trading <em>weight bits</em> instead buys all of it back: the
+    9.154&nbsp;GiB <code>UD-Q2_K_XL</code> holds the same window <b>with</b>
+    speculation, 1,717&nbsp;MiB clear, and runs 34&nbsp;% faster at depth
+    <span class="pv m">MEASURED</span> (<a href="#s08-04">&sect;08.04</a>).</p>
   </div>
 
   <h3 id="s05-03"><span class="sigil">03</span>Two ceilings, and only one of them is safe</h3>
@@ -2084,10 +2104,11 @@ RTX 3090 :  936 GB/s &divide; 14.25 GB = 65.7 t/s theoretical
 
   <p class="lead1">Two further things on this page move speed by more than a few
   percent, and both are named rather than folded in. Running <em>two</em>
-  requests at once measured <b>+60.3&nbsp;%</b> of aggregate throughput with the
-  drafter off (<a href="#s06-06">&sect;06.06</a>) &mdash; it is quarantined, not
-  shipped, because a prior campaign measured the opposite with the drafter on.
-  And letting the window spill into system memory costs <b>3.82&times;</b>
+  requests at once is worth <b>+22.0&nbsp;%</b> of aggregate throughput at the
+  shipped drafter setting and costs each user <b>35.4&nbsp;%</b> of their own
+  token rate (<a href="#s06-06">&sect;06.06</a>) &mdash; a trade, not a free win,
+  which is why <code>--parallel 1</code> still ships. And letting the window
+  spill into system memory costs <b>3.82&times;</b>
   (<a href="#s05-04">&sect;05.04</a>) &mdash; that is a failure, not a setting.
   Apart from those two, nothing else here moves speed by more than a few
   percent.</p>
@@ -2120,7 +2141,7 @@ RTX 3090 :  936 GB/s &divide; 14.25 GB = 65.7 t/s theoretical
       <tr>
         <td class="mono">--parallel 1</td>
         <td>Slots divide the window: two slots at <code>-c 131072</code> give each request 65,536 tokens, not 131,072.</td>
-        <td>The window arithmetic is llama-server's own <code>n_ctx_slot</code> line. The throughput half is now measured and is <b>quarantined</b> &mdash; <b>+60.3&nbsp;% aggregate, &minus;39.6&nbsp;% J/token</b> with the drafter <em>off</em>, against a prior campaign's <b>+11&nbsp;%</b> with it on. &sect;06.06 has the pair and the reason neither ships yet.</td>
+        <td>The window arithmetic is llama-server's own <code>n_ctx_slot</code> line. The throughput half is now settled at the shipped drafter setting: <b>+22.0&nbsp;% aggregate and &minus;35.4&nbsp;% per slot</b> <span class="pv m">MEASURED</span>. It still ships as <code>1</code> because a single user pays the whole per-slot cost for aggregate they never see. The earlier drafter-<em>off</em> pair read +60.3&nbsp;% aggregate, &minus;39.6&nbsp;% J/token; &sect;06.06 has both and the reason they differ.</td>
       </tr>
       <tr>
         <td class="mono">--load-mode mmap</td>
@@ -2518,14 +2539,69 @@ RTX 3090 :  936 GB/s &divide; 14.25 GB = 65.7 t/s theoretical
   minutes to read and then nothing &mdash; but it costs 90.7&nbsp;% of the
   session's joules, which is <a href="#s09-07">&sect;09.07</a>.</p>
 
-  <h3 id="s06-06"><span class="sigil">06</span>One user or two, and why neither number ships</h3>
+  <h3 id="s06-06"><span class="sigil">06</span>One user or two &mdash; and the missing arm, now run</h3>
   <p>If two requests arrive at once, should the server run them side by side?
-  This campaign measured that it should &mdash; and it is not publishing the
-  result as guidance yet, because a prior campaign measured the opposite and the
-  experiment that separates them has not been run.</p>
+  This page carried a quarantined answer for most of the campaign: a
+  drafter-<em>off</em> pair measured <b>+60.3&nbsp;%</b> of aggregate throughput
+  while a prior campaign's drafter-<em>on</em> figure said about
+  <b>+11&nbsp;%</b>, and the arm that separates them had not been run. <b>It has
+  now been run</b>, at the setting the recipes ship, and it settles the
+  question: batching is worth <b>+22.0&nbsp;%</b> of aggregate throughput and
+  costs each user <b>35.4&nbsp;%</b> of their own token rate &mdash; which is
+  about <b>55&nbsp;% longer</b> to wait for the same answer. The quarantine is
+  lifted; what replaces it is a genuine trade rather than a free win, so the
+  recipes still ship <code>--parallel 1</code> &mdash; now for a reason about
+  latency instead of a reason about uncertainty.</p>
 
   <div class="table-wrap"><table>
-    <caption>Both rows <span class="pv m">MEASURED</span> 2026-08-23 round 5 &mdash; IQ4_XS, <code>-c 32768</code>, q8_0 KV, thinking off, temperature 0, <b>drafter OFF</b>, two identical 1,458-token requests of 700 tokens each. The two rows differ only in <code>--parallel</code>: the first sends them one after another, the second concurrently. <b>Named limitation:</b> these two arms use a coarse window that includes prefill, so their J/token is not phase-attributed the way every other energy figure on this page is.</caption>
+    <caption>Both rows <span class="pv m">MEASURED</span> 2026-08-25 &mdash; the arm the quarantine asked for. IQ4_XS, <code>-c 32768</code>, <code>q8_0</code> KV, thinking off, temperature 0, <b>drafter ON at the shipped <code>n10/p0.5</code></b>, three reps each with the first post-prefill probe discarded. The two rows differ only in <code>--parallel</code>. <b>Aggregate</b> is what the server delivers across both slots; <b>per-slot</b> is what one user experiences.</caption>
+    <thead><tr><th scope="col">Arm</th><th scope="col" class="num">Aggregate t/s</th><th scope="col" class="num">Per-slot t/s</th><th scope="col" class="num">Acceptance</th><th scope="col" class="num">Mean draft length</th></tr></thead>
+    <tbody>
+      <tr><td><code>--parallel 1</code>, sequential</td><td class="num">82.98</td><td class="num">85.79</td><td class="num">0.618</td><td class="num">5.70</td></tr>
+      <tr class="hi"><td><code>--parallel 2</code>, concurrent</td><td class="num"><b>101.25</b> <span class="small">+22.0 %</span></td><td class="num"><b>55.41</b> <span class="small">&minus;35.4 %</span></td><td class="num">0.620</td><td class="num">5.61</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout good">
+    <span class="label">Quarantine lifted &mdash; the truth is nearer the prior campaign, and the reason is the drafter</span>
+    <p>A prior campaign measured <code>--parallel 2</code> at
+    <b>+11&nbsp;% aggregate throughput</b> (79.2 against 71.3&nbsp;t/s) while
+    making each request about 40&nbsp;% slower <span class="pv c">CITED</span>
+    &mdash; carried from that campaign's own guide, not re-measured here. This
+    campaign's drafter-<em>off</em> pair measured <b>+60.3&nbsp;%</b>. The
+    matched drafter-<em>on</em> pair above lands at <b>+22.0&nbsp;%</b>: between
+    the two, and much nearer the prior campaign. <b>The stated hypothesis for
+    the quarantine was right and is now measured rather than assumed</b> &mdash;
+    once speculation is already amortising the weight read, batching has far
+    less left to amortise. Both earlier numbers are correct measurements of
+    different configurations, and neither was ever general.</p>
+    <p><b>The drafter is not disturbed by the second slot.</b> Acceptance is
+    0.618 against 0.620 and mean draft length 5.70 against 5.61 &mdash; flat
+    within this page's own repeat spread. So the cost is not a degraded draft
+    head; it is <em>purely</em> that two users share one card. <b>Stated as a
+    wait rather than a rate</b>, because that is what a user feels: a per-slot
+    fall of 35.4&nbsp;% means the same 700-token answer takes <b>about
+    55&nbsp;% longer</b> to arrive &mdash; 12.6&nbsp;s against 8.2
+    <span class="pv d">DERIVED</span>.</p>
+    <p><b>What ships, and why it did not change.</b> <code>--parallel 1</code>
+    stays in every recipe. The reason is no longer &ldquo;we do not know&rdquo;;
+    it is that +22&nbsp;% of aggregate throughput bought with &minus;35&nbsp;%
+    of per-user speed is a trade a single-user desktop should decline, and
+    <code>--parallel 1</code> is also the setting that gives one request the
+    whole window. <b>If you are serving two people rather than being one
+    person, the trade reverses and the number to plan with is +22.0&nbsp;%.</b>
+    The drafter-off pair below is kept in place because it is the measurement
+    that created the puzzle, and because it carries the only energy column
+    this axis has.</p>
+  </div>
+
+  <p><b>The pair that raised the question, kept for the record.</b> It is a
+  correct measurement of a configuration this page does not ship, and it is
+  printed unchanged rather than deleted, because how a clean measurement
+  misleads is the transferable part.</p>
+
+  <div class="table-wrap"><table>
+    <caption>Both rows <span class="pv m">MEASURED</span> 2026-08-23 round 5 &mdash; IQ4_XS, <code>-c 32768</code>, q8_0 KV, thinking off, temperature 0, <b>drafter OFF</b>, two identical 1,458-token requests of 700 tokens each. The two rows differ only in <code>--parallel</code>: the first sends them one after another, the second concurrently. <b>Named limitation:</b> these two arms use a coarse window that includes prefill, so their J/token is not phase-attributed the way every other energy figure on this page is. <b>Second named limitation, added 2026-08-25:</b> the drafter is off, so the aggregate column here describes a configuration no recipe on this page uses &mdash; the +22.0&nbsp;% figure above is the one to plan with.</caption>
     <thead><tr><th scope="col">Arm</th><th scope="col" class="num">Aggregate t/s</th><th scope="col" class="num">J / decode token</th><th scope="col" class="num">EDP (J&middot;s)</th><th scope="col" class="num">Mean W</th></tr></thead>
     <tbody>
       <tr><td><code>--parallel 1</code>, sequential</td><td class="num">39.16</td><td class="num">8.59</td><td class="num">430,000</td><td class="num">336</td></tr>
@@ -2533,26 +2609,13 @@ RTX 3090 :  936 GB/s &divide; 14.25 GB = 65.7 t/s theoretical
     </tbody>
   </table></div>
 
-  <div class="callout hold">
-    <span class="label">Quarantined &mdash; two campaigns, opposite answers, one missing arm</span>
-    <p>A prior campaign measured <code>--parallel 2</code> at
-    <b>+11&nbsp;% aggregate throughput</b> (79.2 against 71.3&nbsp;t/s) while
-    making each request about 40&nbsp;% slower <span class="pv c">CITED</span>
-    &mdash; carried from that campaign's own guide, not re-measured here. This
-    campaign measures <b>+60&nbsp;%</b>. The two are not obviously compatible,
-    and the most likely reconciliation is that they differ in the one condition
-    neither states as the variable: <b>the prior figure was almost certainly
-    taken with the draft head ON</b>, and drafting already amortises the weight
-    read that batching would otherwise amortise. If that is right, both numbers
-    are correct and neither is general &mdash; batching pays exactly when you are
-    not speculating.</p>
-    <p>That is a hypothesis with an obvious test: <b>a matched
-    <code>--parallel 1</code> against <code>--parallel 2</code> pair with the
-    drafter ON</b>, which costs about ten minutes of GPU time and has not been
-    run. Until it has, the recipes keep <code>--parallel 1</code> &mdash; which is
-    also the setting that gives one request the whole window, and the
-    window-division arithmetic is not in doubt.</p>
-  </div>
+  <p class="small"><b>This is the second time in this campaign that a
+  drafter-off measurement gave the wrong answer for the shipped recipe.</b> The
+  quantisation ladder in <a href="#s08-04">&sect;08.04</a> is the other, and it
+  produced a wrong <em>ordering</em> rather than a wrong level. Both have the
+  same cause &mdash; speculation has already amortised the weight read that the
+  other lever was going to amortise &mdash; and together they are why this
+  campaign's method now says: sweep at the shipped recipe.</p>
 
   <h3 id="s06-07"><span class="sigil">07</span>How much of any of this you can believe</h3>
   <p>Read this before quoting any single number from this page. Two instruments
@@ -2652,13 +2715,23 @@ RTX 3090 :  936 GB/s &divide; 14.25 GB = 65.7 t/s theoretical
 
   <p class="lead1"><b>Will this run on my machine? Two rules answer it before
   the table does.</b> <b>First, the weights alone are 13.3&nbsp;GiB</b>, so a
-  card with 12&nbsp;GB cannot run this model at all &mdash; not at a smaller
+  card with 12&nbsp;GB cannot run <em>this file</em> at all &mdash; not at a smaller
   window, not at any setting, because there is no window to shrink before the
   file itself does not fit. <b>Second, 16&nbsp;GB runs it but makes you choose
   one thing:</b> about 29,000 tokens of window with the drafter and no images,
   about 53,000 with images and no drafter, and effectively nothing if you want
   both. <b>24&nbsp;GB is where you stop choosing</b>, which is the card this
   page measured. Below that, read the fit column before the speed column.</p>
+
+  <p class="lead1"><b>Every row in this section is about the 13.3&nbsp;GiB
+  file, and there is a smaller one that changes the fit arithmetic.</b>
+  <code>UD-Q2_K_XL</code> is <b>9.154&nbsp;GiB</b> and, on this campaign's
+  paired accuracy test, indistinguishable from the shipped file &mdash; one
+  discordant item of 75 (<a href="#s08-04">&sect;08.04</a>). Nothing in the
+  table below was recomputed for it, and no card smaller than 24&nbsp;GB was
+  ever loaded here, so &sect;08.04 states the 16 and 12&nbsp;GB cases as
+  <span class="pv d">DERIVED</span> and stops there. Read this section as the
+  arithmetic for the file this page ships.</p>
 
   <p class="lead1">One row of the table below &mdash; the <em>roster</em>, this
   page's list of cards with a speed estimate each &mdash; was measured. Every
@@ -2792,7 +2865,7 @@ correspondingly softer.</code></pre>
 
 <section id="s08">
   <div class="section-tag"><span class="num">08</span>Which file</div>
-  <h2>Three files ranked on speed and energy; nine ranked on quality &mdash; and only one file is on both lists.</h2>
+  <h2>Three files ranked on speed and energy; nine ranked on quality; eight scored on answers &mdash; and which one you want depends on how wide your window is.</h2>
 
   <p class="lead1"><b>Download
   <code>Qwen3.8-27B-UD-IQ4_XS.gguf</code></b> from
@@ -2823,16 +2896,21 @@ correspondingly softer.</code></pre>
   runs <b>13&nbsp;% slower</b> at each file's own best draft setting (81.7
   against 93.9&nbsp;t/s) and costs <b>8&nbsp;% more electricity</b> per token,
   and the NVFP4 file runs <b>11&nbsp;% slower</b> with no drafter (37.3 against
-  42.1) and costs <b>13&nbsp;% more</b>. What this page still cannot tell you is
-  whether it is as <em>accurate</em> as the other 4-bit-class files. Two files
-  of this model now carry scored-benchmark numbers &mdash; this one through the
-  seven-benchmark sweep in &sect;09, and the 2.15-bit
-  <code>UD-IQ2_XXS</code> through the equal-budget arm in
-  <a href="#s08-04">&sect;08.04</a> &mdash; but they were scored on
-  <em>different suites</em>, so those two numbers rank nothing against each
-  other and are never printed side by side here. Within the 4-bit class the
-  ranking instrument stays perplexity, and &sect;10 explains why a small
-  accuracy comparison would have been worse than none.</p>
+  42.1) and costs <b>13&nbsp;% more</b>.</p>
+  <p class="lead1"><b>There is now one measured exception to
+  &ldquo;download this file&rdquo;, and it is about window width rather than
+  quality.</b> At the full native 262,144-token window the 9.154&nbsp;GiB
+  <code>UD-Q2_K_XL</code> is <b>34&nbsp;% faster at depth</b>, is the only one
+  of the two that can run the draft head there at all, and is the only one that
+  leaves a desktop enough of the board to run on &mdash; all three measured at a
+  218,233-token fill in <a href="#s08-04">&sect;08.04</a>. At every ordinary
+  window the recommendation is unchanged, and for a reason that also had to be
+  measured: with the draft head on, the 4-bit file is <b>12.9&nbsp;% faster</b>
+  despite being 45&nbsp;% larger. As for accuracy, eight files of this model are
+  now scored on <em>one</em> frozen suite under matched conditions and compared
+  with an exact paired test on the identical 75 items. What that yields is a set
+  of <b>ties</b> and a boundary interval &mdash; not an ordering, which
+  &sect;10 explains 25 questions per benchmark can never supply.</p>
 
   <h3 id="s08-01"><span class="sigil">01</span>The one file with a quality number</h3>
   <p>Perplexity scores every token position in a large corpus rather than a few
@@ -2931,10 +3009,18 @@ correspondingly softer.</code></pre>
   holds a format, echoes a structure back, writes a well-formed fenced code
   block &mdash; all the way down to <b>6.3&nbsp;GiB</b>, and the first hard
   failure is one rung further down at <b>5.8</b>. Those are two different
-  thresholds, and that they are different is the finding. This page still ships
-  the 13.3&nbsp;GiB file, and it recommends <em>no</em> smaller rung for a
-  smaller card &mdash; because the arm that would justify one, the same rungs at
-  real depth with the draft head on, was never run.</p>
+  thresholds, and that they are different is the finding. A follow-up pass on
+  2026-08-24 and 2026-08-25 added a third instrument and two arms this section
+  previously refused for want of them, so the recommendation is no longer one
+  file for every case. <b>On 24&nbsp;GB it now splits by window.</b> Up to about
+  180k tokens, stay on the 13.3&nbsp;GiB file: with the draft head on &mdash;
+  which is how every recipe here ships &mdash; it is <b>12.9&nbsp;% faster</b>
+  than the 9.2&nbsp;GiB one despite being 45&nbsp;% larger. At the full
+  262,144-token window, switch: the 9.2&nbsp;GiB file is <b>34&nbsp;% faster at
+  depth</b>, it is the only one of the two that can run speculation there at
+  all, and it is the only one that leaves room for a desktop. Both halves are
+  measured, and the two files are a <b>tie on accuracy</b> &mdash; one
+  discordant item of 75.</p>
   <p>The file above is 13.3&nbsp;GiB, which needs a 24&nbsp;GB card. The obvious
   question is how much smaller the same model can be squeezed before it stops
   being worth running &mdash; and the answer is not one number, because
@@ -2945,7 +3031,25 @@ correspondingly softer.</code></pre>
   token positions, and a set of functional detectors that ask whether the
   thing can still hold a format, echo a structure back, and write a fenced code
   block without looping. <b>Perplexity ranks; detectors disqualify.</b> They
-  answer different questions and here they disagree, which is the finding.</p>
+  answer different questions and here they disagree, which is the finding. The
+  follow-up pass then scored eight of the nine files &mdash; the whole
+  <code>UD</code> ladder &mdash; on a frozen benchmark suite, which adds two
+  more instruments to the same table: an <b>accuracy Mean</b> in the reader's
+  own units, and an <b>empty-answer count</b> that turns out to be the most
+  useful column of the three. All three are printed side by side below, and
+  they have three different sensitivities.</p>
+  <p class="small"><b>Why the label and the bits disagree, once.</b> Nothing in
+  this section is named for what it contains. Stock <code>Q2_K</code> is
+  2.5625 bits per weight and stock <code>Q3_K</code> is 3.4375; the
+  <code>UD</code>/<code>XL</code> files measured here come out at
+  <b>2.912</b> and <b>3.895</b>, because the publisher's mix spends roughly
+  0.35&ndash;0.46 bits per weight more than the stock recipe on the tensors it
+  judges worth it. That divergence dates from llama.cpp PR&nbsp;#1684, the
+  k-quant work Kawrakow landed in June 2023 <span class="pv c">CITED</span>,
+  which made the quantisation type a family of mixes rather than one width.
+  <b>The curve below is measured against the bits, not the label</b>, which is
+  why every row prints a measured bits-per-weight figure and why two files
+  whose names differ by a whole integer can sit 0.33 bits apart.</p>
   <div class="table-wrap"><table>
     <caption><b>The ladder.</b> One model, nine files. Identical conditions on
     every row: frozen <code>wikitext-2-raw-test</code> (md5
@@ -2954,18 +3058,33 @@ correspondingly softer.</code></pre>
     mmap</code>, f16 KV, build 10502. Percentages are against the
     <code>UD-IQ4_XS</code> anchor. These rank files <em>of this model against
     each other</em> and nothing else &mdash; a perplexity from another model's
-    tokenizer is not a comparable number.</caption>
-    <thead><tr><th scope="col">File</th><th scope="col" class="num">GiB</th><th scope="col" class="num">bits/weight</th><th scope="col" class="num">Perplexity &plusmn; err</th><th scope="col" class="num">vs anchor</th><th scope="col" class="num">bits/byte</th><th scope="col">Detectors</th></tr></thead>
+    tokenizer is not a comparable number. <b>The last three columns are a
+    different instrument on the same files</b>, added by the follow-up pass and
+    <span class="pv m">MEASURED</span> 2026-08-24 and 2026-08-25: the frozen
+    three-benchmark suite (hash <code>1cdf54f8eb9d3f8f</code>) &mdash; GSM8K,
+    HumanEval and MBPP, <b>25 prompts each, 75 items per rung</b> &mdash;
+    greedy, seed 42, 16,384-token cap, <code>-c 32768</code>, <code>q8_0</code>
+    KV, <code>reasoning_effort=low</code>, <b>no drafter</b>. The
+    <code>NVFP4</code> file was not scored on that suite and its two cells are
+    blank rather than zero. <b>Read the Mean column with
+    <a href="#s10">&sect;10</a> open</b>: at 25 items per cell it resolves
+    roughly &plusmn;16 points, so it is a detector of collapse, not a
+    ranking &mdash; including here, in this page's own table. The
+    <b>empty</b> column is a count of answers that came back with no content at
+    all, and the parenthesis is how many of those <em>terminated normally</em>
+    and so appear in no truncation counter.</caption>
+    <thead><tr><th scope="col">File</th><th scope="col" class="num">GiB</th><th scope="col" class="num">bits/weight</th><th scope="col" class="num">Perplexity &plusmn; err</th><th scope="col" class="num">vs anchor</th><th scope="col" class="num">bits/byte</th><th scope="col" class="num">Mean, 75 items<br><span class="small">n=25 per benchmark</span></th><th scope="col" class="num">Empty answers<br><span class="small">(of which silent)</span></th><th scope="col">Detectors</th></tr></thead>
     <tbody>
-      <tr class="hi"><td><code>UD-IQ4_XS</code> <span class="small">anchor</span></td><td class="num">13.274</td><td class="num">4.223</td><td class="num">6.5956 &plusmn; 0.045</td><td class="num">&mdash;</td><td class="num">0.6267</td><td>PASS</td></tr>
-      <tr><td><code>NVFP4-MTP-VERY-LOW</code></td><td class="num">13.842</td><td class="num">4.404</td><td class="num">6.8774 &plusmn; 0.047</td><td class="num">+4.27&nbsp;%</td><td class="num">0.6406</td><td>PASS</td></tr>
-      <tr><td><code>UD-Q3_K_XL</code></td><td class="num">12.244</td><td class="num">3.895</td><td class="num">6.7691 &plusmn; 0.047</td><td class="num">+2.63&nbsp;%</td><td class="num">0.6353</td><td>PASS</td></tr>
-      <tr><td><code>UD-IQ3_XXS</code></td><td class="num">10.184</td><td class="num">3.240</td><td class="num">6.9187 &plusmn; 0.048</td><td class="num">+4.90&nbsp;%</td><td class="num">0.6426</td><td>PASS</td></tr>
-      <tr class="hi"><td><code>UD-Q2_K_XL</code> <span class="small">the knee</span></td><td class="num">9.154</td><td class="num">2.912</td><td class="num">6.9957 &plusmn; 0.048</td><td class="num">+6.07&nbsp;%</td><td class="num">0.6463</td><td>PASS</td></tr>
-      <tr><td><code>UD-IQ2_S</code> <span class="small">the cliff begins</span></td><td class="num">7.797</td><td class="num">2.481</td><td class="num">7.5481 &plusmn; 0.054</td><td class="num">+14.44&nbsp;%</td><td class="num">0.6715</td><td>PASS</td></tr>
-      <tr><td><code>UD-IQ2_XXS</code></td><td class="num">6.767</td><td class="num">2.153</td><td class="num">8.0079 &plusmn; 0.057</td><td class="num">+21.41&nbsp;%</td><td class="num">0.6912</td><td>PASS</td></tr>
-      <tr><td><code>UD-IQ1_M</code> <span class="small">functional floor</span></td><td class="num">6.267</td><td class="num">1.994</td><td class="num">8.1418 &plusmn; 0.056</td><td class="num">+23.44&nbsp;%</td><td class="num">0.6967</td><td>PASS <span class="small">&mdash; but unique-word ratio <b>0.358</b>, the lowest on the ladder</span></td></tr>
-      <tr><td><code>UD-IQ1_S</code></td><td class="num">5.767</td><td class="num">1.835</td><td class="num">8.9265 &plusmn; 0.062</td><td class="num">+35.34&nbsp;%</td><td class="num">0.7272</td><td style="color:var(--warn)"><b>FAIL</b> <span class="small">empty JSON echo</span></td></tr>
+      <tr class="hi"><td><code>UD-IQ4_XS</code> <span class="small">anchor</span></td><td class="num">13.274</td><td class="num">4.223</td><td class="num">6.5956 &plusmn; 0.045</td><td class="num">&mdash;</td><td class="num">0.6267</td><td class="num"><b>97.3</b></td><td class="num"><b>0</b> <span class="small">(0)</span></td><td>PASS</td></tr>
+      <tr><td><code>NVFP4-MTP-VERY-LOW</code></td><td class="num">13.842</td><td class="num">4.404</td><td class="num">6.8774 &plusmn; 0.047</td><td class="num">+4.27&nbsp;%</td><td class="num">0.6406</td><td class="num">&mdash; <span class="small">not scored</span></td><td class="num">&mdash;</td><td>PASS</td></tr>
+      <tr><td><code>UD-Q3_K_XL</code></td><td class="num">12.244</td><td class="num">3.895</td><td class="num">6.7691 &plusmn; 0.047</td><td class="num">+2.63&nbsp;%</td><td class="num">0.6353</td><td class="num">96.0</td><td class="num"><b>0</b> <span class="small">(0)</span></td><td>PASS</td></tr>
+      <tr><td><code>UD-IQ3_XXS</code></td><td class="num">10.184</td><td class="num">3.240</td><td class="num">6.9187 &plusmn; 0.048</td><td class="num">+4.90&nbsp;%</td><td class="num">0.6426</td><td class="num">93.3</td><td class="num"><b>0</b> <span class="small">(0)</span></td><td>PASS</td></tr>
+      <tr class="hi"><td><code>UD-Q2_K_XL</code> <span class="small">the knee</span></td><td class="num">9.154</td><td class="num">2.912</td><td class="num">6.9957 &plusmn; 0.048</td><td class="num">+6.07&nbsp;%</td><td class="num">0.6463</td><td class="num">96.0</td><td class="num"><b>0</b> <span class="small">(0)</span></td><td>PASS</td></tr>
+      <tr><td><code>UD-IQ2_S</code> <span class="small">the cliff begins</span></td><td class="num">7.797</td><td class="num">2.481</td><td class="num">7.5481 &plusmn; 0.054</td><td class="num">+14.44&nbsp;%</td><td class="num">0.6715</td><td class="num">90.7</td><td class="num" style="color:var(--warn)"><b>2</b> <span class="small">(1)</span></td><td>PASS</td></tr>
+      <tr><td><code>UD-IQ2_XXS</code></td><td class="num">6.767</td><td class="num">2.153</td><td class="num">8.0079 &plusmn; 0.057</td><td class="num">+21.41&nbsp;%</td><td class="num">0.6912</td><td class="num">78.7</td><td class="num" style="color:var(--warn)"><b>3</b> <span class="small">(2)</span></td><td>PASS</td></tr>
+      <tr><td><code>UD-IQ1_M</code> <span class="small">functional floor</span></td><td class="num">6.267</td><td class="num">1.994</td><td class="num">8.1418 &plusmn; 0.056</td><td class="num">+23.44&nbsp;%</td><td class="num">0.6967</td><td class="num">85.3</td><td class="num" style="color:var(--warn)"><b>5</b> <span class="small">(5)</span></td><td>PASS <span class="small">&mdash; but unique-word ratio <b>0.358</b>, the lowest on the ladder</span></td></tr>
+      <tr><td><code>UD-IQ1_S</code></td><td class="num">5.767</td><td class="num">1.835</td><td class="num">8.9265 &plusmn; 0.062</td><td class="num">+35.34&nbsp;%</td><td class="num">0.7272</td><td class="num" style="color:var(--warn)"><b>34.7</b></td><td class="num" style="color:var(--warn)"><b>28</b> <span class="small">(10)</span></td><td style="color:var(--warn)"><b>FAIL</b> <span class="small">empty JSON echo</span></td></tr>
+      <tr><td colspan="9" class="small"><b>The empty column is the one to read first.</b> It is <b>exactly zero</b> for every rung from 4.223 bits per weight down to and including the perplexity knee at <b>2.912</b>, and then it rises and keeps rising: 2, 3, 5, 28. It registers the first damage at <b>2.481&nbsp;bpw</b> &mdash; a full rung above where the paired test below can resolve anything at all &mdash; and it costs no GPU time, because it is counted from generations already on disk. <b>The parenthesised figure is why it needed its own column</b>: 1, 2, 5 and 10 of those empties terminated normally, so a run that reports <code>truncations=0</code> can still have failed to answer five questions. <code>UD-IQ1_M</code> is exactly that case.</td></tr>
     </tbody>
   </table></div>
   <p><b>Where the curve turns, stated as a cost.</b> Reading a curve by eye is
@@ -3029,6 +3148,132 @@ correspondingly softer.</code></pre>
     &ldquo;functional floor&rdquo; as &ldquo;passes these four screens&rdquo;
     and no wider than that.</p>
   </div>
+
+  <h4>The same rungs, scored on answers</h4>
+  <p>Perplexity is a per-token likelihood and the detectors are four screens on
+  a single generation. Neither is a thing a reader does with the model. The
+  follow-up pass therefore ran the whole <code>UD</code> ladder through the
+  frozen three-benchmark suite &mdash; the same suite, the same 75 items, the
+  same greedy settings, on every rung &mdash; so the ladder finally has a column
+  in the reader's own units. It also has the column that turned out to matter
+  more.</p>
+  <div class="table-wrap"><table>
+    <caption>All rows <span class="pv m">MEASURED</span> &mdash; frozen suite
+    <code>1cdf54f8eb9d3f8f</code>, GSM8K + HumanEval + MBPP, <b>25 prompts
+    each</b>, greedy, seed 42, 16,384-token cap, <code>-c 32768</code>,
+    <code>q8_0</code> KV, <code>reasoning_effort=low</code>, <b>drafter
+    off</b> &mdash; and that last flag is this pass's own mistake, reported
+    below under <em>The ladder was swept at the wrong recipe</em>. Seven rungs were scored on 2026-08-24 and
+    2026-08-25; the <code>UD-IQ2_XXS</code> row is the equal-weight-budget arm
+    further down this section, run on 2026-08-24 under the identical suite and
+    settings, not a second measurement. <b>Empty</b> and <b>truncated</b> are
+    separate columns on purpose: a truncated answer hit the cap and the counter
+    saw it, while a <em>silent</em> empty terminated normally and no counter
+    anywhere sees it. Wall clock is the ledger's own <code>wall_s</code>.</caption>
+    <thead><tr><th scope="col">File</th><th scope="col" class="num">bits/wt</th><th scope="col" class="num">Mean</th><th scope="col" class="num">GSM8K</th><th scope="col" class="num">HumanEval</th><th scope="col" class="num">MBPP</th><th scope="col" class="num">Trunc.</th><th scope="col" class="num">Empty</th><th scope="col" class="num">of which<br>silent</th><th scope="col" class="num">Median answer<br>tokens</th><th scope="col" class="num">Wall</th></tr></thead>
+    <tbody>
+      <tr class="hi"><td><code>UD-IQ4_XS</code> <span class="small">anchor</span></td><td class="num">4.223</td><td class="num"><b>97.3</b></td><td class="num">100.0</td><td class="num">100.0</td><td class="num">92.0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">424</td><td class="num">19 m</td></tr>
+      <tr><td><code>UD-Q3_K_XL</code></td><td class="num">3.895</td><td class="num">96.0</td><td class="num">96.0</td><td class="num">100.0</td><td class="num">92.0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">488</td><td class="num">23 m</td></tr>
+      <tr><td><code>UD-IQ3_XXS</code></td><td class="num">3.240</td><td class="num">93.3</td><td class="num">96.0</td><td class="num">100.0</td><td class="num">84.0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">454</td><td class="num">20 m</td></tr>
+      <tr class="hi"><td><code>UD-Q2_K_XL</code> <span class="small">the knee</span></td><td class="num">2.912</td><td class="num">96.0</td><td class="num">100.0</td><td class="num">100.0</td><td class="num">88.0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">416</td><td class="num">20 m</td></tr>
+      <tr><td><code>UD-IQ2_S</code></td><td class="num">2.481</td><td class="num">90.7</td><td class="num">96.0</td><td class="num">96.0</td><td class="num">80.0</td><td class="num">1</td><td class="num" style="color:var(--warn)"><b>2</b></td><td class="num" style="color:var(--warn)">1</td><td class="num">475</td><td class="num">36 m</td></tr>
+      <tr><td><code>UD-IQ2_XXS</code></td><td class="num">2.153</td><td class="num">78.7</td><td class="num">80.0</td><td class="num">84.0</td><td class="num">72.0</td><td class="num">1</td><td class="num" style="color:var(--warn)"><b>3</b></td><td class="num" style="color:var(--warn)">2</td><td class="num">472</td><td class="num">28 m</td></tr>
+      <tr><td><code>UD-IQ1_M</code></td><td class="num">1.994</td><td class="num">85.3</td><td class="num">96.0</td><td class="num">88.0</td><td class="num">72.0</td><td class="num">0</td><td class="num" style="color:var(--warn)"><b>5</b></td><td class="num" style="color:var(--warn)"><b>5</b></td><td class="num">502</td><td class="num">29 m</td></tr>
+      <tr><td><code>UD-IQ1_S</code></td><td class="num">1.835</td><td class="num" style="color:var(--warn)"><b>34.7</b></td><td class="num">36.0</td><td class="num">32.0</td><td class="num">36.0</td><td class="num" style="color:var(--warn)"><b>20</b></td><td class="num" style="color:var(--warn)"><b>28</b></td><td class="num" style="color:var(--warn)">10</td><td class="num" style="color:var(--warn)"><b>932</b></td><td class="num" style="color:var(--warn)"><b>2 h 29 m</b></td></tr>
+      <tr><td colspan="11" class="small"><b>The bottom rung fails in a way no other rung does, and the last two columns are how you see it.</b> Median answer length holds between <b>416 and 502 tokens</b> for every rung from 4.223 down to 1.994 &mdash; seven files, a spread of about a fifth &mdash; and then jumps to <b>932</b> at 1.835. <code>UD-IQ1_S</code> does not merely answer wrongly; it stops <em>terminating</em>, with routine answers of 7,154, 8,556, 9,756 and 16,384 tokens where the anchor answered the same prompts in a few hundred. That is why its wall clock is more than four times the next-longest arm's, and why 20 of its 75 items hit the cap. Neither the perplexity number (8.9265) nor the single detector probe predicted it.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout warn">
+    <span class="label">This page's own accuracy ladder is an n=25 ladder, and that includes it in the warning it gives</span>
+    <p><a href="#s10">&sect;10</a> exists to explain why a 25-question
+    benchmark cell cannot rank two healthy files, and <a href="#s08-05">&sect;08.05</a>
+    spent this campaign refusing to publish exactly such a ranking. <b>The table
+    above is 25 questions per benchmark.</b> It is in the class it warns about,
+    and it is published as a <em>collapse detector</em> with a paired test
+    beside it, not as an ordering. Concretely: 97.3, 96.0, 93.3 and 96.0 across
+    the top four rungs is not four files in that order &mdash; it is four files
+    none of which this instrument can separate, and the paired test below says
+    so formally. The one thing an n=25 cell does well is find a
+    <b>20-point collapse</b>, and there is exactly one of those on the ladder.</p>
+  </div>
+
+  <h4>Which rungs actually differ &mdash; the same 75 items, paired</h4>
+  <p>Comparing two Mean columns is the error &sect;10 exists to prevent. Because
+  every rung answered the <em>identical</em> 75 items under identical greedy
+  settings, a stronger test is available at no extra GPU cost: count the items
+  where one file is right and the other is wrong, in each direction, and ask
+  whether that split is one a fair coin would produce. That is McNemar's exact
+  test, and it is <b>the only licensed basis for any arm-against-arm claim in
+  this section</b>.</p>
+  <div class="table-wrap"><table>
+    <caption>All rows <span class="pv m">MEASURED</span> &mdash; exact
+    two-sided McNemar on the identical 75 items, computed from the stored
+    per-item verdicts of the arms in the table above. <b>b</b> counts items the
+    left file got right and the right file got wrong; <b>c</b> counts the
+    reverse. Only discordant items carry information, which is why 75 items can
+    settle a comparison that a Mean column cannot. <b>TIE means
+    indistinguishable at this n, not equal</b> &mdash; no row of this table
+    licenses an ordering, and none is written as one.</caption>
+    <thead><tr><th scope="col">Pair</th><th scope="col" class="num">b</th><th scope="col" class="num">c</th><th scope="col" class="num">p, exact two-sided</th><th scope="col">Verdict</th></tr></thead>
+    <tbody>
+      <tr><td><code>IQ4_XS</code> vs <code>Q3_K_XL</code></td><td class="num">1</td><td class="num">0</td><td class="num">1.0000</td><td>TIE</td></tr>
+      <tr><td><code>IQ4_XS</code> vs <code>IQ3_XXS</code></td><td class="num">3</td><td class="num">0</td><td class="num">0.2500</td><td>TIE</td></tr>
+      <tr class="hi"><td><code>IQ4_XS</code> vs <code>Q2_K_XL</code> <span class="small">the pair the recommendation turns on</span></td><td class="num">1</td><td class="num">0</td><td class="num">1.0000</td><td><b>TIE</b> &mdash; one discordant item of 75</td></tr>
+      <tr><td><code>IQ4_XS</code> vs <code>IQ2_S</code></td><td class="num">5</td><td class="num">0</td><td class="num">0.0625</td><td>TIE &mdash; <b>the weakest on the page, at the edge</b></td></tr>
+      <tr><td><code>IQ4_XS</code> vs <code>IQ2_XXS</code></td><td class="num">14</td><td class="num">0</td><td class="num"><b>0.0001</b></td><td style="color:var(--warn)"><b>DIFFERENT</b></td></tr>
+      <tr><td><code>IQ4_XS</code> vs <code>IQ1_M</code></td><td class="num">9</td><td class="num">0</td><td class="num"><b>0.0039</b></td><td style="color:var(--warn)"><b>DIFFERENT</b></td></tr>
+      <tr><td><code>IQ3_XXS</code> vs <code>Q2_K_XL</code></td><td class="num">0</td><td class="num">2</td><td class="num">0.5000</td><td>TIE &mdash; and perplexity ranks these two the <em>other</em> way, so <b>no ordering claim exists between them</b> on any instrument here</td></tr>
+      <tr><td><code>IQ2_S</code> vs <code>IQ2_XXS</code></td><td class="num">10</td><td class="num">1</td><td class="num"><b>0.0117</b></td><td style="color:var(--warn)"><b>DIFFERENT</b></td></tr>
+      <tr><td><code>IQ2_XXS</code> vs <code>IQ1_M</code></td><td class="num">5</td><td class="num">10</td><td class="num">0.3018</td><td>TIE &mdash; <b>this is the pair whose Means look reversed</b>, 78.7 against 85.3. The paired test says the split is noise. It is <em>not</em> a reversal and is never written as one here.</td></tr>
+    </tbody>
+  </table></div>
+  <p><b>Where the boundary is, as an interval.</b> Everything from the anchor
+  down to <b>2.481 bits per weight</b> is indistinguishable from the anchor on
+  these 75 items; <b>2.153 and below</b> is measurably worse. So the boundary
+  this instrument can support lies <b>between 2.48 and 2.15 bits per
+  weight</b>, and n=25 per benchmark cannot place it more finely than that.
+  This page states the interval and never picks a point inside it.</p>
+  <p><b>The sentence that reconciles a monotone perplexity curve with a flat
+  accuracy curve.</b> Look at the <b>c</b> column: it is <b>zero in all six
+  comparisons against the anchor</b>, and 2, 1 and 10 in the three rows that do
+  not involve it. <b>Losses are
+  near-perfectly one-directional</b> &mdash; the smaller file almost never wins
+  an item the larger one lost; it just loses ones the larger one won. That is
+  not what two equivalent files look like. <b>Quality is degrading
+  monotonically all the way down the ladder, exactly as perplexity says; it is
+  simply unresolvable by a 75-item accuracy test until the cliff.</b> The flat
+  Mean column is a statement about the instrument, not about the model, and
+  reading it as &ldquo;2.9 bits is free&rdquo; is the mistake this whole
+  section is arranged to prevent.</p>
+
+  <div class="callout good">
+    <span class="label">Three instruments, three sensitivities &mdash; and all three are published because none of them is enough</span>
+    <p><b>Perplexity</b> is monotone from the very top of the ladder and is the
+    most sensitive of the three to small quality loss: it separates the anchor
+    from the next rung down at +2.63&nbsp;% while both files still answer 96 or
+    97 of every hundred benchmark points. What it cannot tell you is whether
+    the model still <em>works</em>. It reads 8.9265 on the rung that has stopped
+    terminating, which is a worse number but not a different <em>kind</em> of
+    number.</p>
+    <p><b>The empty-answer rate</b> is zero for every rung down to and including
+    the knee, then monotone: 2, 3, 5, 28. It catches &ldquo;returns nothing at
+    all&rdquo; at <b>2.481&nbsp;bpw</b>, a full rung above where the paired test
+    resolves anything, and it costs <b>no GPU time</b> &mdash; it is counted
+    from generations already on disk. It is the cheapest instrument here and,
+    on this ladder, the earliest.</p>
+    <p><b>The accuracy Mean</b> is the least sensitive: flat within noise across
+    the top five rungs, and only decisive at the 20-point collapse on the
+    bottom one. It is also the only one of the three in the reader's own units,
+    which is the entire reason to pay for it.</p>
+    <p>They disagree about where this file breaks, and each disagreement is
+    information. Perplexity says the price of shrinking turns at 2.912; the
+    empty-answer rate says the model starts failing to answer at 2.481; the
+    paired accuracy test says it cannot see damage until 2.153; the four
+    functional detectors do not fail until 1.835. <b>Four numbers, four
+    thresholds, one file.</b> Any single-instrument ladder would have printed
+    one of them and called it the answer.</p>
+  </div>
+
   <p><b>The number most likely to change someone's mind.</b> The reason to want
   a smaller file is usually speed as much as memory. Across the whole ladder,
   measured on the same probe with no drafter: <b>the file
@@ -3040,9 +3285,178 @@ correspondingly softer.</code></pre>
   over roughly 1,200 generated tokens rather than sitting at one depth. Within
   the anchor's single probe the server's own three-second rate falls from 43.3
   to 37.8&nbsp;t/s. No replicated band on this page covers this probe class: the
-  <em>ratio</em> is the durable part; the absolute speeds are not. This page
-  does not turn it into guidance for a smaller card without a depth-and-drafter
-  arm that round 6 did not run.</p>
+  <em>ratio</em> is the durable part; the absolute speeds are not. <b>And that
+  probe class is the wrong one for the question anyone is asking</b>, which is
+  the subject of the next two subsections: every rung above was measured with
+  the draft head <em>off</em>, and the draft head is on in every recipe this
+  page ships.</p>
+
+  <h4>The ladder was swept at the wrong recipe, and it gave the wrong ordering</h4>
+  <p>The whole ladder &mdash; perplexity, detectors, accuracy, the speed probe
+  above &mdash; was measured with speculation disabled, for clean determinism.
+  Every recipe in <a href="#s03">&sect;03</a> ships with it enabled. A matched
+  four-load pair on the two files a 24&nbsp;GB owner is actually choosing
+  between shows that the difference is not a detail:</p>
+  <div class="table-wrap"><table>
+    <caption>All rows <span class="pv m">MEASURED</span> 2026-08-25 &mdash;
+    700-token novel-code generations, <code>-c 32768</code>, <code>-ngl
+    99</code>, <code>q8_0</code> KV, thinking off, temperature 0, drafter at the
+    shipped <code>n10/p0.5</code>, <b>three settled probes per arm with the
+    first post-prefill probe discarded</b>, fresh server per row. These are
+    cooled repeat probes, so they carry &sect;06.07's 0.4&ndash;3&nbsp;% band,
+    not its &plusmn;25&nbsp;% one. <b>Instrument note:</b> the probe script's
+    acceptance parser did not match this build's log format and wrote
+    <code>n/a</code>; the two acceptance figures were read out of the server
+    logs directly. Draft length parsed correctly throughout.</caption>
+    <thead><tr><th scope="col">File</th><th scope="col" class="num">GiB</th><th scope="col" class="num">Drafter off</th><th scope="col" class="num">Drafter on</th><th scope="col" class="num">Speculation<br>is worth</th><th scope="col" class="num">Acceptance</th><th scope="col" class="num">Mean draft<br>length</th></tr></thead>
+    <tbody>
+      <tr class="hi"><td><code>UD-IQ4_XS</code> <span class="small">4.223 bpw</span></td><td class="num">13.274</td><td class="num">42.34 t/s</td><td class="num"><b>86.91 t/s</b></td><td class="num"><b>2.05&times;</b></td><td class="num">0.611</td><td class="num"><b>5.70</b></td></tr>
+      <tr><td><code>UD-Q2_K_XL</code> <span class="small">2.912 bpw</span></td><td class="num">9.154</td><td class="num"><b>45.66 t/s</b></td><td class="num">77.01 t/s</td><td class="num">1.69&times;</td><td class="num">0.551</td><td class="num">5.08</td></tr>
+      <tr><td colspan="7" class="small"><b>The ranking inverts between the two middle columns.</b> With the drafter off the smaller file is <b>7.8&nbsp;% faster</b> &mdash; and drafter-off is the condition the entire ladder above was measured under, so the ladder, read alone, says &ldquo;swap your daily driver&rdquo;. With the drafter on, which is how every recipe here ships, the 4-bit file is <b>12.9&nbsp;% faster despite being 45&nbsp;% larger</b>.</td></tr>
+    </tbody>
+  </table></div>
+  <p><b>The mechanism, and it is this page's usual one.</b> The draft head is
+  quantised along with everything else, so it degrades with bit-width like any
+  other tensor. Acceptance falls from <b>0.611 to 0.551</b>, &minus;9.8&nbsp;%,
+  and mean draft length falls from <b>5.70 to 5.08</b>, &minus;10.9&nbsp;%,
+  against a throughput fall of &minus;11.4&nbsp;%. <b>Draft length predicts the
+  throughput to within half a point again</b> &mdash; the same mechanism
+  <a href="#s06-05">&sect;06.05</a> established with a completely different
+  probe. Speculation is worth 2.05&times; on the 4-bit file and 1.69&times; on
+  the 2.9-bpw one, and <em>that difference is larger than the entire size
+  advantage</em>.</p>
+  <div class="callout warn">
+    <span class="label">This is the campaign's own error, and it is now a standing rule: sweep at the shipped recipe</span>
+    <p>Eight rungs were measured, priced and published under a configuration
+    nobody runs, and the speed ordering that came out of it points the opposite
+    way from the shipped one. Had the sweep carried the recipe's own flags from
+    its first arm, the right answer would have been in hand <b>at no extra
+    cost</b>; instead it needed a separate probe afterwards, and for several
+    hours the wrong answer was the obvious one. Nothing in the ladder above is wrong as a
+    measurement &mdash; the perplexity, the accuracy and the empty counts are
+    all properly conditioned and all correctly labelled drafter-off. What was
+    wrong was assuming a clean-room default would <em>order</em> the files the
+    same way the shipped configuration does.</p>
+    <p><b>It happened twice in twelve hours.</b> The batching pair in
+    <a href="#s06-06">&sect;06.06</a> is the other case: measured drafter-off it
+    reads +60.3&nbsp;% aggregate, and measured drafter-on at the shipped setting
+    it reads +22.0&nbsp;%. Both times a drafter-off measurement gave the wrong
+    answer for the configuration this page actually recommends, and both times
+    the reason is the same &mdash; speculation has already amortised the weight
+    read that the other lever was going to amortise. The method now carries the
+    rule explicitly: <b>sweep at the shipped recipe, not at a clean-room
+    default</b>, and if determinism forces a clean-room sweep, price the
+    shipped configuration before publishing an ordering from it.</p>
+    <p><b>A companion clause the bottom rung earned:</b> token appetite is a
+    property of the quantisation, not only of the effort level. A cap chosen
+    for the top of the ladder is a truncation machine at the bottom &mdash;
+    <code>UD-IQ1_S</code> turned a 16,384-token cap into 20 truncations and a
+    two-and-a-half-hour arm. Probe two or three prompts per rung before
+    committing an arm.</p>
+  </div>
+
+  <h4>The full native window, filled to 218,233 real tokens</h4>
+  <p>Everything above compares the two files at shallow depth, where the 4-bit
+  one wins. The question a 24&nbsp;GB owner actually has is different: what does
+  the smaller file let me <em>do</em> that the larger one cannot? The
+  arithmetic suggested an answer and this page does not ship window claims from
+  arithmetic &mdash; a blind reproduction in this same campaign already caught a
+  window labelled &ldquo;fully resident&rdquo; collapsing at depth once the
+  drafter's VRAM was aboard. So three arms were loaded at the full native
+  <code>-c 262144</code> and each was filled with real tokens until the cache
+  was nearly full.</p>
+  <div class="table-wrap"><table>
+    <caption>All rows <span class="pv m">MEASURED</span> 2026-08-25 &mdash;
+    <code>-c 262144</code>, <code>-ngl 99</code>, <code>q8_0</code> KV, board
+    24,576&nbsp;MiB, deep-filled to <b>218,233 real tokens</b> (83&nbsp;% of the
+    window), first post-prefill probe discarded and two settled probes timed.
+    Board figures are read at depth, after the fill, not at load. Slack is board
+    capacity minus resident. The drafter-on arm runs <code>n4/p0.75</code>, the
+    setting the deep-context recipes use.</caption>
+    <thead><tr><th scope="col">Arm</th><th scope="col" class="num">Board at depth</th><th scope="col" class="num">Slack</th><th scope="col" class="num">Decode at depth</th><th scope="col" class="num">Mean draft<br>length</th></tr></thead>
+    <tbody>
+      <tr class="hi"><td><code>UD-Q2_K_XL</code>, drafter <b>on</b> <span class="small">n4/p0.75</span></td><td class="num">22,859 MiB</td><td class="num"><b>1,717 MiB</b></td><td class="num"><b>21.33 t/s</b></td><td class="num">2.43</td></tr>
+      <tr><td><code>UD-Q2_K_XL</code>, drafter off</td><td class="num">20,567 MiB</td><td class="num">4,009 MiB</td><td class="num">17.96 t/s</td><td class="num">&mdash;</td></tr>
+      <tr><td><code>UD-IQ4_XS</code>, drafter off <span class="small">the control</span></td><td class="num">23,821 MiB</td><td class="num" style="color:var(--warn)"><b>755 MiB</b></td><td class="num">15.96 t/s</td><td class="num">&mdash;</td></tr>
+    </tbody>
+  </table></div>
+  <p><b>The fence arithmetic, which is what turns those slack figures into a
+  verdict.</b> A desktop on this machine measured a maximum of
+  <b>1,181&nbsp;MiB</b> of the board, and load-to-load residency varies by up to
+  <b>127&nbsp;MiB</b>, so the reserve this page keeps free is
+  <b>1,308&nbsp;MiB</b> <span class="pv d">DERIVED</span>. The 2.9-bpw file with
+  speculation on clears that by <b>409&nbsp;MiB</b> &mdash; tight, and it is
+  published as tight. The 4-bit file with speculation <em>off</em> leaves
+  <b>755&nbsp;MiB</b>, which is <b>inside</b> the fence: at this window it does
+  not fit beside a desktop even after giving up the drafter, and there is no
+  room left to turn the drafter back on. This measures what the recipes
+  previously asserted from arithmetic alone.</p>
+  <p><b>So at the full window the smaller file wins on every axis at once.</b>
+  It is <b>34&nbsp;% faster</b> at depth &mdash; 21.33 against 15.96&nbsp;t/s
+  &mdash; it leaves <b>962&nbsp;MiB more slack</b>, and it can run speculation
+  <em>at all</em>. The drafter still earns its keep there, +18.8&nbsp;% (21.33
+  against 17.96), even though mean draft length has collapsed from 5.70 shallow
+  to <b>2.43</b> at depth &mdash; the same depth behaviour
+  <a href="#s06-05">&sect;06.05</a> measures, and one more instance of draft
+  length rather than acceptance tracking throughput. <b>The honest cost ships
+  beside the recommendation:</b> filling that window takes <b>424&nbsp;s at
+  514.7&nbsp;t/s of prefill</b> &mdash; seven minutes before the first token of
+  the answer. This is a long-document configuration, not an interactive one.</p>
+  <div class="callout warn">
+    <span class="label">The two-constant VRAM model under-predicts by about 1,213 MiB at this window</span>
+    <p><a href="#s05-02">&sect;05.02</a>'s budget is a fixed cost plus a
+    per-token slope, and it is <em>exact</em> everywhere it has been tested so
+    far &mdash; to the megabyte at <code>-c 32768</code> and at
+    <code>-c 131072</code>, across 17 loads in the campaign proper and five more
+    twelve hours later. <b>At twice that window it stops being exact.</b>
+    Predicted from the same measured slopes: <b>19,353&nbsp;MiB</b> drafter-off
+    and <b>21,647&nbsp;MiB</b> drafter-on <span class="pv d">DERIVED</span>.
+    Measured at 218,233 tokens in a 262,144 window: <b>20,567</b> and
+    <b>22,859&nbsp;MiB</b>. That is a consistent <b>+1,214 and
+    +1,212&nbsp;MiB</b> &mdash; call it <b>1,213&nbsp;MiB</b> &mdash; in the
+    same direction on both arms, and the residual is compute buffers, which the
+    two-constant model does not carry and which do not scale the way the KV
+    cache does.</p>
+    <p>The size of that gap is the point. A reader budgeting from the formula
+    alone would have believed the drafter-on arm left <b>2.9&nbsp;GiB</b> of
+    slack when it leaves <b>1.7</b>, and 2.9 comfortably clears the desktop
+    fence while 1.7 clears it by 409&nbsp;MiB. <b>The formula is for planning;
+    the load is the measurement.</b></p>
+    <p><b>One instrument fault, disclosed rather than quietly fixed.</b> The
+    probe script recorded <code>prompt_n=4</code> for these arms, which looks
+    like a failed fill. It is not: probes two and three hit llama-server's
+    prompt cache, so the server reported only the four-token delta, and the
+    script averaged that column across the settled probes instead of reading
+    the first one. The real fill is in the server log &mdash; <code>prompt eval
+    time = 424001.08 ms / 218233 tokens</code>. The decode figures are correct
+    and are at depth; only that one column was wrong, and it is recorded here
+    because a metric that looks wrong gets checked before the run is
+    believed.</p>
+  </div>
+
+  <h4>What this now recommends, per card</h4>
+  <p>Two of the five rows below are measured on this machine. The 16 and
+  12&nbsp;GB rows are arithmetic on measured file sizes and measured slopes and
+  are chipped as such, <b>because this rig owns exactly one 24&nbsp;GB
+  card</b> and no smaller one was ever loaded. The 8&nbsp;GB row needs no chip:
+  the weights alone do not fit.</p>
+  <div class="table-wrap"><table>
+    <caption><b>The recommendation, with its provenance on every line.</b> The
+    two 24&nbsp;GB rows rest on the two subsections above; the 16 and
+    12&nbsp;GB rows rest on file size and on this campaign's measured KV slopes
+    and measured desktop maximum, and on nothing that was run on such a
+    card.</caption>
+    <thead><tr><th scope="col">Card and window</th><th scope="col">The file</th><th scope="col">Why, and what it is grounded in</th></tr></thead>
+    <tbody>
+      <tr class="hi"><td><b>24&nbsp;GB</b>, ordinary windows to about 180k</td><td><code>UD-IQ4_XS</code> <span class="small">13.274 GiB</span></td><td><span class="pv m">MEASURED</span> &mdash; with the drafter on it is <b>12.9&nbsp;% faster</b> (86.91 against 77.01&nbsp;t/s), and that beats the size advantage. Stay where you are.</td></tr>
+      <tr class="hi"><td><b>24&nbsp;GB</b>, the full 262,144 window</td><td><code>UD-Q2_K_XL</code> <span class="small">9.154 GiB</span></td><td><span class="pv m">MEASURED</span> &mdash; <b>34&nbsp;% faster at depth</b>, keeps speculation, clears the desktop fence by 409&nbsp;MiB, and ties the anchor on accuracy (p=1.00, one discordant item of 75). The 4-bit file cannot hold this window beside a desktop <em>at any speed</em>. Price: <b>seven minutes of prefill</b> before the first answer token.</td></tr>
+      <tr><td><b>16&nbsp;GB</b></td><td><code>UD-Q2_K_XL</code> <span class="small">9.154 GiB</span></td><td><span class="pv d">DERIVED</span> &mdash; genuinely usable on the quality evidence: it <b>ties the 4-bit anchor</b> on the paired test (p=1.00), costs <b>+6.07&nbsp;%</b> perplexity, returns <b>zero empty answers</b>, and 9.154&nbsp;GiB of weights leaves real room for context. <b>Its speed and its fit on an actual 16&nbsp;GB card are not measured here.</b></td></tr>
+      <tr><td><b>12&nbsp;GB</b></td><td>marginal</td><td><span class="pv d">DERIVED</span> &mdash; and unmeasured. 9.154&nbsp;GiB of weights leaves about <b>2.8&nbsp;GB</b> for the KV cache, the compute buffers this section just measured at ~1.2&nbsp;GiB more than the formula predicts, and a desktop that measured up to <b>1,181&nbsp;MiB</b> on this machine. Nobody has loaded it on such a card.</td></tr>
+      <tr><td><b>8&nbsp;GB</b></td><td style="color:var(--warn)"><b>no</b></td><td>The smallest file that ties the anchor is 9.154&nbsp;GiB of weights alone.</td></tr>
+      <tr><td colspan="3" class="small"><b>At and below 2.481 bits per weight: not recommended at all, and for a concrete reason rather than a cautious one.</b> That is exactly where empty answers begin &mdash; <b>2 at 2.481</b>, then 3, 5 and 28 &mdash; and the paired test resolves real damage one rung further down. At <b>1.835&nbsp;bpw</b> the model stops terminating: <b>20 truncations of 75</b>, a median answer of <b>932 tokens</b> against 424 at the anchor, and a benchmark arm that took two and a half hours instead of nineteen minutes. A file that will not stop is not a small model; it is a broken one. Everything this page recommends sits at <b>2.912&nbsp;bpw or above</b>.</td></tr>
+    </tbody>
+  </table></div>
+
   <p><b>The comparison that actually decides it.</b> Perplexity cannot compare
   two different models &mdash; different tokenizers cut the corpus differently
   &mdash; so the question &ldquo;at the same number of gigabytes, is a big model
@@ -3146,23 +3560,38 @@ correspondingly softer.</code></pre>
   <code>NVFP4-MTP-<b>HIGH</b></code>, a different quantisation variant from the
   same publisher, and no row on this page treats the two as one file. So the
   honest count is: three ranked on speed and energy, one of them perplexed,
-  and one perplexity comparison that reaches across into a fourth file. What
-  none of them has is the third kind of comparison. <b>No two quantisations of
-  this model were compared on benchmark answers, and this page publishes no
-  accuracy ranking of quantisation files.</b> The one benchmark comparison
-  between files is &sect;08.04's equal-weight-budget arm, and it reaches across
-  model families rather than within this one. That refusal is not an oversight
-  and it is not a hedge; it is arithmetic. The honest gap between two healthy
-  4-bit files is one to three points, and <a href="#s10">&sect;10</a> shows that
-  separating a gap that size needs thousands of scored items. The suite that
-  exists here runs 25 per benchmark. It would have produced the most quotable
-  number on this page and the least true one.</p>
-  <p>What would close it is listed with its price in &sect;15.03, entry 8. In the
-  meantime, the argument for IQ4_XS rests on three things that
-  <em>are</em> measured: it is the fastest of the three, it is the cheapest of
-  the three in energy, and every gibibyte of file not spent on weights is about
-  <b>23,800 more tokens of window</b> at this model's measured 45,056&nbsp;B per
-  token <span class="pv d">DERIVED</span>.</p>
+  and one perplexity comparison that reaches across into a fourth file.</p>
+  <p><b>The third kind of comparison now exists, and the refusal survives it in
+  a narrower form.</b> Eight files of this model are scored on one frozen suite
+  under matched conditions in <a href="#s08-04">&sect;08.04</a>, and compared
+  with an exact paired test on the identical 75 items. <b>What that publishes is
+  a set of ties and a boundary interval, not a ranking.</b> Four rungs are
+  indistinguishable from the 4-bit anchor; three are measurably worse; the
+  boundary lies between 2.48 and 2.15 bits per weight and this page will not
+  place it more finely. <b>No rung is declared better than another rung
+  anywhere on this page</b>, and the two files a 24&nbsp;GB owner is choosing
+  between &mdash; <code>UD-IQ4_XS</code> and <code>UD-Q2_K_XL</code> &mdash;
+  differ on exactly <b>one item of 75</b>, which is a tie and is written as
+  one.</p>
+  <p>The original refusal was about something the paired test still cannot do.
+  The honest gap between two <em>healthy</em> 4-bit files is one to three
+  points, and <a href="#s10">&sect;10</a> shows that separating a gap that size
+  needs thousands of scored items. The suite that exists here runs 25 per
+  benchmark. It can find a 20-point collapse &mdash; and it found exactly one,
+  at 1.835 bits per weight &mdash; and it cannot order the healthy rungs above
+  it. Publishing that order would have produced the most quotable number on
+  this page and the least true one; publishing the ties instead is the whole
+  difference.</p>
+  <p>What remains open is listed with its price in &sect;15.03, entry 8. The
+  argument for IQ4_XS as the default rests on four things that <em>are</em>
+  measured: it is the fastest of the three on speed, the cheapest of the three
+  in energy, <b>12.9&nbsp;% faster than the 2.9-bpw file once the drafter is on</b>,
+  and every gibibyte of file not spent on weights is about <b>23,800 more
+  tokens of window</b> at this model's measured 45,056&nbsp;B per token
+  <span class="pv d">DERIVED</span>. That last line is also the reason the
+  default has an exception: at the <em>full</em> 262,144-token window the
+  window itself becomes the binding constraint and
+  <a href="#s08-04">&sect;08.04</a> switches files.</p>
 
   <h4>Screened out before full treatment</h4>
   <p>Two files were pruned on cheap probes rather than given a full run, and the
@@ -3575,9 +4004,10 @@ correspondingly softer.</code></pre>
   <figcaption><b>Five of the eight levers, on one card.</b> The chart draws
   speculation, token regime, depth, quantisation and KV width. The other three
   &mdash; batching, reasoning effort, and the power cap nobody could change
-  &mdash; are in the table below and are deliberately not drawn: batching is
-  quarantined, effort was measured on a different instrument and task, and the
-  cap was never measured at all.
+  &mdash; are in the table below and are deliberately not drawn: batching's
+  energy figure belongs to a drafter-off configuration this page does not ship
+  and would sit on the wrong scale here, effort was measured on a different
+  instrument and task, and the cap was never measured at all.
   All bars <span class="pv m">MEASURED</span> 2026-08-23 round 5, one arm each,
   three timed probes per arm after a discarded warm-up, in-band NVML board power
   at 500&nbsp;ms. Speculation, regime, quant and KV arms:
@@ -3607,7 +4037,7 @@ correspondingly softer.</code></pre>
       <tr><td><b>Effort</b></td><td class="num">4.26 &rarr; 5.18 &rarr; 6.13</td><td class="num">1.44&times;</td><td><span class="pv m">MEASURED</span> <span class="n1">n=1 per level</span>, drafter on, temperature 1.0, <b>mixed regime</b> (thinking and answer tokens both counted), 1&nbsp;Hz log. With the drafter <b>off</b> the same axis is a null: 7.92 against 7.95 across 115 requests.</td></tr>
       <tr><td><b>Quantisation</b></td><td class="num">8.20 / 8.85 / 9.29</td><td class="num">+8.0 % / +13.4 %</td><td><span class="pv m">MEASURED</span> IQ4_XS / Q4_K_M / NVFP4-HIGH, drafter off. All gaps outside the 2.9&nbsp;% floor.</td></tr>
       <tr><td><b>KV cache width</b></td><td class="num">8.28 / 8.34</td><td class="num">+0.7 % &mdash; null</td><td><span class="pv m">MEASURED</span> f16 against q8_0, drafter off. Inside the noise floor. Independently supports shipping q8_0: half the cache VRAM for statistically nothing.</td></tr>
-      <tr><td><b><code>--parallel</code></b></td><td class="num">8.59 &rarr; 5.19</td><td class="num">&minus;39.6 %</td><td><span class="pv m">MEASURED</span> drafter <b>off</b>, coarse window including prefill. <b>Quarantined</b> &mdash; a prior campaign measured the opposite direction with the drafter on. &sect;06.06.</td></tr>
+      <tr><td><b><code>--parallel</code></b></td><td class="num">8.59 &rarr; 5.19</td><td class="num">&minus;39.6 %</td><td><span class="pv m">MEASURED</span> drafter <b>off</b>, coarse window including prefill. <b>No longer quarantined, but scoped:</b> the matched drafter-<b>on</b> pair reads <b>+22.0&nbsp;% aggregate and &minus;35.4&nbsp;% per slot</b>, so this energy row describes the drafter-off configuration only and the throughput saving does not carry over to the shipped one. &sect;06.06.</td></tr>
       <tr><td><b>GPU power cap</b></td><td class="num">&mdash;</td><td class="num">&mdash;</td><td><b>Not measured on this machine &mdash; requires an administrator shell.</b> The probe returned <em>insufficient permissions</em>; the cap was never changed and remains at the stock <b>350&nbsp;W</b>. Commands recorded, not estimated: <code>nvidia-smi -pl 250</code> to set, <code>nvidia-smi -pl 350</code> to restore, <code>nvidia-smi --query-gpu=power.limit,power.default_limit,power.max_limit --format=csv</code> to read. This is the strongest untested hypothesis on this box &mdash; see &sect;09.08.</td></tr>
     </tbody>
   </table></div>
@@ -4180,7 +4610,7 @@ correspondingly softer.</code></pre>
   are misdiagnosed by people looking at a healthy machine.</p>
 
   <div class="table-wrap"><table>
-    <caption>Signatures <span class="pv m">MEASURED</span> on this machine, 2026-08-23, across six rounds. The healthy column matters as much as the symptom column: several of these signals are normal.</caption>
+    <caption>Signatures <span class="pv m">MEASURED</span> on this machine, 2026-08-23, across eight rounds. The healthy column matters as much as the symptom column: several of these signals are normal.</caption>
     <thead><tr><th scope="col">Symptom</th><th scope="col">Signature measured here</th><th scope="col">The same signal when healthy</th><th scope="col">Fix</th></tr></thead>
     <tbody>
       <tr>
@@ -4730,6 +5160,7 @@ chrome --headless=new --disable-gpu --hide-scrollbars \
       <tr><td><b>5 &mdash; power matrix</b><br><span class="small">13:21&ndash;14:05, 17 arms + 2 skipped</span></td><td><code>work/power-matrix-README.md</code></td><td><code>data/power-matrix/</code> &mdash; <code>report.txt</code>, <code>arms.csv</code>, <code>arms.json</code>, per-arm JSONs (these, not <code>arms.csv</code>, carry the prefill/decode <b>phase split</b> that &sect;03.06's and &sect;09.06's watt figures are re-derived from), console log, per-arm server logs, events and prompts. The log carries <b>17 <code>RESULT</code> lines and 2 <code>SKIPPED reason=needs-admin</code> lines</b>. Power log <code>data/power/power-matrix-20260823-132140.csv</code>, 5,098 usable rows. Runner <code>work/power-matrix.ps1</code>.</td></tr>
       <tr><td><b>6 &mdash; quantisation ladder</b><br><span class="small">08-23 14:13 &rarr; 08-24 12:35, ~6 h GPU</span></td><td>ledger <code>data/quant-ladder/results.txt</code></td><td><code>data/quant-ladder/</code> &mdash; per-file perplexity logs, detector transcripts, <code>detectors.txt</code>, <code>decisive.txt</code> (the equal-budget ledger &sect;08.04 depends on), the runner log, the heartbeat, and <code>gemma-diag/</code> holding the 11-arm isolation behind &sect;08.04's withdrawal. Runner <code>scripts/quant-ladder/</code>.</td></tr>
       <tr><td><b>Judge passes</b><br><span class="small">2026-08-24, zero GPU, two passes</span></td><td><a href="#s09-09">&sect;09.09</a></td><td><code>data/judge/</code> &mdash; <code>packets/</code>, <code>ratings/</code>, <code>key-SEALED.json</code>, <code>judge-scores.json</code> (pass 1), <code>judge-paired.json</code>. Pass 2, the ALPACA re-judge after the raised-cap re-run: <code>rejudge-alpaca/</code>, <code>judge-rejudge.json</code>, and the published numbers in <code>judge-scores-final.json</code>. 675 ratings across the two passes. Builder, scorer and paired test: <code>scripts/bench/judge-panel.py</code>.</td></tr>
+      <tr><td><b>8 &mdash; accuracy ladder and the two missing arms</b><br><span class="small">08-24 17:30 &rarr; 08-25 02:05, ~5 h 39 m GPU</span></td><td>ledger <code>data/quant-ladder/decisive.txt</code></td><td><code>data/quant-ladder/</code> &mdash; <code>accuracy-ladder.out.log</code> and the per-arm run JSONs and transcripts behind every Mean, truncation and empty count; <code>work/ladder-repcheck.py</code>, the audit that counted empties from the artefacts rather than from the truncation counter, and which corrected one of this pass's own claims before it was published; <code>work/ladder-paired.py</code>, the exact McNemar test behind every TIE and DIFFERENT verdict; <code>drafter-2bit-run2.out.log</code> and <code>drafter-2bit/</code> for the shallow drafter pair; <code>parallel-pair.out.log</code> and <code>parallel-pair/</code> for the matched batching pair; <code>fullcontext.out.log</code> and <code>fullcontext/</code> for the three full-window arms, whose real fill is read from the server log's <code>prompt eval time</code> line rather than from the script's own <code>prompt_n</code> column. Runners <code>work/accuracy-ladder.ps1</code>, <code>work/drafter-at-2bit.ps1</code>, <code>work/parallel-drafter-pair.ps1</code>, <code>work/q2kxl-fullcontext.ps1</code>, <code>scripts/quant-ladder/decisive-arm.ps1</code>.</td></tr>
       <tr><td><b>Agentic bucket</b></td><td><code>agentic/setup-log.md</code></td><td>The full build and run log for &sect;14's harness.</td></tr>
     </tbody>
   </table></div>
@@ -4808,8 +5239,11 @@ chrome --headless=new --disable-gpu --hide-scrollbars \
     flagged because the alternative is laundering someone else's homework through
     a table that says <span class="pv d">DERIVED</span>.</li>
     <li><b>The <code>--parallel 2</code> figure of +11&nbsp;% aggregate throughput</b>
-    quoted in &sect;06.06 &mdash; from a prior campaign's own guide, quoted in
-    order to be contradicted, and not re-measured here.</li>
+    quoted in &sect;06.06 &mdash; from a prior campaign's own guide, and not
+    re-measured here. It was carried in order to be <em>contradicted</em>; this
+    campaign's own matched arm, run on 2026-08-25, landed at +22.0&nbsp;% and
+    largely vindicated it instead. The citation stands unchanged and the verdict
+    on it does not.</li>
     <li><b>The <code>failed to fit params to free device memory</code> reading</b>
     in &sect;11 &mdash; carried from the reference campaign's troubleshooting set.</li>
     <li><b>The NVFP4-MTP-HIGH file size of 17.6 GB (16.39 GiB)</b> &mdash; recorded
@@ -4937,37 +5371,48 @@ chrome --headless=new --disable-gpu --hide-scrollbars \
   </div>
 
   <div class="reg">
-    <h4>8. Quantisation against quantisation on accuracy</h4>
-    <p><b>The perplexity half of this entry is closed.</b> Round 6 ranked
+    <h4>8. Quantisation against quantisation on accuracy &mdash; <span style="color:var(--good)">partly closed 2026-08-25</span></h4>
+    <p><b>The perplexity half of this entry closed first.</b> Round 6 ranked
     <b>nine files of this model</b> on perplexity under one identical condition
     set &mdash; 294,912 scored positions each, the same corpus, the same flags
-    (<a href="#s08-04">&sect;08.04</a>). The per-token ranking this entry used to
-    price now exists and is published, so only the accuracy branch remains.</p>
-    <p><b>What is still not measured is accuracy.</b> <b>No two quantisations of
-    this model were compared on benchmark answers under matched conditions.</b>
-    Two of them do carry scored-benchmark numbers &mdash;
-    <code>UD-IQ4_XS</code> through &sect;09's seven-set sweep and
-    <code>UD-IQ2_XXS</code> through &sect;08.04's equal-weight-budget arm
-    &mdash; but on <em>different suites</em>, so those two numbers rank nothing
-    against each other and are never printed side by side. The one benchmark
-    comparison between files is that equal-weight-budget arm, and it reaches
-    across model families rather than within this one. &sect;10's price table is
-    why nobody closed this cheaply: the real gap is one to three points and
-    separating it needs thousands of items.
-    <em>Closed by:</em> a scored comparison of two files of this model on one
-    frozen suite at n in the thousands.</p>
-    <p class="price">Price: 30 h+ of GPU per file</p>
+    (<a href="#s08-04">&sect;08.04</a>).</p>
+    <p><b>The accuracy half is now measured, the only way n=25 licenses.</b>
+    Eight files of this model &mdash; the whole <code>UD</code> ladder &mdash;
+    were scored on <b>one frozen suite under matched conditions</b>, 75 items
+    apiece, and compared with an <b>exact paired McNemar test on the identical
+    items</b> rather than by setting two Mean columns beside each other. That is
+    what lets 75 items say anything at all: only discordant items carry
+    information. The result is four ties with the anchor, three resolved
+    differences, and a boundary stated as an <b>interval</b> &mdash; between
+    2.48 and 2.15 bits per weight.</p>
+    <p><b>What did not close is the question this entry was opened about.</b>
+    The paired test resolves <em>collapse</em>; it still cannot resolve the
+    one-to-three-point gap between two healthy 4-bit files.
+    <code>UD-IQ4_XS</code> against <code>UD-Q3_K_XL</code> reads b=1, c=0,
+    p=1.00 &mdash; one discordant item of 75 &mdash; which is a tie, not a
+    demonstration of equality. &sect;10's price table is unchanged.
+    <em>Still open:</em> a scored comparison of two <em>healthy</em> 4-bit files
+    of this model at n in the thousands.</p>
+    <p class="price">Price paid: ~5 h 39 m GPU across eight arms, plus a zero-GPU paired test. Price of what remains: 30 h+ of GPU per file</p>
   </div>
 
-  <div class="reg">
-    <h4>9. A matched drafter-ON <code>--parallel</code> pair</h4>
-    <p>&sect;06.06's +60&nbsp;% batching result was measured with the drafter
-    <em>off</em> and contradicts a prior campaign's +11&nbsp;% with it on.
-    Neither ships as guidance until the pair is matched.
-    <em>Closed by:</em> the same two arms with
-    <code>--spec-type draft-mtp --spec-draft-n-max 10 --spec-draft-p-min 0.5</code>
-    on both.</p>
-    <p class="price">Price: ~10 min GPU (estimate &mdash; two arms, two servers)</p>
+  <div class="reg closed">
+    <h4>9. A matched drafter-ON <code>--parallel</code> pair &mdash; <span style="color:var(--good)">closed 2026-08-25</span></h4>
+    <p>&sect;06.06's +60.3&nbsp;% batching result was measured with the drafter
+    <em>off</em> and contradicted a prior campaign's +11&nbsp;% with it on.
+    <b>The matched pair has run</b>, three reps each on <code>UD-IQ4_XS</code>
+    at the shipped <code>n10/p0.5</code>: <b>+22.0&nbsp;% aggregate</b>
+    (101.25 against 82.98&nbsp;t/s) and <b>&minus;35.4&nbsp;% per slot</b>
+    (55.41 against 85.79, which is about 55&nbsp;% longer to wait for the same
+    answer). The truth sits between the two prior figures and
+    much nearer the cited one, and <b>the hypothesis stated in the quarantine
+    was the right one</b>: once speculation is already amortising the weight
+    read, batching has far less left to amortise. Acceptance is unchanged
+    (0.618 &rarr; 0.620), so the second slot does not disturb the draft head;
+    the entire cost is per-user latency. The quarantine is lifted and
+    <code>--parallel 1</code> still ships, now on a latency argument rather
+    than an uncertainty one.</p>
+    <p class="price">Price paid: ~3 min GPU. Nothing outstanding.</p>
   </div>
 
   <div class="reg">
@@ -5120,7 +5565,17 @@ chrome --headless=new --disable-gpu --hide-scrollbars \
     2026-08-24 with identical scores &mdash; mean 78.70, one MBPP truncation
     surviving the doubled cap &mdash; so its status is now symmetric with the
     comparator's and its provisional mark is gone.</p>
-    <p class="price">Price paid: ~6 h GPU. Nothing outstanding.</p>
+    <p><b>What the follow-up pass added, and the flaw it exposed in this
+    entry.</b> The ladder as it stood ranked nine files on an instrument that
+    says nothing about whether the model still works, and it did so with the
+    draft head <em>off</em>. Round 8 scored eight of those files on the frozen
+    suite, tested them pairwise, audited every arm's empty answers from the
+    artefacts, and then measured the two files a reader is choosing between at
+    the shipped drafter setting &mdash; where the ordering <b>inverts</b>. The
+    published ladder was never wrong as a measurement; it was swept at a
+    configuration nobody runs, which is a different failure and now a standing
+    rule of this campaign's method.</p>
+    <p class="price">Price paid: ~6 h GPU for the ladder, ~5 h 39 m more for round 8's scored arms. Nothing outstanding.</p>
   </div>
 
   <div class="reg">
@@ -5379,13 +5834,19 @@ POST /v1/chat/completions
       this campaign's git history as
       <code>results/qwen38-27b-blind/index.html</code> at commit
       <code>f87baf9</code>.</p>
-      <p>Measurement ran across six rounds on one machine. Five completed on
-      2026-08-23 between 00:19 and 14:05 &mdash; <b>12 h 53 m of GPU time</b>
-      &mdash; and a sixth, the quantisation ladder, opened at 14:13 that day and
-      ran roughly six hours more, finishing at 12:35 on 2026-08-24. A seventh piece of work
-      used no GPU at all: on 2026-08-24 a blind three-seat judge panel scored the
-      two benchmark sets that had been kept as transcripts since the effort sweep
-      (<a href="#s09-09">&sect;09.09</a>). Round 1 was a blind reproduction
+      <p>Measurement ran across eight rounds on one machine. Five completed on
+      2026-08-23 between 00:19 and 14:05 &mdash; <b>13 h 14 m of GPU time</b>,
+      including a 21-minute raised-cap re-run that landed on 08-24 but belongs
+      to round 3 &mdash; and a sixth, the quantisation ladder, opened at 14:13
+      that day and ran <b>6 h 03 m</b> more, finishing at 12:35 on 2026-08-24.
+      An eighth round on 2026-08-24 and 08-25 added <b>5 h 39 m</b>: the scored
+      accuracy ladder across all eight files, the drafter on/off pair, the
+      matched batching pair, and the full-native-window trial. Two of the eight
+      rounds used no GPU at all &mdash; on 2026-08-24 a blind three-seat judge
+      panel scored the two benchmark sets kept as transcripts since the effort
+      sweep (<a href="#s09-09">&sect;09.09</a>), and on 08-25 an audit re-read
+      every kept transcript to count empty answers, which the truncation
+      counter cannot see. Round 1 was a blind reproduction
       test with a previous campaign's results for this same model sealed and
       never opened; <b>the blind held for round 1 only</b>, and every later round
       is post-blind and labelled by round. Raw logs, generated files and
@@ -5426,7 +5887,7 @@ POST /v1/chat/completions
     </div>
   </div>
   <div class="footer-bottom">
-    Published &middot; source commit bf756c1 &middot; cut 2026-08-24 &middot;
+    Published &middot; source commit bf756c1 &middot; cut 2026-08-25 &middot;
     measured, cited, or labelled derived &middot;
     n=1 results are marked n=1 &middot;
     superseded numbers keep their marker &middot;
