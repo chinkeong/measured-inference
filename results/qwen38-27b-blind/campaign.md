@@ -1685,3 +1685,30 @@ At -c 131,072 with the drafter on, **UD-Q3_K_XL is the fastest file measured** -
 Three different files win at three different windows. That is a more useful answer than any single recommendation, and every leg of it is measured.
 
 Launched work/depth98k-crossover.ps1 at -c 98,304, same protocol, to locate where UD-Q3_K_XL overtakes - at 32k the 4-bit file leads (41.35 vs 39.59), at 65k they are level (42.69 vs 42.98), at 131k Q3_K_XL leads by 20%.
+
+## 2026-08-25 04:30 - RETRACTION: the 131k ranking I published 25 minutes ago is withdrawn
+
+The 98,304 point contradicts it, and the contradiction is decisive. Decode at depth, drafter ON, across four windows:
+
+| file | 32,768 | 65,536 | 98,304 | 131,072 | pattern |
+|---|---|---|---|---|---|
+| UD-IQ4_XS | 41.35 | 42.69 | 36.09 | 34.66 | rises then declines - plausible |
+| **UD-Q3_K_XL** | 39.59 | 42.98 | **32.86** | **41.44** | **NON-MONOTONE, 26% jump 98k -> 131k** |
+| UD-Q2_K_XL | 43.19 | 40.30 | 34.08 | 29.46 | clean monotone decline |
+
+**A decode rate cannot RISE from 98k to 131k.** Deeper context means more KV to read per token; the curve must fall. UD-Q3_K_XL swings 30.8% across four windows in a non-monotone pattern while the other two files behave. So the 41.44 at 131k is not a property of that file being fast at depth - something about that configuration is unstable on this rig, and my 19.6%-at-4.4-sigma claim measured the instability, not a speed.
+
+**WITHDRAWN, at every occurrence (rule 5):** "at -c 131,072 UD-Q3_K_XL is the fastest file measured, by 20%", and the 24 GB recommendation built on it ("at ~131k take UD-Q3_K_XL"). The corrected 24 GB answer reverts to two files: **UD-IQ4_XS up to ~131k, UD-Q2_K_XL for the full 262,144** because it is the only one that still fits with speculation. UD-Q3_K_XL has no window where it can be recommended on measured speed.
+
+### The methodological lesson, and it is a new one
+
+**Replicating within a condition cannot test whether the condition itself is anomalous.** I replicated 131k at n=5 and got sd 1.51, spread 9.4%, and a 4.4-sigma gap - every internal check passed, and the number was stable, reproducible and wrong. What exposed it was a NEIGHBOURING WINDOW, not more probes at the same one. n=5 at one point bought precision about a number that should never have been trusted in isolation.
+
+Two signals were visible before the 98k point and I did not weight them enough:
+- UD-Q3_K_XL carried the LARGEST spread at both replicated windows (8.4% and 9.4%) against UD-IQ4_XS's 0.5% and 1.7% - an order of magnitude noisier, in the file making the surprising claim.
+- Its acceptance at 98k reads **1.00000**, which this campaign has already flagged as a degenerate reading ("two rows reading 100% and 99% acceptance ran 3.96 vs 10.54 accepted per target pass").
+- Each n=5 run contains exactly one low outlier (98k: 30.73 among four ~33.4; 131k: 38.43 among four ~42.2), which is a state artefact signature rather than sampling noise.
+
+Running work/q3kxl-instability.ps1 now: UD-Q3_K_XL alone at -c 98,304, independent reload, n=5. If it returns ~41 rather than ~33, the file's depth numbers are load-dependent and the whole UD-Q3_K_XL depth row must ship as a BAND with an instability note. If it returns ~33 again, the non-monotonicity is reproducible and stranger still, and it becomes a documented open anomaly.
+
+**What survives untouched:** the 16 GB answer (UD-Q2_K_XL at -c 65,536 with the drafter, 13,982 MiB, 1,094 spare, 40.30 t/s), the 12 GB "no", the whole accuracy ladder, the empty-answer table, the paired McNemar results, the drafter inversion at shallow depth, and the full-262k finding - none of which depend on UD-Q3_K_XL's depth series.

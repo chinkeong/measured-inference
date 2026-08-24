@@ -1,0 +1,4 @@
+﻿# 98k crossover point, n=5 settled probes - opened 2026-08-25T04:21:29
+REP iq4xs | GiB=13.274 | ctx=98304 | drafter=on n4/p0.75 | n=5 | mean=36.09 t/s | min=36.01 | max=36.20 | sd=0.08 | spread_pct=0.5 | acceptance=0.88889 | mean_draft_len=3.29 | probes=[36.05 36.17 36.01 36.20 36.04]
+REP q3kxl | GiB=12.244 | ctx=98304 | drafter=on n4/p0.75 | n=5 | mean=32.86 t/s | min=30.73 | max=33.49 | sd=1.07 | spread_pct=8.4 | acceptance=1.00000 | mean_draft_len=2.89 | probes=[33.42 30.73 33.43 33.49 33.23]
+REP q2kxl | GiB=9.154 | ctx=98304 | drafter=on n4/p0.75 | n=5 | mean=34.08 t/s | min=32.27 | max=34.61 | sd=0.91 | spread_pct=6.9 | acceptance=0.83333 | mean_draft_len=4.33 | probes=[34.48 34.61 34.49 34.55 32.27]
