@@ -1137,3 +1137,27 @@ Ladder logistics: the other session downloader died 14:18 (five
 .incomplete frozen); this session resumed all six rungs 18:33 (etag
 resume preserved ~28 GiB); ladder polling continues, file-stability gate
 unchanged.
+
+## 2026-08-24 11:17 - ladder pass-1 complete; chain restart for the three remaining GPU jobs
+
+The run-ladder3 runner exited CLEANLY at its 05:47 deadline (rule-20 pattern: deadline exit, not a crash) with one item pending: pass-2 infill UD-IQ2_S, whose file never appeared - the downloading session is dead (no .incomplete files, nothing new since the pass-1 six). Heartbeat was continuous to 05:46; the runner polled the file gate every 60 s from 01:24 to the wall.
+
+Pass-1 stands COMPLETE (ledger data/quant-ladder/results.txt):
+- Full PPL curve, 36 chunks / 294,912 positions each, all under the frozen phase-6 flags with the rig gate PASSing twice at 0.000% drift: IQ4_XS 6.5956 (anchor) / Q3_K_XL 6.7691 / IQ3_XXS 6.9187 / Q2_K_XL 6.9957 / IQ2_XXS 8.0079 / IQ1_M 8.1418 / IQ1_S 8.9265.
+- Pass-2 enablement math: UD-IQ2_S ENABLED (bracket gap 14.47% vs reference 1.11%, ratio 13.0 >= 1.5); UD-IQ3_S NOT enabled (ratio 0.84 < 1.5) - the curve is flat above 9 GiB and steepens hard below it.
+- Detectors: PASS at every rung down to IQ1_M. Two degradation signatures BEFORE the break: IQ1_M lexical diversity uniq=0.358 vs ~0.50 band elsewhere. First hard functional FAIL: UD-IQ1_S (1.83 bpw) returns an EMPTY JSON echo while its prose and fences still pass - the ladder found its "clearly no" rung.
+
+11:17 restart (work/chain-0824.ps1, detached, own log chain-0824.log):
+1. gemma-trunc-probe (running at launch check: server healthy, GPU 93%)
+2. decisive-arm qwen-iq2xxs - the equal-budget primary arm. Rule-25 DECISION line recorded in decisive.txt BEFORE launch: the rule-7 cap raise on truncation is pre-authorized for this arm (primary, comparator already carries cap-32k).
+3. run-ladder pass-2 for UD-IQ2_S once the file lands and holds 20 stable passes.
+
+DEVIATION (second occurrence, same justification as 2026-08-23): the manifest says the runner never downloads - it still does not. The SESSION took over the UD-IQ2_S download (hf download, etag-resumable, detached) because the downloading session is dead. Runner and download never touch the same file until the byte-stability gate says so.
+
+## 2026-08-24 11:35 - trunc-probe verdict in 2 minutes; qwen decisive arm crashed a scorer defect and was relaunched fixed
+
+GEMMA NON-TERMINATION: MECHANISM ANSWERED (data/quant-ladder/gemma-trunc/trunc-probe.txt). With --reasoning-format none (thoughts left raw in content), both previously-truncated prompts run to the 4,096 probe cap, finish=length, with ZERO think-close tags and ZERO end-of-turn markers in 9,771 / 12,511 chars of output. With --reasoning off, the SAME prompts terminate cleanly at 355 / 331 tokens, finish=stop. The runaway lives entirely in gemma-4-12B-it-QAT default thinking mode: it opens a reasoning block it never closes. Not a cap problem, not a scorer problem, and thinking-off is a clean workaround. Loop-vs-rambling classification deferred to the probe transcripts (probe-raw-*.txt) at synthesis.
+
+SCORER DEFECT (new, exposed by the 2.15-bpw quant): UD-IQ2_XXS's GSM8K prompt 5 response ends in a bare "####" with nothing after it; datasets_io.py grade() did .splitlines()[0] on the empty tail and crashed the whole arm (IndexError, wall 39 s). No previous model on this rig ever produced that shape - the ladder's low rungs are exactly where new failure shapes appear. Fixed: empty tail now grades WRONG instead of raising (verified: bare-#### False, empty False, normal True). The fix cannot alter any recorded score: any earlier run reaching this path would have crashed, and none did. The bare-#### response itself is a degradation observation for the IQ2_XXS rung, recorded here.
+
+Also: bench-arm.py's finally block wrote wall.json even on crash, which would have made the resumable rerun skip the arm as done - crashed artifacts archived as crashed1-arm-qwen-iq2xxs.* and the arm relaunched (11:35) under the fixed scorer. UD-IQ2_S download healthy in parallel (hf names the in-flight blob by hash in .cache; 2.8 of 8.4 GB at 11:24).

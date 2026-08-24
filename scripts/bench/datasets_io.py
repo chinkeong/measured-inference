@@ -347,7 +347,11 @@ def grade(name, response, ref):
         return None
     if name == "GSM8K":
         if "####" in response:
-            pred = response.rsplit("####", 1)[-1].strip().splitlines()[0]
+            # the tail after "####" can be EMPTY — a response ending in a bare
+            # "####" (first seen from a 2.15-bpw quant) grades wrong, never
+            # crashes the scorer
+            tail = response.rsplit("####", 1)[-1].strip().splitlines()
+            pred = tail[0] if tail else ""
             # GSM8K references are bare numbers, but a model that reasoned in
             # units answers "#### 156 kg" or "#### 5 hours". Take the number
             # out of the answer line, as the canonical GSM8K scorer does —
