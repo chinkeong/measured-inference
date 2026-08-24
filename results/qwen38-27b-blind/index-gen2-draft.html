@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Qwen3.8-27B on a 24 GiB RTX 3090 &mdash; the measured settings</title>
-<meta name="description" content="Every setting for Qwen3.8-27B on a single 24 GiB RTX 3090, with the number that justifies it. Speed, memory, energy, accuracy and image cost, measured 2026-08-23.">
+<meta name="description" content="Every setting for Qwen3.8-27B on a single 24 GiB RTX 3090, with the number that justifies it. Speed, memory, energy, accuracy and image cost, measured 2026-08-23 to 08-24.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Inter+Tight:wght@400;500;600;700;800&family=Intel+One+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -371,8 +371,8 @@ footer a{color:#dceaf6;text-decoration:underline;text-underline-offset:2px}
 <body>
 
 <div class="uband"><div class="in">
-  <div>Measured-inference field guide &nbsp;/&nbsp; generation 2 &mdash; DRAFT</div>
-  <div class="tag">RTX 3090 24 GiB &middot; Windows 11 &middot; measured 2026-08-23</div>
+  <div>Measured-inference field guide &nbsp;/&nbsp; generation 2</div>
+  <div class="tag">RTX 3090 24 GiB &middot; Windows 11 &middot; measured 2026-08-23 to 08-24</div>
 </div></div>
 
 <nav class="top"><div class="in">
@@ -388,14 +388,16 @@ footer a{color:#dceaf6;text-decoration:underline;text-underline-offset:2px}
 
 <header class="hero"><div class="in">
   <div>
-    <span class="eyebrow">Measured on one machine &middot; 2026-08-23</span>
+    <span class="eyebrow">Measured on one machine &middot; 2026-08-23 to 08-24</span>
     <h1>Qwen3.8-27B on a 24&nbsp;GiB RTX&nbsp;3090: the <span class="accent">measured</span> settings.</h1>
     <p class="pledge">Every setting, with the number that justifies it.</p>
     <p class="lede"><b>Evidence tier, before the first result.</b> Everything on
     this page was measured on one machine &mdash; an RTX&nbsp;3090 with
-    24&nbsp;GiB, driver 596.36, Windows&nbsp;11 &mdash; across five completed
-    rounds on 2026-08-23, between 00:19 and 14:05 local, totalling
-    <b>12&nbsp;h&nbsp;53&nbsp;m of GPU time</b>. One of those rounds used no GPU
+    24&nbsp;GiB, driver 596.36, Windows&nbsp;11 &mdash; across six rounds, five
+    on 2026-08-23 between 00:19 and 14:05 local and the ladder finishing
+    2026-08-24, totalling about <b>19&nbsp;h&nbsp;16&nbsp;m of GPU time</b>
+    (12&nbsp;h&nbsp;53&nbsp;m over rounds 1&ndash;5, about 6&nbsp;h for the
+    ladder). One of those rounds used no GPU
     time at all, because it re-analysed logs already on disk.</p>
     <p class="lede"><b>Solid:</b> speed, memory, energy and image cost. Behind
     them are <b>17 instrumented power runs</b> &mdash; a <em>run</em> here means
@@ -406,17 +408,24 @@ footer a{color:#dceaf6;text-decoration:underline;text-underline-offset:2px}
     night that predicted five later loads &mdash; three of them exactly, two
     within 30&nbsp;MiB.</p>
     <p class="lede"><b>Smoke tier:</b> everything labelled quality. The accuracy
-    suite is 25 questions per benchmark &mdash; 525 generations across three
-    thinking levels, of which <b>375 are scored</b>, enough to see a 20-point
-    collapse and nothing finer &mdash; and the judgements about writing quality
-    are one run each, by one judge who could see which setting produced
-    what.</p>
-    <p class="lede">A sixth round opened at 14:13 and was still running when this
-    draft was written; its GPU time is not in the total above. It is a
+    suite is 25 questions per benchmark, enough to see a 20-point collapse and
+    nothing finer &mdash;
+    525 generations across three thinking levels, <b>all 525 now scored</b> &mdash;
+    five sets marked mechanically, and the two open-ended writing sets read on
+    2026-08-24 by a blind three-seat Claude Opus&nbsp;5 panel with the arm map
+    sealed in a key no seat opened (<a href="#s09-09">&sect;09.09</a>), whose
+    stated limit is that judge and author are both Claude models. The one
+    remaining unblinded, single-judge quality reading is &sect;09.04's n=1
+    authoring comparison, and it is labelled there.</p>
+    <p class="lede">A sixth round opened at 14:13 on 2026-08-23 and finished at
+    12:35 the next day. It is a
     <em>size ladder</em>: the same model squeezed into smaller and smaller files,
-    to find where quality breaks. So far it has re-run this page's own quality
-    score for the shipped file and got the same answer twice, settled one
-    file-against-file comparison, and thrown out one reading as a broken
+    to find where quality breaks. It ranked nine files of this model from 4.40
+    down to 1.83 bits per weight, found that the point where quality turns
+    (9.154&nbsp;GiB) and the point where the model stops working (below
+    6.267&nbsp;GiB) are different rungs, ran a cross-model arm at an equal weight
+    budget, reproduced this page's own quality score for the shipped file twice,
+    and threw out one reading as a broken
     instrument rather than a fact about a model &mdash;
     <a href="#s08-04">&sect;08.04</a>.</p>
     <p class="lede">Four hardware figures in <a href="#s07">&sect;07</a> are
@@ -424,17 +433,17 @@ footer a{color:#dceaf6;text-decoration:underline;text-underline-offset:2px}
     prior campaign's work, dated 2026-08-22 &mdash; rather than re-read here, and
     are marked where they stand. This campaign ran its own roster fact-check at
     00:37 on 2026-08-23, and that one covers the primary-document-linked rows
-    only. <b>The page corrected itself fourteen times</b>; all fourteen are
+    only. <b>The page corrected itself sixteen times</b>; all sixteen are
     listed in <a href="#s15-04">&sect;15.04</a> with the wrong version still
     shown, because how a clean measurement misleads is the most transferable
     thing here. How far any single number can be trusted is
     <a href="#s06-07">&sect;06.07</a>.</p>
   </div>
   <dl class="hero-stats">
-    <div class="hero-stat"><dt>GPU time measured, five rounds, one machine</dt><dd>12:53<span>h:m</span></dd></div>
+    <div class="hero-stat"><dt>GPU time measured, six rounds, one machine</dt><dd>19:16<span>h:m</span></dd></div>
     <div class="hero-stat"><dt>Instrumented runs &mdash; power &middot; benchmark <span style="text-transform:none">(2 power-cap runs skipped)</span></dt><dd>17 &middot; 6</dd></div>
-    <div class="hero-stat"><dt>Benchmark generations &mdash; 375 of them scored</dt><dd>525<span>+ re-runs</span></dd></div>
-    <div class="hero-stat"><dt>Self-corrections, all kept in place</dt><dd>14</dd></div>
+    <div class="hero-stat"><dt>Benchmark generations &mdash; all 525 scored</dt><dd>525<span>+ re-runs</span></dd></div>
+    <div class="hero-stat"><dt>Self-corrections, all kept in place</dt><dd>16</dd></div>
   </dl>
 </div></header>
 
@@ -488,8 +497,9 @@ how to read the numbers; then <a href="#s01">&sect;01</a> begins.</p>
   <span><b class="measured">MEASURED</b> &mdash; run on this machine, dated</span>
   <span><b class="derived">DERIVED</b> &mdash; arithmetic on a measured number</span>
   <span><b class="cited">CITED</b> &mdash; linked to a source</span>
+  <span><span class="pv j">JUDGED</span> &mdash; read and rated by the blind panel of &sect;09.09</span>
 </div>
-<p>Those three labels are the whole contract. Nothing on this page is a fourth
+<p>Those four labels are the whole contract. Nothing on this page is a fifth
 thing. Every number carries its label as a visible chip: <b>on the number</b> in
 prose; <b>on the column head</b> where a whole column shares one label;
 <b>on the cell</b> wherever a cell differs from its column; and
@@ -503,7 +513,14 @@ every replacement &mdash; whether or not the old number still stands anywhere
 shown. Two figures have been replaced and appear only there: the flat
 &ldquo;344&nbsp;W&rdquo; constant (item 10) and the backwards idle pair
 (item 9). A number the campaign has withdrawn as an instrument failure prints
-<span class="pv x">WITHDRAWN</span> and is never used as a result.</p>
+<span class="pv x">WITHDRAWN</span> and is never used as a result. One of the
+four labels is newer than the other three and is defined here the same way:
+<span class="pv j">JUDGED</span> &mdash; scored by the blind panel of
+<a href="#s09-09">&sect;09.09</a>, not by a mechanical scorer. An earlier
+edition carried a fifth chip, <b>PROVISIONAL</b>, for an arm whose truncation
+still owed a raised-cap re-run. <b>That re-run has since run, and it reproduced
+the truncation</b>, so the remedy is exhausted, the cell is final, and the chip
+is retired rather than pending (<a href="#s09-09">&sect;09.09</a>).</p>
 
 <div class="callout warn">
   <span class="label">Read this first &mdash; what is solid and what is a first look</span>
@@ -511,11 +528,16 @@ shown. Two figures have been replaced and appear only there: the flat
   times, up to twelve hours apart, with three different instruments, and the repeat
   spread is published in &sect;06.07 so you can check any claim against it.
   <b>Quality is a first look.</b> Three quantisation files were ranked on speed
-  and on energy; only one of them has a perplexity number of its own, and no file
-  was compared with another on benchmark accuracy. The accuracy suite that does
+  and on energy; only one of them has a perplexity number of its own, and no two
+  quantisations of <em>this</em> model were compared with each other on benchmark
+  accuracy &mdash; the one benchmark comparison between files, in
+  <a href="#s08-04">&sect;08.04</a>, is across model families at an equal weight
+  budget. The accuracy suite that does
   exist ran 25 questions per benchmark per effort level, which detects a broken
   file and nothing finer.</p>
-  <p>What this page is not: a review, a comparison of models, or a claim about
+  <p>What this page is not: a review, a general comparison of models &mdash;
+  &sect;08.04's single equal-weight-budget arm is scoped and captioned as the
+  exception &mdash; or a claim about
   any machine but this one. Everything it does <em>not</em> cover is listed once,
   in the register in <a href="#s15-03">&sect;15.03</a>, rather than scattered through
   the text &mdash; a list in one place is a list somebody maintains.</p>
@@ -562,21 +584,24 @@ shown. Two figures have been replaced and appear only there: the flat
   margin.</p>
 
   <h3 id="s01-01"><span class="sigil">01</span>What was measured, in one table</h3>
-  <p>Six rounds ran on one machine on 2026-08-23, one job on the card at a time.
+  <p>Six measurement rounds ran on one machine across 2026-08-23 and 08-24, one
+  job on the card at a time, plus a seventh zero-GPU pass on 08-24 &mdash; the
+  judge panel.
   Every round has a log, a directory of raw output, and an entry in
   <a href="#s15-01">&sect;15.01</a>.</p>
 
   <div class="table-wrap"><table>
-    <caption>All rows <span class="pv m">MEASURED</span> &mdash; wall-clock windows read from each round's own logs; GPU time is the sum of the arms that occupied the card. The energy-joins round used no GPU time because it re-integrated power logs already written. The ladder was still running when this draft was cut.</caption>
+    <caption>All rows <span class="pv m">MEASURED</span> &mdash; wall-clock windows read from each round's own logs; GPU time is the sum of the arms that occupied the card. The energy-joins round used no GPU time because it re-integrated power logs already written. The ladder finished on 2026-08-24 at 12:35.</caption>
     <thead><tr><th scope="col">Round</th><th scope="col" class="num">Window, local</th><th scope="col" class="num">GPU time</th><th scope="col">What it bought</th></tr></thead>
     <tbody>
       <tr><td><b>1 &mdash; campaign proper</b></td><td class="num">00:19&ndash;02:18</td><td class="num">1 h 59 m</td><td>Architecture, memory map, drafting sweep, depth series, perplexity, effort cost, vision cost, per-recipe power.</td></tr>
       <tr><td><b>2 &mdash; follow-up probes</b></td><td class="num">02:48&ndash;04:29</td><td class="num">1 h 41 m</td><td>Drafting re-sweep on two files, projector-at-depth pair, cooled depth ladder, the draft-length mechanism, <code>q4_0</code> KV perplexity, repetition audit.</td></tr>
-      <tr class="hi"><td><b>3 &mdash; effort benchmark sweep</b></td><td class="num">04:40&ndash;13:15</td><td class="num">8 h 29 m</td><td>Five scored benchmark sets &times; three effort levels at n=25, plus the raised-cap re-run and the determinism check.</td></tr>
+      <tr class="hi"><td><b>3 &mdash; effort benchmark sweep</b></td><td class="num">04:40&ndash;13:15<br><span class="small">+ 08-24 15:47&ndash;16:08</span></td><td class="num">8 h 49 m</td><td>Seven benchmark sets &times; three effort levels at n=25 &mdash; five scored mechanically then, the two writing sets kept as transcripts and scored by the judge panel on 08-24 &mdash; plus the raised-cap re-runs and the determinism check. The last raised-cap re-run, <code>xhigh</code> ALPACA, ran on 08-24 and added 21 m &mdash; and <b>reproduced its truncation exactly</b> at the doubled cap, which is why that arm's score is final rather than pending (<a href="#s09-09">&sect;09.09</a>).</td></tr>
       <tr><td><b>4 &mdash; energy joins</b></td><td class="num">zero-GPU</td><td class="num">&mdash;</td><td>Per-request power attribution for rounds 1 and 3: J/token, tokens/kWh, EDP, the phase split.</td></tr>
       <tr><td><b>5 &mdash; power matrix</b></td><td class="num">13:21&ndash;14:05</td><td class="num">44 m</td><td><b>17 instrumented arms</b> isolating speculation, quantisation, KV width, token regime, depth, batching and idle. Two further arms &mdash; the power cap at 250&nbsp;W and at 300&nbsp;W &mdash; are recorded in the log as <code>SKIPPED reason=needs-admin</code>: the cap was never changed and never instrumented, so this round produced 17 results, not 19.</td></tr>
-      <tr><td><b>6 &mdash; quantisation ladder</b></td><td class="num">08-23 14:13 &ndash; 08-24</td><td class="num">~6 h</td><td>Eight files of this model ranked on 294,912 scored positions each, with functional detectors beside every rung; the knee named and priced; the equal-weight-budget arm against a different model. Two published anchors reproduced (one twice at 0.000&nbsp;% drift), one resolved same-size pair, one withdrawn instrument reading &mdash; <a href="#s08-04">&sect;08.04</a>. One rung inside the cliff was still measuring at publication and is marked there.</td></tr>
-      <tr><td colspan="4" class="small"><b>Total GPU time, rounds 1&ndash;5: 12 h 53 m.</b> Report writing and four review passes ran alongside the GPU work.</td></tr>
+      <tr><td><b>6 &mdash; quantisation ladder</b></td><td class="num">08-23 14:13 &ndash; 08-24 12:35</td><td class="num">~6 h</td><td>Nine files of this model ranked on 294,912 scored positions each, with functional detectors beside every rung; the knee named and priced; the equal-weight-budget arm against a different model. One published anchor reproduced twice at 0.000&nbsp;% drift and one first measurement gated against its own value, which is arithmetic and not a reproduction (<a href="#s08-03">&sect;08.03</a>); one resolved same-size pair; one withdrawn instrument reading &mdash; <a href="#s08-04">&sect;08.04</a>.</td></tr>
+      <tr><td><b>7 &mdash; judge panel</b><br><span class="small">two passes</span></td><td class="num">zero-GPU</td><td class="num">&mdash;</td><td>The two open-ended writing sets &mdash; ALPACA and MT-Bench turn 1 &mdash; read on 2026-08-24 by a blind three-seat Claude Opus&nbsp;5 panel: 150 answers, 450 ratings, none missing, plus the paired bootstrap between effort levels (<a href="#s09-09">&sect;09.09</a>). A <b>second pass</b> followed the same day, after the <code>xhigh</code> ALPACA raised-cap re-run replaced one arm's answers: all three ALPACA arms were re-judged together by three fresh blind seats &mdash; <b>75 answers, 225 further ratings</b>, so 675 ratings in total. MT-Bench never truncated and was not re-judged. No GPU time in either pass, because the generations were already on disk.</td></tr>
+      <tr><td colspan="4" class="small"><b>Total GPU time: 13 h 14 m over rounds 1&ndash;5, about 6 h for round 6 &mdash; roughly 19 h 16 m.</b> Rounds 1&ndash;5 gained 21 m on 2026-08-24 from the last raised-cap re-run, <code>xhigh</code> ALPACA, which belongs to round 3. Round 6's figure is the sum of the ledgers' own <code>wall_s</code> fields (2,990 s of perplexity plus 18,767 s of equal-budget arms = 6 h 03 m) and does not include the detector probes or the eleven-arm gemma isolation. Report writing and four review passes ran alongside the GPU work.</td></tr>
     </tbody>
   </table></div>
 
@@ -623,17 +648,21 @@ shown. Two figures have been replaced and appear only there: the flat
 
 <section id="s02">
   <div class="section-tag"><span class="num">02</span>Plain words</div>
-  <h2>Seventeen words, defined once, used plainly after this.</h2>
+  <h2>Twenty-one words, defined once, used plainly after this.</h2>
 
   <p class="lead1">Every technical word this page uses is defined in the box
   below, with one of this campaign's own numbers attached so the word means
   something concrete. Nothing later in the page re-defines any of them; later
-  sections point back here instead. Eleven of the seventeen are unavoidable for
+  sections point back here instead. Eleven of the twenty-one are unavoidable for
   any local-inference page. Six more &mdash; energy per token, draft length,
   truncation, run, projector and memory bandwidth &mdash; are here because this
   page cannot be read without them: a third of its measurements are about
   electricity, a third are about a draft head, and every number on the page
-  belongs to one particular server run.</p>
+  belongs to one particular server run. The last four &mdash; bits per weight,
+  rung and ladder, the cliff, and seat &mdash; belong to the size ladder in
+  <a href="#s08-04">&sect;08.04</a> and the judge panel in
+  <a href="#s09-09">&sect;09.09</a>, and both use them from their first
+  line.</p>
 
   <dl class="glossary">
     <dt>Run</dt>
@@ -703,6 +732,34 @@ shown. Two figures have been replaced and appear only there: the flat
     file, because writing each token means reading the whole file once
     (<a href="#s04">&sect;04</a>).</dd>
 
+    <dt>Bits per weight</dt>
+    <dd>The same idea as quantization, counted: the file's size in bits divided
+    by how many of the model's numbers &mdash; its <em>weights</em> &mdash; it
+    stores. It is what lets two files of one model be compared when their names
+    do not help. This page's shipped file is
+    <span class="egnum">4.22 bits per weight</span>
+    <span class="pv m">MEASURED</span>, which is the &ldquo;about 4.2 bits per
+    number&rdquo; above said precisely; the smallest file
+    <a href="#s08-04">&sect;08.04</a> measures is
+    <span class="egnum">1.83</span> <span class="pv m">MEASURED</span>.</dd>
+
+    <dt>Rung, and the ladder</dt>
+    <dd>A <b>ladder</b> is one model stored at a series of file sizes and
+    measured at every one of them under identical conditions. A <b>rung</b> is
+    one of those files. The ladder in <a href="#s08-04">&sect;08.04</a> has
+    <span class="egnum">nine rungs</span> <span class="pv m">MEASURED</span>,
+    from 13.842&nbsp;GiB down to 5.767, each scored on the same 294,912 token
+    positions.</dd>
+
+    <dt>The cliff</dt>
+    <dd>The place on that ladder where the price of shrinking stops being
+    gentle. Above it the median step costs
+    <span class="egnum">1.08 % of perplexity per gigabyte saved</span>; the two
+    steps below it cost <span class="egnum">5.82 and 5.91 %</span>
+    <span class="pv m">MEASURED</span>, about five times as much for the same
+    gigabyte. The last rung before the cliff is the <b>knee</b>, and on this
+    model it is 9.154&nbsp;GiB.</dd>
+
     <dt>KV cache</dt>
     <dd>What the model keeps about every token already in the window, so it does
     not have to read them again. It grows as the window fills, and it is the
@@ -753,12 +810,25 @@ shown. Two figures have been replaced and appear only there: the flat
     two different models, because the two would be counting different
     tokens.</dd>
 
+    <dt>Seat</dt>
+    <dd>One rating session of a judge model, kept apart from the others. Writing
+    cannot be marked by a computer, so the two open-ended sets in
+    <a href="#s09-09">&sect;09.09</a> were read by <b>three blind seats</b> of
+    the same model: three separate sessions, each given its own shuffled packet,
+    none of them told which setting produced which answer. Three seats buy a
+    spread as well as a score &mdash; here the seats disagreed by
+    <span class="egnum">0.28 to 0.64 rating points</span>
+    <span class="pv m">MEASURED</span> per item on average. Three sessions of one
+    model are not three independent judges, and &sect;09.09 says so beside the
+    numbers.</dd>
+
     <dt>Effort</dt>
     <dd>How long this model thinks before it answers. It has three settings
     &mdash; <code>low</code>, <code>medium</code> and <code>xhigh</code> &mdash;
     and it uses <code>xhigh</code> unless you tell it otherwise. Two numbers,
     from two different arms, and they must be read together. <b>Score:</b> on a
-    175-prompt suite, 125 of them scored, the three landed within
+    175-prompt suite &mdash; 125 mechanically scored samples per arm, or 175
+    including the two judged sets &mdash; the three landed within
     <span class="egnum">1.6 points</span> <span class="pv m">MEASURED</span> of
     each other &mdash; but only once the token cap was raised and the arms that
     had been cut off were re-run. <b>Time:</b> the original arms took
@@ -766,8 +836,10 @@ shown. Two figures have been replaced and appear only there: the flat
     <span class="pv m">MEASURED</span>, and the re-runs cost a further 0.38,
     0.53 and 2.40&nbsp;h on top. So the 1.6-point tie is the price of the
     re-run arms, not of the first ones
-    (<a href="#s09-02">&sect;09.02</a>). On that suite, effort buys time, not
-    measurable quality.</dd>
+    (<a href="#s09-02">&sect;09.02</a>). On the five mechanically scored sets,
+    effort buys time, not measurable quality; on the two judged writing sets
+    <a href="#s09-09">&sect;09.09</a> found one difference that survived
+    measurement.</dd>
 
     <dt>Prefill and decode</dt>
     <dd>Two different jobs with two different speeds. <b>Prefill</b> is reading
@@ -2520,6 +2592,18 @@ RTX 3090 :  936 GB/s &divide; 14.25 GB = 65.7 t/s theoretical
     drift, not the variable under test &mdash;
     <a href="#s09-08">&sect;09.08</a> has the mechanism, which is the board's own
     SM clock drifting 11.7&nbsp;% at constant throughput.</p>
+    <p><b>The judge: about 1.0 point on the 0&ndash;100 scale.</b> Reading the
+    same piece of writing twice does not produce the same rating twice, so the
+    two judged benchmark sets carry a third band. Across <b>74 byte-identical
+    answers</b> re-read by three fresh blind seats, the mean absolute change
+    was <b>0.333 rating points</b> out of ten, the largest single change 1.33,
+    and 25 answers scored exactly the same both times; averaged over an arm's
+    25 items that moves its score by <b>at most about 1.0 point</b>
+    <span class="pv m">MEASURED</span>. That is the band every judged number on
+    this page should be read against, and
+    <a href="#s09-09-repeat">&sect;09.09</a> shows it doing real work: it is
+    why a 0.51-point paired gap on MT-Bench is a result while a 0.44-point one
+    on ALPACA was not. Measured on ALPACA only.</p>
     <p><b>What survives.</b> <em>Ratios and shapes</em> survive both bands:
     the drafter's 2.18&times;, the 3.4&times; content spread, the 3.82&times;
     spill penalty, the 2.52&times; energy win &mdash; which
@@ -2708,7 +2792,7 @@ correspondingly softer.</code></pre>
 
 <section id="s08">
   <div class="section-tag"><span class="num">08</span>Which file</div>
-  <h2>Three files ranked on speed and energy; two have a quality number, and not the same two.</h2>
+  <h2>Three files ranked on speed and energy; nine ranked on quality &mdash; and only one file is on both lists.</h2>
 
   <p class="lead1"><b>Download
   <code>Qwen3.8-27B-UD-IQ4_XS.gguf</code></b> from
@@ -2726,14 +2810,16 @@ correspondingly softer.</code></pre>
   ranked on speed and energy here, plus a fourth, NVFP4-MTP-VERY-LOW at
   13.842&nbsp;GiB, which round 6 measured on perplexity only
   (<a href="#s08-03">&sect;08.03</a>). Round 6 went further down than that:
-  <a href="#s08-04">&sect;08.04</a> ranks <b>eight</b> files of this model from
-  4.22 bits per weight to 1.83, names where the quality curve turns, and finds
+  <a href="#s08-04">&sect;08.04</a> ranks <b>nine</b> files of this model from
+  4.40 bits per weight down to 1.83, names where the quality curve turns, and finds
   that the rung where the model stops <em>working</em> is not the rung where the
   quality curve turns. On a fixed card the
   smallest file is the fastest one and the one that leaves the most room for
   context &mdash; though &sect;08.04 puts a limit on how much of that is speed:
   across the whole ladder the file shrinks 2.30&times; and decode gains only
-  1.33&times;. Measured against the alternatives on this machine: the larger K-quant
+  1.33&times; <span class="n1">n=1 per rung</span> &mdash; one cold first
+  request per file, no drafter, <code>-c 8192</code>. Measured against the
+  alternatives on this machine: the larger K-quant
   runs <b>13&nbsp;% slower</b> at each file's own best draft setting (81.7
   against 93.9&nbsp;t/s) and costs <b>8&nbsp;% more electricity</b> per token,
   and the NVFP4 file runs <b>11&nbsp;% slower</b> with no drafter (37.3 against
@@ -2840,19 +2926,28 @@ correspondingly softer.</code></pre>
   </table></div>
 
   <h3 id="s08-04"><span class="sigil">04</span>How small can this file get and still work</h3>
+  <p class="lead1"><b>The answer first, the method after it.</b> Quality starts
+  to turn at about <b>9.2&nbsp;GiB</b>. The model still <em>works</em> &mdash;
+  holds a format, echoes a structure back, writes a well-formed fenced code
+  block &mdash; all the way down to <b>6.3&nbsp;GiB</b>, and the first hard
+  failure is one rung further down at <b>5.8</b>. Those are two different
+  thresholds, and that they are different is the finding. This page still ships
+  the 13.3&nbsp;GiB file, and it recommends <em>no</em> smaller rung for a
+  smaller card &mdash; because the arm that would justify one, the same rungs at
+  real depth with the draft head on, was never run.</p>
   <p>The file above is 13.3&nbsp;GiB, which needs a 24&nbsp;GB card. The obvious
   question is how much smaller the same model can be squeezed before it stops
   being worth running &mdash; and the answer is not one number, because
   &ldquo;stops being worth running&rdquo; turns out to have two different
   thresholds that do not sit in the same place.</p>
-  <p>Round 6 ran the same model at eight sizes, from 4.22 bits per weight down
-  to 1.83, and measured each one twice over: perplexity across 294,912 scored
-  token positions, and a battery of functional detectors that ask whether the
+  <p>Round 6 ran the same model at nine sizes, from 4.40 bits per weight down
+  to 1.83, and measured each one in two ways: perplexity across 294,912 scored
+  token positions, and a set of functional detectors that ask whether the
   thing can still hold a format, echo a structure back, and write a fenced code
   block without looping. <b>Perplexity ranks; detectors disqualify.</b> They
   answer different questions and here they disagree, which is the finding.</p>
-  <div class="tablebox"><table>
-    <caption><b>The ladder.</b> One model, eight files. Identical conditions on
+  <div class="table-wrap"><table>
+    <caption><b>The ladder.</b> One model, nine files. Identical conditions on
     every row: frozen <code>wikitext-2-raw-test</code> (md5
     <code>7c0137fc&hellip;</code>, 1,290,590&nbsp;B), 36&nbsp;&times;&nbsp;8,192
     = <b>294,912 scored positions</b>, <code>-ngl 99 -c 8192 -fa on --load-mode
@@ -2867,34 +2962,45 @@ correspondingly softer.</code></pre>
       <tr><td><code>UD-Q3_K_XL</code></td><td class="num">12.244</td><td class="num">3.895</td><td class="num">6.7691 &plusmn; 0.047</td><td class="num">+2.63&nbsp;%</td><td class="num">0.6353</td><td>PASS</td></tr>
       <tr><td><code>UD-IQ3_XXS</code></td><td class="num">10.184</td><td class="num">3.240</td><td class="num">6.9187 &plusmn; 0.048</td><td class="num">+4.90&nbsp;%</td><td class="num">0.6426</td><td>PASS</td></tr>
       <tr class="hi"><td><code>UD-Q2_K_XL</code> <span class="small">the knee</span></td><td class="num">9.154</td><td class="num">2.912</td><td class="num">6.9957 &plusmn; 0.048</td><td class="num">+6.07&nbsp;%</td><td class="num">0.6463</td><td>PASS</td></tr>
+      <tr><td><code>UD-IQ2_S</code> <span class="small">the cliff begins</span></td><td class="num">7.797</td><td class="num">2.481</td><td class="num">7.5481 &plusmn; 0.054</td><td class="num">+14.44&nbsp;%</td><td class="num">0.6715</td><td>PASS</td></tr>
       <tr><td><code>UD-IQ2_XXS</code></td><td class="num">6.767</td><td class="num">2.153</td><td class="num">8.0079 &plusmn; 0.057</td><td class="num">+21.41&nbsp;%</td><td class="num">0.6912</td><td>PASS</td></tr>
-      <tr><td><code>UD-IQ1_M</code> <span class="small">functional floor</span></td><td class="num">6.267</td><td class="num">1.994</td><td class="num">8.1418 &plusmn; 0.056</td><td class="num">+23.44&nbsp;%</td><td class="num">0.6967</td><td>PASS</td></tr>
+      <tr><td><code>UD-IQ1_M</code> <span class="small">functional floor</span></td><td class="num">6.267</td><td class="num">1.994</td><td class="num">8.1418 &plusmn; 0.056</td><td class="num">+23.44&nbsp;%</td><td class="num">0.6967</td><td>PASS <span class="small">&mdash; but unique-word ratio <b>0.358</b>, the lowest on the ladder</span></td></tr>
       <tr><td><code>UD-IQ1_S</code></td><td class="num">5.767</td><td class="num">1.835</td><td class="num">8.9265 &plusmn; 0.062</td><td class="num">+35.34&nbsp;%</td><td class="num">0.7272</td><td style="color:var(--warn)"><b>FAIL</b> <span class="small">empty JSON echo</span></td></tr>
     </tbody>
   </table></div>
   <p><b>Where the curve turns, stated as a cost.</b> Reading a curve by eye is
   how people talk themselves into a rung. The honest version is the marginal
   price of each step down: how much perplexity you pay per GiB you save.</p>
-  <div class="tablebox"><table>
-    <caption><b>The marginal cost of shrinking.</b> Every segment of the ladder,
-    priced. The median of the three segments above the cliff is 1.07&nbsp;%
-    perplexity per GiB.</caption>
+  <div class="table-wrap"><table>
+    <caption><b>The marginal cost of shrinking.</b> Every step <em>down</em> the
+    ladder from the anchor, priced. <code>NVFP4-MTP-VERY-LOW</code> is both
+    larger and worse than the anchor, so it sits on no step and appears in no
+    row here. The median of the three steps above the cliff is
+    <b>1.08&nbsp;%</b> perplexity per GiB, and the right-hand column is against
+    that figure.</caption>
     <thead><tr><th scope="col">Step down</th><th scope="col" class="num">GiB saved</th><th scope="col" class="num">% perplexity added</th><th scope="col" class="num">% per GiB</th><th scope="col" class="num">vs the median above</th></tr></thead>
     <tbody>
-      <tr><td><code>Q3_K_XL</code> &rarr; <code>IQ3_XXS</code></td><td class="num">2.06</td><td class="num">+2.21</td><td class="num">1.07</td><td class="num">&mdash;</td></tr>
-      <tr><td><code>IQ3_XXS</code> &rarr; <code>Q2_K_XL</code></td><td class="num">1.03</td><td class="num">+1.11</td><td class="num">1.08</td><td class="num">1.0&times;</td></tr>
-      <tr class="hi"><td><code>Q2_K_XL</code> &rarr; <code>IQ2_XXS</code> <span class="small">the cliff</span></td><td class="num">2.39</td><td class="num">+14.47</td><td class="num"><b>6.06</b></td><td class="num"><b>5.7&times;</b></td></tr>
+      <tr><td><code>IQ4_XS</code> &rarr; <code>Q3_K_XL</code></td><td class="num">1.03</td><td class="num">+2.63</td><td class="num">2.55</td><td class="num">2.4&times;</td></tr>
+      <tr><td><code>Q3_K_XL</code> &rarr; <code>IQ3_XXS</code></td><td class="num">2.06</td><td class="num">+2.21</td><td class="num">1.07</td><td class="num">1.0&times;</td></tr>
+      <tr><td><code>IQ3_XXS</code> &rarr; <code>Q2_K_XL</code></td><td class="num">1.03</td><td class="num">+1.11</td><td class="num">1.08</td><td class="num">&mdash; <span class="small"><em>median</em></span></td></tr>
+      <tr class="hi"><td><b><code>Q2_K_XL</code> &rarr; <code>IQ2_S</code></b> <span class="small">the cliff begins</span></td><td class="num">1.36</td><td class="num">+7.90</td><td class="num"><b>5.82</b></td><td class="num"><b>5.4&times;</b></td></tr>
+      <tr class="hi"><td><b><code>IQ2_S</code> &rarr; <code>IQ2_XXS</code></b></td><td class="num">1.03</td><td class="num">+6.09</td><td class="num"><b>5.91</b></td><td class="num"><b>5.5&times;</b></td></tr>
       <tr><td><code>IQ2_XXS</code> &rarr; <code>IQ1_M</code></td><td class="num">0.50</td><td class="num">+1.67</td><td class="num">3.34</td><td class="num">3.1&times;</td></tr>
       <tr><td><code>IQ1_M</code> &rarr; <code>IQ1_S</code></td><td class="num">0.50</td><td class="num">+9.64</td><td class="num">19.28</td><td class="num">17.8&times;</td></tr>
     </tbody>
   </table></div>
-  <p>Down to about 2.9 bits per weight the model gives up roughly one percent of
-  perplexity per gigabyte saved, three steps running, and every one of those
-  steps is far outside the error bars &mdash; this is a real slope, not noise.
-  Then it stops being a slope. <b>The knee is <code>UD-Q2_K_XL</code> at
-  9.154&nbsp;GiB</b>: the step below it costs 6.06&nbsp;% per GiB, <b>5.7&times;
-  the median of every step above</b>. That single step buys 2.39&nbsp;GiB for
-  more perplexity than the previous three steps cost put together.</p>
+  <p>From the anchor down to about 2.9 bits per weight the model gives up
+  between one and two and a half percent of perplexity per gigabyte saved
+  &mdash; 2.55, then 1.07, then 1.08&nbsp;% per GiB. Two of those three steps
+  clear their error bars comfortably, at 2.7 and 2.2 standard errors of the
+  difference; the third, <code>IQ3_XXS</code>&nbsp;&rarr;&nbsp;<code>Q2_K_XL</code>,
+  is 1.1 standard errors with its bars overlapping, so the slope in this region
+  is read from the three steps together and not from any one of them. Then it
+  stops being a slope. <b>The knee is <code>UD-Q2_K_XL</code> at
+  9.154&nbsp;GiB</b>: the step below it costs 5.82&nbsp;% per GiB at 7.7
+  standard errors, <b>5.4&times; the median of every step above</b>. That one
+  step buys 1.36&nbsp;GiB for more perplexity than all three steps above it cost
+  put together.</p>
   <div class="callout warn">
     <span class="label">The quality knee and the functional floor are different rungs, and that is the point</span>
     <p>Perplexity says stop at 9.154&nbsp;GiB. The detectors say something else:
@@ -2907,58 +3013,99 @@ correspondingly softer.</code></pre>
     <p>So a file can be well past the quality knee and still <em>work</em>, and
     a file can look fine in prose and already be broken at structure. Neither
     instrument alone would have found that. Note also what perplexity cannot do
-    here: <code>IQ2_XXS</code> and <code>IQ1_M</code> are 1.67&nbsp;% apart with
-    overlapping error bars, so perplexity <b>cannot separate them</b> &mdash;
+    here: <code>IQ2_XXS</code> and <code>IQ1_M</code> are 1.67&nbsp;% apart at
+    <b>1.7 standard errors</b> of the difference &mdash; their bars clear each
+    other by 0.02, but the gap does not reach 95&nbsp;% significance, so
+    perplexity <b>still cannot rank them with confidence</b> &mdash;
     the ranking tool runs out of resolution before the ladder does.</p>
+    <p><b>And one contrary signal sits in the same ledger line as the floor's
+    own pass.</b> <code>UD-IQ1_M</code>'s probe generation has a <b>unique-word
+    ratio of 0.358</b> across 564 words &mdash; the lowest on the ladder,
+    against 0.49&ndash;0.52 for every other passing rung, a drop of 27 to
+    30&nbsp;%. That is the shape of an answer padding itself out, and it is
+    precisely the shape <a href="#s09-09">&sect;09.09</a> establishes these four
+    detectors cannot see: they look for immediate and line-level repeats, and
+    the judge panel found degeneration that trips none of them. Read
+    &ldquo;functional floor&rdquo; as &ldquo;passes these four screens&rdquo;
+    and no wider than that.</p>
   </div>
   <p><b>The number most likely to change someone's mind.</b> The reason to want
   a smaller file is usually speed as much as memory. Across the whole ladder,
-  measured on the same probe at the same depth with no drafter: <b>the file
-  shrinks 2.30&times; and decode speeds up 1.33&times;</b> &mdash; 40.02&nbsp;t/s
-  at the anchor against 53.25 at the smallest rung. Sub-4-bit buys VRAM. It
-  barely buys speed. <span class="pv h">n=1 per rung</span> at depth 218 with
-  <code>-c 8192</code>, which is a shallow, single-probe regime: the
-  <em>ratio</em> is the durable part, the levels are not, and this page does not
-  turn it into guidance for a smaller card without a depth-and-drafter arm that
-  round 6 did not run.</p>
+  measured on the same probe with no drafter: <b>the file
+  shrinks 2.30&times; and decode speeds up 1.33&times;</b> &mdash; 40.0&nbsp;t/s
+  at the anchor against 53.3 at the smallest rung. Sub-4-bit buys VRAM. It
+  barely buys speed. <span class="n1">n=1 per rung</span> &mdash; each a cold
+  <em>first</em> request on a freshly loaded server, greedy (temperature 0 /
+  top_k 1), on a 218-token prompt with <code>-c 8192</code>, averaging decode
+  over roughly 1,200 generated tokens rather than sitting at one depth. Within
+  the anchor's single probe the server's own three-second rate falls from 43.3
+  to 37.8&nbsp;t/s. No replicated band on this page covers this probe class: the
+  <em>ratio</em> is the durable part; the absolute speeds are not. This page
+  does not turn it into guidance for a smaller card without a depth-and-drafter
+  arm that round 6 did not run.</p>
   <p><b>The comparison that actually decides it.</b> Perplexity cannot compare
   two different models &mdash; different tokenizers cut the corpus differently
   &mdash; so the question &ldquo;at the same number of gigabytes, is a big model
-  crushed better than a small model at 4 bits?&rdquo; has to be settled on
-  scored benchmarks, which are tokenizer-independent. At about 6.5&nbsp;GiB of
-  weights:</p>
-  <div class="tablebox"><table>
-    <caption><b>Equal weight budget, different models.</b> Identical frozen
+  heavily quantised better than a small model at 4 bits?&rdquo; has to be
+  settled on scored benchmarks, which are tokenizer-independent. At 6.77 against
+  6.50&nbsp;GiB of weights &mdash; a 4&nbsp;% budget advantage to the Qwen
+  arm:</p>
+  <div class="table-wrap"><table>
+    <caption><b>Equal weight budget, different models.</b> A three-benchmark
+    subset &mdash; GSM8K, HumanEval and MBPP &mdash; of the identical frozen
     suite (hash <code>1cdf54f8eb9d3f8f</code>), 25 prompts per benchmark,
-    greedy, seed 42. <b>Not</b> the seven-benchmark suite of &sect;09 and not
+    greedy, seed 42, on this same RTX&nbsp;3090. <b>The cap the argument below
+    turns on:</b> both arms first ran a <b>16,384-token cap</b> at
+    <code>-c 32768</code>, and both were re-run under the raise-the-cap rule at
+    a <b>32,768-token cap</b> with <code>-c 65536</code>; both re-runs returned
+    the identical scores and the identical truncation counts printed here. The
+    Gemma arm ran on <b>2026-08-23</b>, the Qwen arm on <b>2026-08-24</b>.
+    <b>Not</b> the seven-benchmark suite of &sect;09 and not
     comparable to its Mean. <b>A deliberate conditions difference, not a fair
     fight:</b> the Qwen arm ran at <code>reasoning_effort=low</code> with
     <code>q8_0</code> KV, the Gemma arm at its own defaults, because it has no
     effort dial.</caption>
-    <thead><tr><th scope="col">Model</th><th scope="col" class="num">GiB</th><th scope="col" class="num">bits/wt</th><th scope="col" class="num">Mean</th><th scope="col" class="num">GSM8K</th><th scope="col" class="num">HumanEval</th><th scope="col" class="num">MBPP</th><th scope="col" class="num">Truncations</th></tr></thead>
+    <thead><tr><th scope="col">Model</th><th scope="col" class="num">GiB</th><th scope="col" class="num">bits/wt</th><th scope="col" class="num">Mean &mdash; composite index<br>over &#10216;GSM8K, HumanEval, MBPP&#10217;</th><th scope="col" class="num">GSM8K</th><th scope="col" class="num">HumanEval</th><th scope="col" class="num">MBPP</th><th scope="col" class="num">Truncations</th></tr></thead>
     <tbody>
-      <tr class="hi"><td>Qwen3.8-27B <code>UD-IQ2_XXS</code></td><td class="num">6.767</td><td class="num">2.15</td><td class="num"><b>78.70</b> <span class="pv h">PROVISIONAL</span></td><td class="num">80.0</td><td class="num">84.0</td><td class="num">72.0</td><td class="num">1</td></tr>
-      <tr><td>gemma-4-12B-it-QAT <code>Q4_0</code></td><td class="num">6.497</td><td class="num">4.65</td><td class="num">73.30</td><td class="num">72.0</td><td class="num">88.0</td><td class="num">60.0</td><td class="num" style="color:var(--warn)">19</td></tr>
+      <tr class="hi"><td>Qwen3.8-27B <code>UD-IQ2_XXS</code></td><td class="num">6.767</td><td class="num">2.15</td><td class="num"><b>78.7</b></td><td class="num">80.0</td><td class="num">84.0</td><td class="num">72.0</td><td class="num">1</td></tr>
+      <tr><td>gemma-4-12B-it-QAT <code>Q4_0</code></td><td class="num">6.497</td><td class="num">4.65</td><td class="num">73.3</td><td class="num">72.0</td><td class="num">88.0</td><td class="num">60.0</td><td class="num" style="color:var(--warn)">19</td></tr>
     </tbody>
   </table></div>
-  <p>At the same weight budget the crushed 27B takes the composite by
-  5.4&nbsp;points and wins two benchmarks of three; the 12B keeps HumanEval.
-  <b>Read the truncation column before the score column.</b> The 12B failed to
-  terminate on 19 of its 75 generations, and doubling its cap changed nothing
+  <p>At the same weight budget, at each model's own settings &mdash; not a
+  matched-conditions comparison &mdash; the heavily quantised 27B takes the
+  composite by <b>5.3&nbsp;points</b> &mdash; 78.67 against 73.33; the
+  one-decimal means printed above round that gap to 5.4, which is the kind of
+  place a tenth of a point gets invented. <b>Read the truncation column before the
+  score column, because the gap is the truncation column.</b> On the items it
+  actually finished the 12B is near-perfect &mdash; 18 of 18, 22 of 22 and 15 of
+  16 &mdash; and beats the Qwen arm's 20, 21 and 18 of 25 on every set. What the
+  composite measures is that the 12B in its default thinking mode fails to
+  terminate on 19 of 75 items while the 27B terminates on 74 of 75. That is a
+  categorical finding about termination, not a resolvable quality ranking: at
+  n=25 per cell &sect;10's guardrail is about &plusmn;16 points, so
+  &ldquo;wins two benchmarks of three&rdquo; is not something this arm can
+  support. Doubling the 12B's cap changed nothing
   &mdash; identical scores, identical 19, at nearly twice the wall clock. A
   probe run afterwards found why: with its thinking left visible the runaway
   emits <b>no end-of-thinking marker at all</b>, while the same prompts with
   thinking disabled finish cleanly in a few hundred tokens. That is a property
   of that model's default mode, and it is the kind of thing a score alone hides.
-  The Qwen arm's own single truncation triggered the same raise-the-cap rule,
-  which is why its Mean is marked provisional here.</p>
-  <p><b>What is still measuring.</b> One rung, <code>UD-IQ2_S</code> at
-  7.79&nbsp;GiB, sits <em>inside</em> the cliff &mdash; between the knee at
-  9.154 and <code>IQ2_XXS</code> at 6.767. It is the rung that decides
-  <em>where</em> the cliff starts, it was enabled automatically by the ladder's
-  own steepening rule, and it is queued behind the GPU. Until it lands, this
-  page can say the cliff is between 2.91 and 2.15 bits per weight and no more
-  precisely than that.</p>
+  The Qwen arm's own single truncation triggered the same raise-the-cap rule;
+  that re-run has landed and returned identical scores with the one MBPP
+  truncation still present at the 32,768 cap &mdash; the same outcome as the
+  comparator's.</p>
+  <p><b>Where the cliff starts.</b> One rung, <code>UD-IQ2_S</code> at
+  7.797&nbsp;GiB, sits <em>inside</em> the cliff &mdash; between the knee at
+  9.154 and <code>IQ2_XXS</code> at 6.767. The ladder's own steepening rule
+  enabled it automatically, and it landed at 12:34 on 2026-08-24 at
+  <b>7.5481</b>. It answers the question it was enabled to ask. The two halves
+  of the cliff cost <b>5.82</b> and <b>5.91&nbsp;% per GiB</b> &mdash; near
+  enough the same &mdash; so the steep regime does not begin somewhere inside
+  the interval: it begins immediately below the knee, at 2.91 bits per weight.
+  Both halves are resolved far outside the error bars (7.7 and 5.9 standard
+  errors). The rule then evaluated one further rung, <code>UD-IQ3_S</code>, and
+  declined it &mdash; ratio 0.84 against a threshold of 1.5 &mdash; so the
+  ladder is closed.</p>
 
   <div class="callout warn">
     <span class="label">An instrument failure, quarantined &mdash; not a model result</span>
@@ -3000,9 +3147,11 @@ correspondingly softer.</code></pre>
   same publisher, and no row on this page treats the two as one file. So the
   honest count is: three ranked on speed and energy, one of them perplexed,
   and one perplexity comparison that reaches across into a fourth file. What
-  none of them has is the third kind of comparison. <b>No two files were compared on
-  benchmark answers, and this page publishes no accuracy ranking of
-  quantisation files.</b> That refusal is not an oversight
+  none of them has is the third kind of comparison. <b>No two quantisations of
+  this model were compared on benchmark answers, and this page publishes no
+  accuracy ranking of quantisation files.</b> The one benchmark comparison
+  between files is &sect;08.04's equal-weight-budget arm, and it reaches across
+  model families rather than within this one. That refusal is not an oversight
   and it is not a hedge; it is arithmetic. The honest gap between two healthy
   4-bit files is one to three points, and <a href="#s10">&sect;10</a> shows that
   separating a gap that size needs thousands of scored items. The suite that
@@ -3040,19 +3189,27 @@ correspondingly softer.</code></pre>
 
   <p class="lead1">This model thinks before it answers, and it thinks as hard as
   it can unless you tell it otherwise. Set <code>reasoning_effort</code>
-  explicitly: no other line in the configuration changes as much. On a suite of 175 prompts &mdash; 125 of them scored &mdash; the three settings
+  explicitly: no other line in the configuration changes as much. On a suite of 175 prompts &mdash; 125 mechanically scored samples per arm, or 175 including the two judged sets &mdash; the three settings
   landed within <b>1.6 points</b> of one another &mdash; less than half of one question at
   n=25 &mdash; while the wall clock went from <b>1.00 to 2.70 hours</b> and the
-  energy per answer went from <b>21 to 105 watt-hours</b>. On this evidence,
-  effort buys time and electricity, not measurable quality. Choose it as a
+  energy per answer went from <b>21 to 105 watt-hours</b>. On the five
+  mechanically scored sets, effort buys time and electricity and no measurable
+  quality. On the two judged writing sets it does:
+  <a href="#s09-09">&sect;09.09</a> separates <code>medium</code> from
+  <code>xhigh</code> on MT-Bench, and that is the campaign's only measured
+  quality difference between effort levels. Choose it as a
   budget decision. If you need one default, <code>medium</code> is the
   <em>middle setting</em> of the three and is what the recipes ship &mdash; not
-  the middle-scoring one. On the raised-cap suite it scored
+  the middle-scoring one. On the five-set index it scored
   <b>lowest</b> of the three, 80.5 against <code>xhigh</code>'s 81.3 and
-  <code>low</code>'s 82.1, and the whole point of
-  <a href="#s10-03">&sect;10.03</a> is that a 1.6-point spread at this sample
-  size is not a ranking at all. <code>low</code> scored highest and costs a
-  third of the time. This page crowns none of the three.</p>
+  <code>low</code>'s 82.1; on the seven-set index that the protocol specifies it
+  scores <b>highest</b>, 80.3 against 80.2 and 79.7. Two indexes disagreeing on
+  the order is itself the argument that a spread this size is not a ranking,
+  which is the whole point of <a href="#s10-03">&sect;10.03</a>.
+  <code>low</code> scored highest on the five-set index and costs a
+  third of the time. No level is crowned on the mechanically scored suite;
+  &sect;09.09's task-specific split on writing is the one exception and is
+  stated there.</p>
 
   <h3 id="s09-01"><span class="sigil">01</span>What each level costs, on one long authoring task</h3>
   <p>Identical prompt &mdash; one self-contained HTML page against a long
@@ -3094,7 +3251,7 @@ correspondingly softer.</code></pre>
   model's own token on each pass, which the accepted form omits. The two
   quantities differ by exactly 1, and this page previously printed the predicted
   column under the accepted definition's formula; that is now corrected in both
-  places.
+  places (<a href="#s15-04">&sect;15.04</a>, item 15).
   <b>Higher effort costs you twice</b>: more tokens, each arriving more
   slowly.</p>
 
@@ -3114,15 +3271,17 @@ correspondingly softer.</code></pre>
   <p>Round 3 ran the standard effort protocol: seven benchmark sets, 25 questions
   each, at all three effort levels, greedy so the runs are reproducible, with the
   draft head turned <em>off</em> so the scores are clean of it. That is 175
-  prompts per arm and 525 generations, of which <b>375 are scored</b> &mdash;
-  the five sets below, at 25 questions each, across three arms. Two of the seven sets need an
-  independent judge model to score, and there was none on this machine, so
-  <b>ALPACA and MT-Bench ran unscored with their transcripts kept</b> &mdash; a
-  model must never judge its own outputs. Everything below is therefore a
-  <b>composite index over five scored sets</b>, not an accuracy.</p>
+  prompts per arm and 525 generations, <b>all 525 now scored</b>.
+  Five sets are marked mechanically. The other two need a judge model; there
+  was none on this machine when round 3 ran, so ALPACA and MT-Bench were kept
+  as transcripts and scored on 2026-08-24 by the blind three-seat panel of
+  <a href="#s09-09">&sect;09.09</a> &mdash; a model must never judge its own
+  outputs, and these answers are Qwen's. Both composites are printed below: the
+  five-set index because every earlier comparison on this page is against it,
+  and the seven-set index because that is what the protocol specifies.</p>
 
   <div class="table-wrap"><table>
-    <caption>All scores <span class="pv m">MEASURED</span> 2026-08-23 round 3 &mdash; suite <code>rule21-n25.json</code>, hash <b><code>1cdf54f8eb9d3f8f</code></b>, 175 prompts, n=25 per set, greedy (temperature 0 / top_k 1), seed 42, <b>no speculative decoding</b>, <code>-ngl 99 --parallel 1 --jinja -ctk q8_0 -ctv q8_0</code>, effort set per arm at load time. Base arms <code>-c 32768</code> with a 16,384-token cap; the raised-cap re-run <code>-c 65536</code> with a 32,768-token cap. <b>Condition that travels with every cell:</b> all three arms were re-graded offline from their kept transcripts with the final scorer after three scoring bugs were fixed (&sect;09.03) &mdash; the generations are untouched, only the grading was redone, and it cost no GPU time.</caption>
+    <caption>All scores <span class="pv m">MEASURED</span> 2026-08-23 round 3 &mdash; suite <code>rule21-n25.json</code>, hash <b><code>1cdf54f8eb9d3f8f</code></b>, 175 prompts, n=25 per set, greedy (temperature 0 / top_k 1), seed 42, <b>no speculative decoding</b>, <code>-ngl 99 --parallel 1 --jinja -ctk q8_0 -ctv q8_0</code>, effort set per arm at load time. Base arms <code>-c 32768</code> with a 16,384-token cap; the raised-cap re-run <code>-c 65536</code> with a 32,768-token cap. <b>Condition that travels with every cell:</b> all three arms were re-graded offline from their kept transcripts with the final scorer after three scoring bugs were fixed (&sect;09.03) &mdash; the generations are untouched, only the grading was redone, and it cost no GPU time. <b>Cap conditions on the judged cells, stated exactly:</b> MT-Bench and the <code>low</code> and <code>medium</code> ALPACA arms were generated at the 16,384 cap; <b><code>xhigh</code> ALPACA comes from the 32,768-cap re-run</b>, which reproduced its one non-terminating answer; the five mechanical sets are at 32,768. The seven-set composite therefore mixes the two caps, and that is now its final condition rather than a temporary one. Because the re-run replaced one arm's answers, <b>all three ALPACA arms were re-judged together in one session</b> (<a href="#s09-09">&sect;09.09</a>). Seat spreads are published beside every judged mean in <a href="#s09-09">&sect;09.09</a>, whose judge is a correlated instrument &mdash; judge and author are both Claude models.</caption>
     <thead><tr><th scope="col">Benchmark</th><th scope="col">Scorer</th><th scope="col" class="num">low<br><span class="pv m">MEASURED</span></th><th scope="col" class="num">medium<br><span class="pv m">MEASURED</span></th><th scope="col" class="num">xhigh<br><span class="pv m">MEASURED</span></th><th scope="col" class="num">low<br><span class="pv m">MEASURED</span></th><th scope="col" class="num">medium<br><span class="pv m">MEASURED</span></th><th scope="col" class="num">xhigh<br><span class="pv m">MEASURED</span></th></tr></thead>
     <tbody>
       <tr class="grp"><td colspan="2">cap</td><td colspan="3" style="text-align:right">16,384 &mdash; the artifact</td><td colspan="3" style="text-align:right"><b>32,768 &mdash; what to read</b></td></tr>
@@ -3131,10 +3290,10 @@ correspondingly softer.</code></pre>
       <tr><td>HumanEval</td><td class="small">execution pass@1</td><td class="num">100</td><td class="num">96 <span class="small">1 trunc</span></td><td class="num">84 <span class="small">4 trunc</span></td><td class="num">100</td><td class="num">96</td><td class="num"><b>92</b> <span class="small">2 trunc</span></td></tr>
       <tr><td>MBPP</td><td class="small">execution pass@1</td><td class="num">92</td><td class="num">84 <span class="small">1 trunc</span></td><td class="num">88 <span class="small">2 trunc</span></td><td class="num">92</td><td class="num">84</td><td class="num"><b>92</b> <span class="small">1 trunc</span></td></tr>
       <tr><td>MeetingBank</td><td class="small">ROUGE-L F1</td><td class="num">22.6</td><td class="num">22.4</td><td class="num">22.3</td><td class="num">22.6</td><td class="num">22.4</td><td class="num">22.3</td></tr>
-      <tr><td>ALPACA</td><td class="small">judge 1&ndash;10 <span class="pv j">JUDGED</span></td><td colspan="3" class="small" style="text-align:center">generated at this cap; scored 2026-08-24</td><td class="num">70.2</td><td class="num"><b>75.1</b></td><td class="num">72.9 <span class="small">1 empty</span></td></tr>
+      <tr><td>ALPACA</td><td class="small">judge 1&ndash;10 <span class="pv j">JUDGED</span></td><td colspan="3" class="small" style="text-align:center"><code>low</code> and <code>medium</code> generated at this cap; <code>xhigh</code> re-run at 32,768; all three judged 2026-08-24</td><td class="num">70.2</td><td class="num"><b>74.1</b></td><td class="num">72.1<br><span class="small">1 empty, disclosed</span></td></tr>
       <tr><td>MT-Bench <span class="small">turn 1</span></td><td class="small">judge 1&ndash;10 <span class="pv j">JUDGED</span></td><td colspan="3" class="small" style="text-align:center">never truncated at either cap</td><td class="num">80.7</td><td class="num"><b>85.3</b></td><td class="num">79.7</td></tr>
       <tr class="hi"><td colspan="2"><b>Mean &mdash; composite index over &#10216;GSM8K, MATH-500, HumanEval, MBPP, MeetingBank&#10217;</b></td><td class="num">81.3</td><td class="num">80.5</td><td class="num" style="color:var(--warn)"><b>77.3</b></td><td class="num"><b>82.1</b></td><td class="num"><b>80.5</b></td><td class="num"><b>81.3</b></td></tr>
-      <tr class="hi"><td colspan="2"><b>Mean &mdash; composite index over all seven sets</b> <span class="small">what the protocol actually specifies</span></td><td colspan="3" class="small" style="text-align:center">&mdash;</td><td class="num"><b>80.2</b></td><td class="num"><b>80.4</b></td><td class="num"><b>79.8</b></td></tr>
+      <tr class="hi"><td colspan="2"><b>Mean &mdash; composite index over all seven sets</b> <span class="small">what the protocol actually specifies</span></td><td colspan="3" class="small" style="text-align:center">&mdash;</td><td class="num"><b>80.2</b></td><td class="num"><b>80.3</b></td><td class="num"><b>79.7</b></td></tr>
       <tr><td colspan="2">Truncations, scored sets</td><td class="num">1</td><td class="num">2</td><td class="num" style="color:var(--warn)">8</td><td class="num">0</td><td class="num">0</td><td class="num">3</td></tr>
       <tr><td colspan="2">Wall time, base arm</td><td class="num">1.00 h</td><td class="num">1.47 h</td><td class="num">2.70 h</td><td class="num" colspan="3" style="text-align:right">re-runs: 0.38 / 0.53 / 2.40 h</td></tr>
       <tr><td colspan="2">Mean output tokens, all 7 sets</td><td class="num">830</td><td class="num">1,228</td><td class="num">2,217</td><td class="num" colspan="3" style="text-align:right">decode 42.2 / 42.0 / 41.9 t/s<br><span class="small">base arms, harness unweighted mean</span></td></tr>
@@ -3259,7 +3418,9 @@ correspondingly softer.</code></pre>
     <span class="label">What this is and is not evidence of</span>
     <p>At <span class="n1">n=1</span> and temperature 1.0 this is <b>not</b>
     evidence that <code>medium</code> is worse than <code>low</code>, and no
-    level is crowned anywhere on this page. It is evidence that this model, at
+    level is crowned on the mechanically scored suite &mdash;
+    <a href="#s09-09">&sect;09.09</a>'s judged split on writing is the one
+    exception. It is evidence that this model, at
     this size, on this task, will ship an initialisation-order bug that a browser
     does not complain about &mdash; and that reading the output matters more than
     the effort setting you chose. Every generative probe in this campaign is a
@@ -3560,15 +3721,29 @@ correspondingly softer.</code></pre>
   runs in this section do not suffer from it: excluding each arm's first
   60&nbsp;seconds changes their watt-hours by 0.01 to 0.63&nbsp;%.</p>
 
-  <h3 id="s09-judge"><span class="sigil">09</span>The two sets a machine cannot mark, and what a judge found in them</h3>
+  <h3 id="s09-09"><span class="sigil">09</span>The two sets a machine cannot mark, and what a judge found in them</h3>
+  <p class="lead1"><b>The answer first.</b> A blind three-seat panel read the
+  two writing sets on 2026-08-24 &mdash; ALPACA twice, because a re-run replaced
+  one of its arms &mdash; and ran six paired comparisons between the effort
+  levels. Exactly one of the six survives as a result: on
+  <b>MT-Bench turn 1 the middle effort setting beat the highest one</b>, by 0.51
+  rating points, winning 14 prompts to 3. <b>Use <code>medium</code> for writing
+  of that kind</b> &mdash; on ALPACA the same pairing is a tie. That is the only
+  place in this whole campaign where the effort dial moved a measured quality
+  number, and it is one set, not writing in general. A second comparison that
+  the first pass had called <em>marginal</em> did not survive the second reading;
+  what kept it from becoming a claim is that it was labelled marginal in
+  advance.</p>
   <p>Five of the seven benchmark sets can be marked by a computer, because
   there is a right answer or the code runs. The other two ask for open-ended
   writing, and the only way to score writing is to have something read it. For
   most of this campaign nothing suitable was available, so this page published
   a five-of-seven index and kept the transcripts. On <b>2026-08-24</b> they
   were read.</p>
-  <p>The reader was a panel of <b>three independent Claude Opus&nbsp;5 seats</b>,
-  blind. Every answer carried an opaque salted identifier; the map from
+  <p>The reader was a panel of <b>three blind Claude Opus&nbsp;5 seats</b>
+  &mdash; three separate rating sessions of the same model, kept apart from each
+  other and not independent of one another. Every answer carried an opaque
+  salted identifier; the map from
   identifier to effort arm was sealed in a key file no seat opened; each seat
   received its packet under its own shuffle seed, so ordering effects could not
   line up across seats. All three seats rated all <b>150</b> answers &mdash;
@@ -3576,59 +3751,137 @@ correspondingly softer.</code></pre>
   1&ndash;10 single-answer rubric, normalised
   <code>(r&minus;1)&divide;9&times;100</code>. Builder, scorer and paired test:
   <code>scripts/bench/judge-panel.py</code>.</p>
-  <div class="tablebox"><table>
-    <caption><b>The judged pair, per effort arm.</b> Generations are the
-    16,384-cap arms; of these two sets only <code>xhigh</code> ALPACA ever hit
-    a cap, so nothing else needed the raised-cap re-run. Seat spread is the
+  <p>The panel ran <b>twice on ALPACA</b>. The first pass read the 16,384-cap answers;
+  then the raised-cap re-run described below replaced the <code>xhigh</code>
+  arm's answers, so all <b>75</b> ALPACA answers &mdash; not only the changed
+  arm &mdash; went back to <b>three fresh blind seats</b> under the same
+  protocol, for <b>225 further ratings</b> and 675 in total. Re-judging all
+  three arms together is what keeps the three ALPACA numbers comparable with
+  each other: they come from one session rather than two. <b>MT-Bench never
+  truncated, was never re-run, and keeps its first-pass numbers.</b> The two
+  ALPACA passes also bought something the campaign had no number for at all,
+  and it is below: <a href="#s09-09-repeat">how repeatable the judge itself
+  is</a>.</p>
+  <div class="table-wrap"><table>
+    <caption><b>The judged pair, per effort arm.</b> Of these two sets only
+    <code>xhigh</code> ALPACA ever hit a cap, so nothing else needed the
+    raised-cap re-run. Generations are the 16,384-cap arms <b>except
+    <code>xhigh</code> ALPACA, which is the 32,768-cap re-run</b>; the three
+    ALPACA rows were rated in one session, the MT-Bench rows in the first pass.
+    Seat spread is the
     mean per-item range across the three seats, in rating points out of ten.</caption>
     <thead><tr><th scope="col">Set</th><th scope="col">Measure</th><th scope="col" class="num">low</th><th scope="col" class="num">medium</th><th scope="col" class="num">xhigh</th></tr></thead>
     <tbody>
-      <tr><td rowspan="3">ALPACA</td><td class="small">mean rating 1&ndash;10</td><td class="num">7.32</td><td class="num"><b>7.76</b></td><td class="num">7.56</td></tr>
-      <tr><td class="small">score 0&ndash;100</td><td class="num">70.2</td><td class="num"><b>75.1</b></td><td class="num">72.9 <span class="pv h">PROVISIONAL</span></td></tr>
-      <tr><td class="small">seat spread &middot; max</td><td class="num">0.92 &middot; 3</td><td class="num">0.56 &middot; 2</td><td class="num">0.56 &middot; 2</td></tr>
+      <tr><td rowspan="3">ALPACA</td><td class="small">mean rating 1&ndash;10</td><td class="num">7.32</td><td class="num"><b>7.67</b></td><td class="num">7.49</td></tr>
+      <tr><td class="small">score 0&ndash;100</td><td class="num">70.2</td><td class="num"><b>74.1</b></td><td class="num">72.1</td></tr>
+      <tr><td class="small">seat spread &middot; max</td><td class="num">0.64 &middot; 3</td><td class="num">0.60 &middot; 2</td><td class="num">0.56 &middot; 1</td></tr>
       <tr><td rowspan="3">MT-Bench <span class="small">turn 1</span></td><td class="small">mean rating 1&ndash;10</td><td class="num">8.27</td><td class="num"><b>8.68</b></td><td class="num">8.17</td></tr>
       <tr><td class="small">score 0&ndash;100</td><td class="num">80.7</td><td class="num"><b>85.3</b></td><td class="num">79.7</td></tr>
       <tr><td class="small">seat spread &middot; max</td><td class="num">0.28 &middot; 1</td><td class="num">0.64 &middot; 3</td><td class="num">0.44 &middot; 1</td></tr>
-      <tr><td colspan="5" class="small"><b>Why <code>xhigh</code> ALPACA is provisional.</b> One of its 25 answers
-      spent all 16,384 tokens inside a reasoning block and returned <b>zero
-      characters</b>; all three seats rated it 1. Rule 7 forbids both publishing
-      an arm with an unremedied truncation and quietly dropping the item, so the
-      raised-cap re-run of that arm is queued and this cell will be replaced.
-      The other five cells are final. Note the signature: this is the same
+      <tr><td colspan="5" class="small"><b>The one empty answer, and why the <code>xhigh</code> ALPACA cell is now
+      final rather than provisional.</b> Item 21 of that arm spent all 16,384
+      tokens inside a reasoning block and returned <b>zero characters</b>; all
+      three seats rated it 1. Rule 7 forbids both publishing an arm with an
+      unremedied truncation and quietly dropping the item, so the whole arm was
+      re-run at a <b>32,768-token cap</b> on 2026-08-24, 15:47&ndash;16:08.
+      <b>The re-run reproduced the truncation exactly:</b> item 21 again
+      consumed its entire budget inside the reasoning block and again returned
+      zero characters, while the other 24 answers came back token-for-token
+      identical. Doubling the budget changed nothing, so this is a
+      <b>non-terminating generation, not a budget shortfall</b>; rule 7's remedy
+      is exhausted, no further raise is licensed, and <b>the score is final and
+      carries one disclosed non-terminating answer</b>. All six cells in this
+      table are final. Note the signature: this is the same
       never-closed-thinking-block failure the cross-family arm showed, appearing
-      here in Qwen at its highest effort setting.</td></tr>
+      here in Qwen at its highest effort setting &mdash; and here it survived a
+      doubled cap, which is the stronger version of the same evidence.</td></tr>
     </tbody>
   </table></div>
-  <p><b>The finding, and it is the first thing in this campaign that separates
+  <p><b>The finding, and it is the only thing in this campaign that separates
   the effort levels at all.</b> Because the same 25 prompts went to every arm,
   the arms can be compared prompt against prompt rather than mean against mean,
   which is far more sensitive. A 20,000-resample bootstrap over the per-prompt
   differences (seed 42, 95&nbsp;% interval, item score = mean of three seats):</p>
-  <div class="tablebox"><table>
-    <caption><b>Paired arm comparison.</b> Six comparisons were run; at
-    95&nbsp;% that is roughly one false positive every three runs, so an
-    interval that barely clears zero is reported as marginal and never as a
-    result on its own.</caption>
+  <div class="table-wrap"><table>
+    <caption><b>Paired arm comparison &mdash; final, all six.</b> Six
+    comparisons were run; at 95&nbsp;% that is roughly one false positive every
+    three runs, so an interval that barely clears zero was reported as marginal
+    and never as a result on its own &mdash; and the one interval that did
+    barely clear zero has since been re-measured and is a tie, which is the
+    next callout. The three ALPACA rows are from the second judging pass; the
+    three MT-Bench rows are from the first and are unchanged.</caption>
     <thead><tr><th scope="col">Set</th><th scope="col">Comparison</th><th scope="col" class="num">Mean diff</th><th scope="col" class="num">95&nbsp;% interval</th><th scope="col" class="num">Won &middot; lost &middot; tied</th><th scope="col">Verdict</th></tr></thead>
     <tbody>
-      <tr class="hi"><td>MT-Bench</td><td><code>medium</code> over <code>xhigh</code></td><td class="num">+0.51</td><td class="num">+0.21 to +0.80</td><td class="num">14 &middot; 3 &middot; 8</td><td><b>Different</b></td></tr>
-      <tr><td>ALPACA</td><td><code>medium</code> over <code>low</code></td><td class="num">+0.44</td><td class="num">+0.013 to +0.91</td><td class="num">12 &middot; 5 &middot; 8</td><td>Different, <b>marginal</b></td></tr>
+      <tr class="hi"><td>MT-Bench</td><td><code>medium</code> over <code>xhigh</code></td><td class="num">+0.51</td><td class="num">+0.21 to +0.80</td><td class="num">14 &middot; 3 &middot; 8</td><td><b>Different</b><br><span class="small">the only separation on the page</span></td></tr>
       <tr><td>MT-Bench</td><td><code>medium</code> over <code>low</code></td><td class="num">+0.41</td><td class="num">&minus;0.11 to +1.21</td><td class="num">10 &middot; 5 &middot; 10</td><td>Tie</td></tr>
-      <tr><td>ALPACA</td><td><code>xhigh</code> over <code>low</code></td><td class="num">+0.24</td><td class="num">&minus;0.59 to +1.04</td><td class="num">11 &middot; 9 &middot; 5</td><td>Tie</td></tr>
-      <tr><td>ALPACA</td><td><code>xhigh</code> over <code>medium</code></td><td class="num">&minus;0.20</td><td class="num">&minus;1.03 to +0.63</td><td class="num">9 &middot; 11 &middot; 5</td><td>Tie</td></tr>
+      <tr><td>ALPACA</td><td><code>medium</code> over <code>low</code></td><td class="num">+0.35</td><td class="num">&minus;0.04 to +0.73</td><td class="num">11 &middot; 4 &middot; 10</td><td>Tie<br><span class="small">called <em>marginal</em> at +0.44 on the first pass</span></td></tr>
+      <tr><td>ALPACA</td><td><code>xhigh</code> over <code>low</code></td><td class="num">+0.17</td><td class="num">&minus;0.59 to +0.89</td><td class="num">13 &middot; 7 &middot; 5</td><td>Tie</td></tr>
       <tr><td>MT-Bench</td><td><code>xhigh</code> over <code>low</code></td><td class="num">&minus;0.09</td><td class="num">&minus;0.61 to +0.69</td><td class="num">6 &middot; 14 &middot; 5</td><td>Tie</td></tr>
+      <tr><td>ALPACA</td><td><code>xhigh</code> over <code>medium</code></td><td class="num">&minus;0.17</td><td class="num">&minus;0.99 to +0.64</td><td class="num">8 &middot; 13 &middot; 4</td><td>Tie</td></tr>
     </tbody>
   </table></div>
+
+  <div class="callout warn">
+    <span class="label">A result that died when it was measured a second time</span>
+    <p>The first pass put <code>medium</code> ahead of <code>low</code> on
+    ALPACA and could not quite call it a tie. The second pass, over answers
+    that had not changed, put the two level. So the first reading was not a
+    small true effect; it was the instrument moving. The only reason it never
+    turned into something this page claimed is that it was labelled
+    <em>marginal</em> when it was first written down, before anyone knew which
+    way it would go.</p>
+    <p>The numbers. Pass 1: <b>+0.44 rating points, interval +0.013 to
+    +0.91</b> &mdash; clearing zero by thirteen thousandths of a rating point.
+    Pass 2: <b>+0.35, interval &minus;0.04 to +0.73</b> &mdash; a
+    <b>tie</b>, and the row above says so. That leaves <b>one</b> of six
+    comparisons standing as a separation between effort levels, MT-Bench
+    <code>medium</code> over <code>xhigh</code>, which was never re-judged
+    because MT-Bench never truncated and so was never re-run.</p>
+  </div>
+
+  <div class="callout" id="s09-09-repeat">
+    <span class="label">And the judge acquired a noise floor &mdash; the band every judged number on this page should be read against</span>
+    <p>Rating the same writing twice does not give the same answer twice, and
+    until the second pass this page had no idea by how much. It does now.
+    Almost every answer in the two ALPACA passes was <em>the same text</em>,
+    byte for byte &mdash; only the one non-terminating item changed &mdash; so
+    every difference in what the seats said about them is the instrument
+    talking, not the model. That number is the yardstick for reading every
+    other judged figure here.</p>
+    <p>The numbers. <b>74 of the 75 answers were byte-identical</b> between the
+    passes. Across them the <b>mean absolute change was 0.333 rating points</b>,
+    the <b>largest single change 1.333</b>, and <b>25 answers scored exactly the
+    same both times</b>. Averaged over the 25 items of an arm, that moves an
+    arm's score by <b>at most about 1.0 point on the 0&ndash;100 scale</b>.
+    That band is precisely why a 0.51-point paired gap on MT-Bench is a result
+    and a 0.44-point one on ALPACA was not. <b>Measured on ALPACA only:</b>
+    MT-Bench was not re-judged, so carrying this band across to its numbers is
+    an assumption, and it is written here as one rather than used as a
+    measurement.</p>
+  </div>
   <div class="callout warn">
     <span class="label">This sharpens the <code>xhigh</code> recommendation rather than reversing it</span>
     <p>The case for <code>xhigh</code> was never a higher score &mdash; it was
     <em>completeness</em> on complex code tasks, where it was the only level to
-    deliver the whole specification with no fatal defect, twice out of two.
-    That is a categorical finding and it stands. What the judged pair adds is
-    the other half: <b>on open-ended writing, more thinking made the answers
-    measurably worse.</b> Longer deliberation produced more places to go wrong.
+    deliver the whole specification with no fatal defect &mdash; at n=2, and
+    only on the run that had a cap it could reach. The other run hit the
+    65,536-token cap and returned nothing at all
+    (<a href="#s09-04">&sect;09.04</a>). That is a categorical finding at n=2
+    with a cap condition attached, and it stands only with both. What the judged pair adds is
+    the other half: <b>on MT-Bench turn 1, more thinking made the answers
+    measurably worse</b> &mdash; while on ALPACA the same pairing is a tie. Of
+    six comparisons this is the <b>only</b> one that clears a 95&nbsp;% test,
+    and the one that used to be reported beside it as marginal is now a tie
+    too, so it is a <b>set-specific</b>
+    result: the overthinking effect &mdash; longer deliberation producing
+    more places to go wrong &mdash; is measured on MT-Bench turn 1 and nowhere
+    else, is a candidate mechanism rather than an established one, and this page
+    does not extend it to open-ended writing in general.
     So: <code>xhigh</code> for hard code you need finished, <code>medium</code>
-    for writing.</p>
+    for writing of the kind MT-Bench asks for. The recipes ship <code>medium</code>; using <code>xhigh</code>
+    means overriding it per request <em>and</em> setting <code>max_tokens</code>
+    to 120,000, which fits one turn per 131,072-token window
+    (<a href="#s03-05">&sect;03.05</a>).</p>
   </div>
   <p><b>What the seats caught that no mechanical scorer could.</b> The score is
   the smaller half of what a judge buys. Three failure modes turned up that
@@ -3672,8 +3925,10 @@ correspondingly softer.</code></pre>
     that judges reward length; these seats were instructed against it and
     reported correcting for it, which is self-report, not proof. <b>Still
     open:</b> a judge from another vendor, or human raters. The blinded
-    packets, the sealed key and all 450 ratings are kept, so any other judge
-    can be run over exactly these answers and compared.</p>
+    packets, the sealed key and all 675 ratings from both passes are kept, so
+    any other judge can be run over exactly these answers and compared &mdash;
+    and the second pass has already put a number on how much this judge moves
+    when nothing else does.</p>
     <p><b>One condition that is not eliminated.</b> A seat sees several answers
     to the same question inside one shuffled batch. This is not a clean-room
     single-answer protocol, and the condition travels with the numbers rather
@@ -3682,30 +3937,34 @@ correspondingly softer.</code></pre>
 
   <h3 id="s09-10"><span class="sigil">10</span>Guidance &mdash; which level for which work</h3>
   <p>Here is the whole section as one decision. Pick by what you can afford in
-  time and electricity, not by expected quality, because the quality difference
-  between the three did not survive measurement at this sample size.</p>
+  time and electricity, because on the five mechanically scored sets the quality
+  difference between the three did not survive measurement at this sample size.
+  On the two judged writing sets it did:
+  <a href="#s09-09">&sect;09.09</a> puts <code>medium</code> ahead of
+  <code>xhigh</code> on MT-Bench.</p>
   <div class="table-wrap"><table>
-    <caption>Cost columns <span class="pv m">MEASURED</span>: score from round 3 at n=25 per set, wall and energy from round 1 at <span class="n1">n=1</span> on one authoring task. The right-hand columns are judgement informed by those two rounds, labelled as such rather than dressed up as a finding. <b>No level is crowned anywhere on this page</b>, and nothing below should be read as one.</caption>
-    <thead><tr><th scope="col">Level</th><th scope="col" class="num">Composite<br>index</th><th scope="col" class="num">Cost, one long<br>authoring task</th><th scope="col">Use it when</th><th scope="col">Do not use it when</th></tr></thead>
+    <caption>Cost columns <span class="pv m">MEASURED</span>: score from round 3 at n=25 per set, wall and energy from round 1 at <span class="n1">n=1</span> on one authoring task. The right-hand columns are judgement informed by those two rounds, labelled as such rather than dressed up as a finding. <b>No level is crowned on the mechanically scored suite</b>; &sect;09.09's judged split on writing is the one exception and is named in the cells below.</caption>
+    <thead><tr><th scope="col">Level</th><th scope="col" class="num">Composite index<br><span class="small">five mechanically scored sets</span></th><th scope="col" class="num">Cost, one long<br>authoring task</th><th scope="col">Use it when</th><th scope="col">Do not use it when</th></tr></thead>
     <tbody>
       <tr>
         <td><code>low</code></td><td class="num">82.1</td>
         <td class="num">17,321 tok<br>3 m 35 s<br><b>20.6 Wh</b></td>
-        <td>The task is well specified and the shape of the answer is obvious. It is the cheapest arm in time and in energy, and on the suite's 125 scored prompts it scored highest &mdash; by less than half of one question, which is to say it scored the same.</td>
+        <td>The task is well specified and the shape of the answer is obvious. It is the cheapest arm in time and in energy, and on the five-set composite in the column beside it &mdash; 125 mechanically scored samples per arm, or 175 including the two judged sets &mdash; it scored highest, by less than half of one question, which is to say it scored the same. On the seven-set index it is second.</td>
         <td>The task needs the model to notice something you did not tell it.</td>
       </tr>
       <tr>
         <td><code>medium</code> <span class="small">(shipped)</span></td><td class="num">80.5</td>
         <td class="num">24,973 tok<br>6 m 16 s<br><b>36.0 Wh</b></td>
-        <td>You want a middle default and do not want to think about it. This run volunteered high-DPI handling, resize-safe coordinates and unprompted extras.</td>
+        <td>You want a middle default and do not want to think about it. This run volunteered high-DPI handling, resize-safe coordinates and unprompted extras &mdash; and it is the level to use for MT-Bench-style open-ended writing: the blind panel of <a href="#s09-09">&sect;09.09</a> put it ahead of <code>xhigh</code> on MT-Bench, measured and paired; on ALPACA the same pairing is a tie, so the finding is that set's, not writing's in general.</td>
         <td>You will not read the output. This run shipped a bug a browser reports as nothing at all.</td>
       </tr>
       <tr>
         <td><code>xhigh</code> <span class="small">(the model's default)</span></td><td class="num">81.3</td>
         <td class="num">61,476&ndash;&gt;65,536 tok<br>18&ndash;21 min<br><b style="color:var(--warn)">105&ndash;120 Wh</b></td>
-        <td>You can afford eighteen minutes and 105 watt-hours for one answer <em>and</em> you have set a cap it cannot reach. Treat it as completeness insurance, not as a quality setting &mdash; the score argument for it does not exist.</td>
+        <td>You can afford eighteen minutes and 105 watt-hours for one answer <em>and</em> you have set a cap it cannot reach. Treat it as completeness insurance, not as a quality setting &mdash; the score argument for it does not exist. Not for MT-Bench-style open-ended writing &mdash; <a href="#s09-09">&sect;09.09</a> measured it behind <code>medium</code> on that one set, with ALPACA a tie on the same pairing.</td>
         <td>Your cap is anywhere near 65,536, or the conversation has more than one turn in a 131,072 window. At n=2 its appetite landed on both sides of that cap and the run that crossed it returned <b>nothing usable</b> after 21 minutes and 120 Wh.</td>
       </tr>
+      <tr><td colspan="5" class="small">On the seven-set index that includes the judged sets the order reverses &mdash; 80.2 / 80.3 / 79.7 &mdash; which is itself the point: a 1.6-point spread and a 0.6-point spread are both ties.</td></tr>
     </tbody>
   </table></div>
 
@@ -3747,7 +4006,7 @@ correspondingly softer.</code></pre>
       <tr><td class="num">10 pts</td><td class="num">~100&ndash;150</td><td class="num">1.5&ndash;2.3 h</td><td class="num">0.51&ndash;0.76 kWh</td><td>A different model size class.</td></tr>
       <tr><td class="num">5 pts</td><td class="num">~300&ndash;500</td><td class="num">4.6&ndash;7.6 h</td><td class="num">1.5&ndash;2.5 kWh</td><td>A genuinely worse quantisation.</td></tr>
       <tr><td class="num">1&ndash;3 pts</td><td class="num">thousands</td><td class="num">30 h+</td><td class="num">10 kWh+</td><td>Every Q4-class quant against every other one. <b>This is the gap a file comparison actually needs.</b></td></tr>
-      <tr><td colspan="5" class="small">For scale: the whole seven-set sweep at n=25 across three effort levels cost <b>8.48 GPU-hours</b> <span class="pv m">MEASURED</span>. Taking the same suite to n=200 is eight times that &mdash; about <b>68 GPU-hours</b>, close to three days of one card doing nothing else <span class="pv d">DERIVED</span>.</td></tr>
+      <tr><td colspan="5" class="small">For scale: the whole seven-set sweep at n=25 across three effort levels cost <b>8.82 GPU-hours</b> <span class="pv m">MEASURED</span> (8.48 for the sweep itself, plus 21 m for the last raised-cap re-run on 08-24). Taking the same suite to n=200 is eight times that &mdash; about <b>68 GPU-hours</b>, close to three days of one card doing nothing else <span class="pv d">DERIVED</span>.</td></tr>
     </tbody>
   </table></div>
 
@@ -3775,7 +4034,7 @@ correspondingly softer.</code></pre>
   pooling is what buys precision. (The seven-set composite adds the two judged
   sets, 175 samples per arm; the arithmetic below is unchanged by that, because
   a judged 1&ndash;10 rating is not a binary item and does not enter this
-  particular calculation &mdash; <a href="#s09-judge">&sect;09.09</a> tests those
+  particular calculation &mdash; <a href="#s09-09">&sect;09.09</a> tests those
   two sets on their own terms, prompt against prompt.) Take just the four all-or-nothing sets &mdash; GSM8K, MATH-500,
   HumanEval and MBPP &mdash; and each arm is exactly 100 binary items:</p>
 
@@ -3786,7 +4045,7 @@ correspondingly softer.</code></pre>
       <tr><td><code>low</code></td><td class="num">97 / 100</td><td class="num">97.0 %</td><td class="num">91.5 &ndash; 99.0 %</td></tr>
       <tr><td><code>medium</code></td><td class="num">95 / 100</td><td class="num">95.0 %</td><td class="num">88.8 &ndash; 97.8 %</td></tr>
       <tr><td><code>xhigh</code></td><td class="num">96 / 100</td><td class="num">96.0 %</td><td class="num">90.2 &ndash; 98.4 %</td></tr>
-      <tr><td colspan="4" class="small">Three arms, 100 items each, a <b>two-point spread</b> against intervals four to six points wide that overlap almost entirely. This is the statistical form of the composite index's 1.6-point spread, and it is the arithmetic behind the sentence &ldquo;indistinguishable at n=25&rdquo;. It is <em>not</em> evidence that the three levels are equivalent in general &mdash; it is evidence that this suite, at this size, cannot tell them apart.</td></tr>
+      <tr><td colspan="4" class="small">Three arms, 100 items each, a <b>two-point spread</b> against intervals seven to nine points wide that overlap almost entirely. This is the statistical form of the composite index's 1.6-point spread, and it is the arithmetic behind the sentence &ldquo;indistinguishable at n=25&rdquo;. It is <em>not</em> evidence that the three levels are equivalent in general &mdash; it is evidence that this suite, at this size, cannot tell them apart.</td></tr>
     </tbody>
   </table></div>
 
@@ -4276,8 +4535,9 @@ chrome --headless=new --disable-gpu --hide-scrollbars \
   <b>which tasks are limited by kind and which by degree</b>.</p>
 
   <h3 id="s13-01"><span class="sigil">01</span>What this campaign measured about capability</h3>
-  <p>Five scored benchmark sets ran at 25 questions each across three effort
-  levels &mdash; <b>375 scored generations</b> out of the 525 the suite produced
+  <p>Seven scored benchmark sets ran at 25 questions each across three effort
+  levels &mdash; <b>all 525 generations scored</b>, five mechanically and two by
+  the blind judge panel of <a href="#s09-09">&sect;09.09</a>
   &mdash; greedy, with the draft head off so the scores are clean. Pooled over the four all-or-nothing sets, each arm answered
   <b>95 to 97 of 100</b> items correctly (&sect;10.03), and the three effort
   levels were statistically indistinguishable. Read that as a health result
@@ -4449,7 +4709,8 @@ chrome --headless=new --disable-gpu --hide-scrollbars \
       <tr><td><b>Joules per phase</b></td><td><code>scripts/power/attribute-power.py</code> &mdash; trapezoid integration with linearly interpolated edges, 2&nbsp;s maximum gap, joined to each request's own <code>[t_launch, +prompt_ms, +predicted_ms]</code> windows</td><td>Self-test passed 7 groups / 27 assertions before use. <b>This is the instrument that separates prefill joules from decode joules, and the separation is load-bearing:</b> a whole-window mean watt figure mixes a short low-power prefill into a decode average, and prefill is a larger share of a shorter run &mdash; the error &sect;09.06 corrects. Per-arm phase splits live in <code>data/power-matrix/arm-*.json</code>; <code>arms.csv</code> carries whole-window means only. Prefill windows on the 500&nbsp;ms log are 0.14&ndash;0.45&nbsp;s, <em>shorter than the sample period</em>, so J per prompt token on those arms is interpolated rather than sampled and is order-of-magnitude only. On the 1&nbsp;Hz effort arms the prefill windows are 1.6&ndash;1.9&nbsp;s and are genuinely sampled.</td></tr>
       <tr><td><b>Clocks, temperature, power state</b></td><td><code>nvidia-smi</code> fields <code>clocks.sm</code>, <code>clocks.mem</code>, <code>temperature.gpu</code>, <code>pstate</code></td><td>Present on the 500&nbsp;ms logs only. Round 1's two power logs have watts and nothing else, which is why nothing there can distinguish a ramping board from an efficient one.</td></tr>
       <tr><td><b>Perplexity</b></td><td><code>llama-perplexity</code>, wikitext-2-raw <b>test</b> split, 36 chunks &times; 8,192, <code>-c 8192 -fa on -ngl 99</code></td><td>The corpus is 1,290,590 bytes, SHA-256 verified identical across rounds. 294,912 is a count of scored windows; the corpus tokenises to 297,193 tokens under this model's tokeniser.</td></tr>
-      <tr><td><b>Benchmark scores</b></td><td>the suite's own scorers: exact match (GSM8K, MATH-500), execution pass@1 (HumanEval, MBPP), ROUGE-L F1 (MeetingBank)</td><td>Suite hash <b><code>1cdf54f8eb9d3f8f</code></b>, 175 prompts. <b>Condition on every published score:</b> all three arms were re-graded offline from kept transcripts with the final scorer after the three fixes in &sect;09.03; the generations are untouched. ALPACA and MT-Bench need a judge model and are unscored.</td></tr>
+      <tr><td><b>Benchmark scores</b></td><td>the suite's own scorers: exact match (GSM8K, MATH-500), execution pass@1 (HumanEval, MBPP), ROUGE-L F1 (MeetingBank)</td><td>Suite hash <b><code>1cdf54f8eb9d3f8f</code></b>, 175 prompts. <b>Condition on every published score:</b> all three arms were re-graded offline from kept transcripts with the final scorer after the three fixes in &sect;09.03; the generations are untouched.</td></tr>
+      <tr><td><b>Judged writing scores</b></td><td><code>rule21-judge-panel-v1</code> &mdash; three blind Claude Opus&nbsp;5 seats, standard 1&ndash;10 single-answer rubric, normalised <code>(r&minus;1)&divide;9&times;100</code>, opaque salted ids with the map sealed in <code>data/judge/key-SEALED.json</code>, a separate shuffle seed per seat; <code>scripts/bench/judge-panel.py</code></td><td>ALPACA and MT-Bench turn 1, 150 answers, 450 ratings, none missing, scored 2026-08-24. <b>A second pass the same day</b> re-judged all 75 ALPACA answers with three fresh blind seats after the <code>xhigh</code> raised-cap re-run replaced that arm's answers &mdash; <b>225 further ratings, 675 in all</b>; MT-Bench was not re-judged. Final arm scores and the six paired comparisons are in <code>data/judge/judge-scores-final.json</code>; the pass-1-against-pass-2 comparison, including the judge's own measured repeatability, is in <code>data/judge/judge-rejudge.json</code>. <b>Known quirk:</b> the judge and this report's author are both Claude models &mdash; a <em>correlated</em> instrument, disclosed with every number. A seat sees several answers to the same question inside one shuffled batch. Paired comparisons are a 20,000-resample bootstrap, seed 42; the final six are in <code>data/judge/judge-scores-final.json</code>, and the superseded pass-1 bootstrap is kept unaltered in <code>data/judge/judge-paired.json</code> &mdash; it still holds the three ALPACA rows the re-judge retired, including the one it called marginal.</td></tr>
       <tr><td><b>Image token cost</b></td><td><code>prompt_tokens</code>(text + image) &minus; <code>prompt_tokens</code>(text alone), from the same server</td><td>The text-only baseline measured 75 tokens on the two default-flag vision servers and 35 on the <code>--image-max-tokens</code> one.</td></tr>
       <tr><td><b>File sizes</b></td><td>byte counts read from disk</td><td>Decimal GB on download pages, binary GiB in a VRAM budget; the ~7&nbsp;% gap is the size of a slack fence. One file, NVFP4-MTP-HIGH, is no longer on this machine and its size is quoted from the matrix runbook rather than re-read.</td></tr>
       <tr><td><b>Serving stack</b></td><td><code>llama-server</code>, llama.cpp <b>version 0.1.2-dev, build 10502, commit <code>0adcc3bb5</code></b>, Clang 20.1.8, Windows x86_64, binary dated 2026-08-19</td><td>Every finding here is specific to that build: <code>--spec-type draft-mtp</code>, the <code>-ngl</code> off-by-one, <code>--load-mode</code> and <code>--image-min-tokens</code> are all build-dependent. Endpoint: OpenAI-compatible <code>/v1/chat/completions</code>, one server per configuration, measured on <b>port 1235</b>.</td></tr>
@@ -4464,10 +4725,11 @@ chrome --headless=new --disable-gpu --hide-scrollbars \
     <tbody>
       <tr><td><b>1 &mdash; campaign proper</b><br><span class="small">00:19&ndash;02:18</span></td><td><code>campaign.md</code></td><td><code>work/</code> scripts, <code>data/</code> logs and generated artefacts, including one operator error that cost a re-run.</td></tr>
       <tr><td><b>2 &mdash; follow-up probes</b><br><span class="small">02:48&ndash;04:29</span></td><td><code>work/followup-measurements.md</code></td><td><code>work/followup-m*.ps1</code>, <code>data/followup/</code>. Introduced the <b>cooled-probe protocol</b> &mdash; discard the probe fired straight after prefill, cool 30&ndash;45&nbsp;s, take three to five probes off the cached prefix, report the median. That protocol is what makes a 0.04&nbsp;% difference measurable at all, and its absence is what puts &plusmn;25&nbsp;% on this page's single-probe levels.</td></tr>
-      <tr><td><b>3 &mdash; effort benchmark sweep</b><br><span class="small">04:40&ndash;13:15, 8.48 GPU-h</span></td><td><code>work/rule21-live.md</code></td><td><code>data/rule21/</code> &mdash; per-arm run JSONs, all 175 transcripts per arm including the unscored judge sets, per-arm server logs, wall times, the offline re-score audit, and both rendered tables. Scripts <code>work/rule21-{arm,inspect,finalize,determinism,merge-cap,render}.py</code>. Suite <code>rule21-n25.json</code>, hash <code>1cdf54f8eb9d3f8f</code>. Power for the tail: <code>data/power/rule21-power.csv</code>, 17,715 usable rows at 500&nbsp;ms.</td></tr>
+      <tr><td><b>3 &mdash; effort benchmark sweep</b><br><span class="small">04:40&ndash;13:15 plus 08-24 15:47&ndash;16:08, 8.82 GPU-h</span></td><td><code>work/rule21-live.md</code></td><td><code>data/rule21/</code> &mdash; per-arm run JSONs, all 175 transcripts per arm including the two judge-gated sets, per-arm server logs, wall times, the offline re-score audit, and both rendered tables. Scripts <code>work/rule21-{arm,inspect,finalize,determinism,merge-cap,merge-judge,render}.py</code>. Suite <code>rule21-n25.json</code>, hash <code>1cdf54f8eb9d3f8f</code>. Power for the tail: <code>data/power/rule21-power.csv</code>, 17,715 usable rows at 500&nbsp;ms.</td></tr>
       <tr><td><b>4 &mdash; energy joins</b><br><span class="small">zero GPU</span></td><td><code>work/energy-joins.md</code></td><td>Integrator <code>scripts/power/attribute-power.py</code>; inputs are round 1's and round 3's own logs. Source of every J/token, tokens/kWh and EDP figure on this page, plus the board-power drift in &sect;09.08.</td></tr>
       <tr><td><b>5 &mdash; power matrix</b><br><span class="small">13:21&ndash;14:05, 17 arms + 2 skipped</span></td><td><code>work/power-matrix-README.md</code></td><td><code>data/power-matrix/</code> &mdash; <code>report.txt</code>, <code>arms.csv</code>, <code>arms.json</code>, per-arm JSONs (these, not <code>arms.csv</code>, carry the prefill/decode <b>phase split</b> that &sect;03.06's and &sect;09.06's watt figures are re-derived from), console log, per-arm server logs, events and prompts. The log carries <b>17 <code>RESULT</code> lines and 2 <code>SKIPPED reason=needs-admin</code> lines</b>. Power log <code>data/power/power-matrix-20260823-132140.csv</code>, 5,098 usable rows. Runner <code>work/power-matrix.ps1</code>.</td></tr>
-      <tr><td><b>6 &mdash; quantisation ladder</b><br><span class="small">14:13 &rarr; running</span></td><td>ledger <code>data/quant-ladder/results.txt</code></td><td><code>data/quant-ladder/</code> &mdash; per-file perplexity logs, detector transcripts, the runner log, the heartbeat, and <code>gemma-diag/</code> holding the 11-arm isolation behind &sect;08.04's withdrawal. Runner <code>scripts/quant-ladder/</code>.</td></tr>
+      <tr><td><b>6 &mdash; quantisation ladder</b><br><span class="small">08-23 14:13 &rarr; 08-24 12:35, ~6 h GPU</span></td><td>ledger <code>data/quant-ladder/results.txt</code></td><td><code>data/quant-ladder/</code> &mdash; per-file perplexity logs, detector transcripts, <code>detectors.txt</code>, <code>decisive.txt</code> (the equal-budget ledger &sect;08.04 depends on), the runner log, the heartbeat, and <code>gemma-diag/</code> holding the 11-arm isolation behind &sect;08.04's withdrawal. Runner <code>scripts/quant-ladder/</code>.</td></tr>
+      <tr><td><b>Judge passes</b><br><span class="small">2026-08-24, zero GPU, two passes</span></td><td><a href="#s09-09">&sect;09.09</a></td><td><code>data/judge/</code> &mdash; <code>packets/</code>, <code>ratings/</code>, <code>key-SEALED.json</code>, <code>judge-scores.json</code> (pass 1), <code>judge-paired.json</code>. Pass 2, the ALPACA re-judge after the raised-cap re-run: <code>rejudge-alpaca/</code>, <code>judge-rejudge.json</code>, and the published numbers in <code>judge-scores-final.json</code>. 675 ratings across the two passes. Builder, scorer and paired test: <code>scripts/bench/judge-panel.py</code>.</td></tr>
       <tr><td><b>Agentic bucket</b></td><td><code>agentic/setup-log.md</code></td><td>The full build and run log for &sect;14's harness.</td></tr>
     </tbody>
   </table></div>
@@ -4668,22 +4930,33 @@ chrome --headless=new --disable-gpu --hide-scrollbars \
     judge who could see the labels. Separating a real effort-to-defect effect
     from sampling noise needs n&nbsp;&ge;&nbsp;10 per level on a single task with
     blind judging. <b>Nobody has run that here.</b> The adjacent question &mdash;
-    does effort move a scored benchmark &mdash; now has an answer at about 125
-    scored samples per arm (&sect;09.02), and it is a different question.</p>
+    does effort move a scored benchmark &mdash; now has an answer at 125
+    mechanically scored samples per arm, or 175 including the two judged sets
+    (&sect;09.02), and it is a different question.</p>
     <p class="price">Price: ~4&ndash;6 h GPU (estimate &mdash; 30 authoring runs at 3&ndash;21 min each)</p>
   </div>
 
   <div class="reg">
     <h4>8. Quantisation against quantisation on accuracy</h4>
-    <p>Three files are ranked on speed and energy, and one has a perplexity
-    number. <b>No two files were compared on benchmark answers.</b> &sect;10's
-    price table is the reason: the real gap is one to three points and separating
-    it needs thousands of items.
-    <em>Closed by:</em> either a perplexity run on a second file under identical
-    conditions &mdash; which is one evening and gives a per-token ranking &mdash;
-    or a scored comparison at n in the thousands, which is 30+ GPU-hours per
-    file.</p>
-    <p class="price">Price: ~1 evening for the per-token ranking; 30 h+ per file for the scored one</p>
+    <p><b>The perplexity half of this entry is closed.</b> Round 6 ranked
+    <b>nine files of this model</b> on perplexity under one identical condition
+    set &mdash; 294,912 scored positions each, the same corpus, the same flags
+    (<a href="#s08-04">&sect;08.04</a>). The per-token ranking this entry used to
+    price now exists and is published, so only the accuracy branch remains.</p>
+    <p><b>What is still not measured is accuracy.</b> <b>No two quantisations of
+    this model were compared on benchmark answers under matched conditions.</b>
+    Two of them do carry scored-benchmark numbers &mdash;
+    <code>UD-IQ4_XS</code> through &sect;09's seven-set sweep and
+    <code>UD-IQ2_XXS</code> through &sect;08.04's equal-weight-budget arm
+    &mdash; but on <em>different suites</em>, so those two numbers rank nothing
+    against each other and are never printed side by side. The one benchmark
+    comparison between files is that equal-weight-budget arm, and it reaches
+    across model families rather than within this one. &sect;10's price table is
+    why nobody closed this cheaply: the real gap is one to three points and
+    separating it needs thousands of items.
+    <em>Closed by:</em> a scored comparison of two files of this model on one
+    frozen suite at n in the thousands.</p>
+    <p class="price">Price: 30 h+ of GPU per file</p>
   </div>
 
   <div class="reg">
@@ -4721,23 +4994,41 @@ chrome --headless=new --disable-gpu --hide-scrollbars \
     normalised (r&minus;1)&divide;9&times;100. Both indices are published &mdash;
     the five-set one because every earlier comparison on this page is against
     it, the seven-set one because that is what the protocol specifies.</p>
+    <p><b>A second pass, the same day.</b> The <code>xhigh</code> ALPACA
+    raised-cap re-run replaced one arm's answers, so all <b>75</b> ALPACA
+    answers went back to three fresh blind seats under the same protocol
+    &mdash; <b>225 further ratings, 675 in total</b> &mdash; which is why the
+    three ALPACA numbers come from one session rather than two. MT-Bench never
+    truncated and keeps its first-pass numbers. Published scores:
+    <code>data/judge/judge-scores-final.json</code>; the two-pass comparison:
+    <code>data/judge/judge-rejudge.json</code>.</p>
     <p><b>What it bought.</b> The judged pair is the only instrument in this
     campaign that separates the effort levels at all. On a paired bootstrap
     over the same 25 prompts, <code>medium</code> beats <code>xhigh</code> on
-    MT-Bench by 0.51 rating points (95% interval &minus;0.80 to &minus;0.21),
-    winning 14 prompts to 3 with 8 tied. Every other pairing is a tie, and
-    <code>medium</code>'s 0.44-point ALPACA lead over <code>low</code> clears
-    zero by 0.013 and is reported as marginal, not as a result.</p>
+    MT-Bench by 0.51 rating points (95&nbsp;% interval +0.21 to +0.80),
+    winning 14 prompts to 3 with 8 tied. <b>The other five pairings are all
+    ties</b> &mdash; including <code>medium</code>'s ALPACA lead over
+    <code>low</code>, which the first pass measured at +0.44 with an interval
+    clearing zero by 0.013 and reported as marginal rather than as a result.
+    The second pass put it at +0.35, interval &minus;0.04 to +0.73: a tie. The
+    caution did its job. And because 74 of the 75 answers were byte-identical
+    between passes, the second pass also measured this instrument's own
+    repeatability &mdash; mean absolute change 0.333 rating points, largest
+    1.333, 25 answers unchanged exactly, which is at most about 1.0 point on
+    the 0&ndash;100 scale once averaged over 25 items
+    (<a href="#s09-09">&sect;09.09</a>). That band was measured on ALPACA
+    only.</p>
     <p><b>What did not close.</b> The answers are Qwen's and the judge is
     Claude, so the rule that a model must not grade its own outputs is
     satisfied &mdash; but the judge and this report's author are both Claude
     models, which is a <em>correlated</em> instrument rather than an
-    independent one. Three seats, a published seat spread of 0.28&ndash;0.92
-    rating points, and paired tests are mitigations, not a fix.
+    independent one. Three seats, a published seat spread of 0.28&ndash;0.64
+    rating points, a measured repeatability band, and paired tests are
+    mitigations, not a fix.
     <em>Still open:</em> a judge from a different vendor, or human raters. The
-    blinded packets, the sealed key and all 450 ratings are kept, so any other
+    blinded packets, the sealed key and all 675 ratings are kept, so any other
     judge can be run over exactly the same answers and compared.</p>
-    <p class="price">Price paid: zero GPU. Price of what remains open: one judging pass by a non-Claude model, or a human panel &mdash; the packets are already built and blinded</p>
+    <p class="price">Price paid: zero GPU, across two judging passes. Price of what remains open: one judging pass by a non-Claude model, or a human panel &mdash; the packets are already built and blinded</p>
   </div>
 
   <div class="reg">
@@ -4745,10 +5036,13 @@ chrome --headless=new --disable-gpu --hide-scrollbars \
     <p>&sect;08.04's withdrawal establishes <em>that</em> the perplexity path is
     broken for a different model family on this build, on both backends, at every
     context and flag combination tested. <b>It does not establish why.</b> The
-    monotonic context dependence is consistent with attention or positional
-    handling failing beyond the sliding window, but that is inference, not
-    measurement, and it is contradicted by the generation path staying coherent
-    past 1,000 tokens. Recorded as an <b>open instrument defect, not
+    monotonic rise with context &mdash; 127 at <code>-c 1024</code> up to 2,196
+    at 8,192 &mdash; <b>can no longer be read as evidence of a windowing
+    fault</b>, and the ledger formally withdrew that reading: independently
+    published blowups occur at <code>-c 768</code> against a 1,024-token sliding
+    window, where the window never binds and only positions 384&ndash;767 are
+    scored, so neither the sliding-window path nor the global-layer path is
+    stressed there. Recorded as an <b>open instrument defect, not
     diagnosed</b>.</p>
     <p class="price">Price: unknown &mdash; an upstream investigation, not a measurement</p>
   </div>
@@ -4780,8 +5074,8 @@ chrome --headless=new --disable-gpu --hide-scrollbars \
     <h4>15. Other machines, and knowledge benchmarks</h4>
     <p><b>Every measured row on this page is this one RTX 3090.</b> &sect;07's
     other cards are labelled arithmetic. And no general-knowledge benchmark
-    &mdash; MMLU or anything like it &mdash; was run at any n; the five scored
-    sets are mathematics, code and summarisation.</p>
+    &mdash; MMLU or anything like it &mdash; was run at any n; the seven scored
+    sets are mathematics, code, summarisation and open-ended writing.</p>
     <p class="price">Price: another machine; or ~3 h GPU per effort arm for a knowledge suite (estimate)</p>
   </div>
 
@@ -4808,25 +5102,25 @@ chrome --headless=new --disable-gpu --hide-scrollbars \
   </div>
 
   <div class="reg">
-    <h4>18. The quantisation ladder &mdash; <span style="color:var(--good)">landed 2026-08-24</span>, with one rung outstanding</h4>
+    <h4>18. The quantisation ladder &mdash; <span style="color:var(--good)">landed 2026-08-24</span></h4>
     <p>This entry recorded a queue when the draft was cut. It has since run:
-    eight files of this model on 294,912 scored positions each, functional
+    nine files of this model on 294,912 scored positions each, functional
     detectors beside every rung, the knee named and priced, and the
     equal-weight-budget cross-model arm scored on the frozen suite
     (<a href="#s08-04">&sect;08.04</a>).</p>
-    <p><b>What is still outstanding, and it is the interesting one.</b>
-    <code>UD-IQ2_S</code> at 7.79&nbsp;GiB sits <em>inside</em> the cliff, between
-    the knee at 9.154 and <code>IQ2_XXS</code> at 6.767. The ladder's own
-    steepening rule enabled it automatically &mdash; the bracket gap is 14.47&nbsp;%
-    against a 1.11&nbsp;% reference, a ratio of 13.0 against a threshold of 1.5
-    &mdash; and it is queued behind the GPU. Without it the cliff is located only
-    to the interval 2.91 to 2.15 bits per weight. <b>The page says that interval
-    rather than picking a point inside it.</b></p>
-    <p><b>Also outstanding:</b> the Qwen equal-budget arm truncated once, so its
-    Mean of 78.70 carries a provisional mark until the raised-cap re-run of that
-    arm lands. The comparator's 73.30 is final: its own raised-cap re-run
-    returned identical scores.</p>
-    <p class="price">Price paid: ~6 h GPU. Price of what remains: ~7 min for the rung, ~30 min for the re-run &mdash; both queued</p>
+    <p><b>The rung that located the cliff.</b> <code>UD-IQ2_S</code> at
+    7.797&nbsp;GiB was enabled automatically by the steepening rule &mdash; bracket
+    gap 14.47&nbsp;% against a 1.11&nbsp;% reference, ratio 13.0 against a
+    threshold of 1.5 &mdash; and landed at 12:34 on 2026-08-24 at PPL 7.5481,
+    detectors PASS. The two halves of the cliff cost 5.82 and 5.91&nbsp;% per GiB,
+    so the cliff begins at the knee rather than somewhere inside the interval.
+    The rule then declined <code>UD-IQ3_S</code> (ratio 0.84) and the ladder
+    closed at nine files.</p>
+    <p><b>The Qwen equal-budget arm.</b> Its raised-cap re-run landed at 12:29 on
+    2026-08-24 with identical scores &mdash; mean 78.70, one MBPP truncation
+    surviving the doubled cap &mdash; so its status is now symmetric with the
+    comparator's and its provisional mark is gone.</p>
+    <p class="price">Price paid: ~6 h GPU. Nothing outstanding.</p>
   </div>
 
   <div class="reg">
@@ -4872,15 +5166,17 @@ chrome --headless=new --disable-gpu --hide-scrollbars \
     <h4>CLOSED &middot; Ranking quantisation files on speed and energy</h4>
     <p>&ldquo;One file was measured, so there can be no ranking&rdquo; was true at
     first publication and is now false. Three files are ranked on energy (round 5)
-    and two have full drafting sweeps (round 2); two are resolved on perplexity
-    (round 6). <b>The accuracy ranking stays open</b> &mdash; entry 8.</p>
+    and two have full drafting sweeps (round 2); nine are ranked on perplexity
+    (round 6, <a href="#s08-04">&sect;08.04</a>), two of them as a resolved
+    same-size pair. <b>The accuracy ranking stays open</b> &mdash; entry 8.</p>
   </div>
   <div class="reg closed">
     <h4>CLOSED &middot; Benchmark accuracy per effort level</h4>
     <p>&ldquo;No scored benchmark at any n&rdquo; was true at first publication and
     is now false. Round 3 ran five scored sets at n=25 across three effort levels
-    with truncation counts and a raised-cap re-run (&sect;09.02). It remains a
-    smoke-tier result and says so.</p>
+    with truncation counts and a raised-cap re-run (&sect;09.02) &mdash; the
+    remaining two were closed by the judge panel on 2026-08-24 (entry 11). It
+    remains a smoke-tier result and says so.</p>
   </div>
   <div class="reg closed">
     <h4>CLOSED &middot; The idle baseline, and the sustained-watt constant</h4>
@@ -4911,7 +5207,7 @@ chrome --headless=new --disable-gpu --hide-scrollbars \
     agent-attach image matrix stays open entirely &mdash; &sect;14.03.</p>
   </div>
 
-  <h3 id="s15-04"><span class="sigil">04</span>The fourteen self-corrections</h3>
+  <h3 id="s15-04"><span class="sigil">04</span>The sixteen self-corrections</h3>
   <p>Counted from the log, in the order they happened. Each one is kept in place
   with the wrong version still shown.</p>
   <ol>
@@ -4974,6 +5270,28 @@ chrome --headless=new --disable-gpu --hide-scrollbars \
     <code>J/token = W &divide; t/s</code> did not close against the whole-window
     means. <a href="#s09-06">&sect;09.06</a>,
     <a href="#s03-06">&sect;03.06</a>.</li>
+    <li><b>The &ldquo;predicted tokens per verify pass&rdquo; column.</b>
+    &sect;09.01's column was computed with the <em>accepted</em>-per-pass
+    formula while carrying the <em>predicted</em> label
+    <span class="sup">SUPERSEDED</span>. The two quantities differ by exactly 1,
+    and only the predicted form tracks decode speed: on the same two arms the
+    accepted form reads <b>2.09&times;</b> against a 1.58&times; decode fall,
+    where the predicted form reads <b>1.64&times;</b>. Corrected in both places,
+    with both formulas now printed.
+    <a href="#s09-01">&sect;09.01</a>, <a href="#s06-04">&sect;06.04</a>.</li>
+    <li><b>The first ALPACA judging pass.</b> A raised-cap re-run replaced the
+    <code>xhigh</code> arm's answers, so all three arms were re-judged
+    together rather than leaving one arm scored in a different session. The
+    arm scores moved &mdash; <code>medium</code> <b>75.1</b>
+    <span class="sup">SUPERSEDED</span> to 74.1, <code>xhigh</code>
+    <b>72.9</b> <span class="sup">SUPERSEDED</span> to 72.1, and with them the
+    seven-set composite, <b>80.4 / 79.8</b> <span class="sup">SUPERSEDED</span>
+    to 80.3 / 79.7 &mdash; and a comparison the first pass had called
+    <em>marginal</em> at +0.44 became a tie at +0.35. <b>74 of the 75 answers
+    were byte-identical between the two passes</b>, so what moved is the judge,
+    not the model: that is where this page's judge noise floor comes from, and
+    it is the reason the marginal label was worth writing down before it could
+    be tested. <a href="#s09-09">&sect;09.09</a>.</li>
   </ol>
 
   <h3 id="s15-05"><span class="sigil">05</span>The one reproduction check</h3>
@@ -5049,18 +5367,25 @@ POST /v1/chat/completions
   <div class="in">
     <div>
       <h5>About this page</h5>
-      <p><b>DRAFT &mdash; generation 2.</b> This file is
-      <code>index-gen2-draft.html</code>, a complete rewrite of the campaign's
-      first published report. It has not replaced <code>index.html</code> and has
-      not been through the four review gates in full; it carries its own gate-4
-      self-reference check and nothing more.</p>
+      <p><b>Published &mdash; generation 2.</b> This page went live on
+      <b>2026-08-24</b>. It is a complete rewrite of the campaign's first
+      published report and <b>replaces <code>index.html</code></b>. Four review
+      gates read the draft on 2026-08-23 &mdash; numeric, structural, reader
+      experience and internal consistency
+      (<code>work/gen2-gate-findings.md</code>) &mdash; and their findings were
+      adjudicated against the ledgers in a final gate on 2026-08-24
+      (<code>work/gen2-final-gate-verdict.md</code>), whose blockers are fixed
+      here. Generation 1's report is not deleted: it is preserved unaltered in
+      this campaign's git history as
+      <code>results/qwen38-27b-blind/index.html</code> at commit
+      <code>f87baf9</code>.</p>
       <p>Measurement ran across six rounds on one machine. Five completed on
       2026-08-23 between 00:19 and 14:05 &mdash; <b>12 h 53 m of GPU time</b>
       &mdash; and a sixth, the quantisation ladder, opened at 14:13 that day and
-      finished on 2026-08-24 for roughly six hours more. A seventh piece of work
+      ran roughly six hours more, finishing at 12:35 on 2026-08-24. A seventh piece of work
       used no GPU at all: on 2026-08-24 a blind three-seat judge panel scored the
       two benchmark sets that had been kept as transcripts since the effort sweep
-      (<a href="#s09-judge">&sect;09.09</a>). Round 1 was a blind reproduction
+      (<a href="#s09-09">&sect;09.09</a>). Round 1 was a blind reproduction
       test with a previous campaign's results for this same model sealed and
       never opened; <b>the blind held for round 1 only</b>, and every later round
       is post-blind and labelled by round. Raw logs, generated files and
@@ -5070,7 +5395,8 @@ POST /v1/chat/completions
       that cost a re-run.</p>
       <p><b>Later rounds moved rows this page's first version had published.</b>
       Three in particular: the effort sweep replaced &ldquo;no accuracy score at
-      any n&rdquo; with five scored sets; the energy joins replaced a flat
+      any n&rdquo; with five mechanically scored sets, and the 2026-08-24 judge
+      panel closed the remaining two; the energy joins replaced a flat
       344&nbsp;W with two bands and added joules per token, tokens per kilowatt
       hour and energy-delay product; and the power matrix replaced a physically
       backwards idle pair with 29.9&nbsp;W against 34.1. Every superseded figure
@@ -5100,7 +5426,7 @@ POST /v1/chat/completions
     </div>
   </div>
   <div class="footer-bottom">
-    Draft &middot; source commit 5dc41ec &middot; cut 2026-08-23 &middot;
+    Published &middot; source commit SHIPCOMMIT &middot; cut 2026-08-24 &middot;
     measured, cited, or labelled derived &middot;
     n=1 results are marked n=1 &middot;
     superseded numbers keep their marker &middot;
