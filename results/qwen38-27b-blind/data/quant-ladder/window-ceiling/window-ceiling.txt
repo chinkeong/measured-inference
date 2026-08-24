@@ -1,0 +1,13 @@
+﻿# sub-Q4 window ceilings, drafter on/off pairs - opened 2026-08-25T02:51:08
+WIN q3kxl-32768-on | file=q3kxl | GiB=12.244 | ctx=32768 | drafter=on | vram_at_load=15504 MiB | vram_at_depth=15530 MiB | fill_tokens=28581 | decode_at_depth=39.59 t/s | mean_draft_len=2.91 | probes=2 | load_s=12.7
+WIN q3kxl-32768-off | file=q3kxl | GiB=12.244 | ctx=32768 | drafter=off | vram_at_load=14306 MiB | vram_at_depth=14322 MiB | fill_tokens=28581 | decode_at_depth=36.44 t/s | mean_draft_len=n/a | probes=2 | load_s=6
+WIN q3kxl-65536-on | file=q3kxl | GiB=12.244 | ctx=65536 | drafter=on | vram_at_load=16882 MiB | vram_at_depth=16906 MiB | fill_tokens=55787 | decode_at_depth=42.98 t/s | mean_draft_len=3.00 | probes=2 | load_s=6
+WIN q3kxl-65536-off | file=q3kxl | GiB=12.244 | ctx=65536 | drafter=off | vram_at_load=15554 MiB | vram_at_depth=15568 MiB | fill_tokens=55787 | decode_at_depth=31.28 t/s | mean_draft_len=n/a | probes=2 | load_s=6
+WIN q3kxl-131072-on | file=q3kxl | GiB=12.244 | ctx=131072 | drafter=on | vram_at_load=19698 MiB | vram_at_depth=19724 MiB | fill_tokens=110663 | decode_at_depth=41.68 t/s | mean_draft_len=3.30 | probes=2 | load_s=8
+WIN q3kxl-131072-off | file=q3kxl | GiB=12.244 | ctx=131072 | drafter=off | vram_at_load=18050 MiB | vram_at_depth=18064 MiB | fill_tokens=110663 | decode_at_depth=23.91 t/s | mean_draft_len=n/a | probes=2 | load_s=6
+WIN q2kxl-32768-on | file=q2kxl | GiB=9.154 | ctx=32768 | drafter=on | vram_at_load=12464 MiB | vram_at_depth=12606 MiB | fill_tokens=28581 | decode_at_depth=43.19 t/s | mean_draft_len=4.67 | probes=2 | load_s=8.1
+WIN q2kxl-32768-off | file=q2kxl | GiB=9.154 | ctx=32768 | drafter=off | vram_at_load=11266 MiB | vram_at_depth=11396 MiB | fill_tokens=28581 | decode_at_depth=33.48 t/s | mean_draft_len=n/a | probes=2 | load_s=6
+WIN q2kxl-65536-on | file=q2kxl | GiB=9.154 | ctx=65536 | drafter=on | vram_at_load=13842 MiB | vram_at_depth=13982 MiB | fill_tokens=55787 | decode_at_depth=40.30 t/s | mean_draft_len=3.60 | probes=2 | load_s=6
+WIN q2kxl-65536-off | file=q2kxl | GiB=9.154 | ctx=65536 | drafter=off | vram_at_load=12514 MiB | vram_at_depth=12644 MiB | fill_tokens=55787 | decode_at_depth=32.18 t/s | mean_draft_len=n/a | probes=2 | load_s=6
+WIN q2kxl-131072-on | file=q2kxl | GiB=9.154 | ctx=131072 | drafter=on | vram_at_load=16658 MiB | vram_at_depth=16800 MiB | fill_tokens=110663 | decode_at_depth=28.76 t/s | mean_draft_len=3.20 | probes=2 | load_s=6
+WIN q2kxl-131072-off | file=q2kxl | GiB=9.154 | ctx=131072 | drafter=off | vram_at_load=15010 MiB | vram_at_depth=15140 MiB | fill_tokens=110663 | decode_at_depth=24.54 t/s | mean_draft_len=n/a | probes=2 | load_s=6

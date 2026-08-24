@@ -1584,3 +1584,41 @@ The plan called for a BALLAST process holding VRAM so only 16,384 / 12,288 MiB s
 REPLACED BY work/window-ceiling-subq4.ps1, launched 02:55: UD-Q3_K_XL and UD-Q2_K_XL x {32,768, 65,536, 131,072} x {drafter on n4/p0.75, drafter off} = 12 arms. Each loads, reads VRAM at load, deep-fills to ~90% of its window (rule 13b), discards the first post-prefill probe (rule 12), then times two settled probes and records the real fill length from the server log rather than from the cached probes - the instrument trap that bit the full-context run four hours ago.
 
 WHAT IT LICENSES, and the wording matters: a REQUIREMENT table, in MiB, that a reader subtracts their own desktop from to pick their `-c`. Capacity transfers across cards; the decode column does NOT and stays labelled as this 3090's. That is a better deliverable than a ballast emulation would have produced, and it is honest in the same place the ballast would have been tempting to overclaim.
+
+## 2026-08-25 03:13 - PHASE C COMPLETE: the requirement table, measured
+
+Twelve arms. Each loaded, VRAM read, deep-filled to ~90% of its window, first post-prefill probe discarded (rule 12), two settled probes. Fill lengths read from the server log, not the cached probes.
+
+**VRAM required at depth, MiB, and decode at that depth:**
+
+| file | -c 32,768 | -c 65,536 | -c 131,072 |
+|---|---|---|---|
+| **UD-Q3_K_XL** (12.244 GiB) drafter ON | 15,530 / 39.59 t/s | 16,906 / 42.98 | 19,724 / 41.68 |
+| UD-Q3_K_XL drafter OFF | 14,322 / 36.44 | 15,568 / 31.28 | 18,064 / 23.91 |
+| **UD-Q2_K_XL** (9.154 GiB) drafter ON | 12,606 / 43.19 | 13,982 / 40.30 | 16,800 / 28.76 |
+| UD-Q2_K_XL drafter OFF | 11,396 / 33.48 | 12,644 / 32.18 | 15,140 / 24.54 |
+
+The drafter costs a consistent **1,198-1,660 MiB** across every file and window.
+
+### THE 16 GB ANSWER, and it is decisive
+
+Usable budget on a 16,384 MiB card after the 1,308 MiB desktop reserve: **15,076 MiB**.
+
+- **UD-Q2_K_XL at -c 65,536 WITH the drafter: 13,982 MiB - fits with 1,094 MiB to spare, and runs 40.30 t/s.**
+- UD-Q3_K_XL fits ONLY at -c 32,768 with the drafter OFF: 14,322 MiB, 754 MiB to spare, 36.44 t/s. With the drafter on it needs 15,530 and does not fit.
+
+So on a 16 GB card the 2.9-bpw file gives you **more speed (40.30 vs 36.44), twice the context (65,536 vs 32,768), speculation you can actually keep, and 2,924 MiB less memory** than the 3.9-bpw file. And it ties the 4-bit reference on accuracy (paired McNemar p=1.00). **UD-Q2_K_XL is the 16 GB recommendation, and it is not close.**
+
+### THE 12 GB ANSWER IS NO, and that is worth saying plainly
+
+Usable budget after the reserve: 10,980 MiB. The smallest configuration measured - UD-Q2_K_XL at -c 32,768 with the drafter off - needs **11,396 MiB**, which is **416 MiB over**. Nothing in this ladder fits a 12 GB card with a desktop running. The honest advice for 12 GB is a smaller model, not a smaller quantisation of this one.
+
+### A finding neither file predicted: the drafter's value at depth moves in OPPOSITE directions
+
+UD-Q3_K_XL, drafter-on over drafter-off: **1.09x at 32k, 1.37x at 65k, 1.74x at 131k** - speculation matters MORE the deeper you go.
+UD-Q2_K_XL: **1.29x at 32k, 1.25x at 65k, 1.17x at 131k** - it matters LESS.
+Mean draft length tells the same story from the other side: Q2_K_XL starts higher (4.67 at 32k) and falls to 3.20 at 131k, while Q3_K_XL holds 2.91 -> 3.00 -> 3.30. The 2.9-bpw file drafts well shallow and degrades with depth; the 3.9-bpw file is the reverse. This is rule 11 again - draft length, not acceptance, carrying the throughput - and it is a second, independent reason the 24 GB long-context recommendation should not be read as a general one.
+
+## 2026-08-25 03:32 - PHASE D reshaped, and why
+
+The plan had phase D as a 4k/16k/32k/64k depth curve, ~3 h. Phase C already measured decode at depth for three windows on both sub-Q4 files, so the depth curve's marginal value collapsed - what is MISSING is the 4-bit reference at the SAME windows, without which the requirement table cannot be compared. Phase D is therefore the identical sweep on UD-IQ4_XS: six arms, ~45 min instead of three hours. Launched 03:32 (work/window-ceiling-iq4xs.ps1). The saved time goes to phase B's drawer entries and to the write-up.
