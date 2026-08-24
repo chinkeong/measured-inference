@@ -1573,3 +1573,14 @@ A figure never carries a number alone (REPORT-SPEC): charts go BESIDE the tables
 - The watchdog reschedules EVERY tick. It lapsed once tonight and four hours went missing.
 - Every arm names the reader-facing number that consumes it before it starts. No run earns its hours on completeness or curiosity.
 - Empties and truncations are counted separately from artifacts, never inferred from a counter.
+
+## 2026-08-25 02:55 - DEVIATION from the plan of record, phase C, with its reason
+
+The plan called for a BALLAST process holding VRAM so only 16,384 / 12,288 MiB stayed free, to move "fits in 16 GB" from DERIVED to MEASURED-UNDER-AN-EMULATED-BUDGET. Not run as written. Two reasons, the second the real one:
+
+1. `torch` on this machine is **CPU-only** (2.6.0+cpu, `cuda.is_available()` False), so there is no clean CUDA allocation to build a precise ballast from. Soaking VRAM with a second llama-server is imprecise and puts two jobs on the card, against rule 20's one-job rule.
+2. **It answers less than it appears to.** A card's CAPACITY requirement is a property of the model, the window and the flags - not of the board - so it can be measured directly here and read off by the owner of any card. What genuinely does not transfer is SPEED, which is bandwidth-bound, and no amount of ballast on a 3090 fixes that. The ballast would have proved one extra thing - that the driver behaves the same when the card is nearly full - which is second-order against the cost.
+
+REPLACED BY work/window-ceiling-subq4.ps1, launched 02:55: UD-Q3_K_XL and UD-Q2_K_XL x {32,768, 65,536, 131,072} x {drafter on n4/p0.75, drafter off} = 12 arms. Each loads, reads VRAM at load, deep-fills to ~90% of its window (rule 13b), discards the first post-prefill probe (rule 12), then times two settled probes and records the real fill length from the server log rather than from the cached probes - the instrument trap that bit the full-context run four hours ago.
+
+WHAT IT LICENSES, and the wording matters: a REQUIREMENT table, in MiB, that a reader subtracts their own desktop from to pick their `-c`. Capacity transfers across cards; the decode column does NOT and stays labelled as this 3090's. That is a better deliverable than a ballast emulation would have produced, and it is honest in the same place the ballast would have been tempting to overclaim.
