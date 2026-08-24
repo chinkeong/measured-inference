@@ -1216,3 +1216,27 @@ INSTRUMENT LIMIT, published with the numbers everywhere they appear: Qwen wrote 
 LAW AMENDED. Rule 21 gains: publish BOTH Means when a judge exists; a pinned judge protocol (different family, blind with sealed key, >=3 seats all rating everything, 1-10 rubric, (r-1)/9, and rule 7's no-filtering clause binds the judge - an empty answer is a 1, not an exclusion); paired-or-not-made for arm claims; correlated-judge disclosure; and the ruling that "unscored BY DESIGN" is the wrong label for a missing instrument - an absent judge is a GAP, and calling it a design choice dresses a hole up as a decision.
 
 ARTIFACTS UPDATED: published guide (chinkeong.github.io commit 20721af, correction 26, new section 09-judge, footer fourth pass), templates/example-report.html re-cut and re-pinned to 20721af in this commit, index-gen2-draft.html (new 09.09, guidance renumbered to 09.10, register entry 11 closed), scripts/bench/README.md, METHODOLOGY rule 21.
+
+## 2026-08-24 12:25 - DECISION: sub-Q4 daily-driver chapter PARKED; close Gen-2 first
+
+User decision, asked and answered before any GPU was committed. The scoping document work/subq4-daily-driver-plan.md stands as written and is NOT cancelled - it is parked with its arms costed (A1 map ~2 h, A2/A3 depth ~1.5-3 h, A4 scored ~3-5.5 h, A5 IQ2_S, plus the zero-GPU A6/A7 and the republication sweep) and its kill criteria R1-R5 pre-registered. Nothing in it is started.
+
+Priority is now: finish the running chain -> section 08 second pass -> swap the draft to index.html -> re-cut example-report.html -> close gates 3+4 -> fire the launch reminder for the fresh law-test campaign on a new model.
+
+CARRIED FORWARD, unstarted, so the next campaign inherits it rather than rediscovering it:
+- The republication sweep on the published guide is OVERDUE by the spec's own republication rule (six lines: 175, 1013, 1014, 1443, 1456, 1461 - pass-1 landed and those lines still describe a ladder in progress). This is zero GPU and should be the first thing done after the swap, not deferred to the next campaign.
+- A7 (a counter-degeneration detector) is now DOUBLY earned: the judge panel independently proved D1-D4 blind to a degeneration shape at 1,682 tokens. That is an instrument gap with two witnesses.
+
+## 2026-08-24 12:25 - ladder synthesis (pass-1 complete, scripts/quant-ladder/summarize.py)
+
+**KNEE: UD-Q2_K_XL, 9.154 GiB, 2.912 bits/weight, PPL 6.9957 (+6.07% vs the IQ4_XS anchor).** It is the last rung before the curve turns up.
+
+Marginal cost of shrinking, %PPL added per GiB saved: Q3_K_XL 1.07, Q2_K_XL 1.08 - then the cliff, Q2_K_XL -> IQ2_XXS at **6.06, which is 5.7x the median of every segment above it** (2.39 GiB bought for +14.47% PPL). Below that IQ1_M 3.34 and IQ1_S 19.28.
+
+Functional floor is LOWER than the quality knee and they are different questions: the smallest rung that passes every detector is **UD-IQ1_M at 6.267 GiB** (+23.44%); **UD-IQ1_S at 5.767 GiB / 1.835 bpw FAILS** - it still writes clean prose and well-formed fences but returns an empty JSON echo. That is the ladder's designed right anchor doing its job: a rung where the answer is clearly no.
+
+Speed across the whole ladder (detector probe A, depth 218, no drafter, -c 8192, n=1 each): 40.02 -> 53.25 t/s. **The file shrinks 2.30x and decode speeds up 1.33x.** Sub-Q4 buys VRAM, not speed - the single most decision-relevant number in the ladder and the one that most needs a depth-and-drafter arm before it is published as guidance.
+
+Rig gates: the IQ4_XS anchor reproduced 6.5956 twice at delta 0.000%, and the IQ4_XS-vs-NVFP4 pair resolved a 4.27% same-size quality gap against +/-0.045 error bars - the rig both reproduces and still discriminates.
+
+Still open in the ladder: UD-IQ2_S (7.79 GiB, sits INSIDE the cliff - it is the one rung that decides where the cliff starts) is downloaded and queued behind the GPU; the qwen-iq2xxs cap-32k rule-7 rerun is running.

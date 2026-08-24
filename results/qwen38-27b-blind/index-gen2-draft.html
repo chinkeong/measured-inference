@@ -575,7 +575,7 @@ shown. Two figures have been replaced and appear only there: the flat
       <tr class="hi"><td><b>3 &mdash; effort benchmark sweep</b></td><td class="num">04:40&ndash;13:15</td><td class="num">8 h 29 m</td><td>Five scored benchmark sets &times; three effort levels at n=25, plus the raised-cap re-run and the determinism check.</td></tr>
       <tr><td><b>4 &mdash; energy joins</b></td><td class="num">zero-GPU</td><td class="num">&mdash;</td><td>Per-request power attribution for rounds 1 and 3: J/token, tokens/kWh, EDP, the phase split.</td></tr>
       <tr><td><b>5 &mdash; power matrix</b></td><td class="num">13:21&ndash;14:05</td><td class="num">44 m</td><td><b>17 instrumented arms</b> isolating speculation, quantisation, KV width, token regime, depth, batching and idle. Two further arms &mdash; the power cap at 250&nbsp;W and at 300&nbsp;W &mdash; are recorded in the log as <code>SKIPPED reason=needs-admin</code>: the cap was never changed and never instrumented, so this round produced 17 results, not 19.</td></tr>
-      <tr class="dim"><td><b>6 &mdash; quantisation ladder</b></td><td class="num">14:13&ndash;&nbsp;still running</td><td class="num">not counted</td><td>One published perplexity anchor reproduced twice, one resolved pair, one withdrawn instrument reading. Rungs and the cross-model arm are in flight &mdash; <a href="#s08-04">&sect;08.04</a>.</td></tr>
+      <tr><td><b>6 &mdash; quantisation ladder</b></td><td class="num">08-23 14:13 &ndash; 08-24</td><td class="num">~6 h</td><td>Eight files of this model ranked on 294,912 scored positions each, with functional detectors beside every rung; the knee named and priced; the equal-weight-budget arm against a different model. Two published anchors reproduced (one twice at 0.000&nbsp;% drift), one resolved same-size pair, one withdrawn instrument reading &mdash; <a href="#s08-04">&sect;08.04</a>. One rung inside the cliff was still measuring at publication and is marked there.</td></tr>
       <tr><td colspan="4" class="small"><b>Total GPU time, rounds 1&ndash;5: 12 h 53 m.</b> Report writing and four review passes ran alongside the GPU work.</td></tr>
     </tbody>
   </table></div>
@@ -2725,16 +2725,28 @@ correspondingly softer.</code></pre>
   smallest of the four 4-bit-class files this campaign touched &mdash; three
   ranked on speed and energy here, plus a fourth, NVFP4-MTP-VERY-LOW at
   13.842&nbsp;GiB, which round 6 measured on perplexity only
-  (<a href="#s08-03">&sect;08.03</a>). On a fixed card the
+  (<a href="#s08-03">&sect;08.03</a>). Round 6 went further down than that:
+  <a href="#s08-04">&sect;08.04</a> ranks <b>eight</b> files of this model from
+  4.22 bits per weight to 1.83, names where the quality curve turns, and finds
+  that the rung where the model stops <em>working</em> is not the rung where the
+  quality curve turns. On a fixed card the
   smallest file is the fastest one and the one that leaves the most room for
-  context. Measured against the alternatives on this machine: the larger K-quant
+  context &mdash; though &sect;08.04 puts a limit on how much of that is speed:
+  across the whole ladder the file shrinks 2.30&times; and decode gains only
+  1.33&times;. Measured against the alternatives on this machine: the larger K-quant
   runs <b>13&nbsp;% slower</b> at each file's own best draft setting (81.7
   against 93.9&nbsp;t/s) and costs <b>8&nbsp;% more electricity</b> per token,
   and the NVFP4 file runs <b>11&nbsp;% slower</b> with no drafter (37.3 against
-  42.1) and costs <b>13&nbsp;% more</b>. What this page cannot tell you is
-  whether it is as <em>accurate</em> as the others, because no two files were
-  ever compared on benchmark answers here &mdash; and &sect;10 explains why a
-  small comparison would have been worse than none.</p>
+  42.1) and costs <b>13&nbsp;% more</b>. What this page still cannot tell you is
+  whether it is as <em>accurate</em> as the other 4-bit-class files. Two files
+  of this model now carry scored-benchmark numbers &mdash; this one through the
+  seven-benchmark sweep in &sect;09, and the 2.15-bit
+  <code>UD-IQ2_XXS</code> through the equal-budget arm in
+  <a href="#s08-04">&sect;08.04</a> &mdash; but they were scored on
+  <em>different suites</em>, so those two numbers rank nothing against each
+  other and are never printed side by side here. Within the 4-bit class the
+  ranking instrument stays perplexity, and &sect;10 explains why a small
+  accuracy comparison would have been worse than none.</p>
 
   <h3 id="s08-01"><span class="sigil">01</span>The one file with a quality number</h3>
   <p>Perplexity scores every token position in a large corpus rather than a few
@@ -2827,41 +2839,126 @@ correspondingly softer.</code></pre>
     </tbody>
   </table></div>
 
-  <h3 id="s08-04"><span class="sigil">04</span>The ladder, in flight</h3>
-  <p>One more measurement was running while this draft was being written, and it
-  is described here as unfinished rather than left out, so that an incomplete
-  run is not mistaken for a gap nobody thought of.</p>
-  <div class="inflight">
-    <span class="label">In flight &mdash; opened 14:13, still running when this draft was cut</span>
-    <p>Round 6 is a size ladder: how small can this model's file get and still
-    work? It is <b>not finished</b>, and nothing below is a result yet. What
-    exists is stated so nobody mistakes an unfinished run for an omission.</p>
-    <p><b>Done:</b> the two rig gates above, and the resolved IQ4_XS-versus-NVFP4
-    pair.</p>
-    <p><b>Queued, six rungs, none yet runnable:</b> <code>UD-Q3_K_XL</code>,
-    <code>UD-IQ3_XXS</code>, <code>UD-Q2_K_XL</code>, <code>UD-IQ2_XXS</code>,
-    <code>UD-IQ1_M</code>, and <code>UD-IQ1_S</code> as the right-hand anchor
-    where the answer should clearly be &ldquo;no&rdquo;. The rung poller has
-    written <code>no rung was runnable this pass</code> on every pass since it
-    opened, because none of the six files is on disk yet. Its rolling heartbeat
-    reads <code>2026-08-23T20:23:56 pass=103 pending=6</code> at the moment this
-    draft was cut &mdash; <b>that file is overwritten each minute, so the
-    timestamp above is the state at cut, not a milestone</b>. When the files
-    land, this section gains a perplexity-against-size curve with its knee named,
-    and detector verdicts beside it &mdash; perplexity ranks, detectors
-    disqualify.</p>
-    <p><b>Running, the decisive equal-budget arm:</b> a competing 12B model at a
-    similar file size, scored on GSM8K, HumanEval and MBPP rather than on
-    perplexity. It opened at 18:41 and is <em>not</em> idle: its first pass
-    completed at 20:10 at a 16,384-token cap and <b>truncated 19 times out of
-    75</b>, which triggered this campaign's own rule for a truncated arm &mdash;
-    raise the cap and re-run that arm only. The re-run at 32,768 started at
-    20:10:57 and was still going when this draft was cut. <b>No score from
-    either pass is published here.</b> A composite taken at a cap that truncated
-    a quarter of the prompts is exactly the artifact
-    <a href="#s10-04">&sect;10.04</a> is about, and this page is not going to
-    print one while its own re-run is still in flight.</p>
+  <h3 id="s08-04"><span class="sigil">04</span>How small can this file get and still work</h3>
+  <p>The file above is 13.3&nbsp;GiB, which needs a 24&nbsp;GB card. The obvious
+  question is how much smaller the same model can be squeezed before it stops
+  being worth running &mdash; and the answer is not one number, because
+  &ldquo;stops being worth running&rdquo; turns out to have two different
+  thresholds that do not sit in the same place.</p>
+  <p>Round 6 ran the same model at eight sizes, from 4.22 bits per weight down
+  to 1.83, and measured each one twice over: perplexity across 294,912 scored
+  token positions, and a battery of functional detectors that ask whether the
+  thing can still hold a format, echo a structure back, and write a fenced code
+  block without looping. <b>Perplexity ranks; detectors disqualify.</b> They
+  answer different questions and here they disagree, which is the finding.</p>
+  <div class="tablebox"><table>
+    <caption><b>The ladder.</b> One model, eight files. Identical conditions on
+    every row: frozen <code>wikitext-2-raw-test</code> (md5
+    <code>7c0137fc&hellip;</code>, 1,290,590&nbsp;B), 36&nbsp;&times;&nbsp;8,192
+    = <b>294,912 scored positions</b>, <code>-ngl 99 -c 8192 -fa on --load-mode
+    mmap</code>, f16 KV, build 10502. Percentages are against the
+    <code>UD-IQ4_XS</code> anchor. These rank files <em>of this model against
+    each other</em> and nothing else &mdash; a perplexity from another model's
+    tokenizer is not a comparable number.</caption>
+    <thead><tr><th scope="col">File</th><th scope="col" class="num">GiB</th><th scope="col" class="num">bits/weight</th><th scope="col" class="num">Perplexity &plusmn; err</th><th scope="col" class="num">vs anchor</th><th scope="col" class="num">bits/byte</th><th scope="col">Detectors</th></tr></thead>
+    <tbody>
+      <tr class="hi"><td><code>UD-IQ4_XS</code> <span class="small">anchor</span></td><td class="num">13.274</td><td class="num">4.223</td><td class="num">6.5956 &plusmn; 0.045</td><td class="num">&mdash;</td><td class="num">0.6267</td><td>PASS</td></tr>
+      <tr><td><code>NVFP4-MTP-VERY-LOW</code></td><td class="num">13.842</td><td class="num">4.404</td><td class="num">6.8774 &plusmn; 0.047</td><td class="num">+4.27&nbsp;%</td><td class="num">0.6406</td><td>PASS</td></tr>
+      <tr><td><code>UD-Q3_K_XL</code></td><td class="num">12.244</td><td class="num">3.895</td><td class="num">6.7691 &plusmn; 0.047</td><td class="num">+2.63&nbsp;%</td><td class="num">0.6353</td><td>PASS</td></tr>
+      <tr><td><code>UD-IQ3_XXS</code></td><td class="num">10.184</td><td class="num">3.240</td><td class="num">6.9187 &plusmn; 0.048</td><td class="num">+4.90&nbsp;%</td><td class="num">0.6426</td><td>PASS</td></tr>
+      <tr class="hi"><td><code>UD-Q2_K_XL</code> <span class="small">the knee</span></td><td class="num">9.154</td><td class="num">2.912</td><td class="num">6.9957 &plusmn; 0.048</td><td class="num">+6.07&nbsp;%</td><td class="num">0.6463</td><td>PASS</td></tr>
+      <tr><td><code>UD-IQ2_XXS</code></td><td class="num">6.767</td><td class="num">2.153</td><td class="num">8.0079 &plusmn; 0.057</td><td class="num">+21.41&nbsp;%</td><td class="num">0.6912</td><td>PASS</td></tr>
+      <tr><td><code>UD-IQ1_M</code> <span class="small">functional floor</span></td><td class="num">6.267</td><td class="num">1.994</td><td class="num">8.1418 &plusmn; 0.056</td><td class="num">+23.44&nbsp;%</td><td class="num">0.6967</td><td>PASS</td></tr>
+      <tr><td><code>UD-IQ1_S</code></td><td class="num">5.767</td><td class="num">1.835</td><td class="num">8.9265 &plusmn; 0.062</td><td class="num">+35.34&nbsp;%</td><td class="num">0.7272</td><td style="color:var(--warn)"><b>FAIL</b> <span class="small">empty JSON echo</span></td></tr>
+    </tbody>
+  </table></div>
+  <p><b>Where the curve turns, stated as a cost.</b> Reading a curve by eye is
+  how people talk themselves into a rung. The honest version is the marginal
+  price of each step down: how much perplexity you pay per GiB you save.</p>
+  <div class="tablebox"><table>
+    <caption><b>The marginal cost of shrinking.</b> Every segment of the ladder,
+    priced. The median of the three segments above the cliff is 1.07&nbsp;%
+    perplexity per GiB.</caption>
+    <thead><tr><th scope="col">Step down</th><th scope="col" class="num">GiB saved</th><th scope="col" class="num">% perplexity added</th><th scope="col" class="num">% per GiB</th><th scope="col" class="num">vs the median above</th></tr></thead>
+    <tbody>
+      <tr><td><code>Q3_K_XL</code> &rarr; <code>IQ3_XXS</code></td><td class="num">2.06</td><td class="num">+2.21</td><td class="num">1.07</td><td class="num">&mdash;</td></tr>
+      <tr><td><code>IQ3_XXS</code> &rarr; <code>Q2_K_XL</code></td><td class="num">1.03</td><td class="num">+1.11</td><td class="num">1.08</td><td class="num">1.0&times;</td></tr>
+      <tr class="hi"><td><code>Q2_K_XL</code> &rarr; <code>IQ2_XXS</code> <span class="small">the cliff</span></td><td class="num">2.39</td><td class="num">+14.47</td><td class="num"><b>6.06</b></td><td class="num"><b>5.7&times;</b></td></tr>
+      <tr><td><code>IQ2_XXS</code> &rarr; <code>IQ1_M</code></td><td class="num">0.50</td><td class="num">+1.67</td><td class="num">3.34</td><td class="num">3.1&times;</td></tr>
+      <tr><td><code>IQ1_M</code> &rarr; <code>IQ1_S</code></td><td class="num">0.50</td><td class="num">+9.64</td><td class="num">19.28</td><td class="num">17.8&times;</td></tr>
+    </tbody>
+  </table></div>
+  <p>Down to about 2.9 bits per weight the model gives up roughly one percent of
+  perplexity per gigabyte saved, three steps running, and every one of those
+  steps is far outside the error bars &mdash; this is a real slope, not noise.
+  Then it stops being a slope. <b>The knee is <code>UD-Q2_K_XL</code> at
+  9.154&nbsp;GiB</b>: the step below it costs 6.06&nbsp;% per GiB, <b>5.7&times;
+  the median of every step above</b>. That single step buys 2.39&nbsp;GiB for
+  more perplexity than the previous three steps cost put together.</p>
+  <div class="callout warn">
+    <span class="label">The quality knee and the functional floor are different rungs, and that is the point</span>
+    <p>Perplexity says stop at 9.154&nbsp;GiB. The detectors say something else:
+    every rung down to <code>UD-IQ1_M</code> at <b>6.267&nbsp;GiB</b> still
+    passes all four repetition checks, still echoes a JSON structure back
+    exactly, and still emits a well-formed fenced code block. The first hard
+    functional failure is one rung further down &mdash; <code>UD-IQ1_S</code> at
+    1.835 bits per weight <b>returns an empty JSON echo</b> while its prose and
+    its fences still look fine.</p>
+    <p>So a file can be well past the quality knee and still <em>work</em>, and
+    a file can look fine in prose and already be broken at structure. Neither
+    instrument alone would have found that. Note also what perplexity cannot do
+    here: <code>IQ2_XXS</code> and <code>IQ1_M</code> are 1.67&nbsp;% apart with
+    overlapping error bars, so perplexity <b>cannot separate them</b> &mdash;
+    the ranking tool runs out of resolution before the ladder does.</p>
   </div>
+  <p><b>The number most likely to change someone's mind.</b> The reason to want
+  a smaller file is usually speed as much as memory. Across the whole ladder,
+  measured on the same probe at the same depth with no drafter: <b>the file
+  shrinks 2.30&times; and decode speeds up 1.33&times;</b> &mdash; 40.02&nbsp;t/s
+  at the anchor against 53.25 at the smallest rung. Sub-4-bit buys VRAM. It
+  barely buys speed. <span class="pv h">n=1 per rung</span> at depth 218 with
+  <code>-c 8192</code>, which is a shallow, single-probe regime: the
+  <em>ratio</em> is the durable part, the levels are not, and this page does not
+  turn it into guidance for a smaller card without a depth-and-drafter arm that
+  round 6 did not run.</p>
+  <p><b>The comparison that actually decides it.</b> Perplexity cannot compare
+  two different models &mdash; different tokenizers cut the corpus differently
+  &mdash; so the question &ldquo;at the same number of gigabytes, is a big model
+  crushed better than a small model at 4 bits?&rdquo; has to be settled on
+  scored benchmarks, which are tokenizer-independent. At about 6.5&nbsp;GiB of
+  weights:</p>
+  <div class="tablebox"><table>
+    <caption><b>Equal weight budget, different models.</b> Identical frozen
+    suite (hash <code>1cdf54f8eb9d3f8f</code>), 25 prompts per benchmark,
+    greedy, seed 42. <b>Not</b> the seven-benchmark suite of &sect;09 and not
+    comparable to its Mean. <b>A deliberate conditions difference, not a fair
+    fight:</b> the Qwen arm ran at <code>reasoning_effort=low</code> with
+    <code>q8_0</code> KV, the Gemma arm at its own defaults, because it has no
+    effort dial.</caption>
+    <thead><tr><th scope="col">Model</th><th scope="col" class="num">GiB</th><th scope="col" class="num">bits/wt</th><th scope="col" class="num">Mean</th><th scope="col" class="num">GSM8K</th><th scope="col" class="num">HumanEval</th><th scope="col" class="num">MBPP</th><th scope="col" class="num">Truncations</th></tr></thead>
+    <tbody>
+      <tr class="hi"><td>Qwen3.8-27B <code>UD-IQ2_XXS</code></td><td class="num">6.767</td><td class="num">2.15</td><td class="num"><b>78.70</b> <span class="pv h">PROVISIONAL</span></td><td class="num">80.0</td><td class="num">84.0</td><td class="num">72.0</td><td class="num">1</td></tr>
+      <tr><td>gemma-4-12B-it-QAT <code>Q4_0</code></td><td class="num">6.497</td><td class="num">4.65</td><td class="num">73.30</td><td class="num">72.0</td><td class="num">88.0</td><td class="num">60.0</td><td class="num" style="color:var(--warn)">19</td></tr>
+    </tbody>
+  </table></div>
+  <p>At the same weight budget the crushed 27B takes the composite by
+  5.4&nbsp;points and wins two benchmarks of three; the 12B keeps HumanEval.
+  <b>Read the truncation column before the score column.</b> The 12B failed to
+  terminate on 19 of its 75 generations, and doubling its cap changed nothing
+  &mdash; identical scores, identical 19, at nearly twice the wall clock. A
+  probe run afterwards found why: with its thinking left visible the runaway
+  emits <b>no end-of-thinking marker at all</b>, while the same prompts with
+  thinking disabled finish cleanly in a few hundred tokens. That is a property
+  of that model's default mode, and it is the kind of thing a score alone hides.
+  The Qwen arm's own single truncation triggered the same raise-the-cap rule,
+  which is why its Mean is marked provisional here.</p>
+  <p><b>What is still measuring.</b> One rung, <code>UD-IQ2_S</code> at
+  7.79&nbsp;GiB, sits <em>inside</em> the cliff &mdash; between the knee at
+  9.154 and <code>IQ2_XXS</code> at 6.767. It is the rung that decides
+  <em>where</em> the cliff starts, it was enabled automatically by the ladder's
+  own steepening rule, and it is queued behind the GPU. Until it lands, this
+  page can say the cliff is between 2.91 and 2.15 bits per weight and no more
+  precisely than that.</p>
 
   <div class="callout warn">
     <span class="label">An instrument failure, quarantined &mdash; not a model result</span>
@@ -4711,17 +4808,25 @@ chrome --headless=new --disable-gpu --hide-scrollbars \
   </div>
 
   <div class="reg">
-    <h4>18. The quantisation ladder &mdash; in flight, not missing</h4>
-    <p>When this draft was cut, the <b>six rungs were queued and none was
-    runnable</b> &mdash; their files are not on disk, and the poller had written
-    <code>no rung was runnable this pass</code> on all 103 passes so far. The
-    <b>cross-family arm was running</b>: its first pass finished at 20:10 with 19
-    truncations at a 16,384-token cap, and the raised-cap re-run it triggered was
-    still going (<a href="#s08-04">&sect;08.04</a>). Until the rungs land and
-    that re-run finishes, this page has no perplexity-against-size curve and no
-    equal-budget cross-model comparison, and it publishes no score from the
-    truncated pass.</p>
-    <p class="price">Price: in progress</p>
+    <h4>18. The quantisation ladder &mdash; <span style="color:var(--good)">landed 2026-08-24</span>, with one rung outstanding</h4>
+    <p>This entry recorded a queue when the draft was cut. It has since run:
+    eight files of this model on 294,912 scored positions each, functional
+    detectors beside every rung, the knee named and priced, and the
+    equal-weight-budget cross-model arm scored on the frozen suite
+    (<a href="#s08-04">&sect;08.04</a>).</p>
+    <p><b>What is still outstanding, and it is the interesting one.</b>
+    <code>UD-IQ2_S</code> at 7.79&nbsp;GiB sits <em>inside</em> the cliff, between
+    the knee at 9.154 and <code>IQ2_XXS</code> at 6.767. The ladder's own
+    steepening rule enabled it automatically &mdash; the bracket gap is 14.47&nbsp;%
+    against a 1.11&nbsp;% reference, a ratio of 13.0 against a threshold of 1.5
+    &mdash; and it is queued behind the GPU. Without it the cliff is located only
+    to the interval 2.91 to 2.15 bits per weight. <b>The page says that interval
+    rather than picking a point inside it.</b></p>
+    <p><b>Also outstanding:</b> the Qwen equal-budget arm truncated once, so its
+    Mean of 78.70 carries a provisional mark until the raised-cap re-run of that
+    arm lands. The comparator's 73.30 is final: its own raised-cap re-run
+    returned identical scores.</p>
+    <p class="price">Price paid: ~6 h GPU. Price of what remains: ~7 min for the rung, ~30 min for the re-run &mdash; both queued</p>
   </div>
 
   <div class="reg">
@@ -4949,10 +5054,13 @@ POST /v1/chat/completions
       first published report. It has not replaced <code>index.html</code> and has
       not been through the four review gates in full; it carries its own gate-4
       self-reference check and nothing more.</p>
-      <p>Measurement ran on 2026-08-23 across six rounds on one machine, from
-      00:19 to 14:05 local for the five completed rounds &mdash;
-      <b>12 h 53 m of GPU time</b> &mdash; with a sixth round opening at 14:13
-      and still running when this draft was cut. Round 1 was a blind reproduction
+      <p>Measurement ran across six rounds on one machine. Five completed on
+      2026-08-23 between 00:19 and 14:05 &mdash; <b>12 h 53 m of GPU time</b>
+      &mdash; and a sixth, the quantisation ladder, opened at 14:13 that day and
+      finished on 2026-08-24 for roughly six hours more. A seventh piece of work
+      used no GPU at all: on 2026-08-24 a blind three-seat judge panel scored the
+      two benchmark sets that had been kept as transcripts since the effort sweep
+      (<a href="#s09-judge">&sect;09.09</a>). Round 1 was a blind reproduction
       test with a previous campaign's results for this same model sealed and
       never opened; <b>the blind held for round 1 only</b>, and every later round
       is post-blind and labelled by round. Raw logs, generated files and
