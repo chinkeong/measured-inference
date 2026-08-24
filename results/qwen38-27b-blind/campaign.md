@@ -1622,3 +1622,28 @@ Mean draft length tells the same story from the other side: Q2_K_XL starts highe
 ## 2026-08-25 03:32 - PHASE D reshaped, and why
 
 The plan had phase D as a 4k/16k/32k/64k depth curve, ~3 h. Phase C already measured decode at depth for three windows on both sub-Q4 files, so the depth curve's marginal value collapsed - what is MISSING is the 4-bit reference at the SAME windows, without which the requirement table cannot be compared. Phase D is therefore the identical sweep on UD-IQ4_XS: six arms, ~45 min instead of three hours. Launched 03:32 (work/window-ceiling-iq4xs.ps1). The saved time goes to phase B's drawer entries and to the write-up.
+
+## 2026-08-25 03:42 - PHASE D COMPLETE, and a result I am NOT publishing yet
+
+The 4-bit reference at the same three windows completes the requirement table:
+
+| file | -c 32,768 | -c 65,536 | -c 131,072 |
+|---|---|---|---|
+| **UD-IQ4_XS** (13.274 GiB) drafter ON | 16,586 MiB / 41.35 t/s | 17,962 / 42.69 | 20,848 / 34.35 |
+| UD-IQ4_XS drafter OFF | 15,376 / 35.92 | 16,678 / 30.73 | 19,188 / 24.77 |
+
+Set against phase C, the drafter-ON rows at matched windows read:
+- **32,768**: Q2_K_XL 43.19 · IQ4_XS 41.35 · Q3_K_XL 39.59
+- **65,536**: Q3_K_XL 42.98 · IQ4_XS 42.69 · Q2_K_XL 40.30
+- **131,072**: **Q3_K_XL 41.68 · IQ4_XS 34.35 · Q2_K_XL 28.76**
+
+### The 131k row is suspicious and is being replicated before anything is written from it
+
+Read naively it says the 3.9-bpw file is **21% faster than the 4-bit file at depth**. Two reasons not to believe it yet:
+
+1. **Bandwidth alone predicts about 8%** (13.274 / 12.244), not 21%.
+2. **It contradicts the mechanism that produced every other result in this campaign.** UD-IQ4_XS has the LONGER mean draft length at that window - 3.43 against Q3_K_XL's 3.30 - and is nonetheless the slower. Rule 11 says draft length is the throughput predictor, and it has held everywhere else, including in the drafter inversion and in phase C's opposite-direction finding. When a proposed effect contradicts the mechanism behind all the neighbouring results, suspect the measurement, not the mechanism.
+
+n=2 settled probes cannot separate 21% from clock state or a warm-up artefact, and rule 26 puts this campaign's own floor at ~3% on slow arms and up to +/-25% on single probes. So work/depth131k-replicate.ps1 is running: the same three configurations at n=**5** settled probes, first post-prefill probe discarded, and a 30-second settle after the fill so clocks are steady (rule 12's ramp trap reads up to 45% low). It reports mean, min, max, standard deviation and the full probe list.
+
+**If the ordering survives at n=5 it is real and gets published. If it collapses, the 131k row gets a BAND and no ranking** - which is what rule 26 requires of a level nobody replicated. Either way the write-up waits for it, because the sentence at stake is "which file is fastest at long context on a 24 GB card", and that is exactly the kind of tidy story REASONING's expertise-blindness check says to probe once more before believing.
