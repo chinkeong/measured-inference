@@ -1422,3 +1422,33 @@ MECHANISM, and rule 11 predicts it almost exactly: the draft head degrades with 
 `decisive-arm.ps1` is fixed: the rule-7 raise is now opt-in per arm via `-EscalateArms`, so "escalation is a decision" is enforced by the harness instead of by my memory. Truncations are still always reported; only the rerun is gated.
 
 INSTRUMENT NOTE: the probe script's acceptance regex did not match this build's log format and wrote `n/a`; the numbers above were recovered from the server logs directly (`draft acceptance = 0.61283 ( 573 accepted / 935 generated), mean len = 5.78`). Draft length parsed correctly throughout. The script's parser should be fixed before reuse.
+
+## 2026-08-25 01:30 - CORRECTION to my own entry, and the empty-answer rate turns out to be the best instrument on the ladder
+
+**I PUBLISHED A FALSE STATEMENT TODAY.** In the 21:05 entry and in commit 4c6c95e I wrote that "UD-IQ2_XXS carries 3 empty answers and 1 truncation; **UD-IQ1_M carries zero of both**" and built an argument on it about the two rungs failing differently. **UD-IQ1_M carries FIVE empty answers.** I read `truncations=0` off the ARM ledger line and inferred zero empties from it - which is exactly the inference rule 20's amendment forbids, written by me twelve hours earlier, in the same session. The truncation counter cannot see a silent empty; that was the whole point of the amendment, and I still trusted the counter instead of the artifacts.
+
+Corrected, from the full audit over every arm (work/ladder-repcheck.py):
+
+| file | bpw | empty | at cap | **silent** | median tokens |
+|---|---|---|---|---|---|
+| UD-IQ4_XS | 4.223 | 0 | 0 | 0 | 424 |
+| UD-Q3_K_XL | 3.895 | 0 | 0 | 0 | 488 |
+| UD-IQ3_XXS | 3.240 | 0 | 0 | 0 | 454 |
+| UD-Q2_K_XL | 2.912 | 0 | 0 | 0 | 416 |
+| UD-IQ2_S | 2.481 | 2 | 1 | **1** | 475 |
+| UD-IQ2_XXS | 2.153 | 3 | 1 | **2** | 472 |
+| UD-IQ1_M | 1.994 | **5** | **0** | **5** | 502 |
+| UD-IQ1_S | 1.835 | 28 | 18 | **10** | 932 |
+
+So UD-IQ1_M has MORE empties than UD-IQ2_XXS, not fewer, and **all five of its empties are silent** - it reported zero truncations while failing to answer five questions. The "they fail differently" argument is withdrawn: they fail the SAME way, and IQ1_M does it more.
+
+**WHAT THE CORRECTED TABLE SHOWS, and it is better than what I thought I had.** The empty-answer rate is **exactly zero for every rung down to and including the perplexity knee at 2.912 bpw**, then rises monotonically: 2, 3, 5, 28. It is a cleaner signal than the accuracy Mean, which is flat-then-cliff with noise in between and could not separate adjacent rungs at all.
+
+**It is also MORE SENSITIVE than the accuracy test.** It registers degradation at **2.481 bpw** - a full rung above where the paired accuracy test can resolve anything (UD-IQ2_S is a tie with the anchor at p=0.0625). A reader would meet this failure before any benchmark could measure it.
+
+So the ladder now has three instruments with three different sensitivities, and they should be published together because each sees something the others cannot:
+- **Perplexity** - monotone from the very top, the most sensitive to small quality loss, but says nothing about whether the model still works.
+- **Empty-answer rate** - zero through the knee, then monotone; catches "returns nothing at all" a rung before accuracy notices, and costs no GPU to compute from artifacts already on disk.
+- **Accuracy Mean** - flat until the cliff at 2.153; the only one that speaks in the reader's units, and the least sensitive of the three.
+
+And the runaway signature is quantified: median answer length holds at 416-502 tokens for every rung from 4.223 down to 1.994, then **jumps to 932 at 1.835 bpw** - the rung that stops terminating.
