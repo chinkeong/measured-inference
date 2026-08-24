@@ -1,0 +1,4 @@
+﻿# full-native-window trial, UD-Q2_K_XL vs UD-IQ4_XS - opened 2026-08-25T01:35:58
+CTX q2kxl-262k-on | ctx=262144 | board_at_load=22714 MiB | board_at_depth=22859 MiB | slack=1717 MiB | prompt_n=4 | decode_at_depth=21.33 t/s | first_probe_tps=20.72 | settled_probes=2 | mean_draft_len=2.43 | load_s=10.1
+CTX q2kxl-262k-off | ctx=262144 | board_at_load=20431 MiB | board_at_depth=20567 MiB | slack=4009 MiB | prompt_n=4 | decode_at_depth=17.96 t/s | first_probe_tps=17.50 | settled_probes=2 | mean_draft_len=n/a | load_s=6
+CTX iq4xs-262k-off | ctx=262144 | board_at_load=23798 MiB | board_at_depth=23821 MiB | slack=755 MiB | prompt_n=4 | decode_at_depth=15.96 t/s | first_probe_tps=15.51 | settled_probes=2 | mean_draft_len=n/a | load_s=12.1

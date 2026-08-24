@@ -1483,3 +1483,50 @@ If that holds, the smaller file buys something the 4-bit file cannot have at any
 **RULE 13b FORBIDS SHIPPING THAT AS A WINDOW LABEL.** It is arithmetic, and a blind reproduction in this same campaign already caught a window labelled "fully resident" collapsing to 8 t/s at depth once the drafter's VRAM was aboard. So work/q2kxl-fullcontext.ps1 is running: three arms at -c 262144 (Q2_K_XL drafter-on, Q2_K_XL drafter-off, IQ4_XS drafter-off as the control that should struggle), each loaded, VRAM read as a drafter on/off pair (rule 13a), then filled to ~236,000 real tokens and probed with the first post-prefill probe discarded (rules 12/13b).
 
 **ANSWER TO "ARE WE FINISHED COLLECTING": NO, and this is why.** The question a reader asks changes which measurement matters. The ladder answered "how good is it"; it did not answer "what does it let me do that the bigger file cannot", and that is the actually useful question for a 24 GB owner. Outstanding after this: negative-register entries 17 (two cross-checks, ~15 min) and 6 (image budget + withheld-image control, ~15 min). The write-up waits until all of it is in, per the user's instruction.
+
+## 2026-08-25 01:58 - THE FULL NATIVE WINDOW FITS ON THE 2.9-BPW FILE, measured
+
+Two of three arms in. Deep fill of **218,233 real tokens** - 83% of the 262,144 window, which satisfies rule 13b's "probe near the top" - then the first post-prefill probe discarded and two settled probes timed.
+
+| arm | board at load | board at depth | slack | decode at depth | mean draft len |
+|---|---|---|---|---|---|
+| UD-Q2_K_XL @262,144, drafter ON (n4/p0.75) | 22,714 MiB | 22,859 MiB | **1,717 MiB** | **21.33 t/s** | 2.43 |
+| UD-Q2_K_XL @262,144, drafter OFF | 20,431 MiB | 20,567 MiB | **4,009 MiB** | 17.96 t/s | - |
+
+**IT FITS, AND IT FITS WITH SPECULATION.** Drafter-off leaves 4,009 MiB of slack; drafter-on leaves 1,717 MiB, which clears the rule-14 fence (1,181 MiB measured desktop maximum + 127 MiB load variance = 1,308 MiB) by 409 MiB. Tight, and it must be published as tight - but it clears, and the whole native window is resident.
+
+**The drafter still earns its keep at 218k depth**: 21.33 against 17.96 t/s, +18.8%, even though mean draft length has collapsed from 5.70 shallow to **2.43** at depth - exactly the depth behaviour rules 11 and 12 describe, and another instance of draft length predicting throughput rather than acceptance.
+
+**The honest cost, which belongs beside the recommendation**: filling that window takes **424 seconds at 514.7 t/s prefill** - seven minutes before the first token of the answer. This is a long-document configuration, not an interactive one.
+
+### The two-constant VRAM model under-predicts by ~1.2 GiB at this window
+
+Predicted from the campaign's own measured slopes: 19,353 MiB drafter-off, 21,647 MiB drafter-on. Measured: 20,567 and 22,859. **A consistent +1,214 / +1,212 MiB offset** - compute buffers the two-constant model does not carry. Rule 13 already says the arithmetic is a FLOOR rather than the budget (the reference model under-predicted 15% at 32k); this measures the absolute size of that floor-to-reality gap at the full native window, and it is large enough to matter: a reader budgeting from the formula alone would have thought drafter-on left 2.9 GiB when it leaves 1.7.
+
+### INSTRUMENT NOTE - my own probe column is misleading
+
+`fullcontext.txt` records `prompt_n=4` for both arms. That is not a failed fill: probes 2 and 3 hit llama-server's PROMPT CACHE, so the server reports only the 4-token delta, and my script averaged prompt_n over the settled probes rather than reading the first one. The real fill is in the server log - `prompt eval time = 424001.08 ms / 218233 tokens`. The decode numbers are correct and ARE at depth; only the depth column is wrong. Fix the script to read the first probe's prompt_n before reuse. Filed here rather than silently corrected, per rule 20's verify-your-own-probes clause - a metric that looks wrong is checked before the run is believed, and this one looked wrong.
+
+The third arm, UD-IQ4_XS drafter-off at the same window, is running as the control that should struggle: it took the board to 23,819 MiB, leaving 757 MiB - INSIDE the fence.
+
+## 2026-08-25 02:05 - the control lands, and the 24 GB recommendation flips for one use case
+
+All three arms, deep-filled to 218,233 real tokens (83% of the 262,144 window), first post-prefill probe discarded:
+
+| arm | board at depth | slack | decode at depth |
+|---|---|---|---|
+| UD-Q2_K_XL, drafter ON | 22,859 MiB | **1,717 MiB** | **21.33 t/s** |
+| UD-Q2_K_XL, drafter OFF | 20,567 MiB | 4,009 MiB | 17.96 t/s |
+| UD-IQ4_XS, drafter OFF | 23,821 MiB | **755 MiB** | 15.96 t/s |
+
+**At the full native window the 2.9-bpw file beats the 4-bit file on every axis at once.** It is **34% faster** at depth (21.33 vs 15.96), it leaves **962 MiB more slack**, and it can run the drafter *at all* - UD-IQ4_XS at this window is already at 23,821 MiB with speculation OFF, so there is no room to turn it on. And 755 MiB of slack is INSIDE the rule-14 fence (1,308 MiB), which measures what the guide previously asserted from arithmetic: full native on the 4-bit file is headless-only, and now the number says so.
+
+**So the 24 GB recommendation splits by use case, and both halves are measured:**
+- **Normal use, windows up to ~180k**: stay on **UD-IQ4_XS**. The drafter makes it 12.9% faster than UD-Q2_K_XL (86.91 vs 77.01 t/s shallow), and that beats the size advantage.
+- **The full 262,144-token window**: switch to **UD-Q2_K_XL**. It is 34% faster there, keeps speculation, clears the desktop fence, and ties the 4-bit file on accuracy (paired McNemar p=1.00, one discordant item of 75). The 4-bit file cannot hold this window with a desktop running at any speed.
+
+That is the complete answer to the reader's question, and it is a better answer than either "swap" or "do not swap": **which file is right depends on the window, and the crossover is measured.**
+
+Honest costs that ship with it: filling 218k tokens takes 424 s at 514.7 t/s prefill - seven minutes before the first answer token - and mean draft length collapses from 5.70 shallow to 2.43 at depth, so the drafter is worth +18.8% there rather than the ~2x it gives shallow.
+
+DATA COLLECTION FOR THE SUB-Q4 STORY IS NOW COMPLETE: the 8-rung accuracy ladder, the empty-answer audit, paired McNemar across all rungs, the drafter on/off pair on both candidate files, the matched drafter-ON parallel pair (entry 9 closed at +22%), and this full-native-window trial. Remaining register work (entries 17 and 6) is unrelated to sub-Q4 and does not gate the write-up.
