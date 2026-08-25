@@ -43,13 +43,18 @@ D = r"E:\AI\measured-inference\results\qwen38-27b-blind\data\quant-ladder"
 SCRIPTS = r"E:\AI\measured-inference\scripts\quant-ladder\detectors.ps1"
 TIMEOUT = 15
 
-ORDER = ["UD-IQ4_XS", "UD-Q3_K_XL", "UD-IQ3_XXS", "UD-Q2_K_XL", "UD-IQ2_S",
-         "UD-IQ2_XXS", "UD-IQ1_M", "UD-IQ1_S", "NVFP4-MTP-VERY-LOW",
+ORDER = ["UD-IQ4_XS", "UD-Q3_K_XL", "UD-IQ3_XXS", "UD-Q2_K_XL", "QAT-Q2_0",
+         "UD-IQ2_S", "UD-IQ2_XXS", "UD-IQ1_M", "UD-IQ1_S", "NVFP4-MTP-VERY-LOW",
          "gemma-4-12B-QAT-Q4_0"]
+# QAT-Q2_0 is sdkyuan/qwen3.8-27B-qat-q2_0-gguf: quantisation-aware TRAINED,
+# not post-training quantised like every UD- rung, and 2.595 bpw on this
+# ladder's fixed 27e9-parameter convention. It is listed in bpw order, but the
+# reader has to be told it was MADE differently - otherwise the x-axis appears
+# to explain a result that method may explain instead.
 BPW = {"UD-IQ4_XS": 4.223, "UD-Q3_K_XL": 3.895, "UD-IQ3_XXS": 3.240,
-       "UD-Q2_K_XL": 2.912, "UD-IQ2_S": 2.481, "UD-IQ2_XXS": 2.153,
-       "UD-IQ1_M": 1.994, "UD-IQ1_S": 1.835, "NVFP4-MTP-VERY-LOW": 4.404,
-       "gemma-4-12B-QAT-Q4_0": 4.651}
+       "UD-Q2_K_XL": 2.912, "QAT-Q2_0": 2.595, "UD-IQ2_S": 2.481,
+       "UD-IQ2_XXS": 2.153, "UD-IQ1_M": 1.994, "UD-IQ1_S": 1.835,
+       "NVFP4-MTP-VERY-LOW": 4.404, "gemma-4-12B-QAT-Q4_0": 4.651}
 
 
 def prefix():
@@ -70,12 +75,34 @@ def strip_fences(t):
 
 
 def assemble(raw, pre):
-    """Return (program, shape). How the file is built depends on what it did."""
+    """Return (program, shape). How the file is built depends on what it did.
+
+    A FOURTH SHAPE, found 2026-08-26 by the QAT-Q2_0 rung. The prompt's prefix
+    ends mid-method at `push(node, pri) {`, and a model may RE-EMIT that line
+    before continuing rather than continuing from it. Concatenating prefix and
+    output then duplicates the signature and node reports
+    `SyntaxError: Unexpected token '{'` — a fault of the join, not of the code.
+
+    That very nearly went into the ladder as `executes = False` for a file whose
+    program is correct: strip the duplicated line and it prints
+    "Shortest path from A to H: A -> C -> D -> F -> H, Total cost: 50". A probe
+    that blames the model for the harness's own splice is worse than no probe,
+    because it reads as a measurement.
+
+    Only QAT-Q2_0 shows this shape; every other rung was re-checked and its
+    published result is unchanged.
+    """
     fenced = "```" in raw[:400]
     body = strip_fences(raw) if fenced else raw
     head = body.lstrip()[:200]
     if "// dijkstra.js" in head or head.startswith("class MinHeap"):
         return body, ("RESTARTED-fenced" if fenced else "RESTARTED")
+    pre_last = [l for l in pre.rstrip().split("\n") if l.strip()]
+    out_first = body.lstrip().split("\n")[0].strip()
+    if pre_last and out_first and pre_last[-1].strip() == out_first:
+        deduped = "\n".join(body.lstrip().split("\n")[1:])
+        return (pre.rstrip() + "\n" + deduped,
+                ("RE-EMITTED-fenced" if fenced else "RE-EMITTED"))
     return pre + body, ("CONTINUED-fenced" if fenced else "CONTINUED")
 
 

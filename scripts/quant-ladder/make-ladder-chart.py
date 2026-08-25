@@ -40,6 +40,36 @@ DATA = [
     (1.994, "IQ1_M",    8.1418, 85.30,  5, False),
     (1.835, "IQ1_S",    8.9265, 34.70, 28, False),
 ]
+# OFF-LADDER, measured 2026-08-26. NOT part of DATA above, and that is
+# deliberate: DATA is drawn as three POLYLINES, so anything placed in it is
+# joined to its neighbours and reads as a point on the same curve. This file is
+# a different PRODUCTION METHOD - quantisation-aware training rather than
+# post-training quantisation - so a line through it would assert exactly the
+# thing the ladder cannot show, that bits per weight explains where it lands.
+#
+#   bpw     file         PPL      acc/75   empty/75  executes
+OFF_LADDER = [
+    (2.595, "QAT-Q2_0", 7.4996, 90.70, 1, True),
+]
+# Before this is plotted it needs a DISTINCT marker (not a line vertex) and the
+# figure's aria description rewritten - that text enumerates every value drawn,
+# and it currently describes an eight-file ladder.
+#
+# What it measured, for whoever draws it:
+#   - PPL 7.4996 against 7.4020 interpolated on the PTQ curve at 2.595 bpw:
+#     1.32% WORSE, on an identical tokenizer (297,193 tokens both, so rule 6
+#     is satisfied by measurement, not assumption).
+#   - accuracy 90.70 = 68/75, an EXACT tie with UD-IQ2_S at 2.481 bpw, which is
+#     0.114 bpw smaller. Paired McNemar: discordant 2:2, p = 1.0000.
+#   - against UD-Q2_K_XL (2.912 bpw, 96.00): discordant 0:4, p = 0.1250.
+#     Directional - it never wins an item Q2_K_XL loses - but n=75 cannot
+#     resolve it, and saying otherwise would repeat the error this ladder was
+#     just criticised for.
+#   - 1 empty answer, HumanEval[6] - the SAME prompt that empties on UD-IQ2_S
+#     and UD-IQ1_S. Three files, two production methods, one prompt.
+#   - the code RUNS.
+# No instrument here shows QAT buying anything at its bit rate.
+
 REF_PPL, REF_ACC, N = 6.5956, 97.30, 75
 
 W, H = 640, 300

@@ -2339,3 +2339,110 @@ stale variable - because `json.dump()` sat BELOW the paragraph that interprets
 the numbers. Both times the GPU work had already succeeded. The script now
 writes the artifact first and interprets afterwards. The data is expensive; the
 commentary is free.
+
+
+---
+
+## 2026-08-26 00:20 - THE QAT RUNG, AND A HARNESS BUG THAT NEARLY FAKED ITS RESULT
+
+`sdkyuan/qwen3.8-27B-qat-q2_0-gguf` measured as a new ladder rung, at a
+reviewer's prompting. It is the first quantisation-aware-TRAINED file here;
+every other rung is post-training quantisation from one publisher.
+
+**WHAT IT IS.** ggml type 42 = Q2_0, 18 bytes per 64 weights = **2.25 bpw
+exactly**, carrying 89.8% of weights (all FFN, most attention); embedding Q4_K,
+output Q6_K, norms F32. File 8,759,266,208 bytes. **2.595 bpw** on this
+ladder's fixed 27e9-parameter convention. Read from the GGUF header via HTTP
+range request - 11 MiB fetched of 8.16 GiB - before committing to the download.
+
+`Q2_0` is in STOCK llama.cpp: the pinned build (10502, `0adcc3bb5`, dated three
+days BEFORE the upload) lists `41 or Q2_0 : 2.25 bpw quantization (group 64)`.
+A reviewer's claim that it needs a custom build is wrong, and that matters,
+because it means the matched-PTQ ablation is runnable on this rig.
+
+**THE VERDICT - three instruments, none of which shows QAT buying anything.**
+
+| instrument | QAT-Q2_0 @ 2.595 | PTQ curve at same bpw | verdict |
+|---|---|---|---|
+| wikitext PPL | 7.4996 | 7.4020 (interp) | **1.32% worse** |
+| accuracy /75 | 90.70 (68/75) | 92.10 (interp) | **1.40 pts below** |
+| executes | RUNS | - | pass |
+
+Tokenizer parity checked rather than assumed: 297,193 tokens for both this file
+and UD-IQ2_S, so rule 6 is satisfied and the PPL comparison is legitimate.
+
+**PAIRED McNEMAR, same 75 items:**
+- vs **UD-IQ2_S** (2.481 bpw, 0.114 bpw SMALLER): 68/75 both, discordant
+  **2:2**, **p = 1.0000**. Not merely equal in total - symmetric in which items
+  each gets right. An exact tie with a smaller file.
+- vs **UD-Q2_K_XL** (2.912 bpw): 68/75 vs 72/75, discordant **0:4**,
+  **p = 0.1250**. QAT never wins an item Q2_K_XL loses. Directional, and 0.125
+  is the smallest p four one-sided discordant pairs can produce - but it is not
+  significance, and n=75 cannot resolve it. Recorded as unresolved.
+
+The publisher's claim is that QAT preserves reasoning and code. Measured
+downstream, it performs like the 2.48-bpw PTQ file, not like the 2.91-bpw one.
+A reviewer's alternative explanation - that the card's table reflects
+blend-calibration skew rather than QAT benefit, since Unsloth's UD quants use a
+general-purpose imatrix - is consistent with every number here.
+
+**NOTE ON THE CARD.** It reports ONLY top-1 agreement and KL against an FP16
+teacher. It contains no GSM8K, HumanEval or MBPP figures; anyone citing such
+scores from it has invented them. Its slices are drawn from the same dataset
+families used in the training blend, so the metric is partly the training
+objective read back.
+
+**THE HARNESS BUG, and it nearly went out as a measurement.** The execute probe
+first reported QAT-Q2_0 as `SYNTAX: Unexpected token '{'` - a failure at
+2.595 bpw where a SMALLER file passes, which would have broken the chart's
+runs/does-not-run boundary and damned the file.
+
+It was the harness. The probe-A prompt ends mid-method at `push(node, pri) {`,
+and this model RE-EMITTED that line before continuing instead of continuing
+from it. Concatenating prefix and output duplicated the signature. Strip the
+duplicate and the program runs, printing
+`Shortest path from A to H: A -> C -> D -> F -> H, Total cost: 50`.
+
+A fourth output shape - **RE-EMITTED** - is now handled in
+`scripts/bench/execute-probe.py`. Every other rung was re-checked: only this
+file shows the shape, `gemma-4-12B-QAT-Q4_0` fails for real either way, and no
+previously published execute result changes. The probe now reports 7 of 11.
+
+**A probe that blames the model for the harness's own splice is worse than no
+probe, because it reads as a measurement.**
+
+### The review that prompted all this, checked rather than accepted
+
+**The recommendation floor IS thin, and the critic's arithmetic is exact.** The
+published cut line rests on 0/75 empties at 2.912 bpw against 2/75 at 2.481.
+Recomputed here: Fisher exact **p = 0.4966**; Wilson on 2/75 **0.734-9.212%**;
+rule of three on 0/75 **4.00%**. The intervals overlap across nearly their whole
+range. **As drawn, that boundary is inside noise**, and it is a reader-facing
+recommendation. Bounding an unseen rate below 1% needs ~300 clean runs per rung.
+
+**But the empties are not a rate - they are STRUCTURED, which the pooled /75
+throws away.** Extracted per item from the stored transcripts:
+
+| prompt | empty at |
+|---|---|
+| MBPP[0], MBPP[18] | IQ2_XXS, IQ1_M, IQ1_S |
+| MBPP[1], HumanEval[5], HumanEval[18] | IQ1_M, IQ1_S |
+| HumanEval[9] | IQ2_XXS, IQ1_S |
+| **HumanEval[6]** | **IQ2_S, IQ1_S, and QAT-Q2_0** |
+
+Nested and code-concentrated: at IQ1_S 27 of 28 empties are HumanEval/MBPP; at
+IQ1_M and IQ2_XXS every one is. GSM8K contributes 2 empties across the whole
+ladder. Pooling over 75 dilutes a code-specific failure across 25 maths prompts
+that essentially never empty - the denominator should be the code suites.
+
+And **HumanEval[6] empties on three files spanning BOTH production methods**,
+PTQ and QAT. That is strong evidence the empty-answer failure is a property of
+the prompt meeting a low bit rate, not a random draw - which is a different and
+more useful finding than any rate comparison.
+
+**What is owed, and not yet done:** the cut line's wording must be weakened to
+match its evidence, a code-weighted power run is needed for any rate claim, and
+the second critic's point stands untouched - the 2-bit file's quality verdict
+comes from 75 SHORT-context items while the only reason to choose it is the big
+window. A distractor-heavy retrieval test at depth, swept across KV precision,
+is the instrument for that and does not exist yet.

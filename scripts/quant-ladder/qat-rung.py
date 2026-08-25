@@ -212,7 +212,12 @@ def step_ppl():
             "-fa", "on", "--load-mode", "mmap"]
     log("perplexity (manifest conditions): %s" % " ".join(args[3:]))
     t0 = time.time()
-    r = subprocess.run(args, capture_output=True, text=True)
+    # encoding= is not optional on Windows: text=True decodes as cp1252, and
+    # llama-tokenize dumps 297k tokens containing bytes cp1252 cannot map. The
+    # reader thread then throws, stdout comes back EMPTY, and returncode is
+    # still 0 - a silent None rather than an error.
+    r = subprocess.run(args, capture_output=True, text=True,
+                       encoding="utf-8", errors="replace")
     txt = (r.stdout or "") + (r.stderr or "")
     open(os.path.join(OUT, "ppl.log"), "w", encoding="utf-8",
          errors="replace").write(txt)
@@ -230,13 +235,25 @@ def step_ppl():
 def step_tokens():
     args = [TOK_EXE, "-m", MODEL, "-f", CORPUS, "--show-count"]
     log("tokenizing the corpus with this model's OWN tokenizer (rule 6)")
-    r = subprocess.run(args, capture_output=True, text=True)
+    # encoding= is not optional on Windows: text=True decodes as cp1252, and
+    # llama-tokenize dumps 297k tokens containing bytes cp1252 cannot map. The
+    # reader thread then throws, stdout comes back EMPTY, and returncode is
+    # still 0 - a silent None rather than an error.
+    r = subprocess.run(args, capture_output=True, text=True,
+                       encoding="utf-8", errors="replace")
     txt = (r.stdout or "") + (r.stderr or "")
     import re
-    m = re.findall(r"(\d+)\s*$", txt.strip())
-    n = int(m[-1]) if m else None
-    log("token count: %s" % n)
-    save("tokens.json", {"tokens": n, "raw_tail": txt[-400:]})
+    # match the LABEL, not "the last number in the output": stderr warnings are
+    # concatenated after stdout, so a trailing-number regex picks up whatever
+    # llama.cpp last complained about. It silently returned None the first time.
+    m = re.search(r"Total number of tokens:\s*(\d+)", txt)
+    n = int(m.group(1)) if m else None
+    corpus_bytes = os.path.getsize(CORPUS)
+    log("token count: %s   corpus %d bytes   %.4f bytes/token"
+        % (n, corpus_bytes, (corpus_bytes / n) if n else 0))
+    save("tokens.json", {"tokens": n, "corpus_bytes": corpus_bytes,
+                         "bytes_per_token": round(corpus_bytes / n, 4) if n else None,
+                         "raw_tail": txt[-400:]})
     return n
 
 
@@ -253,8 +270,82 @@ def step_accuracy():
 
 
 def step_execute():
+    """Generate this rung's probe-A output, THEN execute it.
+
+    execute-probe.py scores files that already exist - it reads
+    det-<name>-probeA.txt out of the ladder data directory and runs them under
+    node. It does not generate. Handing it a new model without generating
+    first would silently re-score the existing eight rungs and skip this one,
+    which would look exactly like success.
+
+    So this generates under the detector conditions from ladder-manifest.json,
+    unchanged, because the point of the number is comparison with the other
+    rungs: -ngl 99 -c 8192 -fa on --parallel 1 --jinja --reasoning off, alias
+    'ladder', port 1235, greedy (temperature 0, top_k 1), max_tokens 2048.
+    """
+    import re
+    import urllib.request
+    D = os.path.join(ROOT, "results", "qwen38-27b-blind", "data", "quant-ladder")
+    det = os.path.join(HERE, "detectors.ps1")
+    src = open(det, encoding="utf-8", errors="replace").read()
+    m = re.search(r"\$PROBE_A\s*=\s*@['\"](.*?)['\"]@", src, re.S)
+    if not m:
+        sys.exit("could not recover the probe-A prompt from detectors.ps1")
+    prompt = m.group(1)
+    log("probe-A prompt recovered: %d chars" % len(prompt))
+
+    port = 1235
+    os.makedirs(OUT, exist_ok=True)
+    lf = open(os.path.join(OUT, "detector.log"), "w", encoding="utf-8",
+              errors="replace")
+    args = [SRV_EXE, "-m", MODEL, "--alias", "ladder", "-ngl", "99",
+            "-c", "8192", "-fa", "on", "--parallel", "1", "--jinja",
+            "--reasoning", "off", "--host", "127.0.0.1", "--port", str(port)]
+    log("serving under the manifest's detector flags")
+    p = subprocess.Popen(args, stdout=lf, stderr=subprocess.STDOUT)
+    ok, t0 = False, time.time()
+    while time.time() - t0 < 600:
+        if p.poll() is not None:
+            break
+        try:
+            with urllib.request.urlopen("http://127.0.0.1:%d/health" % port,
+                                        timeout=2) as r:
+                if json.loads(r.read().decode()).get("status") == "ok":
+                    ok = True
+                    break
+        except Exception:
+            pass
+        time.sleep(2)
+    text = None
+    try:
+        if not ok:
+            sys.exit("detector server failed to start")
+        req = urllib.request.Request(
+            "http://127.0.0.1:%d/v1/chat/completions" % port,
+            data=json.dumps({"model": "ladder", "temperature": 0, "top_k": 1,
+                             "max_tokens": 2048,
+                             "messages": [{"role": "user", "content": prompt}]}).encode(),
+            headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=1800) as r:
+            body = json.loads(r.read().decode())
+        text = body["choices"][0]["message"]["content"]
+        log("probe-A generated: %d chars, finish=%s"
+            % (len(text), body["choices"][0].get("finish_reason")))
+    finally:
+        if p.poll() is None:
+            p.terminate()
+            try:
+                p.wait(timeout=30)
+            except subprocess.TimeoutExpired:
+                p.kill()
+        lf.close()
+
+    dest = os.path.join(D, "det-QAT-Q2_0-probeA.txt")
+    open(dest, "w", encoding="utf-8").write(text)
+    log("-> %s" % dest)
+
     ep = os.path.join(ROOT, "scripts", "bench", "execute-probe.py")
-    log("execute probe: %s" % ep)
+    log("executing every rung under node, this one included")
     r = subprocess.run([sys.executable, "-u", ep], text=True)
     log("execute-probe exit %s" % r.returncode)
     return r.returncode
