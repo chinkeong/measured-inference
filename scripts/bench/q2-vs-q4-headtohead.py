@@ -78,9 +78,16 @@ def post(path, payload, timeout=900):
 
 
 def start(model_path, drafter):
-    # VERBATIM flag set from drafter-at-2bit.ps1 lines 79-80. `-fa on` and
-    # `--reasoning off` are both load-bearing and both were missing from the
-    # first version of this script, which is exactly why its numbers differed.
+    # VERBATIM flag set from drafter-at-2bit.ps1 lines 79-80.
+    #
+    # CORRECTED 2026-08-25: an earlier version of this comment said `-fa on` and
+    # `--reasoning off` were BOTH load-bearing. Only the second one is.
+    # `-fa` defaults to `auto`, and auto resolves to enabled here - the server
+    # log reads "enabling flash_attn since it is required for quantized V cache"
+    # for the target context, because `-ctk/-ctv q8_0` forces it. So Flash
+    # Attention was already on in the runs that read low. The whole gap is
+    # `--reasoning off`, which changes what the model emits and therefore what
+    # the drafter has to guess: acceptance moved 0.523 -> 0.611.
     args = [SERVER, "-m", model_path, "--alias", "qwen/qwen3.8-27b",
             "-ngl", "99", "-c", str(CTX), "-fa", "on", "--parallel", "1",
             "-ctk", "q8_0", "-ctv", "q8_0", "--jinja", "--reasoning", "off"]
