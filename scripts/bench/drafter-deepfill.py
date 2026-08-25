@@ -18,7 +18,14 @@ reads board VRAM there - rule 13b, the deep-fill probe. The question is narrow
 and falsifiable:
 
     does n10/p0.5 with the vision projector still clear this page's
-    1,308 MiB desktop reserve at 122,880 tokens of REAL depth?
+    desktop reserve at 122,880 tokens of REAL depth?
+
+RESERVE CORRECTED AFTER THIS RUN. It executed against 1,308 MiB and reported
+arm B clearing with 1,776. An audit then showed the reserve was built on a
+desktop maximum of 1,181 MiB that was not the maximum - a direct no-server
+reading measures 1,669 - so the threshold is now 1,796. Against that, arm B's
+1,776 FAILS BY 20 MiB. The run's verdict did not survive its own threshold
+moving, which is worth knowing before reading its printed output.
 
 If yes, the card should offer the wide drafter on this pick and the reader was
 right to push. If no, the card is correct, and the reason it is correct is
@@ -48,7 +55,7 @@ BASE = "http://127.0.0.1:%d" % PORT
 
 CTX = 122880
 TARGET_FILL = int(CTX * 0.90)          # rule 13b: ~90% of the window, real tokens
-BOARD, RESERVE = 24576, 1308
+BOARD, RESERVE = 24576, 1796
 NPREDICT, SETTLED = 400, 2
 
 ARMS = [("A shipped  n4/p0.75", 4, 0.75), ("B wide     n10/p0.5", 10, 0.5)]

@@ -44,7 +44,7 @@ OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                    "..", "..", "results", "qwen38-27b-blind", "data", "register")
 PORT = 1241
 BASE = "http://127.0.0.1:%d" % PORT
-CTX, BOARD, RESERVE = 122880, 24576, 1308
+CTX, BOARD, RESERVE = 122880, 24576, 1796
 FILL_TOKENS = 100000          # leave room for the image's ~10.5k on top
 TAG = ""
 

@@ -67,7 +67,7 @@ ARMS = [
     ("B wide      n10/p0.5  @122880", 10, 0.5, 122880),
     ("C wide+trim n10/p0.5  @98304", 10, 0.5, 98304),
 ]
-DESKTOP_RESERVE = 1308      # this page's own reserve, MiB
+DESKTOP_RESERVE = 1796      # this page's own reserve, MiB
 BOARD = 24576
 
 
