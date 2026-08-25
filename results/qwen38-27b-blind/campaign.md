@@ -1809,3 +1809,33 @@ The mechanism is `--spec-draft-p-min` gating draft length on the drafter's CONFI
 Unchanged: 16 GB is UD-Q2_K_XL at -c 65,536 with the drafter (13,982 MiB, 1,094 spare, 40.30 t/s). 12 GB is no.
 
 DATA COLLECTION FOR THIS CAMPAIGN IS COMPLETE. Everything remaining is writing.
+
+## 2026-08-25 10:30 - AN INDEPENDENT CROSS-CHECK, and it exposes a real scope limit in what we just published
+
+Source: YouTube video **"Qwen 3.8 27B Quantizations Q1 - Q8 compared"** (title CONFIRMED by fetch, 2026-08-25), channel reported as Luke's Dev Lab. Channel, dates and per-task detail come from a **user-supplied breakdown**; the video itself was NOT watched from here. Graded accordingly: independent single-run CATEGORICAL observations, not a controlled study, and its point differences are not rankings (rule 8 - categorical findings are real at n=1-2, point differences are not).
+
+Their setup differs from ours in three ways that matter: **reasoning effort HIGH** (ours: low for the accuracy ladder), the same unsloth XL variants but reaching up to Q8, and - the decisive difference - **long multi-turn AGENTIC tasks with tool calls** (a Kanban web app, Blender MCP 3D asset generation, a Godot 4 game) where ours were **single-turn benchmark prompts capped at 16,384 tokens**.
+
+### Where they confirm us, independently
+
+1. **IQ1_M is unusable, and it fails by LOOPING.** They report unrecoverable infinite loops in planning, endless tool-call loops, and call it unusable across all three tasks. We measured that same failure from single-turn prompts and zero GPU: IQ1_M carries **5 empty answers of 75, all SILENT** - terminating normally, returning nothing - while every rung above 2.481 bpw carries zero. And at 1.835 bpw the model stops terminating outright (20 truncations, median answer 932 tokens against 424).
+   **This is independent validation of the empty-answer instrument.** A zero-GPU audit of saved transcripts predicted, from short prompts, the failure that only surfaces expensively in multi-turn agentic work. Our own accuracy Mean did NOT predict it - IQ1_M scored 85.30, which looks survivable. The instrument that caught it is the one this campaign only added yesterday.
+2. **Q2_K_XL is surprisingly viable, and fits 16 GB.** They one-shotted a full Kanban app with it, zero intervention, and recommend it for 16 GB cards. That is our headline 16 GB recommendation, reached from perplexity, paired accuracy and a VRAM requirement table, on a different rig with different tasks at a different effort setting.
+3. **Q4 is the sweet spot.** Their overall pick; our shipped default.
+
+### Where they find something WE CANNOT SEE, and it limits our advice
+
+**Q2_K_XL FAILED their Godot task** - trapped in infinite tool-execution loops immediately - and **Q3_K_XL failed it too**, generating crashing scripts until the project was corrupted. Both of those files carry **zero empty answers** in our data and tie the 4-bit reference on paired accuracy.
+
+That is not a contradiction; it is a SCOPE LIMIT, and it is ours, not theirs. **Every number in this campaign comes from single-turn prompts of at most 16,384 tokens.** Nothing here tested a long multi-turn agentic loop with tool calls, where errors compound across steps and a model must keep terminating cleanly dozens of times in a row. Rule 22 says exactly this about the agentic bucket - it is where per-step error compounding lives - and this campaign SKIPPED that bucket on a cost gate.
+
+**So our 16 GB recommendation needs a condition it does not currently carry.** We tell a 16 GB owner to run UD-Q2_K_XL. On this evidence that is right for chat, single-file coding and web work, and **may be wrong for agentic tool-calling work**, which is a common use for a coding model. Publishing that recommendation without the caveat would let a reader measure less than the report promised them - rule 2, the prime directive.
+
+### What goes into both documents
+
+- The scope limit, stated plainly wherever a sub-4-bit file is recommended: measured on single-turn prompts up to 16,384 tokens; agentic multi-turn behaviour NOT measured here; an independent tester reports Q2_K_XL and Q3_K_XL failing a multi-turn game-engine task at high effort.
+- The IQ1_M convergence as corroboration for the empty-answer instrument, cited to them, with the grading stated.
+- Their Q5/Q6/Q8 observations recorded as a region this campaign never measured at all (we stopped at 4.4 bpw).
+
+### What this does NOT change
+No number moves. The perplexity ladder, the paired accuracy results, the empty-answer table, the VRAM requirement table and the depth series are all unaffected - they measure what they measure. What changes is the SCOPE the recommendations claim.
