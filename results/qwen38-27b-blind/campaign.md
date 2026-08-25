@@ -2446,3 +2446,73 @@ the second critic's point stands untouched - the 2-bit file's quality verdict
 comes from 75 SHORT-context items while the only reason to choose it is the big
 window. A distractor-heavy retrieval test at depth, swept across KV precision,
 is the instrument for that and does not exist yet.
+
+
+---
+
+## 2026-08-26 02:05 - THE 12 GB VERDICT SUBTRACTS THE DESKTOP TWICE
+
+**FOUND WHILE ANSWERING A READER.** Someone on an RTX 3060 asked whether the
+QAT file would run. Checking it required measuring what the neighbouring files
+need, and that surfaced an arithmetic error in a published card verdict.
+
+**THE PUBLISHED ROW** (guide, card-verdict table): *"12 GB - No. Use a smaller
+model... A 12 GB card holds 12,288 MiB; keep the reserve and 10,980 MiB is what
+you have. The smallest configuration measured anywhere on this page -
+UD-Q2_K_XL at -c 32768 with the drafter off - needs 11,396 MiB. It is 416 MiB
+over... The answer on this card is a smaller model, not a smaller quantization
+of this one."*
+
+**THE ERROR.** The VRAM table that 11,396 comes from states its own condition
+plainly: *"Memory is board VRAM, so it contains this machine's desktop as well
+as the server."* The budget it is compared against - 10,980 - is
+12,288 minus a desktop reserve. **So the desktop is subtracted twice.**
+
+**MEASURED 2026-08-26**, verified-clean baseline 1,665 MiB, same flags as the
+published block (`-c 32768 -ngl 99 --parallel 1 -fa on -ctk q8_0 -ctv q8_0
+--load-mode none --spec-type none`):
+
+| | server allocation |
+|---|---|
+| UD-Q2_K_XL | **10,497 MiB** |
+| QAT-Q2_0 | **9,437 MiB** |
+| UD-IQ2_S | **9,507 MiB** |
+
+11,396 published minus ~899 MiB of desktop on the measuring machine = 10,497.
+**The two measurements agree exactly**; the number was never wrong, only the
+place it was carried to. Two variants confirm the reading: dropping
+`--load-mode none` changes allocation by 0 MiB, and switching q8_0 KV to f16
+raises it to 11,371 - which is close enough to 11,396 to have been mistaken for
+the cause, and was, for about ten minutes.
+
+**THE CORRECTED VERDICT**, total needed = allocation + your own desktop, on a
+12,288 MiB card:
+
+| desktop | UD-Q2_K_XL | QAT-Q2_0 | UD-IQ2_S |
+|---|---|---|---|
+| light, 1,179 MiB | +612 | **+1,672** | +1,602 |
+| heavy, 1,669 MiB | +122 | **+1,182** | +1,112 |
+| page worst case, 1,796 MiB | **-5** | **+1,055** | +985 |
+
+**UD-Q2_K_XL is BORDERLINE, not 416 MiB over.** It fits with a light desktop
+and is 5 MiB short against the page's own worst-case reserve. "No, use a
+smaller model" is too strong; the honest verdict is "it depends on your
+desktop, and you should measure yours" - which the page already tells readers
+how to do two sections earlier.
+
+**AND THE TWO SMALLER FILES FIT COMFORTABLY** - by a full gigabyte in every
+case. That is the answer to the reader's question, and it was not available
+before tonight because neither file had ever been measured for memory.
+
+**A SECOND, SMALLER INCONSISTENCY IN THE SAME ROW.** The budget 10,980 implies
+a reserve of 1,308 MiB. This page's stated reserve is **1,796** (12,288 - 1,796
+= 10,492). 1,308 is the SUPERSEDED figure this campaign corrected on 2026-08-25.
+So the row carries the old reserve while the rest of the page carries the new
+one. The direction happens to favour the reader, which is why nothing flagged
+it.
+
+**NOT YET CHANGED ON THE PUBLISHED PAGE.** The correction is arithmetic and
+certain, but the replacement verdict depends on which reserve figure the page
+means, and the page currently contains both. That is the user's call, and it
+was 02:00 with nobody awake to make it. The measurements and the corrected
+table are here; the guide edit is prepared and waiting.

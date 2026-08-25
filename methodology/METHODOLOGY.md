@@ -497,11 +497,16 @@ beyond its retrieval-tested depth is labeled
     cannot hold.
     **A SPEED BAND NAMES ITS SAMPLER.** Measured 2026-08-25, 25 alternating
     pairs in one load on a host-gated quiet machine: greedy (temperature 0,
-    top_k 1) gives **CV 0.76%, spread 3.4%**; the model card's recommended
+    top_k 1) gives **CV 0.77%, spread 3.8%**; the model card's recommended
     sampler (temperature 1.0 / top_p 0.95 / top_k 20) with the drafter on
-    gives **CV 5.61%, spread 24.7%** — seven times wider, replicated in a
-    second run (5.76% against 5.61%), with the excess attributable to sampling
-    alone at **5.55%** (`scripts/bench/sampler-band.py`). This is rule 11 at
+    gives **CV 5.68%, spread 25.5%** — seven times wider, and **replicated
+    three times**: greedy 0.99 / 0.76 / 0.77%, sampler 5.76 / 5.61 / 5.68%,
+    with the excess attributable to sampling alone at **5.62%** and decode
+    tracking mean draft length at **r = 0.923** within the run
+    (`scripts/bench/sampler-band.py`). **The published figures are the ones
+    whose artifact is on disk** — the first two runs completed their GPU work
+    and then died in the paragraph that explains the numbers, losing both, which
+    is why that script now writes its artifact before it interprets anything. This is rule 11 at
     the scale a reader meets it: sampling changes the text, different text
     drafts differently, and mean draft length decides speculative throughput.
     A campaign measures greedy so the machine is the only variable — that
