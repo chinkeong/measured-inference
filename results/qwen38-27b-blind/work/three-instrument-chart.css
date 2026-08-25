@@ -1,0 +1,45 @@
+/* Three-instrument overlay chart. Merge into each document's existing <style>.
+   Colours are declared as tokens with fallbacks so the figure follows whatever
+   light/dark palette the host page already defines; nothing here assumes a
+   background. Every stroke also differs in DASH PATTERN, so the three series
+   stay separable in greyscale, in print, and for a reader who cannot
+   distinguish the hues. */
+.chart3 { margin: 22px 0; }
+.chart3 svg { display: block; width: 100%; height: auto; overflow: visible; }
+
+/* grid and axes */
+.chart3 .g   { stroke: var(--rule, #d8dee6); stroke-width: 1; opacity: .55; }
+.chart3 .gv  { opacity: .3; stroke-dasharray: 2 4; }
+.chart3 .ax  { font-family: var(--mono, ui-monospace, Consolas, monospace);
+               font-size: 10.5px; fill: var(--ink-muted, #5b6673); }
+.chart3 .ar  { text-anchor: end; }
+.chart3 .am  { text-anchor: middle; }
+.chart3 .fn  { font-size: 9px; opacity: .8; }
+.chart3 .lbl { font-size: 11px; text-anchor: middle;
+               fill: var(--ink, #1d232b); letter-spacing: .02em; }
+.chart3 .lg  { font-size: 11px; fill: var(--ink, #1d232b); }
+
+/* the two called-out thresholds */
+.chart3 .mark { stroke: var(--warn, #c8410b); stroke-width: 1;
+                stroke-dasharray: 3 3; opacity: .55; }
+.chart3 .note { font-size: 9.5px; fill: var(--warn, #c8410b); opacity: .9; }
+
+/* series: colour AND dash, so the figure survives greyscale */
+.chart3 .s   { fill: none; stroke-width: 2.1; stroke-linejoin: round;
+               stroke-linecap: round; }
+.chart3 .d   { stroke: none; }
+.chart3 .ppl { stroke: var(--blue, #1f6feb); }
+.chart3 .d.ppl { fill: var(--blue, #1f6feb); }
+.chart3 .emp { stroke: var(--warn, #c8410b); stroke-dasharray: 7 4; }
+.chart3 .d.emp { fill: var(--warn, #c8410b); }
+.chart3 .acc { stroke: var(--good, #2c8a4a); stroke-dasharray: 2 4; }
+.chart3 .d.acc { fill: var(--good, #2c8a4a); }
+
+.chart3 figcaption { font-size: 13.5px; line-height: 1.55; margin-top: 10px;
+                     color: var(--ink-muted, #5b6673); max-width: 74ch; }
+
+@media (max-width: 640px) {
+  .chart3 .fn { display: none; }   /* file names crowd at phone width; the
+                                      bits-per-weight ticks still carry the axis
+                                      and the table beside it carries the names */
+}
