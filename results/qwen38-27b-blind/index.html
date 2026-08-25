@@ -2647,6 +2647,26 @@ RTX 3090 :  936 GB/s &divide; 14.25 GB = 65.7 t/s theoretical
     82&nbsp;&deg;C and decode moved <b>1.0&nbsp;%</b>. The fix costs a minute a
     point and is what round 2 used: discard the post-prefill probe, cool for
     45&nbsp;s, take several probes off the cached prefix, report the median.</p>
+    <p><b>Speed, on the sampler a reader actually uses: 5.6&nbsp;% extra
+    scatter, and a 24.7&nbsp;% spread request to request.</b> Every speed level
+    on this page is measured greedy (temperature&nbsp;0, top_k&nbsp;1), which
+    holds the generated text still so the machine is the only variable. The
+    model card recommends temperature&nbsp;1.0 / top_p&nbsp;0.95 /
+    top_k&nbsp;20, and with the drafter on the text differs every request, so
+    mean draft length differs, so throughput differs &mdash; rule&nbsp;11's
+    mechanism, at the scale a user meets it. Measured 2026-08-25 on a
+    host-gated quiet machine, 25 alternating pairs in one load, UD-IQ4_XS at
+    <code>-c 32768</code>, n-max&nbsp;4 / p-min&nbsp;0.75, 700 tokens: greedy
+    <b>73.69&nbsp;t/s, CV 0.76&nbsp;%, spread 3.4&nbsp;%</b>; recommended
+    sampler <b>71.84&nbsp;t/s, CV 5.61&nbsp;%, spread 24.7&nbsp;%</b>
+    (59.0&ndash;76.8) <span class="pv m">MEASURED</span>. Excess sd from
+    sampling alone <b>5.55&nbsp;%</b>; a repeat run read 5.76&nbsp;%. Paired,
+    the recommended sampler is <b>2.5&nbsp;% slower</b> (95&nbsp;% CI
+    0.2&ndash;3.5&nbsp;%). <b>A single generation is not evidence about a
+    setup</b>; the mean over several is. &sect;15.05's reproduction check is
+    unaffected &mdash; it pins temperature&nbsp;0 and top_k&nbsp;1, which is
+    why its &plusmn;3&nbsp;% band still holds against the 3.4&nbsp;% greedy
+    spread measured here.</p>
     <p><b>Speed, from a cooled repeat probe on a warm server: 0.4&nbsp;% to
     3&nbsp;%.</b> Within-arm spread across five cooled probes measured
     0.4&nbsp;%; the two probes per server in round 2's drafting sweep spanned at

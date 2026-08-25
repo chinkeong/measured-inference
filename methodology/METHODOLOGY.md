@@ -494,7 +494,22 @@ beyond its retrieval-tested depth is labeled
     18.27 / 18.82 / 19.21 / 26.60 t/s on one config). **Printed precision
     respects the band**: four significant figures on a ±25% probe is a lie of
     precision, and a header strip naming `79.26` is claiming a level it
-    cannot hold. **One noise band per phenomenon**, stated once, with the
+    cannot hold.
+    **A SPEED BAND NAMES ITS SAMPLER.** Measured 2026-08-25, 25 alternating
+    pairs in one load on a host-gated quiet machine: greedy (temperature 0,
+    top_k 1) gives **CV 0.76%, spread 3.4%**; the model card's recommended
+    sampler (temperature 1.0 / top_p 0.95 / top_k 20) with the drafter on
+    gives **CV 5.61%, spread 24.7%** — seven times wider, replicated in a
+    second run (5.76% against 5.61%), with the excess attributable to sampling
+    alone at **5.55%** (`scripts/bench/sampler-band.py`). This is rule 11 at
+    the scale a reader meets it: sampling changes the text, different text
+    drafts differently, and mean draft length decides speculative throughput.
+    A campaign measures greedy so the machine is the only variable — that
+    is correct — but it must then ALSO publish the band for what the reader
+    will actually run, and say plainly that **a single generation is not
+    evidence about a setup**. A reproduction check is exempt only if it PINS
+    the sampler in the request body it tells the reader to send.
+    **One noise band per phenomenon**, stated once, with the
     arithmetic connecting any second figure to it — a page carrying both
     "a 45% swing" and "±25%" with nothing joining them has two noise floors
     and therefore none. A baseline used as a DIAGNOSTIC THRESHOLD is
@@ -505,6 +520,67 @@ beyond its retrieval-tested depth is labeled
     should return, and a **PASS BAND derived from this campaign's own noise
     floor**. Without the band a reader cannot tell a broken setup from probe
     noise, which is the only thing the check was for.
+
+27. **A speed measurement requires a QUIET MACHINE, and every probe records the
+    machine state it ran under.** Measured 2026-08-25 on the reference rig:
+    with the GPU at full boost, loading the HOST with 18 busy processes cost
+    **−5.4%** of decode on average and **−24.0%** on the worst pair,
+    **12 of 12 pairs negative**, while SM clock *rose* **+0.9%** and
+    temperature and acceptance were unchanged
+    (`scripts/bench/cpu-contention.py`). It also made the reading erratic:
+    **CV 0.97% quiet against 6.09% loaded**. llama.cpp's decode loop is not
+    purely a GPU affair — sampling, draft acceptance and token bookkeeping
+    run on the CPU, and speculative decoding does more of it per token —
+    so a starved host slows decode *invisibly to any clock or temperature log*.
+    **A report that cannot say the machine was quiet cannot defend its
+    levels.** Every probe therefore records SM clock, board power and
+    temperature; a reading without them is not admissible, because it can
+    never be diagnosed afterwards.
+    **CONFIRMED IN THE WILD, not only under synthetic load.** Forty-five
+    repeats of one greedy probe in one server load, on a machine nobody was
+    deliberately loading, with a CPU-availability index sampled before each
+    probe: **r = −0.924** between that index and decode throughput, which is
+    **85% of the variance** (`scripts/bench/host-correlate.py`). Six of the
+    forty-five probes fell into an excursion, and it carries a
+    **three-part signature that identifies it on sight**: those six probes
+    against the other thirty-nine read **65.58 against 73.78 t/s** on decode,
+    **1736 against 1698 MHz** on SM clock, and **327.3 against 341.8 W** on
+    board power — that is
+    **throughput DOWN 11.1%, clock UP 2.2%, power DOWN 4.2%, all at once.**
+    A starved process leaves gaps in the GPU's work, so the card draws less
+    power, and with that headroom it boosts *higher* while delivering *less*. Any
+    speed reading showing that combination is contaminated, whatever its clock
+    log says. `refarm.quiet_report()` gates a run on the same index; it read
+    2.07× idle under load and 1.01× quiet.
+    **What this instrument actually resolves**, all measured on one rig on
+    2026-08-25 and all far narrower than had been feared:
+    within one server load, greedy, n=100 — **0.32% CV**, no drift
+    (`resolution-floor.py`); across **16 separate loads** of one fixed arm
+    — **1.1% range**, of which only **0.26%** is genuinely between-load
+    (`refarm.py --calibrate 16`); probe length 80 / 200 / 700 / 885 tokens on
+    a shared window — **0.58 / 0.32 / 0.32 / 0.40% CV**, so length barely
+    matters (`probe-length-floor.py`); prompt wording, two prompts alternating
+    in one load — **1.4%**, in the direction rule 11 predicts
+    (`prompt-ab.py`). **The busy host dominates every one of these, and it is
+    the only one that is not a property of the measurement at all.**
+    **The REFERENCE ARM.** Comparisons that cannot share a load — a quant
+    ladder must reload to change the file, a context series to change `-c`
+    — interleave ONE fixed configuration, loaded and probed beside the
+    arms. Its calibrated tolerance on this rig is **1.0%** (3 sd of 16 loads).
+    If the reference moves further than that between the arms, the comparison
+    is **VOID** and re-run: the arms are not comparable, and no care taken
+    inside them repairs it. The standard must never be tuned — change its
+    model, prompt, flags or probe count and every earlier reading becomes
+    incomparable, so a new standard is calibrated from scratch and the old
+    readings retired rather than converted.
+    **CASE STUDY, 2026-08-25.** `sampling-bridge.py` reported **64.32 t/s**
+    for an arm that reads **74.36** over sixteen loads and **75.53** on that
+    script's own prompt. Five explanations were proposed and each was killed by
+    measurement in turn — a between-load lottery, the prompt, probe length,
+    clock state, temperature. The cause was the host, and it cost a day to find
+    because that script was the only one in `scripts/bench` that logged no
+    clock, no power and no temperature. **The reading nobody can explain is
+    reliably the one taken by the instrument that recorded least.**
 
 ## The standard benchmark protocol
 21. **Every reasoning-effort sweep runs the standard suite** under fixed

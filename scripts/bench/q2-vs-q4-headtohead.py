@@ -42,6 +42,9 @@ import sys
 import time
 import urllib.request
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import refarm   # Sampler, smi(), quiet_report()
+
 SERVER = os.environ.get("LLAMA_SERVER", r"E:\AI\llama.cpp\llama-server.exe")
 MODELS = os.environ.get(
     "QWEN_DIR", r"C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF")
@@ -122,16 +125,37 @@ def stop(p):
             p.wait(timeout=30)
         except subprocess.TimeoutExpired:
             p.kill()
-    time.sleep(4)
+    # wait for the card to actually release rather than assuming four seconds
+    for _ in range(20):
+        time.sleep(1)
+        try:
+            if float(refarm.smi("memory.used")) < 2500:
+                return
+        except Exception:
+            pass
+
+
+GPU = None   # a refarm.Sampler, started in main()
 
 
 def probe():
     """Matches Invoke-Probe in scripts/quant-ladder/ladder-lib.ps1: greedy by
-    construction, no cache_prompt field, no chat-template kwargs."""
+    construction, no cache_prompt field, no chat-template kwargs.
+
+    GPU COLUMNS, added 2026-08-25. This script's headline is a t/s delta
+    between FOUR SEPARATE SERVER LOADS, and it recorded nothing about the
+    machine those loads ran on. That is the exact gap that left
+    sampling-bridge.py's 64.32 t/s permanently undiagnosable. Host CPU load
+    alone costs 5.4% of decode - 24% at worst - while the SM clock RISES, so a
+    cross-load delta of a few per cent is inside the error of an unrecorded
+    machine (`scripts/bench/cpu-contention.py`)."""
+    t0 = time.time()
     r = post("/v1/chat/completions", {
         "model": "qwen/qwen3.8-27b", "temperature": 0, "top_k": 1,
         "max_tokens": NPREDICT,
         "messages": [{"role": "user", "content": PROMPT}]})
+    t1 = time.time()
+    win = [x for x in GPU.rows if t0 <= x[0] <= t1] if GPU else []
     t = r.get("timings", {})
     dn, da = t.get("draft_n"), t.get("draft_n_accepted")
     pn = t.get("predicted_n")
@@ -144,6 +168,9 @@ def probe():
         # token, so passes = predicted_n - accepted and length = drafted/passes.
         "draft_len": (round(dn / (pn - da), 2)
                       if dn and pn and da is not None and (pn - da) > 0 else None),
+        "sm_mhz": round(sum(x[1] for x in win) / len(win)) if win else None,
+        "temp": round(sum(x[2] for x in win) / len(win), 1) if win else None,
+        "watt": round(sum(x[3] for x in win) / len(win), 1) if win else None,
     }
 
 
@@ -180,6 +207,16 @@ def run_arm(label, model_path, drafter):
 
 
 def main():
+    global GPU
+    GPU = refarm.Sampler()
+    GPU.start()
+    # rule 27: a speed measurement requires a quiet machine, and a report
+    # that cannot say the machine was quiet cannot defend its levels.
+    q = refarm.quiet_report()
+    print("host: %s (cpu probe %.4f s, %sx idle)"
+          % (q["status"], q["cpu_probe_s"], q.get("ratio", "?")))
+    if q["status"] == "BUSY":
+        print("  " + q["detail"])
     global NMAX, PMIN
     ap = argparse.ArgumentParser()
     ap.add_argument("--n-max", type=int, default=NMAX)

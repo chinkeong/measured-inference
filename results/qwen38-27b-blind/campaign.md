@@ -2117,3 +2117,225 @@ Three arms, one server load each, same model and flags and prompt. Board power, 
 **SAFETY, recorded because the setting is persistent.** `nvidia-smi -pl` outlives the process; a card left at 250 W would silently degrade every later measurement on this machine and everything else the user runs. The script reads the default first, restores it in a `finally`, and **verifies the restore by reading the value back** rather than trusting the exit code. Confirmed at 350 W after the run.
 
 **What this does NOT establish.** One prompt, one file, one content type, three settled probes per arm. Decode only - prefill is compute-bound and would likely lose MORE to a cap, which is the opposite of what these arms show and is untested. And the J/token figures are decode joules, not whole-request joules.
+
+
+---
+
+## 2026-08-25 20:40 - WHAT THIS MACHINE CAN MEASURE, and the answer nobody looked for
+
+**WHY THIS RAN AT ALL.** Three runs of the same DETERMINISTIC arm - UD-IQ4_XS,
+n4/p0.75, greedy at temperature 0 and top_k 1, nothing random anywhere - read
+**64.32, 74.08 and 65.25 t/s**. Before closing any more register entries it was
+worth knowing whether this campaign's instrument can resolve the effects it
+publishes, because a campaign that does not know its own noise floor can never
+say "no difference detected" and mean it.
+
+Six measurements later the answer is that the instrument is far better than
+feared, and that the one thing degrading it was never being recorded.
+
+### The instrument, measured six ways
+
+| what was varied | result | script |
+|---|---|---|
+| nothing, within one load, n=100 | **0.32% CV**, no drift (-0.13% split-half) | `resolution-floor.py` |
+| the server load, 16 separate loads | **1.1% range**; only **0.26%** is between-load | `refarm.py --calibrate 16` |
+| probe length, 80 / 200 / 700 / 885 tok | **0.58 / 0.32 / 0.32 / 0.40% CV** | `probe-length-floor.py` |
+| the prompt, two prompts alternating | **1.4%**, and in rule 11's direction | `prompt-ab.py` |
+| **the host machine's CPU load** | **-5.4% mean, -24.0% worst, CV 0.97% -> 6.09%** | `cpu-contention.py` |
+
+**Three probes of a 700-token arm resolve a true difference of 0.5%.** The
+campaign's protocol was never the weak link.
+
+### The cause, and why it took five refutations to find
+
+Each proposed mechanism was killed by the next measurement:
+
+- **a between-load lottery** - refuted. Sixteen consecutive loads of one fixed
+  arm read 74.80 / 74.30 / 73.95 / 74.11 / 74.39 / 74.75 / 74.63 / 74.58 /
+  74.40 / 74.42 / 74.26 / 74.16 / 74.07 / 74.32 / 74.32 / 74.25. Range 1.1%.
+- **the prompt** - refuted. The two scripts' prompts differ only in their last
+  few words; run alternating in ONE load they sit 1.4% apart, with the
+  sampling-bridge prompt the FASTER of the two, tracking its higher
+  accepted-per-pass exactly as rule 11 says.
+- **probe length** - refuted. On the window all four lengths shared, an
+  80-token probe reads 0.58% CV against 700's 0.32%. The 3.00% first reported
+  for 80 tokens was one excursion the long arm missed because it had finished.
+- **clock state** - refuted, and this is the decisive one. The excursion caught
+  by `probe-length-floor.py` ran at **1693-1723 MHz, at or ABOVE the clock of
+  the fast probes either side of it**, at identical temperature (80.7-80.9 C
+  against 80.8-81.1) and identical acceptance (0.882 / 0.893 either way).
+- **temperature** - refuted by the same rows.
+
+**What was left was the host.** With the GPU at full boost, loading the machine
+with 18 busy CPU processes cost **-5.4%** of decode on average, **-24.0%** on
+the worst of 12 pairs, **12 of 12 pairs negative** (sign test p = 0.00024) -
+while the SM clock *rose* 0.9% and temperature and acceptance did not move.
+
+| host | mean t/s | CV | SM clock | temp | acceptance |
+|---|---|---|---|---|---|
+| quiet | 73.77 | **0.97%** | 1701 MHz | 80.5 C | 0.88 |
+| 18 busy processes | **69.78** | **6.09%** | **1717 MHz** | 80.8 C | 0.88 |
+
+llama.cpp's decode loop is not purely a GPU affair - sampling, draft acceptance
+and token bookkeeping run on the CPU, and speculative decoding does more of it
+per token. A starved host slows decode **invisibly to any clock or temperature
+log**, and multiplies the scatter sixfold. That sixfold scatter is the
+signature of the run that started this: its drafter-on arms spanned 42.4% and
+23.9% within a single load while its drafter-OFF arm spanned 4.4%.
+
+### The finding that matters most
+
+`sampling-bridge.py` was **the only script in `scripts/bench` that recorded no
+SM clock, no board power and no temperature**, and it was **the only script
+that produced a number nothing has reproduced**. Those are the same fact. Its
+64.32 stands against 74.36 over sixteen loads and 75.53 measured on its own
+prompt.
+
+**The reading nobody can explain is reliably the one taken by the instrument
+that recorded least.**
+
+### What was WRONG in this repository, and is now fixed
+
+- `sampling-bridge.py` now samples clock, power and temperature per probe, and
+  waits for VRAM to actually release on teardown instead of sleeping four
+  seconds.
+- Its `settle()` docstring asserted "after a fresh SERVER LOAD the card needs
+  far longer" and explained the 64.32 as "how much work the card had done
+  beforehand: 6 probes against 45". **That was inferred, never measured, and
+  is refuted**: every one of 16 loads had its first kept probe already at full
+  speed, and `resolution-floor.py` read 75.96 on probe one of a hundred. Kept
+  in place as a dated case study per rule 5, not deleted.
+- METHODOLOGY rule 27 added: quiet machine, machine state on every probe, the
+  resolved figures above, and the reference arm with its calibrated tolerance.
+
+### Two things I claimed and then withdrew
+
+Recorded because the pledge covers my own claims too, not only the report's.
+
+1. **"There is an unexplained ~13% between-load risk, and the UD-Q3_K_XL 19.6%
+   lead is in doubt."** Between-load variance is **0.26%**. The doubt rested
+   partly on that unknown and partly on the "4.4 sigma" being a within-load
+   spread - but with between-load variance this small, the within-load sigma is
+   very nearly the right sigma, and that objection mostly dissolves. What still
+   stands about UD-Q3_K_XL is what the campaign already published: bandwidth
+   predicts 8.4% against a measured 19.6%, and the ordering contradicts rule 11
+   because the longer-draft file is the slower one. **The effect is real and
+   unexplained, which is what the report already said.**
+2. **"Rule 26 drops the condition on the +/-25% band."** It does not. The page
+   defines "single-probe level" in section 06.07 as precisely a probe fired
+   immediately after a long prefill, and states four separately conditioned
+   bands. The audit that produced this finding had been briefed on my own wrong
+   premise. **The page was right; the reviewer was not.**
+
+### The reference arm, and what it is honestly for
+
+`refarm.py` is a fixed standard - one model, one prompt, one set of flags,
+never tuned - loaded and probed beside any comparison whose arms cannot share a
+server load. Calibrated tolerance **1.0%** (3 sd of 16 loads); a comparison
+whose reference readings span more than that is VOID.
+
+It is worth keeping, but the honest accounting is that it did NOT find the bug.
+**Recording the machine state did, and a quiet machine would have prevented
+it.** The reference arm's real contribution here was to refute the scary
+hypothesis quickly enough to stop it reaching the report.
+
+### What this does NOT establish
+
+One rig, one model file, one prompt, decode only. The CPU-contention arm used
+18 synthetic busy processes, which is a blunter instrument than real contention
+from another inference job or a compiler. The 64.32 itself has never been
+reproduced under controlled conditions - host load explains its magnitude and
+its scatter, but it was not caught in the act, and it is priced here as
+explained-by-mechanism rather than measured-at-the-time.
+
+
+### CONFIRMED IN THE WILD - the mechanism, caught without staging it
+
+A controlled result and the excursion it claims to explain are two different
+claims, so the second was tested on its own.
+
+`sampler-band.py` produced the excursion unbidden: its GREEDY arm -
+deterministic, temperature 0, top_k 1, one fixed prompt, one server load - read
+**CV 6.44%, range 63.4 to 74.4 t/s**, wandering 64 -> 74 -> 64 across seven
+minutes, with the SLOW readings at 1747-1778 MHz and the FAST ones at
+1685-1699. (That run's greedy-vs-shipped comparison is therefore VOID; both
+arms were hit equally, which is the only reason it still reported them as
+similar. The sampler question stays open.)
+
+`host-correlate.py` then repeated one greedy probe 45 times in one load,
+timing a fixed CPU busy loop immediately before each probe:
+
+**r = -0.924 between host CPU availability and decode throughput - 85% of the
+variance** - on a machine nobody was deliberately loading, over a 13.5% range
+(64.9 to 74.6 t/s). That is the same range as the 64.32-versus-74.36 reading
+this whole investigation started from.
+
+| | host busy (n=6) | host quiet (n=39) | delta |
+|---|---|---|---|
+| decode | 65.58 t/s | 73.78 t/s | **-11.1%** |
+| SM clock | 1736 MHz | 1698 MHz | **+2.2%** |
+| board power | 327.3 W | 341.8 W | **-4.2%** |
+| cpu index | 2.54x idle | 1.01x idle | |
+
+**The three tells together are a signature.** A starved process leaves gaps in
+the GPU's work, so the card draws LESS power; with that headroom it boosts to a
+HIGHER clock while delivering LESS throughput. Throughput down, clock up, power
+down, all at once - that combination cannot be thermal, cannot be content, and
+cannot be the clock ramp. Any speed reading carrying it is contaminated.
+
+This is why the campaign's clock logging never caught it: the clock was not
+merely innocent, it was moving the *wrong way*, which reads as healthy.
+
+`refarm.quiet_report()` gates a run on the same index without new dependencies
+- it times a fixed busy loop, which measures how much CPU *this process* can
+get rather than the machine's load average. Verified at **2.07x** idle under 18
+busy processes and **1.01x** quiet.
+
+
+### 2026-08-25 21:20 - THE BAND A READER ACTUALLY EXPERIENCES
+
+**THE QUESTION, put by the user: everyone runs the settings the model card
+recommends, so is the band this campaign publishes the band they get?**
+
+No. Every speed figure here was measured greedy - temperature 0, top_k 1 -
+which holds the generated text still so the machine is the only variable. That
+is the right way to measure a machine. It is not what a reader runs.
+
+**MEASURED**, 25 alternating pairs in ONE server load, UD-IQ4_XS,
+`-c 32768`, drafter n-max 4 / p-min 0.75, 700 tokens, on a host-gated quiet
+machine (0 pairs dropped for load, correlation between arms r = -0.182, i.e.
+no common factor - contrast the contaminated first attempt at r = 0.673):
+
+| sampler | mean | sd | CV | spread | acceptance | draft len |
+|---|---|---|---|---|---|---|
+| greedy | 73.69 | 0.557 | **0.76%** | 3.4% (72.0-74.5) | 0.893 | 2.56 |
+| model card recommended | 71.84 | 4.027 | **5.61%** | **24.7% (59.0-76.8)** | 0.849 | 2.60 |
+
+Excess sd attributable to sampling: **3.99 t/s = 5.55% of mean**. Paired, the
+recommended sampler is **2.5% slower** (95% CI 0.2-3.5%, t = -2.22).
+
+**REPLICATED.** An earlier run of the same design read greedy 0.99% / sampled
+5.76% / spread 25.3%, against 0.76% / 5.61% / 24.7% here. Two independent runs.
+
+**THE MECHANISM IS RULE 11, AT THE SCALE A USER MEETS IT.** Sampling changes
+the text; different text drafts differently; mean draft length is what decides
+speculative throughput. Greedy pins the text and the band collapses to 0.76%.
+
+**WHAT THIS CHANGES.** A fourth conditioned band naming the sampler is added to
+the noise floor in both the campaign report and the published guide, with the
+reader-facing consequence stated plainly: **a single generation is not evidence
+about a setup.** A reader who sees 59 t/s once has learned nothing; the mean
+over several requests is the number to compare.
+
+**WHAT IT DOES NOT CHANGE, checked rather than assumed.** Section 15.05's
+reproduction check pins `"temperature": 0, "top_k": 1` in the request body. It
+is a greedy measurement and its +/-3% pass band still holds against the 3.4%
+greedy spread measured here. My earlier worry that a healthy setup could fail
+that check was **wrong**, and the campaign had already got this right.
+
+**A PROCESS FAILURE WORTH RECORDING.** This measurement completed three times
+and its artifact was lost twice - once to a missing `import math`, once to a
+stale variable - because `json.dump()` sat BELOW the paragraph that interprets
+the numbers. Both times the GPU work had already succeeded. The script now
+writes the artifact first and interprets afterwards. The data is expensive; the
+commentary is free.
