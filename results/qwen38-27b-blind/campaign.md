@@ -1976,3 +1976,32 @@ It does not refuse, and it does not hedge. It returns a confident, well-formed, 
 **HARNESS FAILURE, first run, and it is this campaign's own self-correction #1 repeated verbatim.** The first run scored 1/21 with twenty BLANK answers, which reads exactly like a perception collapse. It was `max_tokens=64` on a thinking model: the reasoning consumed the whole budget and `content` came back empty. The campaign's very first documented error was "a 700-token cap never reaches the answer at the default effort", and I re-made it in a new script. **The positive control is what exposed it** - a coarse question rendered at 96 px cannot be a resolution failure, so a blank there had to be plumbing. The script now forces `reasoning_effort: low`, caps at 800, records reasoning length on every row, and prints a warning that a blank is a harness result and must never be scored as a wrong answer.
 
 **Also closed by the same run:** 12.02's perception observation had no withheld-image control, which made it a transport check rather than a perception result. It has one now.
+
+## 2026-08-25 - the drafter pair REPLICATED, after two failed attempts that were my own error
+
+**A reader challenged the published claim that UD-Q2_K_XL is slower with the drafter on, arguing from memory bandwidth that a 31%-smaller file must be faster. The premise that Q2_K_XL speed was "not measured on the page" was wrong - it is measured in three places - but the challenge was worth answering with a fresh measurement rather than a citation, and this machine becomes Ubuntu shortly, so it was also the last chance on this stack.**
+
+**RESULT: the published table replicates, in a second implementation, in a different language, on a different day.** `scripts/bench/q2-vs-q4-headtohead.py` against `work/drafter-at-2bit.ps1`:
+
+| arm | published | replicated | delta | acceptance pub -> repl |
+|---|---|---|---|---|
+| UD-IQ4_XS drafter off | 42.34 | 42.91 | +1.3% | - |
+| UD-IQ4_XS drafter ON | 86.91 | **86.58** | **-0.4%** | 0.611 -> **0.611** |
+| UD-Q2_K_XL drafter off | 45.66 | 45.58 | -0.2% | - |
+| UD-Q2_K_XL drafter ON | 77.01 | **76.97** | **-0.1%** | 0.551 -> **0.551** |
+
+Three of four throughput arms inside 0.4%, all four inside 1.3%, and **both acceptance figures exact to three decimals**. Drafter off, Q2_K_XL is faster by 6.2%; drafter on it is slower by 11.1%. **The inversion is real** and the reader's bandwidth reasoning, while correct about bytes per token, is outweighed by what speculation returns to the less-damaged file.
+
+**TWO FAILED ATTEMPTS FIRST, AND THE FAILURE IS MINE.** I wrote a script called a replication and ran it twice WITHOUT OPENING the script that produced the numbers I was checking. Four conditions silently differed: **`-fa on` was missing**, **`--reasoning off` was replaced** by a `reasoning_effort` request field, `--load-mode none` was added, and the prompt was a different program. IQ4_XS drafter-on read **73.71** instead of 86.9.
+
+Then I compounded it. Three of four arms matched, so I read the fourth as a failure to reproduce and inferred a mechanism from it - "the inversion is a property of the drafter setting" - ran a second mismatched arm to test that, and inferred a second mechanism - "the 2-bit draft head cannot use extra draft depth." **Both were artifacts of my own missing flags, and both were stated to the reader before being checked.** Retracted.
+
+**THE TELL I MISREAD.** Three of four arms agreeing to ~1% is not "one bad number". It is **"the conditions are close but not identical"**. Near-agreement across most arms should raise the conditions question, not close it. Into the failure library.
+
+**THE FINDING THAT SURVIVES, and it is about this campaign's reproducibility rather than about the models.** `-fa on` together with `--reasoning off` is worth **~17% on the IQ4_XS drafter-on arm** - 73.71 without them, 86.58 with. Neither is recoverable from a server log after the fact: llama-server prints no parameter dump in these artifacts. **The full flag set has to live in the artifact, not in the prose.** This is the second time today the same gap surfaced - the workflow verifier flagged the prefill anchor's unstated `-fa` state this morning, and I walked into the identical trap hours later.
+
+**ONE COLUMN THAT DID NOT REPLICATE, AND IT IS MY FORMULA, NOT THE MEASUREMENT.** My derived mean draft length reads 7.22 / 6.83 against the published 5.70 / 5.08. llama-server does not expose a draft-call count, so I derived `draft_n / (predicted_n - accepted)`; the original used something else. **The ratio behaves the same way** - the 2-bit file drafts shorter in both - but the absolute numbers are not comparable and this replication does not confirm that column. Stated rather than quietly dropped.
+
+**One noise note:** the Q2_K_XL drafter-on arm spread 7.0% across its three settled probes (80.19 / 74.78 / 75.95) where the other three arms spread under 0.5%. The mean still lands within 0.1% of published, but that arm is the noisiest in the pair and a single probe of it would not be trustworthy.
+
+**LAW, unchanged but re-earned:** rule 3 says state the conditions. The corollary this adds is **read them before replicating**. A replication that has not opened the original is not a replication, and its disagreements are uninterpretable.
