@@ -2516,3 +2516,106 @@ certain, but the replacement verdict depends on which reserve figure the page
 means, and the page currently contains both. That is the user's call, and it
 was 02:00 with nobody awake to make it. The measurements and the corrected
 table are here; the guide edit is prepared and waiting.
+
+
+---
+
+## 2026-08-26 04:01 - THE OVERNIGHT QUEUE, and the empty-answer column does not survive it
+
+Four unattended measurements, 02:04 to 04:01. Two of them change what the page
+can claim.
+
+### 1. EMPTY ANSWERS DO NOT REPRODUCE UNDER THE SAMPLER A READER USES
+
+The recommendation floor rests on the empty-answer column - the one the page
+tells readers to look at first - and specifically on UD-Q2_K_XL showing zero
+where UD-IQ2_S shows two. Both counts were measured under GREEDY decoding.
+
+Greedy cannot be given more statistical power: repeats are byte-identical, so
+re-running buys nothing. Sampling can, and sampling is what the model card
+recommends and what readers actually run. So the 50 HumanEval/MBPP prompts -
+where every empty on the ladder lives except two - were replayed at
+temperature 1.0 / top_p 0.95 / top_k 20, six seeds each, 300 generations per
+file.
+
+| file | generations | empty | rate | 95% upper bound |
+|---|---|---|---|---|
+| UD-Q2_K_XL | 300 | **0** | 0.00% | <1.00% |
+| QAT-Q2_0 | 300 | **0** | 0.00% | <1.00% |
+| UD-IQ2_S | 300 | **0** | 0.00% | <1.00% |
+
+**Zero for all three, bounded below 1% each.** The distinction the floor is
+built on does not appear at all under the recommended sampler.
+
+That set includes `HumanEval[6]` - the prompt that comes back empty EVERY time
+under greedy on both UD-IQ2_S and QAT-Q2_0, and still empty when the cap is
+doubled to 32,768. Sampled six times on each file it never once failed. **The
+failure is greedy-specific**, which no part of this page currently says.
+
+**WHAT THIS DOES AND DOES NOT KILL.** It does not overturn the ladder: the
+accuracy column, the execute probe and perplexity are untouched, and the lower
+rungs (IQ1_M, IQ1_S) were not re-tested. What it does is remove the empty
+column's standing as the *reason* to stop at 2.912 bpw for a reader running the
+recommended sampler. The column measures something real about greedy decoding
+and should say so.
+
+### 2. RETRIEVAL AMONG DISTRACTORS: KV PRECISION COST NOTHING
+
+The existing needle probe plants ONE distinctive sentence. This plants hundreds
+of near-identical numeric records and asks for one, which is the version that
+separates retrieval from fluency.
+
+| file | KV | records | prompt tokens | correct |
+|---|---|---|---|---|
+| UD-Q2_K_XL | f16 / q8_0 / q4_0 | 90 / 380 / 780 | 3,027 / 10,135 / 13,771 | 5/5 everywhere |
+| QAT-Q2_0 | f16 / q8_0 / q4_0 | 90 / 380 / 780 | 3,027 / 10,135 / 13,771 | 5/5, 5/5, **4/5** |
+
+**KV precision made no difference whatever** - f16, q8_0 and q4_0 give
+identical results on both files. That is the first direct evidence on a
+question the page currently answers only through prose perplexity
+(+0.309% / +0.693%), which tests nothing about retrieval. QAT-Q2_0 dropping one
+at the deepest point on ALL THREE KV settings is therefore the model, not the
+cache.
+
+**AND THE TEST DID NOT REACH THE DEPTHS THAT MATTER.** The record counts were
+calibrated by guess and the deepest prompt came to 13,771 tokens - nowhere near
+the windows a 2-bit file exists for, and so no answer at all to the criticism
+it was built for. Recalibrated to 1,860 / 3,720 / 5,100 records (~33k / 65k /
+90k tokens) and re-running. The table above stands only for shallow depth.
+
+### 3. EVERY DRAFTER THESE FILES CAN ACTUALLY USE (register entry 14)
+
+UD-Q2_K_XL is the only one of the three that contains MTP layers; the other two
+refuse `--spec-type draft-mtp` with "model doesn't contain MTP layers", which
+is why the QAT card recommends `ngram-mod`.
+
+| file | none | ngram-mod | ngram-simple | ngram-cache | draft-mtp |
+|---|---|---|---|---|---|
+| UD-Q2_K_XL | 45.71 | **353.23** (acc 1.000) | 44.99 (acc 0) | 41.95 (acc 0.148) | 82.60 (acc 0.943) |
+| QAT-Q2_0 | 62.92 | **249.61** (acc 0.935) | - | - | REFUSED |
+
+**Acceptance of exactly 1.000 is the signature of a model repeating itself**,
+which is indistinguishable from a fast drafter in the timing fields, so the
+number was withheld until the text was read (`ngram-verify.py`):
+
+| drafter | prompt | t/s | distinct-trigram | repeated lines | finish |
+|---|---|---|---|---|---|
+| none | code | 46.06 | 0.9515 | 0 | stop |
+| ngram-mod | code | **180.01** | **0.9515** | 0 | stop |
+| draft-mtp | code | 82.45 | **0.9515** | 0 | stop |
+| none | prose | 45.70 | 0.9800 | 0 | stop |
+| ngram-mod | prose | 66.89 | 0.9899 | 0 | stop |
+
+**Identical diversity across all three drafters** - as it must be, since
+speculative decoding is lossless under greedy. The speedup is real.
+
+**But it is content-dependent by construction and must never be a headline
+number.** An n-gram drafter wins only where text repeats: 3.9x on code, 1.5x on
+prose. It also moves with generation length - the sweep read 353 t/s at 500
+max tokens against 180 at 900, because shorter answers repeat more. The honest
+form is a range with the workload named, never a single figure.
+
+**For a 12 GB reader this is the practical finding of the night**: the QAT file
+cannot speculate with MTP at all, but `ngram-mod` costs it 36 MiB and buys a
+large speedup on code - and UD-Q2_K_XL's MTP drafter needs 13,372 MiB board,
+which does not fit a 12 GB card at all.

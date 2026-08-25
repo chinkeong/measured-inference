@@ -271,7 +271,11 @@ def task_depth():
     log("TASK depth: distractor retrieval x KV precision")
     kvs = [("f16", []), ("q8_0", ["-ctk", "q8_0", "-ctv", "q8_0"]),
            ("q4_0", ["-ctk", "q4_0", "-ctv", "q4_0"])]
-    depths = [(8192, 90), (32768, 380), (65536, 780)]
+    # record counts calibrated from the first run: 780 records measured 13,771
+    # prompt tokens, i.e. ~17.7 tokens each. The first attempt used 90/380/780
+    # and reached only 3.0k/10.1k/13.8k - nowhere near the depths the 2-bit
+    # file exists for, so it could not answer the criticism it was built for.
+    depths = [(32768, 1860), (65536, 3720), (90000, 5100)]
     rows = []
     for fname in ("UD-Q2_K_XL", "QAT-Q2_0"):
         for kvlabel, kvflags in kvs:
