@@ -271,22 +271,29 @@ def task_depth():
     log("TASK depth: distractor retrieval x KV precision")
     kvs = [("f16", []), ("q8_0", ["-ctk", "q8_0", "-ctv", "q8_0"]),
            ("q4_0", ["-ctk", "q4_0", "-ctv", "q4_0"])]
-    # record counts calibrated from the first run: 780 records measured 13,771
-    # prompt tokens, i.e. ~17.7 tokens each. The first attempt used 90/380/780
-    # and reached only 3.0k/10.1k/13.8k - nowhere near the depths the 2-bit
-    # file exists for, so it could not answer the criticism it was built for.
-    depths = [(32768, 1860), (65536, 3720), (90000, 5100)]
+    # CALIBRATION, corrected twice. The first attempt read 17.7 tokens per
+    # record from a cached prompt_n and was wrong: `cache_prompt` makes
+    # prompt_n report NEWLY PROCESSED tokens, and the three depths shared a
+    # prefix, so the later figures were increments and not depths. Measured
+    # uncached, one record is 33.2 tokens. The second attempt then overshot
+    # and asked for ~123k against a 98,304 server, which is the HTTP 400 in
+    # that log. Each depth now gets its OWN server load, so prompt_n is always
+    # the true depth, and the largest fits the window with room to answer in.
+    depths = [(1860, 61727), (2700, 89000), (3600, 118000)]
     rows = []
     for fname in ("UD-Q2_K_XL", "QAT-Q2_0"):
         for kvlabel, kvflags in kvs:
-            p, lf = serve(FILES[fname], 98304, kvflags + ["--spec-type", "none"],
-                          "depth-%s-%s" % (fname, kvlabel))
+          for nrec, target_tok in depths:
+            ctx = 131072
+            p, lf = serve(FILES[fname], ctx, kvflags + ["--spec-type", "none"],
+                          "depth-%s-%s-%d" % (fname, kvlabel, nrec))
             if not p:
-                log("  %-12s KV %-5s FAILED TO LOAD" % (fname, kvlabel))
-                rows.append({"file": fname, "kv": kvlabel, "loaded": False})
+                log("  %-12s KV %-5s %5d rec FAILED TO LOAD" % (fname, kvlabel, nrec))
+                rows.append({"file": fname, "kv": kvlabel, "records": nrec,
+                             "loaded": False})
                 continue
             try:
-                for target_tok, nrec in depths:
+                for _once in (1,):
                     recs = _records(nrec)
                     body = "\n".join(recs)
                     hits = 0

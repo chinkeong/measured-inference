@@ -2619,3 +2619,62 @@ form is a range with the workload named, never a single figure.
 cannot speculate with MTP at all, but `ngram-mod` costs it 36 MiB and buys a
 large speedup on code - and UD-Q2_K_XL's MTP drafter needs 13,372 MiB board,
 which does not fit a 12 GB card at all.
+
+
+---
+
+## 2026-08-26 04:45 - RETRIEVAL AT REAL DEPTH: KV PRECISION COSTS NOTHING
+
+The shallow table recorded at 02:17 is superseded. It reached 13,771 tokens by
+a calibration error and could not answer the criticism it was built for. This
+is the same test done properly: 18 separate server loads, ONE PER DEPTH so that
+`prompt_n` is unambiguously the depth, `-c 131072`, hundreds to thousands of
+near-identical numeric records with the answer being one specific latency.
+
+| file | KV | 61,727 tok (1,860 rec) | 89,589 tok (2,700 rec) | 119,435 tok (3,600 rec) |
+|---|---|---|---|---|
+| UD-Q2_K_XL | f16 | 5/5 | 5/5 | **5/5** |
+| UD-Q2_K_XL | q8_0 | 5/5 | 5/5 | **5/5** |
+| UD-Q2_K_XL | q4_0 | 5/5 | 5/5 | **5/5** |
+| QAT-Q2_0 | f16 | 5/5 | 5/5 | **4/5** |
+| QAT-Q2_0 | q8_0 | 5/5 | 5/5 | **4/5** |
+| QAT-Q2_0 | q4_0 | 5/5 | 5/5 | **4/5** |
+
+**KV PRECISION MADE NO DIFFERENCE AT ANY DEPTH.** f16, q8_0 and q4_0 are
+identical for both files out to 119,435 tokens against 3,600 distractors. The
+page currently prices KV quantisation only through prose perplexity
+(+0.309% for q8_0, +0.693% for q4_0), and the standing criticism was that
+perplexity tests nothing about retrieval and that KV error accumulates over
+cached tokens. Measured: for this task, at these depths, it does not.
+
+**UD-Q2_K_XL held 5/5 everywhere**, including 3,600 near-identical records at
+119,435 tokens. That is a far harder instrument than the existing needle probe,
+which plants ONE distinctive sentence, and it is the first evidence on this
+page that the 2-bit file's big window is usable for retrieval and not merely
+resident.
+
+**QAT-Q2_0 degrades at the deepest point, and it is the MODEL, not the cache.**
+All three KV settings miss the SAME record - 1080, the 30% position - and give
+the same wrong answer, 540 against a true 460. The positions at 50%, 70% and
+90% all succeed, so this is not "loses the far end"; it is one record it
+consistently confuses once the table is long enough. Deterministic, reproduced
+three times, and invisible to KV precision.
+
+That is coherent with everything else measured about this file: its weak
+wikitext row, its 1.32% perplexity deficit against the PTQ curve at its own bit
+rate, and now a retrieval miss on arbitrary records at depth. The blend it was
+tuned for is reasoning and code; general recall is where it is thin, and long-
+context lookup of an arbitrary record is general recall.
+
+**LIMIT.** Five queries per cell, greedy, one record table, one question form.
+A 4/5 against a 5/5 is one item and is not a significance claim - what carries
+it is that the miss is deterministic and reproduces across three independent
+cache configurations, not that 4 differs from 5.
+
+**METHOD NOTE worth keeping.** `prompt_n` under `cache_prompt` reports NEWLY
+PROCESSED tokens, not context depth. The first attempt ran three depths inside
+one server load with a shared record prefix, so the later readings were
+increments and the depth was under-reported by more than half - 33.2 tokens per
+record read as 17.7. Any depth series that reuses a prefix must either take its
+depth from the first uncached query or load a server per depth, which is what
+this now does.
