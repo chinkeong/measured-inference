@@ -2005,3 +2005,37 @@ Then I compounded it. Three of four arms matched, so I read the fourth as a fail
 **One noise note:** the Q2_K_XL drafter-on arm spread 7.0% across its three settled probes (80.19 / 74.78 / 75.95) where the other three arms spread under 0.5%. The mean still lands within 0.1% of published, but that arm is the noisiest in the pair and a single probe of it would not be trustworthy.
 
 **LAW, unchanged but re-earned:** rule 3 says state the conditions. The corollary this adds is **read them before replicating**. A replication that has not opened the original is not a replication, and its disagreements are uninterpretable.
+
+## 2026-08-25 - the drafter question a reader asked, and the gate that answered it
+
+**A reader asked whether `--spec-draft-n-max 4` is the right card recommendation for someone chasing maximum speed who would accept a smaller window, and separately whether Q4_K_M should be dropped so readers stop struggling with a false choice. Both were good questions and both had answers the page had never measured.**
+
+### Q4_K_M: kept, but it stops being a "Choice"
+
+**Not deleted.** That section is titled "losers included" and exists so an option a reader has already heard of is ANSWERED rather than absent; Q4_K_M is the best-known 4-bit GGUF there is, and deleting it removes the answer, not the decision.
+
+**The labels were the actual defect.** "Choice A" and "Choice B" manufacture a decision the measurement does not support, and were confusingly ordered - B appeared first on the page, A second. Now **THE DEFAULT** and **THE ONE YOU HAVE HEARD OF**.
+
+**And the quality claim was overclaimed.** "Maximum measured quality" is retracted. The perplexity gap is **0.061** (6.535 vs 6.596) against this page's own **±0.063** combined comparison error - and the passage that sets that yardstick *names this very pair*. **Inside the bar.** The corroborating 200-question GSM8K comparison used a grader later found to carry three bugs and was never re-scored. One unresolvable difference plus one withdrawn instrument is not a quality advantage.
+
+### The drafter: the card was right, for a reason it stated badly
+
+Three measurements, each answering the previous one's weakness.
+
+**Shallow, vision loaded, -c 122880:** n10/p0.5 reads **+33.2%** over n4/p0.75 with 2,023 MiB free. Shrinking `-c` to 98,304 to "afford" it buys nothing - 87.04 against 87.49 t/s, inside noise, for 24,576 fewer tokens. **So the reader's proposed trade is strictly worse than simply switching the flag.**
+
+**Deep-filled to 112,735 real tokens:** the advantage halves to **+17.1%** (62.47 against 53.33) and slack holds at **1,776 MiB** - clear of the 1,308 MiB reserve. Slack collapse from load to depth was only 89 MiB, nothing like the 2.6 GiB that burned this page at 196,608. On that evidence the recommendation looked wrong.
+
+**The gate that changed the answer:** a real 1440p image in flight on top of 105,397 tokens, board VRAM sampled every 0.5 s across the request rather than read at two end points. **Peak 23,450 MiB, leaving 1,126 MiB** against a 1,308 MiB reserve.
+
+**Short by 182 MiB - and the same configuration varied 397 MiB between two loads on the same day.** So the verdict is not "fails", it is **"marginal"**, and marginal against a safety reserve is a no: the failure mode is not an error but a silent spill that costs half the speed and logs nothing.
+
+**DECISION: the conservative drafter stays on the vision pick. The card was right.** What changes is the reason - it was argued against a *reasoning* stream at 5.6% when the reader was writing code, and is now measured on the workload it is actually recommended for.
+
+### Three findings that outlive the question
+
+1. **A shallow probe overstates speculation by about double** - +33.2% on an empty window against +17.1% at real depth. Every drafter comparison taken at an empty context is suspect by that factor.
+2. **Vision is not degraded by context pressure, only memory is.** At 105,397 tokens the model correctly read a 15 px table cell - a fine-detail question with a known answer. Memory is what runs out at depth, not sight.
+3. **An end-point VRAM pair cannot see a transient peak.** Load-and-depth readings missed 342 MiB that 0.5 s sampling caught. Any residency verdict taken from two readings is a floor, not a peak.
+
+**NOT USED, stated so nobody mines it from the artifact:** that run's decode figure of 20.01 t/s. `max_tokens` was 200 and the correct answer is "207", so `predicted_n` is a handful of tokens and the rate is dominated by startup. It is not a speed result.
