@@ -160,7 +160,14 @@ def main():
     A('</svg>')
 
     A('<figcaption><b>Four instruments, and only two of them agree.</b> '
-      '<span class="chip m">meas</span> Perplexity moves at the very first step '
+      '<span class="chip d">der</span> Every plotted point is a ratio against '
+      'the <code>UD-IQ4_XS</code> reference, so that instruments in different '
+      'units can share one axis: <b>perplexity added</b> = (PPL &minus; 6.5956) '
+      '&divide; 6.5956, <b>accuracy lost</b> = (97.30 &minus; Mean) &divide; '
+      '97.30, <b>empty rate</b> = empties &divide; 75. The measured values '
+      'behind all three are printed in the tables above. The run / does-not-run '
+      'strip along the bottom is <span class="chip m">meas</span> directly. '
+      'Perplexity moves at the very first step '
       'down and never stops &mdash; the most sensitive line here, and the one '
       'that says least about whether the model still works. The empty-answer '
       'rate is <b>exactly zero</b> down to 2.912 bits per weight and first '
@@ -171,8 +178,7 @@ def main():
       'machinery at all &mdash; <b>break at the same rung</b>. Everything down '
       'to <code>UD-IQ2_S</code> at 2.481 runs; nothing below it does. '
       '<b>The functional boundary is between 2.481 and 2.153 bits per weight, '
-      'and it has two independent witnesses.</b> Every value here is printed in '
-      'the tables beside it; this figure only draws them. Execution is '
+      'and it has two independent witnesses.</b> Execution is '
       '<span class="chip u">n=1</span> per file.</figcaption>')
     A('</figure>')
     return "\n".join(o)
