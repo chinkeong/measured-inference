@@ -1839,3 +1839,33 @@ That is not a contradiction; it is a SCOPE LIMIT, and it is ours, not theirs. **
 
 ### What this does NOT change
 No number moves. The perplexity ladder, the paired accuracy results, the empty-answer table, the VRAM requirement table and the depth series are all unaffected - they measure what they measure. What changes is the SCOPE the recommendations claim.
+
+## 2026-08-25 11:10 - D5, the loop detector: BUILT, VALIDATED, and it does NOT do what I expected
+
+`scripts/bench/loop-detect.py`. Four orthogonal signals: N1 immediate repeats after normalising digits AND number-words; N2 the share of prose lines collapsing to one structural skeleton; N3 zlib compression ratio; N4 the worst sliding-window type-token ratio. Zero GPU - it reads transcripts already on disk.
+
+### Validation, and it corrected me twice mid-build
+
+**First run:** all three known degenerations scored merely "hint". Each fired exactly ONE signal but fired it hard - the counting story at N4=0.1167 against a reference minimum of 1.0000; the 100-set answer at N2=0.7645 against a reference maximum of 0.2222. My "two agreeing signals" rule was wrong: corroboration is right when signals are weak and wrong when one is unambiguous.
+**Also caught:** N1 normalised DIGITS only, and this campaign's worst known loop counts in WORDS ("one hundred and one, one hundred and two"). The single signal built to catch counters was blind to the actual counter. Fixed - and the fix immediately caused its own failure.
+**Second run:** false positives on the 4-bit reference went 1 -> 4. All four were legitimate CODE: a dict literal mapping number words to digits, a doctest block, two worked-example lists. Number-word normalisation turns `'one': 1, 'two': 2` into `'#': #, '#': #` - **manufacturing the exact pattern it was built to detect.** Fixed by running the two structural signals on prose only, with fenced code stripped.
+**Final:** the two severe degenerations fire LOOP; the mild one fires hint; all four control items clean; **1 false positive in 75 reference answers**. And the severity ordering matches the judges independently - the answers rated 1 and 3 fire LOOP, the one rated 4-5 fires only a hint.
+
+### The scan, and the honest negative
+
+| file | bpw | n non-empty | LOOP | novel LOOP (not also on the reference) |
+|---|---|---|---|---|
+| UD-IQ4_XS | 4.223 | 75 | 1 | - |
+| UD-Q3_K_XL | 3.895 | 75 | 4 | 3 |
+| UD-IQ3_XXS | 3.240 | 75 | 3 | 2 |
+| UD-Q2_K_XL | 2.912 | 75 | 1 | 0 |
+| UD-IQ2_S | 2.481 | 73 | 3 | 2 |
+| UD-IQ2_XXS | 2.153 | 72 | 2 | 2 |
+| UD-IQ1_M | 1.994 | 70 | 1 | 0 |
+| UD-IQ1_S | 1.835 | 47 | 4 | 4 |
+
+**This is not a degradation signal.** UD-Q3_K_XL - a file that ties the 4-bit reference on accuracy - carries 3 novel flags, while UD-Q2_K_XL and UD-IQ1_M carry none. There is no monotone trend and none should be claimed. One item, MBPP[20], fires on FIVE different files including the reference: that is the prompt, not any model, and it is why the scan reports flags net of the reference at all.
+
+**Why it fails here, and it is the same reason the video mattered.** These are single-turn answers with a median length of 416-502 tokens. A loop needs room to develop, and at that length it mostly cannot. The failure this detector exists to name is the one that appears in long multi-turn agentic runs - exactly the regime this campaign never measured. **So D5 is an instrument built for the next campaign, not a result about this one.**
+
+**And the comparison worth publishing:** on THIS corpus the empty-answer rate gives a clean monotone signal (0/0/0/0/2/3/5/28) and the loop detector gives none. Two instruments aimed at the same family of failure, and on short single-turn answers only one of them works. That is a finding about the instruments, and it belongs beside them.
