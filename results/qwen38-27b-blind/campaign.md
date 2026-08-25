@@ -1235,6 +1235,8 @@ Marginal cost of shrinking, %PPL added per GiB saved: Q3_K_XL 1.07, Q2_K_XL 1.08
 
 Functional floor is LOWER than the quality knee and they are different questions: the smallest rung that passes every detector is **UD-IQ1_M at 6.267 GiB** (+23.44%); **UD-IQ1_S at 5.767 GiB / 1.835 bpw FAILS** - it still writes clean prose and well-formed fences but returns an empty JSON echo. That is the ladder's designed right anchor doing its job: a rung where the answer is clearly no.
 
+(CORRECTION 2026-08-25, from A6 - the execute probe. **This paragraph's "functional floor" is WRONG BY TWO RUNGS, in the direction that hurts a reader**, and the word "functional" is what was wrong: D1-D4 never ran the code. Under `node`, UD-IQ1_M does NOT function - `SyntaxError: Missing initializer in const declaration` - and neither does UD-IQ2_XXS - `TypeError: Cannot read properties of undefined (reading 'push')`. The **executed** functional floor is **UD-IQ2_S at 2.481 bpw**, the smallest rung whose program actually parses, runs and prints its answer. Kept here undeleted per rule 5: a detector that reads output cannot license the word "functional", and this is what that error looks like when it reaches print.)
+
 Speed across the whole ladder (detector probe A, depth 218, no drafter, -c 8192, n=1 each): 40.02 -> 53.25 t/s. **The file shrinks 2.30x and decode speeds up 1.33x.** Sub-Q4 buys VRAM, not speed - the single most decision-relevant number in the ladder and the one that most needs a depth-and-drafter arm before it is published as guidance.
 
 Rig gates: the IQ4_XS anchor reproduced 6.5956 twice at delta 0.000%, and the IQ4_XS-vs-NVFP4 pair resolved a 4.27% same-size quality gap against +/-0.045 error bars - the rig both reproduces and still discriminates.
@@ -1869,3 +1871,36 @@ No number moves. The perplexity ladder, the paired accuracy results, the empty-a
 **Why it fails here, and it is the same reason the video mattered.** These are single-turn answers with a median length of 416-502 tokens. A loop needs room to develop, and at that length it mostly cannot. The failure this detector exists to name is the one that appears in long multi-turn agentic runs - exactly the regime this campaign never measured. **So D5 is an instrument built for the next campaign, not a result about this one.**
 
 **And the comparison worth publishing:** on THIS corpus the empty-answer rate gives a clean monotone signal (0/0/0/0/2/3/5/28) and the loop detector gives none. Two instruments aimed at the same family of failure, and on short single-turn answers only one of them works. That is a finding about the instruments, and it belongs beside them.
+
+## 2026-08-25 - A6, the execute probe: the cheapest instrument in the campaign, and it moved a published number
+
+**scripts/bench/execute-probe.py. Zero GPU. It runs `node` over code already on disk.**
+
+Probe A is a CONTINUATION task, which matters for reading its artifacts. The prompt supplies the file header and `class MinHeap` down to `push(node, pri) {`, then asks for the rest and says "Output raw code only - no prose, no markdown fences, no commentary." **An output beginning `this.a.push({ node, pri });` is therefore CORRECT, not truncated.** I read those five files as clipped and was wrong; the prefix was recovered from `detectors.ps1` and prepended, per rung, by the shape each output actually took. Recording the misread because it nearly became a retraction of good data.
+
+Sampler, confirmed from artifacts and not from source: probes ran through `Invoke-Probe`, **greedy by construction, temperature 0, top_k 1, no penalty field**; the accuracy arms record `temperature 0.0, top_k 1, presence_penalty 0.0, seed 42` in all 29 run manifests. These results are deterministic and carry no sampler confound.
+
+| file | bpw | followed the prompt | executed under node v24.15.0 |
+|---|---|---|---|
+| UD-IQ4_XS | 4.223 | continued | **runs** - Total cost: 15 |
+| UD-Q3_K_XL | 3.895 | continued | **runs** - Total cost: 10 |
+| UD-IQ3_XXS | 3.240 | continued | **runs** - Total cost: 12 |
+| UD-Q2_K_XL | 2.912 | continued | **runs** - Total cost: 8 |
+| UD-IQ2_S | 2.481 | continued, but fenced | **runs** - Total cost: 15 |
+| UD-IQ2_XXS | 2.153 | restarted the file | **TypeError** - Cannot read properties of undefined (reading 'push') |
+| UD-IQ1_M | 1.994 | restarted, fenced | **SyntaxError** - Missing initializer in const declaration |
+| UD-IQ1_S | 1.835 | restarted, fenced | **SyntaxError** - Identifier 'shortestPathCostsTotalTotalTotal...' |
+| NVFP4-MTP-VERY-LOW | 4.404 | continued | **runs** - Total cost: 11 |
+| gemma-4-12B-QAT-Q4_0 | 4.651 | continued | **SyntaxError** - Unexpected token '{' |
+
+**All ten were published `verdict=PASS`. Six run.**
+
+**1. The published "functional floor" was wrong by two rungs.** The 08-24 synthesis named UD-IQ1_M the smallest functional rung because it passed D1-D4. It does not function. The executed floor is **UD-IQ2_S, 2.481 bpw**. Corrected in place at that entry per rule 5. This is the failure mode the campaign exists to catch and it reached print: a detector that READS output was allowed to license the word "functional".
+
+**2. D1-D4 are blind to whole-program syntax, and this is the THIRD witness.** The judge panel was the first, the 1,682-token degeneration the second. A missing brace contains no repeated n-grams, so no lexical detector can see it - and no amount of tuning their thresholds would help. **A parser is not a better detector of the same kind; it is a different kind.** A7 stands earned three times over.
+
+**3. Instruction-following collapse predicts execution failure perfectly on this corpus.** Every rung that RESTARTED the file - ignoring "continue this file" - failed to execute. Every rung that CONTINUED as asked ran, with one exception (gemma). Three rungs also emitted the markdown fences the prompt explicitly forbade, and all three are at the bottom: IQ2_S, IQ1_M, IQ1_S. The boundary-token and instruction-adherence failures arrive together, and they arrive at the bottom of the ladder. n=1 per rung, so this is a signal to test at n, not a rate.
+
+**4. A measured counter-example to "smaller model, more bits".** The common advice is that a smaller model at 4-5 bpw beats a larger one at 2-3 bpw for code and agentic work. Here **gemma-4-12B-QAT-Q4_0 at 4.651 bpw produced unrunnable code** - it opened `const insert = (node, pri) => { ... };` inside `push(node, pri) {`, never closed `push`, then wrote `siftUp(i) {` as if back at class-body level - **while Qwen3.8-27B at 2.912 bpw produced a working Dijkstra.** Verified as the model's error, not the harness's: the prefix leaves exactly one brace open and any fair concatenation reproduces it. **n=1, one task, one language.** It dents "almost always"; it does not refute the tendency, and it must not be published as if it did.
+
+**HARDENED.** `bench.py` carries `SAMPLING = dict(..., presence_penalty=1.5)` as its non-greedy default. Every published run used `--greedy`, which zeroes it, so nothing measured is affected - but a penalty on code and JSON penalises braces, keys and indentation, which are legal repeats. Added a warning that fires when HumanEval or MBPP run with a nonzero penalty. Found by an external cross-check, not by us.

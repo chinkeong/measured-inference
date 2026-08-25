@@ -575,6 +575,17 @@ def main():
     if args.greedy:
         sampling.update(temperature=0.0, top_k=1, top_p=1.0, presence_penalty=0.0)
 
+    # A presence penalty is measured as harmful to code and JSON: those formats
+    # legitimately repeat braces, keys and indentation, so penalising a repeat
+    # penalises correct syntax. Every published run so far used --greedy, which
+    # zeroes it. This is the guard for the first run that forgets.
+    _structured = [d for d in prompts_by_ds if d in ("HumanEval", "MBPP")]
+    if _structured and sampling.get("presence_penalty"):
+        print("WARNING: presence_penalty=%s on structured output (%s). Repeats "
+              "are legal syntax there; a penalty corrupts it. Use --greedy, or "
+              "pass the penalty deliberately and say so in the writeup."
+              % (sampling["presence_penalty"], ", ".join(_structured)))
+
     if args.ctx is None:  # --rule21 sizes the window from the suite itself
         longest = max((est_tokens(p) for ps in prompts_by_ds.values() for p in ps),
                       default=0)
