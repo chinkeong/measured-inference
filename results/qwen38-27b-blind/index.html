@@ -5714,7 +5714,13 @@ chrome --headless=new --disable-gpu --hide-scrollbars \
     quality-unverified at depth.</b>
     <em>Closed by:</em> a needle-in-haystack grid at 8k / 90k / 180k &times;
     {f16, q8_0} KV, n=5 per cell, scored on exact retrieval.</p>
-    <p class="price">Price: ~1&ndash;2 h GPU (estimate &mdash; prefill-bound; the 180k cells dominate)</p>
+    <p><b>PARTLY CLOSED 2026-08-25</b> <span class="pv m">MEASURED</span>. A needle probe now exists, done in ~20 minutes rather than the 12 hours priced below by planting five needles in ONE fill and asking for each separately so every question after the first hits the prefix cache. Needles wear the filler's own sentence frame &mdash; one that reads differently gets found by shape rather than attention &mdash; and an unplanted control sector catches confabulation.</p>
+      <table><tr><th>window</th><th class="num">filled</th><th class="num">prefill</th><th>needles</th><th>control</th></tr>
+      <tr><td><code>-c 131072</code></td><td class="num">120,281</td><td class="num">164&nbsp;s</td><td><b>5 / 5</b></td><td>correct</td></tr>
+      <tr><td><code>-c 262144</code></td><td class="num"><b>241,655</b></td><td class="num">498&nbsp;s</td><td><b>5 / 5</b></td><td>correct</td></tr></table>
+      <p>Retrieved at every depth from 10&nbsp;% to 90&nbsp;% of the fill, on <code>UD-Q2_K_XL</code> &mdash; the 2.9-bit file, which makes it more surprising rather than less. <b>So the windows this page ships are not nominal.</b></p>
+      <p><b>Why this is PARTLY and not fully closed.</b> This is <em>literal</em> retrieval &mdash; find the note naming a given sector. The evidence <a href="#s14">&sect;14</a> cites says accuracy collapses when retrieval requires <em>inference</em> rather than matching, and that mid-context material is used worse than material at the edges. <b>The window holds and yields; whether the model can reason across 240k is untested.</b> Also <span class="n1">n=1</span> per depth on one filler shape, and the KV-quantisation half of this entry &mdash; that <code>q8_0</code> was verified by a perplexity pass at <code>-c 8192</code>, which cannot see a retrieval failure at depth &mdash; is untouched.</p>
+      <p class="price">Price: ~1&ndash;2 h GPU (estimate &mdash; prefill-bound; the 180k cells dominate)</p>
   </div>
 
   <div class="reg">
