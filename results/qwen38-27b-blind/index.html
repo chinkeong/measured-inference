@@ -5778,8 +5778,24 @@ chrome --headless=new --disable-gpu --hide-scrollbars \
     <em>Closed by:</em> the same image at two budgets, asked a question whose
     answer depends on fine detail, scored blind; plus one control run with the
     image withheld.</p>
-    <p class="price">Price: ~15 min GPU (estimate &mdash; the vision runs took about a minute each)</p>
-  </div>
+    <p><b>CLOSED 2026-08-25</b> <span class="pv m">MEASURED</span>. A generated
+      1440p target, every answer known exactly, scored by string equality rather
+      than by a judge. Three arms: full budget, <code>1024</code>, and the image
+      withheld.</p>
+      <table><tr><th>arm</th><th class="num">coarse</th><th class="num">fine</th><th class="num">all</th><th class="num">image tokens</th></tr>
+      <tr><td>full <code>10580</code></td><td class="num">2/2</td><td class="num">5/5</td><td class="num"><b>7/7</b></td><td class="num">3,635</td></tr>
+      <tr><td><code>--image-max-tokens 1024</code></td><td class="num">2/2</td><td class="num">3/5</td><td class="num"><b>5/7</b></td><td class="num">1,043</td></tr>
+      <tr><td>image withheld <b>(control)</b></td><td class="num">0/2</td><td class="num">0/5</td><td class="num"><b>0/7</b></td><td class="num">33</td></tr></table>
+      <p>The control scored zero, with five honest refusals and two wrong guesses,
+      which is what licenses reading the other two rows as perception. The cap cuts
+      3,635 tokens to 1,043 &mdash; <b>3.49&times;</b>. <b>The finding is not that the
+      model goes blind.</b> At the low budget it still reads layout, headline, banner
+      and both 4-digit values; it loses the finest type <em>and does not know it</em>:
+      a latency of <b>207</b> came back <b>287</b>, and the serial
+      <code>QUB-85731-3D3B</code> came back <code>QLN-15731-3053</code> &mdash; right
+      shape, wrong content, no hedge. <b>A confident misread is worse than a refusal</b>,
+      because nothing downstream can see it. <span class="n1">n=1</span> per question.</p>
+      <p class="price">Price paid: ~6 min GPU. Estimate was ~15 min</p></div>
 
   <div class="reg">
     <h4>7. Blind-judged generative quality at n &ge; 10</h4>

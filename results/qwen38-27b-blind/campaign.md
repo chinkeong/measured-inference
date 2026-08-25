@@ -1949,3 +1949,30 @@ I searched for the phrase I had used ("functional floor") and fixed what matched
 **17(b) remains open** - the 13% drafting-level gap was not touched.
 
 **A note on the instrument.** A within-run contrast is stronger than a cross-day re-run for any question of the form "does X depress Y", and this campaign has now been bitten twice by cross-day comparisons (the batching figure, the 131k ordering). Where a hypothesis can be tested by holding one server load and varying one thing inside it, that is the design to reach for first.
+
+## 2026-08-25 - REGISTER ENTRY 6 CLOSED: what --image-max-tokens 1024 actually costs
+
+**`scripts/vision/make-detail-target.py` + `entry6-image-budget.py`. ~6 min GPU. Both in PYTHON, deliberately - the harness is moving to Linux and new instruments should not add to the PowerShell debt.**
+
+**The instrument, and two choices that make it stronger than the register asked for.** The register proposed "the same image at two budgets, asked a question whose answer depends on fine detail, scored blind, plus one control run with the image withheld". A blind judge is the right tool when the answer is prose. Here it is not needed: the target is GENERATED, so every answer is known exactly and scoring is string equality - no judge, no noise floor, no cost. And the target carries its own POSITIVE CONTROL: two questions about type rendered at 96 px and 54 px, which survives any plausible downsampling, beside five about type at 12-15 px, which should not. That separates a resolution result from a plumbing result, and the distinction earned its place immediately (see the harness failure below).
+
+| arm | coarse | fine | all | image tokens |
+|---|---|---|---|---|
+| FULL `--image-max-tokens 10580` | 2/2 | 5/5 | **7/7** | 3,635 |
+| REDUCED `--image-max-tokens 1024` | 2/2 | 3/5 | **5/7** | 1,043 |
+| BLIND, no image (control) | 0/2 | 0/5 | **0/7** | 33 |
+
+**The control is what makes the other two rows mean anything, and it behaved.** 0/7, with five of seven honest refusals ("I don't see a screenshot") and two guesses that were both wrong. Every correct answer above is therefore perception and not prior. Without this arm the FULL row is just a plausible transcript.
+
+**The cap does what it claims.** 3,635 image tokens to 1,043 - a **3.49x cut**, against the register's estimate of 3.6x. Note the FULL arm never reaches 10,580: this image only needs 3,635, so at the shipped budget the flag is not binding at all.
+
+**THE FINDING, and it is not "the model goes blind".** At 1,043 tokens the model still reads the layout, the headline, the banner, a 4-digit queue value and a 4-digit calibration offset. What it loses is the finest type - and **it does not know it has lost it**:
+
+- `SHARD-07` latency: **207 -> 287**. One digit, silently wrong.
+- unit serial: **QUB-85731-3D3B -> QLN-15731-3053**. Right shape, wrong content.
+
+It does not refuse, and it does not hedge. It returns a confident, well-formed, wrong value. **That is a worse failure than blindness**, because a screenshot-reading agent propagates it without a signal. n=1 per question, 5 fine questions, 2 failures - a threshold, not a rate.
+
+**HARNESS FAILURE, first run, and it is this campaign's own self-correction #1 repeated verbatim.** The first run scored 1/21 with twenty BLANK answers, which reads exactly like a perception collapse. It was `max_tokens=64` on a thinking model: the reasoning consumed the whole budget and `content` came back empty. The campaign's very first documented error was "a 700-token cap never reaches the answer at the default effort", and I re-made it in a new script. **The positive control is what exposed it** - a coarse question rendered at 96 px cannot be a resolution failure, so a blank there had to be plumbing. The script now forces `reasoning_effort: low`, caps at 800, records reasoning length on every row, and prints a warning that a blank is a harness result and must never be scored as a wrong answer.
+
+**Also closed by the same run:** 12.02's perception observation had no withheld-image control, which made it a transport check rather than a perception result. It has one now.

@@ -122,15 +122,36 @@ def norm(s):
 
 
 def ask(q, b64):
+    """One question.
+
+    THE CAP AND THE EFFORT ARE BOTH LOAD-BEARING, and the first version of this
+    script got them wrong in the way this campaign has already documented once.
+    Qwen3.8 emits reasoning tokens before its answer. With a 64-token cap the
+    reasoning consumed the whole budget and `content` came back EMPTY for 20 of
+    21 questions - which reads exactly like a perception failure and is nothing
+    of the kind. That is self-correction #1 of this campaign repeated verbatim:
+    "a 700-token cap never reaches the answer at the default effort."
+
+    So: effort forced to `low`, a cap of 800, and the reasoning length recorded
+    on every row. An empty answer beside a large `think_n` is a harness failure
+    and must never be scored as a wrong answer.
+    """
     content = [{"type": "text", "text": q}]
     if b64:
         content.insert(0, {"type": "image_url",
                            "image_url": {"url": "data:image/png;base64," + b64}})
     r = post("/v1/chat/completions", {
         "model": "qwen/qwen3.8-27b", "temperature": 0, "top_k": 1,
-        "max_tokens": 64, "messages": [{"role": "user", "content": content}]})
-    msg = r["choices"][0]["message"]["content"]
-    return msg, r.get("timings", {}).get("prompt_n")
+        "max_tokens": 800,
+        "chat_template_kwargs": {"reasoning_effort": "low"},
+        "messages": [{"role": "user", "content": content}]})
+    msg = r["choices"][0]["message"]
+    think = msg.get("reasoning_content") or ""
+    fin = r["choices"][0].get("finish_reason")
+    t = r.get("timings", {})
+    return (msg.get("content") or ""), {
+        "prompt_n": t.get("prompt_n"), "predicted_n": t.get("predicted_n"),
+        "think_chars": len(think), "finish": fin}
 
 
 def run_arm(name, questions, b64, server, model, mmproj, budget):
@@ -141,15 +162,18 @@ def run_arm(name, questions, b64, server, model, mmproj, budget):
     out = []
     for q in questions:
         try:
-            raw, pn = ask(q["q"], b64)
+            raw, meta = ask(q["q"], b64)
         except Exception as e:
-            raw, pn = "<error: %s>" % e, None
-        ok = norm(raw) == norm(q["a"])
+            raw, meta = "", {"error": str(e)}
+        blank = not raw.strip()
+        ok = (not blank) and norm(raw) == norm(q["a"])
         out.append({"id": q["id"], "class": q["class"], "expected": q["a"],
-                    "raw": raw.strip()[:120], "correct": ok, "prompt_n": pn})
-        print("  %-16s %-8s expect %-16s got %-22s %s"
-              % (q["id"], q["class"], q["a"], raw.strip().replace("\n", " ")[:22],
-                 "OK" if ok else "x"))
+                    "raw": raw.strip()[:160], "correct": ok, "blank": blank,
+                    **meta})
+        print("  %-16s %-8s expect %-16s got %-24s %s"
+              % (q["id"], q["class"], q["a"],
+                 (raw.strip().replace("\n", " ")[:24] or "<BLANK>"),
+                 "OK" if ok else ("HARNESS?" if blank else "x")))
     stop(p)
     return out
 
@@ -160,8 +184,13 @@ def summarise(rows):
     d = {}
     for cls in ("coarse", "fine"):
         sub = [r for r in rows if r["class"] == cls]
-        d[cls] = {"correct": sum(1 for r in sub if r["correct"]), "n": len(sub)}
-    d["all"] = {"correct": sum(1 for r in rows if r["correct"]), "n": len(rows)}
+        d[cls] = {"correct": sum(1 for r in sub if r["correct"]), "n": len(sub),
+                  "blank": sum(1 for r in sub if r.get("blank"))}
+    d["all"] = {"correct": sum(1 for r in rows if r["correct"]), "n": len(rows),
+                "blank": sum(1 for r in rows if r.get("blank"))}
+    # image tokens actually spent, which is the thing the flag controls
+    pn = [r["prompt_n"] for r in rows if r.get("prompt_n")]
+    d["prompt_n_median"] = sorted(pn)[len(pn) // 2] if pn else None
     return d
 
 
@@ -194,17 +223,22 @@ def main():
     arms["BLIND"] = run_arm("BLIND  no image attached (control)", qs, None,
                             a.server, a.model, a.mmproj, 10580)
 
-    print("\n%-14s %-14s %-14s %s" % ("arm", "coarse", "fine", "all"))
+    print("\n%-14s %-10s %-10s %-10s %-8s %s"
+          % ("arm", "coarse", "fine", "all", "blank", "prompt_n"))
     result = {"entry": "6", "date": time.strftime("%Y-%m-%d %H:%M"),
               "target": os.path.basename(PNG), "arms": {}}
     for k, rows in arms.items():
         s = summarise(rows)
         result["arms"][k] = {"rows": rows, "summary": s}
         if s:
-            print("%-14s %-14s %-14s %s"
+            print("%-14s %-10s %-10s %-10s %-8s %s"
                   % (k, "%d/%d" % (s["coarse"]["correct"], s["coarse"]["n"]),
                      "%d/%d" % (s["fine"]["correct"], s["fine"]["n"]),
-                     "%d/%d" % (s["all"]["correct"], s["all"]["n"])))
+                     "%d/%d" % (s["all"]["correct"], s["all"]["n"]),
+                     s["all"]["blank"], s["prompt_n_median"]))
+    if any(v["summary"].get("all", {}).get("blank") for v in result["arms"].values()):
+        print("\nWARNING: blank answers present. A blank is a HARNESS result, not a "
+              "perception result, and must not be scored as a wrong answer.")
 
     os.makedirs(OUTDIR, exist_ok=True)
     out = os.path.join(OUTDIR, "entry6-image-budget.json")
