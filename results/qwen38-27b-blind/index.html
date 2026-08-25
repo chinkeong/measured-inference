@@ -4470,6 +4470,39 @@ correspondingly softer.</code></pre>
   prefill half, which is 90.7&nbsp;% of the joules, is unaffected: it
   <em>is</em> the prefill.</p>
 
+  <div class="callout warn">
+    <span class="label">That explanation was tested on 2026-08-25 and it is
+    wrong &mdash; register entry 17(a), closed</span>
+    <p>The paragraph above is a <em>hypothesis</em> with an obvious test, and
+    the test had never been run. It has now been <span class="pv m">MEASURED</span>,
+    and as a <b>within-run</b> contrast rather than a comparison across days:
+    one server load, <code>UD-IQ4_XS</code>, <code>-c 131072</code>, n4/p0.75,
+    <code>q8_0</code> KV, filled to <b>92,487 tokens</b>. The first probe pays a
+    <b>112.7-second prefill</b> and decodes immediately after it &mdash; the
+    arm's exact condition. The next three reuse the cached prefix, so no prefill
+    precedes them &mdash; the cooled condition. Everything else is held
+    identical, which a cross-day comparison cannot do.</p>
+    <table><tr><th>condition</th><th class="num">decode</th></tr>
+    <tr><td>immediately after a 112.7&nbsp;s prefill</td><td class="num"><b>35.99</b>&nbsp;t/s</td></tr>
+    <tr><td>prefix cached, no prefill before it</td><td class="num"><b>36.19</b>&nbsp;t/s <span class="small">(36.09 &middot; 36.27 &middot; 36.22)</span></td></tr>
+    <tr><td><b>difference</b></td><td class="num"><b>+0.56&nbsp;%</b> <span class="small">&mdash; inside the 2.9&nbsp;% noise floor</span></td></tr></table>
+    <p><b>A post-prefill clock state does not depress decode here.</b> The
+    mechanism this page invoked to explain a 10.4&nbsp;% deficit produces
+    <em>half a percent</em> when isolated. <b>The caveat's advice survives and
+    its reason does not:</b> the deepest row's decode half should still be read
+    as approximate, because a single probe carries a &plusmn;25&nbsp;% band
+    &mdash; but the 10.4&nbsp;% gap between that arm and the cooled reference is
+    now <b>unexplained</b>, and this page no longer offers an explanation for
+    it. Run-to-run variation and a difference in fill content are both still
+    open; neither was tested.</p>
+    <p class="small"><b>What this run cannot claim.</b> Its absolute level
+    (~36&nbsp;t/s) is nowhere near either published figure, so it is a test of
+    the <em>mechanism</em> and not a replication of that arm's <em>level</em>.
+    The two numbers being compared here are each other, not 58.05 or 64.76. That
+    said, 36.09 is where <a href="#s08">&sect;08</a>'s independently-run
+    depth series puts this file near this depth, which is at least consistent.</p>
+  </div>
+
   <h3 id="s09-08"><span class="sigil">08</span>The board does not draw a constant number of watts</h3>
   <p>This page used to print &ldquo;344&nbsp;W sustained&rdquo; as a constant. It
   is not one. Over two and a half hours of continuous decode, at
@@ -5926,14 +5959,25 @@ chrome --headless=new --disable-gpu --hide-scrollbars \
   </div>
 
   <div class="reg">
-    <h4>17. Two cross-checks this campaign owes itself</h4>
-    <p>Round 5's deepest arm reads 10.4&nbsp;% below the cooled reference at the
-    same depth and flags &mdash; explained in &sect;09.07 as a post-prefill clock
-    state, and that explanation is a <em>hypothesis with an obvious test</em>
-    (re-run that arm with prompt caching on). And round 5's fastest drafting arm
-    reads 13&nbsp;% above round 2's matched re-sweep of the same setting; the
-    ranking is intact in both, and the level is unexplained.</p>
-    <p class="price">Price: ~15 min GPU (estimate) for both</p>
+    <h4>17. Two cross-checks this campaign owes itself &mdash; <span style="color:var(--good)">the first ran 2026-08-25</span></h4>
+      <p>Round 5's deepest arm reads 10.4&nbsp;% below the cooled reference at the
+      same depth and flags &mdash; explained in &sect;09.07 as a post-prefill clock
+      state, and that explanation is a <em>hypothesis with an obvious test</em>
+      (re-run that arm with prompt caching on). And round 5's fastest drafting arm
+      reads 13&nbsp;% above round 2's matched re-sweep of the same setting; the
+      ranking is intact in both, and the level is unexplained.</p>
+      <p><b>17(a) CLOSED, and the hypothesis lost.</b> Run as a <b>within-run</b>
+      contrast rather than the cross-day re-run this entry proposed &mdash; one
+      server load at 92,487 tokens, the first probe decoding straight off a
+      112.7&nbsp;s prefill and the next three off a cached prefix, everything else
+      held identical. <b>35.99 against 36.19&nbsp;t/s: +0.56&nbsp;%</b>, inside the
+      noise floor, where the explanation needed about 10&nbsp;%. <b>The post-prefill
+      clock state is not the cause.</b> <a href="#s09-07">&sect;09.07</a> now carries
+      that correction: the caveat's practical advice survives without its mechanism,
+      and the 10.4&nbsp;% gap is returned to <em>unexplained</em> rather than left
+      with a wrong reason attached. <b>17(b) remains open</b> &mdash; the 13&nbsp;%
+      drafting-level gap was not touched.</p>
+      <p class="price">Price paid: ~9 min GPU for 17(a). Remaining for 17(b): ~15 min GPU (estimate)</p>
   </div>
 
   <div class="reg">

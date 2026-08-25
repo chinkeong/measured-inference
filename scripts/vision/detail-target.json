@@ -1,0 +1,151 @@
+{
+ "image": "E:\\AI\\measured-inference\\scripts\\vision\\detail-target.png",
+ "size": [
+  2560,
+  1440
+ ],
+ "questions": [
+  {
+   "id": "coarse_headline",
+   "class": "coarse",
+   "q": "In the screenshot, what number is printed in large type under the heading ACTIVE SHARDS? Reply with the number only.",
+   "a": "171"
+  },
+  {
+   "id": "coarse_banner",
+   "class": "coarse",
+   "q": "In the screenshot, what single word appears inside the outlined box near the top? Reply with that word only.",
+   "a": "NOMINAL"
+  },
+  {
+   "id": "fine_latency",
+   "class": "fine",
+   "q": "In the screenshot's table, what is the LATENCY value for the row labelled SHARD-07? Reply with the number of milliseconds only.",
+   "a": "207"
+  },
+  {
+   "id": "fine_queue",
+   "class": "fine",
+   "q": "In the screenshot's table, what is the QUEUE value for the row labelled SHARD-07? Reply with the number only.",
+   "a": "9155"
+  },
+  {
+   "id": "fine_fails",
+   "class": "fine",
+   "q": "In the screenshot's table, how many rows have STATUS equal to FAIL? Reply with the count only.",
+   "a": "3"
+  },
+  {
+   "id": "fine_serial",
+   "class": "fine",
+   "q": "In the screenshot, what unit serial is printed in small type at the bottom right? Reply with the serial only.",
+   "a": "QUB-85731-3D3B"
+  },
+  {
+   "id": "fine_offset",
+   "class": "fine",
+   "q": "In the screenshot, what is the calibration offset value? Reply with the number only.",
+   "a": "1074"
+  }
+ ],
+ "rows": [
+  {
+   "shard": "SHARD-01",
+   "latency_ms": 755,
+   "retries": 25,
+   "queue": 4000,
+   "status": "OK"
+  },
+  {
+   "shard": "SHARD-02",
+   "latency_ms": 944,
+   "retries": 13,
+   "queue": 2245,
+   "status": "OK"
+  },
+  {
+   "shard": "SHARD-03",
+   "latency_ms": 300,
+   "retries": 8,
+   "queue": 6225,
+   "status": "FAIL"
+  },
+  {
+   "shard": "SHARD-04",
+   "latency_ms": 458,
+   "retries": 25,
+   "queue": 4688,
+   "status": "OK"
+  },
+  {
+   "shard": "SHARD-05",
+   "latency_ms": 263,
+   "retries": 14,
+   "queue": 5170,
+   "status": "FAIL"
+  },
+  {
+   "shard": "SHARD-06",
+   "latency_ms": 885,
+   "retries": 20,
+   "queue": 2490,
+   "status": "OK"
+  },
+  {
+   "shard": "SHARD-07",
+   "latency_ms": 207,
+   "retries": 19,
+   "queue": 9155,
+   "status": "OK"
+  },
+  {
+   "shard": "SHARD-08",
+   "latency_ms": 245,
+   "retries": 15,
+   "queue": 7985,
+   "status": "OK"
+  },
+  {
+   "shard": "SHARD-09",
+   "latency_ms": 793,
+   "retries": 27,
+   "queue": 1621,
+   "status": "OK"
+  },
+  {
+   "shard": "SHARD-10",
+   "latency_ms": 691,
+   "retries": 22,
+   "queue": 1356,
+   "status": "OK"
+  },
+  {
+   "shard": "SHARD-11",
+   "latency_ms": 243,
+   "retries": 17,
+   "queue": 5406,
+   "status": "OK"
+  },
+  {
+   "shard": "SHARD-12",
+   "latency_ms": 557,
+   "retries": 24,
+   "queue": 2540,
+   "status": "OK"
+  },
+  {
+   "shard": "SHARD-13",
+   "latency_ms": 838,
+   "retries": 28,
+   "queue": 6667,
+   "status": "OK"
+  },
+  {
+   "shard": "SHARD-14",
+   "latency_ms": 568,
+   "retries": 11,
+   "queue": 4190,
+   "status": "FAIL"
+  }
+ ]
+}

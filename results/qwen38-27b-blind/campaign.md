@@ -1925,3 +1925,27 @@ I searched for the phrase I had used ("functional floor") and fixed what matched
 **Also confirmed and fixed:** "the one file on the ladder that fails a functional detector" (four do); "a bigger file is a slower file" published without its drafter-off condition, next to a sentence stating a rule the page's own recommendations no longer follow; the drafter cost printed "1,198-1,660 MiB" where the table's own rows subtract to 1,208 (in BOTH documents); and "a 5080 and a 4060 Ti offload at nearly the same 8-12 t/s" inheriting a MEASURED framing for two cards this machine has never contained.
 
 **What this says about the campaign's instruments.** The published-document audit is now the third instrument to find something the campaign's own process missed, after the judge panel and the execute probe. All three share one property: **they examine the artifact rather than the intention.** The pledge is that no reader may ever measure less than the report promised them; three separate times now, the only thing that caught the gap was something that went and looked.
+
+## 2026-08-25 - REGISTER ENTRY 17(a) CLOSED, and the hypothesis lost
+
+**`scripts/reference-3090/entry17-clockramp-test.ps1`. ~9 min GPU.**
+
+**The claim under test.** The deepest round-5 energy arm reads 58.05 t/s where the cooled reference at the same depth and flags reads 64.76 - 10.4% low. This page explained that as a post-prefill clock state (rule 12), on the strength of the reference's own DISCARDED post-prefill probe reading 59.61, within 2.6% of the arm. That is a hypothesis, it was published as a reason, and its obvious test had never been run.
+
+**A better test than the register proposed.** The register said "re-run that arm with prompt caching on". Done that way it compares a fresh run against a number measured on another day, so driver, clocks, ambient temperature and fill content all confound it. Instead both conditions ran **inside one server load**: UD-IQ4_XS, `-c 131072`, n4/p0.75, `q8_0` KV, filled to **92,487 tokens**. Probe 1 pays a **112.7-second prefill** and decodes immediately after it - the arm's condition. Probes 2-4 reuse the cached prefix, so no prefill precedes them - the cooled condition. Everything else is held identical, which no cross-day comparison can do.
+
+| condition | decode |
+|---|---|
+| immediately after a 112.7 s prefill | **35.99 t/s** |
+| prefix cached, no prefill (36.09 / 36.27 / 36.22) | **36.19 t/s** |
+| difference | **+0.56%** - inside the 2.9% noise floor |
+
+**REFUTED.** The mechanism this page invoked to explain a 10.4% deficit produces half a percent when isolated. **The outcome that costs something is the one that happened**, which is exactly why the three possible outcomes were written into the script's header before it ran.
+
+**What changes.** §09.07's caveat keeps its ADVICE and loses its REASON: the deepest row's decode half should still be read as approximate, because a single probe carries a ±25% band - but the 10.4% gap is now **unexplained**, and the page says so rather than leaving a wrong reason attached. Run-to-run variation and a difference in fill content are both still open and neither was tested.
+
+**What this run cannot claim, stated because it would be easy to overclaim.** Its absolute level (~36 t/s) is nowhere near either published figure, so it tests the MECHANISM, not that arm's LEVEL. The two numbers compared are each other, not 58.05 or 64.76. Separately and unplanned: 36.09 is where §08's independently-run depth series puts this file near this depth. That is consistent, but the windows differ (`-c 131072` here against the series' own), so it is an observation and **not** a matched replication.
+
+**17(b) remains open** - the 13% drafting-level gap was not touched.
+
+**A note on the instrument.** A within-run contrast is stronger than a cross-day re-run for any question of the form "does X depress Y", and this campaign has now been bitten twice by cross-day comparisons (the batching figure, the 131k ordering). Where a hypothesis can be tested by holding one server load and varying one thing inside it, that is the design to reach for first.
