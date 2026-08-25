@@ -445,7 +445,7 @@ footer a{color:#dceaf6;text-decoration:underline;text-underline-offset:2px}
     prior campaign's work, dated 2026-08-22 &mdash; rather than re-read here, and
     are marked where they stand. This campaign ran its own roster fact-check at
     00:37 on 2026-08-23, and that one covers the primary-document-linked rows
-    only. <b>The page corrected itself eighteen times</b>; all eighteen are
+    only. <b>The page corrected itself nineteen times</b>; all nineteen are
     listed in <a href="#s15-04">&sect;15.04</a> with the wrong version still
     shown, because how a clean measurement misleads is the most transferable
     thing here. How far any single number can be trusted is
@@ -455,7 +455,7 @@ footer a{color:#dceaf6;text-decoration:underline;text-underline-offset:2px}
     <div class="hero-stat"><dt>GPU time measured, all eight rounds, one machine</dt><dd>24:55<span>h:m</span></dd></div>
     <div class="hero-stat"><dt>Instrumented runs &mdash; power &middot; benchmark <span style="text-transform:none">(2 power-cap runs skipped)</span></dt><dd>17 &middot; 6</dd></div>
     <div class="hero-stat"><dt>Benchmark generations &mdash; all 525 scored</dt><dd>525<span>+ re-runs</span></dd></div>
-    <div class="hero-stat"><dt>Self-corrections, all kept in place</dt><dd>18</dd></div>
+    <div class="hero-stat"><dt>Self-corrections, all kept in place</dt><dd>19</dd></div>
   </dl>
 </div></header>
 
@@ -3110,11 +3110,12 @@ correspondingly softer.</code></pre>
       <tr><td><code>UD-Q3_K_XL</code></td><td class="num">12.244</td><td class="num">3.895</td><td class="num">6.7691 &plusmn; 0.047</td><td class="num">+2.63&nbsp;%</td><td class="num">0.6353</td><td class="num">96.0</td><td class="num"><b>0</b> <span class="small">(0)</span></td><td>PASS</td></tr>
       <tr><td><code>UD-IQ3_XXS</code></td><td class="num">10.184</td><td class="num">3.240</td><td class="num">6.9187 &plusmn; 0.048</td><td class="num">+4.90&nbsp;%</td><td class="num">0.6426</td><td class="num">93.3</td><td class="num"><b>0</b> <span class="small">(0)</span></td><td>PASS</td></tr>
       <tr class="hi"><td><code>UD-Q2_K_XL</code> <span class="small">the knee</span></td><td class="num">9.154</td><td class="num">2.912</td><td class="num">6.9957 &plusmn; 0.048</td><td class="num">+6.07&nbsp;%</td><td class="num">0.6463</td><td class="num">96.0</td><td class="num"><b>0</b> <span class="small">(0)</span></td><td>PASS</td></tr>
-      <tr><td><code>UD-IQ2_S</code> <span class="small">the cliff begins</span></td><td class="num">7.797</td><td class="num">2.481</td><td class="num">7.5481 &plusmn; 0.054</td><td class="num">+14.44&nbsp;%</td><td class="num">0.6715</td><td class="num">90.7</td><td class="num" style="color:var(--warn)"><b>2</b> <span class="small">(1)</span></td><td>PASS</td></tr>
-      <tr><td><code>UD-IQ2_XXS</code></td><td class="num">6.767</td><td class="num">2.153</td><td class="num">8.0079 &plusmn; 0.057</td><td class="num">+21.41&nbsp;%</td><td class="num">0.6912</td><td class="num">78.7</td><td class="num" style="color:var(--warn)"><b>3</b> <span class="small">(2)</span></td><td>PASS</td></tr>
-      <tr><td><code>UD-IQ1_M</code> <span class="small">functional floor</span></td><td class="num">6.267</td><td class="num">1.994</td><td class="num">8.1418 &plusmn; 0.056</td><td class="num">+23.44&nbsp;%</td><td class="num">0.6967</td><td class="num">85.3</td><td class="num" style="color:var(--warn)"><b>5</b> <span class="small">(5)</span></td><td>PASS <span class="small">&mdash; but unique-word ratio <b>0.358</b>, the lowest on the ladder</span></td></tr>
+      <tr><td><code>UD-IQ2_S</code> <span class="small">the cliff begins &mdash; and the <b>executed</b> functional floor</span></td><td class="num">7.797</td><td class="num">2.481</td><td class="num">7.5481 &plusmn; 0.054</td><td class="num">+14.44&nbsp;%</td><td class="num">0.6715</td><td class="num">90.7</td><td class="num" style="color:var(--warn)"><b>2</b> <span class="small">(1)</span></td><td>PASS <span class="small">&mdash; <b>and its code runs</b>, the smallest rung that does</span></td></tr>
+      <tr><td><code>UD-IQ2_XXS</code></td><td class="num">6.767</td><td class="num">2.153</td><td class="num">8.0079 &plusmn; 0.057</td><td class="num">+21.41&nbsp;%</td><td class="num">0.6912</td><td class="num">78.7</td><td class="num" style="color:var(--warn)"><b>3</b> <span class="small">(2)</span></td><td>PASS <span class="small">&mdash; but <b style="color:var(--warn)">its code does not run</b>: <code>TypeError</code></span></td></tr>
+      <tr><td><code>UD-IQ1_M</code> <span class="small">functional floor <span class="sup">SUPERSEDED</span></span></td><td class="num">6.267</td><td class="num">1.994</td><td class="num">8.1418 &plusmn; 0.056</td><td class="num">+23.44&nbsp;%</td><td class="num">0.6967</td><td class="num">85.3</td><td class="num" style="color:var(--warn)"><b>5</b> <span class="small">(5)</span></td><td>PASS <span class="small">&mdash; but unique-word ratio <b>0.358</b>, the lowest on the ladder, and <b style="color:var(--warn)">its code does not run</b>: <code>SyntaxError</code></span></td></tr>
       <tr><td><code>UD-IQ1_S</code></td><td class="num">5.767</td><td class="num">1.835</td><td class="num">8.9265 &plusmn; 0.062</td><td class="num">+35.34&nbsp;%</td><td class="num">0.7272</td><td class="num" style="color:var(--warn)"><b>34.7</b></td><td class="num" style="color:var(--warn)"><b>28</b> <span class="small">(10)</span></td><td style="color:var(--warn)"><b>FAIL</b> <span class="small">empty JSON echo</span></td></tr>
       <tr><td colspan="9" class="small"><b>The empty column is the one to read first.</b> It is <b>exactly zero</b> for every rung from 4.223 bits per weight down to and including the perplexity knee at <b>2.912</b>, and then it rises and keeps rising: 2, 3, 5, 28. It registers the first damage at <b>2.481&nbsp;bpw</b> &mdash; a full rung above where the paired test below can resolve anything at all &mdash; and it costs no GPU time, because it is counted from generations already on disk. <b>The parenthesised figure is why it needed its own column</b>: 1, 2, 5 and 10 of those empties terminated normally, so a run that reports <code>truncations=0</code> can still have failed to answer five questions. <code>UD-IQ1_M</code> is exactly that case.</td></tr>
+      <tr><td colspan="9" class="small"><b>The PASS column says the code was read, not that it works</b> <span class="pv m">MEASURED</span> 2026-08-25. Every probe-A program was rebuilt with the prompt&rsquo;s own prefix and executed under <code>node v24.15.0</code>: <b>six of ten run</b>. The three rungs below 2.481&nbsp;bpw all produce code that will not execute &mdash; and all three also <b>ignored the instruction</b> the prompt gave, restarting the file instead of continuing it and emitting the markdown fences it forbade. <b>Instruction-following and executable output fail together, and they fail at the bottom.</b> Because a missing brace contains no repeated n&#8209;grams, D1&ndash;D4 cannot see any of this at any threshold. <span class="n1">n=1</span> per rung.</td></tr>
     </tbody>
   </table></div>
   <p><b>Where the curve turns, stated as a cost.</b> Reading a curve by eye is
@@ -3156,9 +3157,12 @@ correspondingly softer.</code></pre>
     every rung down to <code>UD-IQ1_M</code> at <b>6.267&nbsp;GiB</b> still
     passes all four repetition checks, still echoes a JSON structure back
     exactly, and still emits a well-formed fenced code block. The first hard
-    functional failure is one rung further down &mdash; <code>UD-IQ1_S</code> at
+    functional failure is one rung further down
+    <span class="sup">SUPERSEDED</span> &mdash; <code>UD-IQ1_S</code> at
     1.835 bits per weight <b>returns an empty JSON echo</b> while its prose and
-    its fences still look fine.</p>
+    its fences still look fine. <b>Running the code moved that floor two rungs
+    up, to <code>UD-IQ2_S</code> at 2.481 bits per weight</b> &mdash; the
+    correction is the last paragraph of this box.</p>
     <p>So a file can be well past the quality knee and still <em>work</em>, and
     a file can look fine in prose and already be broken at structure. Neither
     instrument alone would have found that. Note also what perplexity cannot do
@@ -3177,6 +3181,36 @@ correspondingly softer.</code></pre>
     the judge panel found degeneration that trips none of them. Read
     &ldquo;functional floor&rdquo; as &ldquo;passes these four screens&rdquo;
     and no wider than that.</p>
+    <p><b>CORRECTION, 2026-08-25 &mdash; and the paragraph above understated its
+    own warning.</b> The four screens <em>read</em> the code; they never
+    <em>ran</em> it. So we ran it <span class="pv m">MEASURED</span>: every
+    probe-A program was assembled with the prompt&rsquo;s own prefix and executed
+    under <code>node v24.15.0</code>. <b>Six of the ten run. Four do not.</b>
+    <code>UD-IQ1_M</code> &mdash; the rung this box calls the floor &mdash;
+    <b>does not function</b>: <code>SyntaxError: Missing initializer in const
+    declaration</code>. Neither does <code>UD-IQ2_XXS</code>:
+    <code>TypeError: Cannot read properties of undefined (reading 'push')</code>.
+    <b>The executed functional floor is <code>UD-IQ2_S</code> at 2.481 bits per
+    weight</b>, two rungs above what this box published.</p>
+    <p>The claim was wrong <b>in the direction that costs a reader something</b>
+    &mdash; it named a smaller file usable than any file that actually is. The
+    cause is worth more than the number: <b>a missing closing brace contains no
+    repeated n&#8209;grams</b>, so no threshold on D1&ndash;D4 could ever have
+    caught it, and no amount of tuning them would help. A parser is not a
+    stricter detector of the same kind; it is a different kind. This is the
+    <b>third</b> independent witness that these four screens are blind &mdash;
+    after the judge panel and the 1,682-token degeneration &mdash; and it cost
+    <b>no GPU time at all</b>, because it reads files that were already on disk.</p>
+    <p>One more thing fell out of it, and it cuts against common advice.
+    <code>gemma-4-12B-QAT-Q4_0</code> at <b>4.651</b> bits per weight emitted
+    code that <b>does not run</b> &mdash; it opened an arrow function inside
+    <code>push()</code>, never closed the method, then declared the next one as
+    if it had &mdash; while Qwen3.8&#8209;27B at <b>2.912</b> bits per weight
+    emitted a working Dijkstra. The usual guidance is that a smaller model at
+    more bits beats a larger model at fewer. Here it went the other way.
+    <span class="n1">n=1</span> &mdash; one task, one language, one sample. That
+    dents &ldquo;almost always&rdquo;; it does not overturn the tendency, and it
+    is not published as if it did.</p>
   </div>
 
   <h4>The same rungs, scored on answers</h4>
@@ -6012,7 +6046,7 @@ chrome --headless=new --disable-gpu --hide-scrollbars \
     agent-attach image matrix stays open entirely &mdash; &sect;14.03.</p>
   </div>
 
-  <h3 id="s15-04"><span class="sigil">04</span>The eighteen self-corrections</h3>
+  <h3 id="s15-04"><span class="sigil">04</span>The nineteen self-corrections</h3>
   <p>Counted from the log, in the order they happened. Each one is kept in place
   with the wrong version still shown. <b>The last two are a pair on the same
   number</b>, and they are listed separately rather than merged because the
@@ -6125,6 +6159,21 @@ chrome --headless=new --disable-gpu --hide-scrollbars \
     windows were then reloaded independently, both reproduced, and the ranking
     ships with its mechanism and its prose-fill condition attached.
     <a href="#s08-04-131k">&sect;08.04</a>.</li>
+  <li><b>The &ldquo;functional floor&rdquo;, wrong by two rungs.</b>
+    <span class="small">2026-08-25.</span> This page named
+    <code>UD-IQ1_M</code> at 1.994&nbsp;bpw the smallest <em>functional</em>
+    rung <span class="sup">SUPERSEDED</span>, on the evidence of four
+    detectors &mdash; <b>none of which ever ran the code</b>. Executed under
+    <code>node</code>, <code>UD-IQ1_M</code> throws <code>SyntaxError</code>
+    and <code>UD-IQ2_XXS</code> throws <code>TypeError</code>; <b>the executed
+    floor is <code>UD-IQ2_S</code> at 2.481&nbsp;bpw</b>. The error ran in the
+    direction that costs a reader something: it advertised a smaller file as
+    working than any that does. The page had already told readers to take
+    &ldquo;functional floor&rdquo; as &ldquo;passes these four screens and no
+    wider&rdquo; &mdash; <b>the hedge was right and still insufficient</b>,
+    because the word &ldquo;functional&rdquo; kept doing work the hedge had
+    withdrawn. A label a reader has to mentally discount is a label that should
+    have been changed. <a href="#s09-09">&sect;09.09</a>.</li>
   </ol>
 
   <h3 id="s15-05"><span class="sigil">05</span>The one reproduction check</h3>
