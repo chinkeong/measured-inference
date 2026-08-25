@@ -2039,3 +2039,23 @@ Three measurements, each answering the previous one's weakness.
 3. **An end-point VRAM pair cannot see a transient peak.** Load-and-depth readings missed 342 MiB that 0.5 s sampling caught. Any residency verdict taken from two readings is a floor, not a peak.
 
 **NOT USED, stated so nobody mines it from the artifact:** that run's decode figure of 20.01 t/s. `max_tokens` was 200 and the correct answer is "207", so `predicted_n` is a handful of tokens and the rate is dominated by startup. It is not a speed result.
+
+## 2026-08-25 - a 2.9-bit model sees as well as a 4-bit one
+
+**Asked whether UD-Q2_K_XL should join the card so a 24 GB reader can have the full native 262,144 window WITH vision. That has two gates, and the memory one is the second. The first is whether a 2.9-bit model can still READ an image - the projector is separate from the weights, but the model interpreting those image tokens is the quantised one, and nobody had tested it.**
+
+Same instrument as register entry 6: a generated 1440p target whose every answer is known exactly, scored by string equality.
+
+| arm | UD-IQ4_XS | **UD-Q2_K_XL** |
+|---|---|---|
+| full budget `--image-max-tokens 10580` | 7/7 | **7/7** |
+| reduced `--image-max-tokens 1024` | 5/7 | 4/7 |
+| image withheld (control) | 0/7 | **0/7** |
+
+**At the shipped image budget the 2.9-bit file is indistinguishable from the 4-bit one** - it read a 12 px serial (`QUB-85731-3D3B`) and a 15 px table cell exactly. Both controls score zero, so both columns are perception rather than prior.
+
+**Where it does show, and it is where the flag is already wrong.** At the crippled 1024 budget Q2_K_XL drops to 4/7 against IQ4_XS's 5/7 - one extra miss - and the misses have the same signature as the 4-bit file's: **confident wrong values, never refusals.** 207 came back 287 on both files; the serial mangled on both. Q2_K_XL additionally missed the queue value (9155 -> 3155). So quantisation costs a little acuity only at a budget this campaign already recommends against, and costs **nothing measurable** at the one the recipes ship.
+
+**This closes the first gate. It does not license the recommendation** - a window that holds tokens is not a window that can find them, and register entry 2 says every window this page ships is speed-verified and quality-unverified at depth. The needle probe is the second gate and it is running.
+
+**Worth noting for its own sake:** this is the first evidence on this page that heavy quantisation leaves vision intact. Perplexity at 2.912 bpw is +6.07 %, task accuracy ties the reference, and now image reading ties it too. The 2-bit file keeps being better than its bits suggest.

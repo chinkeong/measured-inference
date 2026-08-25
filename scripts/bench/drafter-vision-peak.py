@@ -25,6 +25,7 @@ Sampled every 0.5 s during the request, because a transient peak between two
 end-point reads is exactly what a load-and-depth pair cannot see.
 """
 
+import argparse
 import base64
 import json
 import os
@@ -45,6 +46,7 @@ PORT = 1241
 BASE = "http://127.0.0.1:%d" % PORT
 CTX, BOARD, RESERVE = 122880, 24576, 1308
 FILL_TOKENS = 100000          # leave room for the image's ~10.5k on top
+TAG = ""
 
 
 def filler(lines):
@@ -84,19 +86,50 @@ class Sampler(threading.Thread):
 
 
 def main():
-    for p, w in ((SERVER, "llama-server"), (MODEL, "model"), (MMPROJ, "mmproj"), (IMG, "image")):
+    global CTX, FILL_TOKENS, TAG
+    DRAFT_KV = ""
+    MODEL_PATH = MODEL
+    SPEC = "n10p05"
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--ctx", type=int, default=CTX)
+    ap.add_argument("--tag", default="")
+    ap.add_argument("--ctkd", default="", help="quantise the DRAFT cache too")
+    ap.add_argument("--model", default=MODEL, help="which GGUF to serve")
+    ap.add_argument("--spec", default="n10p05",
+                    choices=["n10p05", "n4p075", "none"],
+                    help="drafter setting, or none")
+    ap.add_argument("--fill-frac", type=float, default=0.85)
+    o = ap.parse_args()
+    CTX, TAG = o.ctx, o.tag
+    DRAFT_KV = o.ctkd
+    MODEL_PATH = o.model
+    SPEC = o.spec
+    # fill to ~85% of whatever window is under test, leaving room for the image
+    FILL_TOKENS = int(CTX * o.fill_frac) - 11000
+    for p, w in ((SERVER, "llama-server"), (MODEL_PATH, "model"), (MMPROJ, "mmproj"), (IMG, "image")):
         if not os.path.exists(p):
             sys.exit("missing %s: %s" % (w, p))
 
-    args = [SERVER, "-m", MODEL, "--alias", "qwen/qwen3.8-27b",
+    args = [SERVER, "-m", MODEL_PATH, "--alias", "qwen/qwen3.8-27b",
             "-ngl", "99", "-c", str(CTX), "--parallel", "1",
             "-ctk", "q8_0", "-ctv", "q8_0",
             "--mmproj", MMPROJ, "--image-min-tokens", "1024", "--image-max-tokens", "10580",
-            "--spec-type", "draft-mtp", "--spec-draft-n-max", "10", "--spec-draft-p-min", "0.5",
             "--jinja", "--reasoning", "off", "--host", "127.0.0.1", "--port", str(PORT)]
+    if SPEC == "n10p05":
+        args += ["--spec-type", "draft-mtp", "--spec-draft-n-max", "10", "--spec-draft-p-min", "0.5"]
+    elif SPEC == "n4p075":
+        args += ["--spec-type", "draft-mtp", "--spec-draft-n-max", "4", "--spec-draft-p-min", "0.75"]
+    else:
+        args += ["--spec-type", "none"]
+    print("  model %s | drafter %s" % (os.path.basename(MODEL_PATH), SPEC))
+    if DRAFT_KV:
+        # -ctk/-ctv apply to the TARGET context only; the draft context has its
+        # own pair and defaults to f16. No recipe on the page sets these.
+        args += ["-ctkd", DRAFT_KV, "-ctvd", DRAFT_KV]
+        print("  draft cache quantised to %s (-ctkd/-ctvd)" % DRAFT_KV)
     logdir = os.path.join(OUT, "drafter-window-logs")
     os.makedirs(logdir, exist_ok=True)
-    lf = open(os.path.join(logdir, "vision-peak.log"), "w", encoding="utf-8", errors="replace")
+    lf = open(os.path.join(logdir, "vision-peak%s.log" % (TAG or "")), "w", encoding="utf-8", errors="replace")
     proc = subprocess.Popen(args, stdout=lf, stderr=subprocess.STDOUT)
 
     t0 = time.time()
@@ -165,11 +198,12 @@ def main():
 
     os.makedirs(OUT, exist_ok=True)
     json.dump({"date": time.strftime("%Y-%m-%d %H:%M"), "ctx": CTX, "board": BOARD,
+               "model": os.path.basename(MODEL_PATH), "spec": SPEC,
                "reserve": RESERVE, "vram_load": at_load, "vram_peak": peak,
                "slack_at_peak": slack, "clears": slack >= RESERVE,
                "prompt_n": tm.get("prompt_n"), "decode_tps": tm.get("predicted_per_second"),
                "answer": ans[:80], "truth": "207", "samples": len(s.samples)},
-              open(os.path.join(OUT, "drafter-vision-peak.json"), "w", encoding="utf-8"), indent=1)
+              open(os.path.join(OUT, "drafter-vision-peak%s.json" % (TAG or "")), "w", encoding="utf-8"), indent=1)
 
 
 main()
