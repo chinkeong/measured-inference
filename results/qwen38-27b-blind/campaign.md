@@ -2084,3 +2084,36 @@ Two design choices that decide whether the result means anything:
 **Also n=1 per depth, one filler shape, one file.** A smoke test that can say "clearly works" or "clearly broken", not a grid.
 
 **The cost that belongs beside the capability:** 498 seconds of prefill - **8.3 minutes before the first token** - against 164 s at half the window. Prefill is compute-bound and does not scale with the window's convenience. This is a long-document configuration, not an interactive one, and the card must say so wherever it offers the window.
+
+## 2026-08-25 - REGISTER ENTRY 10 CLOSED: the power cap is the one knob that lowers wattage
+
+**`scripts/power/power-cap-arms.py`. ~12 min GPU. It needed an elevated shell, which is the only reason it sat open all campaign - a privilege, not a hardware limit.**
+
+**Why it mattered.** This page's energy chapter carries a strong negative finding: *nothing it tested lowers wattage*. The drafter's 2.52x energy saving is entirely "finishing sooner at the same draw" - the board pulls 344.6 / 341.7 / 341.0 W whether it speculates or not. The power cap is the one setting that lowers draw directly, and it was the one setting that could not be tested.
+
+Three arms, one server load each, same model and flags and prompt. Board power, SM clock and temperature sampled every 250 ms across each request; the prompt is short so prefill is a rounding error and the joules are a DECODE figure.
+
+| cap | decode | mean W | SM clock | temp | J/token | against stock |
+|---|---|---|---|---|---|---|
+| 350 W (stock) | 75.61 t/s | 305.4 | 1,618 MHz | 73.3 C | 4.033 | - |
+| 300 W | 71.82 | 271.2 | 1,524 | 71.9 | **3.771** | -5.0% t/s, -11.2% W, **-6.5% J/tok** |
+| 250 W | 65.90 | 229.6 | 1,261 | 69.3 | **3.479** | -12.8% t/s, -24.8% W, **-13.7% J/tok** |
+
+**THE CAP IS AN EFFICIENCY WIN AT BOTH LEVELS, and the throughput cost is about half the power saving each time.** So the page's "nothing here lowers wattage" is now false and needs its exception.
+
+**THE MECHANISM, and sampling the clock is what made it visible rather than inferred.**
+
+| cap | SM clock | throughput | ratio |
+|---|---|---|---|
+| 300 W | -5.8% | -5.0% | 0.86 |
+| 250 W | -22.1% | -12.8% | 0.58 |
+
+**Throughput falls LESS than the clock, and the gap widens as the cap bites harder.** That is exactly what this page's own model predicts: decode is partly memory-bandwidth-bound, the cap throttles the SM clock, and memory clock is untouched - so throughput cannot follow the clock down one-for-one. **The gap between those two columns IS the efficiency win**, and it grows precisely because the compute half is being throttled while the bandwidth half is not.
+
+**A detail worth publishing on its own: the stock arm never reaches its own cap.** 305.4 W mean against a 350 W limit. **The 350 setting is not binding during decode at all**, which is why dropping to 300 costs only 5% - the first 50 W of "cap" removes headroom the workload was not using.
+
+**Temperature falls too**, 73.3 to 69.3 C, which is not a measured claim about noise or longevity but is the direction both move in.
+
+**SAFETY, recorded because the setting is persistent.** `nvidia-smi -pl` outlives the process; a card left at 250 W would silently degrade every later measurement on this machine and everything else the user runs. The script reads the default first, restores it in a `finally`, and **verifies the restore by reading the value back** rather than trusting the exit code. Confirmed at 350 W after the run.
+
+**What this does NOT establish.** One prompt, one file, one content type, three settled probes per arm. Decode only - prefill is compute-bound and would likely lose MORE to a cap, which is the opposite of what these arms show and is untested. And the J/token figures are decode joules, not whole-request joules.

@@ -5869,7 +5869,16 @@ chrome --headless=new --disable-gpu --hide-scrollbars \
     untested hypothesis on the box: the board spends 6&ndash;12&nbsp;% more power
     at clocks that produce no extra tokens.
     <em>Closed by:</em> an elevated shell and two arms at 250 and 300&nbsp;W.</p>
-    <p class="price">Price: ~15 min GPU (estimate) plus an elevated shell</p>
+    <p><b>CLOSED 2026-08-25</b> <span class="pv m">MEASURED</span>. It needed an elevated shell, which is the only reason it sat open all campaign &mdash; a privilege, not a hardware limit. Three arms, one server load each, board power and SM clock sampled every 250&nbsp;ms, a short prompt so the joules are a <em>decode</em> figure rather than a blend.</p>
+      <table><tr><th>cap</th><th class="num">decode</th><th class="num">mean W</th><th class="num">SM clock</th><th class="num">J/token</th><th>against stock</th></tr>
+      <tr><td>350&nbsp;W <span class="small">stock</span></td><td class="num">75.61&nbsp;t/s</td><td class="num">305.4</td><td class="num">1,618</td><td class="num">4.033</td><td>&mdash;</td></tr>
+      <tr><td>300&nbsp;W</td><td class="num">71.82</td><td class="num">271.2</td><td class="num">1,524</td><td class="num"><b>3.771</b></td><td>&minus;5.0&nbsp;% t/s &middot; &minus;11.2&nbsp;% W &middot; <b>&minus;6.5&nbsp;% J/tok</b></td></tr>
+      <tr><td>250&nbsp;W</td><td class="num">65.90</td><td class="num">229.6</td><td class="num">1,261</td><td class="num"><b>3.479</b></td><td>&minus;12.8&nbsp;% t/s &middot; &minus;24.8&nbsp;% W &middot; <b>&minus;13.7&nbsp;% J/tok</b></td></tr></table>
+      <p><b>The cap is an efficiency win at both levels, and the throughput cost is about half the power saving each time.</b> That makes it <b>the only setting this campaign has found that lowers the board&rsquo;s draw at all</b> &mdash; every other lever, the drafter included, saves energy purely by finishing sooner at the same wattage.</p>
+      <p><b>The mechanism, visible because the clock was sampled rather than inferred.</b> Throughput falls <em>less</em> than the SM clock does &mdash; &minus;5.0&nbsp;% against &minus;5.8&nbsp;% at 300&nbsp;W, and &minus;12.8&nbsp;% against &minus;22.1&nbsp;% at 250 &mdash; and the gap widens as the cap bites harder. That is this page&rsquo;s own model showing itself: decode is partly memory-bandwidth-bound, the cap throttles the SM clock, and memory clock is untouched, so throughput cannot follow the clock down one-for-one. <b>The gap between those two columns is the efficiency win.</b></p>
+      <p><b>And the stock arm never reaches its own cap</b> &mdash; 305.4&nbsp;W mean against a 350&nbsp;W limit. The stock setting is not binding during decode at all, which is why the first 50&nbsp;W costs only 5&nbsp;%: it removes headroom the workload was not using. Temperature falls 73.3&nbsp;&rarr;&nbsp;69.3&nbsp;&deg;C.</p>
+      <p class="small"><b>What it does not establish.</b> One prompt, one file, one content type, three settled probes per arm, and <b>decode only</b>. Prefill is compute-bound and would plausibly lose <em>more</em> to a cap &mdash; the opposite of what these arms show, and untested. The joules are decode joules, not whole-request joules. The cap is a persistent setting and was verified back at 350&nbsp;W after the run.</p>
+      <p class="price">Price paid: ~12 min GPU, plus the elevated shell this entry named</p>
   </div>
 
   <div class="reg">
