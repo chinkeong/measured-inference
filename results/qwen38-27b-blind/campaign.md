@@ -2059,3 +2059,28 @@ Same instrument as register entry 6: a generated 1440p target whose every answer
 **This closes the first gate. It does not license the recommendation** - a window that holds tokens is not a window that can find them, and register entry 2 says every window this page ships is speed-verified and quality-unverified at depth. The needle probe is the second gate and it is running.
 
 **Worth noting for its own sake:** this is the first evidence on this page that heavy quantisation leaves vision intact. Perplexity at 2.912 bpw is +6.07 %, task accuracy ties the reference, and now image reading ties it too. The 2-bit file keeps being better than its bits suggest.
+
+## 2026-08-25 - REGISTER ENTRY 2, partly closed: the 262,144 window is real
+
+**Entry 2 has been open the whole campaign and says the worst thing a measurement page can say about itself: "every shipped window beyond 8k is speed-verified and quality-unverified at depth. No retrieval or needle probe was run at any depth." A reader asked whether the full native window does work half of it cannot. That question could not be answered, so it got measured.**
+
+**THE INSTRUMENT, and why it cost 20 minutes instead of the 12 hours entry 2 prices.** The register's plan is a needle grid, and prefill dominates its cost. This plants FIVE needles at 10/30/50/70/90% of one fill, prefills ONCE, then asks for each needle in its own small request - every question after the first hits the server's prefix cache. Five deep probes become one deep prefill plus five cheap questions.
+
+Two design choices that decide whether the result means anything:
+- **The needles wear the same sentence frame as the filler**, differing only in carrying a calibration key. A needle that reads differently gets found by SHAPE rather than by attention, and would flatter the model.
+- **A control sector is never planted.** A model that invents a plausible key gets caught instead of scored.
+
+| window | prefill | 10% | 30% | 50% | 70% | 90% | control |
+|---|---|---|---|---|---|---|---|
+| `-c 131072`, 120,281 tokens | 164 s | OK | OK | OK | OK | OK | NONE, correct |
+| `-c 262144`, **241,655 tokens** | 498 s | OK | OK | OK | OK | OK | NONE, correct |
+
+**5 of 5 at both windows, at every depth, with no confabulation.** The model retrieves a key buried 217,000 tokens deep as reliably as one at 24,000. On UD-Q2_K_XL - the 2.9-bit file - which makes it more surprising, not less.
+
+**SO THE ANSWER TO THE READER IS YES: the full window is real, not a number.** 262,144 genuinely holds and yields twice the material 131,072 does.
+
+**WHAT THIS DOES NOT ESTABLISH, and the distinction is the whole finding.** This is LITERAL retrieval - find the note that names GAMMA-17. The evidence this page already cites says accuracy collapses when retrieval requires INFERENCE rather than matching, and that mid-context material is used worse than material at the edges. **The window holds and yields; whether the model can reason ACROSS 240k is untested and stays in the register.** Entry 2 is partly closed, not closed.
+
+**Also n=1 per depth, one filler shape, one file.** A smoke test that can say "clearly works" or "clearly broken", not a grid.
+
+**The cost that belongs beside the capability:** 498 seconds of prefill - **8.3 minutes before the first token** - against 164 s at half the window. Prefill is compute-bound and does not scale with the window's convenience. This is a long-document configuration, not an interactive one, and the card must say so wherever it offers the window.
