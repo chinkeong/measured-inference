@@ -2749,3 +2749,72 @@ as NVML reports it. The power supply's conversion loss, the processor, system
 memory, drives and the display are excluded and unmeasured. This is not system
 power and may not be called that; the wall-power register entry stays open
 until somebody buys a plug meter.
+
+
+---
+
+## 2026-08-26 11:14 - THE THIRD REGISTER ENTRY: energy for the four missing sets
+
+The register said it plainly: "GSM8K, ALPACA, MeetingBank and MT-Bench ran
+entirely outside the window the power logger covered." Three of the seven
+benchmark sets had energy figures and four did not, so the page's per-benchmark
+energy story was 43% missing and nothing marked which numbers were absent.
+
+Each set ran in its OWN server load with its OWN power window, rather than all
+four under one window and apportioned afterwards - because the sets differ
+enormously in shape and an average across them would describe none of them.
+UD-IQ4_XS, greedy, seed 42, n=25, cap 16,384, `-c 32768`, q8_0 KV, drafter off.
+
+| set | wall | items | generated tokens | mean board W | **Wh** | J/token | Wh per answer |
+|---|---|---|---|---|---|---|---|
+| GSM8K | 217 s | 25 | 8,522 | 331.5 | **19.99** | 8.44 | 0.80 |
+| ALPACA | 400 s | 25 | 16,421 | 331.3 | **36.77** | 8.06 | 1.47 |
+| MeetingBank | 134 s | 25 | 3,876 | 328.5 | **12.19** | 11.32 | 0.49 |
+| MT-Bench | 455 s | 25 | 18,609 | 325.6 | **41.17** | 7.97 | 1.65 |
+| **all four** | 1,206 s | 100 | 47,428 | | **110.12** | | **1.10** |
+
+**A HUNDRED ANSWERS COST 110 Wh OF BOARD ENERGY**, about 1.1 Wh each, and the
+spread between the cheapest and dearest question type is **3.4x** (0.49 against
+1.65 Wh). That is the figure a reader asking "what does this cost to run"
+actually needs, and the page has never had it.
+
+**BOARD POWER IS ESSENTIALLY CONSTANT** across all four sets - 325.6 to
+331.5 W, a 1.8% span. The card draws what it draws; what varies is how long it
+draws it for and how many tokens come out. So energy per answer is set by the
+SHAPE of the work, not by its difficulty.
+
+**MEETINGBANK IS THE INSTRUCTIVE ROW.** It has the HIGHEST J/token (11.32) and
+the LOWEST energy per answer (0.49 Wh) at the same time, and both are correct.
+Its prompts are long and its answers short - 155 generated tokens per item
+against MT-Bench's 744 - so prefill energy is divided over few output tokens,
+which inflates J/token, while the whole job is short, which keeps Wh per answer
+low. **Reporting only J/token would have made summarisation look like the most
+expensive thing this model does, when it is the cheapest.** That is the reason
+both columns are published.
+
+These whole-window figures run about DOUBLE the decode-only J/token measured
+the same morning (roughly 4.2 J/token at these flags), and the difference is
+prefill plus the gaps between requests. Neither number is wrong; they answer
+different questions, and the transport clause added to rule 3 today is exactly
+about not letting one be quoted as the other.
+
+**TIER.** In-band GPU board power as NVML reports it. The power supply's
+conversion loss, the processor, system memory, drives and the display are
+excluded and unmeasured. This is not system power and may not be called that.
+
+**A DEFECT IN MY OWN HARNESS, recorded because it is the third of its kind in
+twelve hours.** The first run of this script reported `0.0000 Wh` and `DONE`
+for all four sets. Every one had exited in under a second because bench.py
+resolves llama-server from `--server-bin`, `$LLAMA_SERVER` or PATH and a
+subprocess launched from here inherits none of them. A failure that prints a
+clean zero and exits 0 reads as a measurement of nothing happening. It now
+refuses to report energy for any set that exited non-zero or scored no items,
+names the failures, and ends with DONE WITH FAILURES.
+
+The other two on the same day: `execute-probe.py` invoked with no arguments
+would have re-scored the existing eight rungs, skipped the file it was pointed
+at, and exited 0; `llama-tokenize` returned None because its output tripped a
+cp1252 decode on a Windows console while its return code stayed 0. **All three
+are success-shaped failures** - exit 0, plausible output, nothing to catch the
+eye. Three is not yet a pattern, but a fourth would make it one and it would
+deserve a rule.
