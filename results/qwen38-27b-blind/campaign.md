@@ -2818,3 +2818,87 @@ cp1252 decode on a Windows console while its return code stayed 0. **All three
 are success-shaped failures** - exit 0, plausible output, nothing to catch the
 eye. Three is not yet a pattern, but a fourth would make it one and it would
 deserve a rule.
+
+
+---
+
+## 2026-08-26 12:10 - AGREEMENT WITH THE ANCHOR: the metric a reader asked for
+
+A commenter on the published post said raw perplexity is the wrong instrument
+and that Unsloth's "Same top p" is better. He is right, and this is the
+measurement that shows how right.
+
+**THE NAME COLLIDES WITH A SAMPLER FLAG AND THE TWO ARE UNRELATED.**
+`--top-p 0.95` is nucleus SAMPLING and belongs in the recipes. **"Same top p"**
+is an output line of `llama-perplexity --kl-divergence` - verified present in
+this build's `llama-perplexity-impl.dll` beside Mean KLD, Maximum KLD, RMS
+delta-p and the PPL ratios. It reports how often the quantised model picks the
+SAME next token as a reference model, over the same corpus.
+
+**MEASURED**, 200 chunks (102,400 tokens) of wikitext-2, base = **UD-IQ4_XS**:
+
+| file | bpw | same-top-p | +/- | mean KLD | PPL ratio |
+|---|---|---|---|---|---|
+| UD-Q3_K_XL | 3.895 | **94.120%** | 0.074 | 0.0190 | 1.011 |
+| UD-IQ3_XXS | 3.240 | **88.924%** | 0.098 | 0.0639 | 1.032 |
+| UD-Q2_K_XL | 2.912 | **86.594%** | 0.106 | 0.0942 | 1.057 |
+| UD-IQ2_S | 2.481 | **83.988%** | 0.115 | 0.1411 | 1.105 |
+| UD-IQ2_XXS | 2.153 | **79.451%** | 0.126 | 0.2255 | 1.181 |
+| QAT-Q2_0 | 2.595 | **77.663%** | 0.130 | 0.2970 | 1.223 |
+| UD-IQ1_M | 1.994 | **76.620%** | 0.132 | 0.2946 | 1.259 |
+| UD-IQ1_S | 1.835 | **73.071%** | 0.139 | 0.4118 | 1.408 |
+
+### The decisive comparison, and it uses this campaign's own worked example
+
+The page states that perplexity **cannot rank** UD-IQ2_XXS against UD-IQ1_M:
+they sit "1.67% apart at 1.7 sigma", and that failure is the stated reason the
+accuracy ladder was built at all.
+
+Same-top-p separates that identical pair at **15 SIGMA** - 2.83 points apart
+against a 0.183-point standard error on 102,400 scored tokens. Every adjacent
+step on the ladder is 2.3 to 5.2 points against an error of about 0.13, so
+**every rung is cleanly ordered**, which neither perplexity nor the 75-item
+accuracy suite can manage.
+
+**It is also easier to reason about.** "UD-Q2_K_XL costs +5.66% perplexity" is
+an abstraction. "UD-Q2_K_XL picks a different next word one time in seven" is a
+sentence a reader can picture.
+
+### What it does NOT do, which is why it is a new column and not a replacement
+
+Agreement measures FIDELITY TO THE REFERENCE, not usefulness. A file can match
+the reference on 93% of tokens and still emit JavaScript that will not run -
+which the execute probe catches and no agreement metric can see. Three
+instruments, three questions: how faithful (same-top-p / KLD), how correct
+(scored accuracy), does it work (execute).
+
+### Two caveats that travel with every number above
+
+**THE BASE IS UD-IQ4_XS, NOT FP16.** Properly this is measured against the
+unquantised weights, which are ~54 GB and not on this machine. Every figure is
+therefore AGREEMENT-WITH-THE-ANCHOR, cannot be compared against anybody else's
+KLD table, and must never be labelled as though it could. The artifact carries
+that in a `base_caveat` field rather than only in prose.
+
+**IT IS MEASURED ON WIKITEXT.** That matters most for the QAT file.
+
+### The QAT rung breaks the curve, and on the metric its own card predicts
+
+The seven PTQ rungs are perfectly monotone in same-top-p. **QAT-Q2_0 at 2.595
+bpw scores 77.663% - below UD-IQ2_XXS at 2.153 bpw, and level with UD-IQ1_M at
+1.994.** Its mean KLD of 0.2970 is essentially IQ1_M's 0.2946, a file 0.6 bits
+smaller. Interpolating the PTQ curve at its bit rate gives about 85%; it reads
+7 points under that.
+
+**This is not "QAT is bad" and must not be written up as though it were.** The
+corpus is wikitext, which is precisely the weakness the file's own card
+discloses ("does indeed suffer lower Wikitext accuracy") and precisely what a
+reasoning-and-code calibration blend would predict. On a code corpus it would
+presumably look far better, and nothing here measured that. What it does show
+is that on general text the file sits where a 2-bit file sits, not where a
+2.6-bit file sits - which is the third instrument to say so, after perplexity
+and scored accuracy.
+
+**COST.** The base logits are 23.6 GiB for 200 chunks; the full corpus would
+have needed 68.4 GiB, which is why the disk was probed before anything
+committed to it. Each rung then scores in about 2 minutes 15.

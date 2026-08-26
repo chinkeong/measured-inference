@@ -68,7 +68,16 @@ FILES = {
     "UD-Q2_K_XL": os.path.join(UNS, "Qwen3.8-27B-UD-Q2_K_XL.gguf"),
     "QAT-Q2_0": QAT,
     "UD-IQ2_S": os.path.join(UNS, "Qwen3.8-27B-UD-IQ2_S.gguf"),
+    "UD-IQ2_XXS": os.path.join(UNS, "Qwen3.8-27B-UD-IQ2_XXS.gguf"),
+    "UD-IQ1_M": os.path.join(UNS, "Qwen3.8-27B-UD-IQ1_M.gguf"),
+    "UD-IQ1_S": os.path.join(UNS, "Qwen3.8-27B-UD-IQ1_S.gguf"),
 }
+# which files task_empties walks; overridable so the lower rungs can be run
+# separately. The first pass covered only the three 2-bit-class files, which
+# left the finding half-made: if the low rungs' empties ALSO vanish under
+# sampling then the whole column is a greedy artifact, and if they persist the
+# column is real at the bottom and greedy-specific only near the boundary.
+EMPTIES_FILES = ["UD-Q2_K_XL", "QAT-Q2_0", "UD-IQ2_S"]
 OUT = os.path.join(ROOT, "results", "qwen38-27b-blind", "data", "overnight")
 PORT = 1260
 BASE = "http://127.0.0.1:%d" % PORT
@@ -352,7 +361,7 @@ def task_empties(seeds=6):
     prompts = _code_prompts()
     log("  %d code prompts recovered from the frozen suite" % len(prompts))
     rows = []
-    for fname in ("UD-Q2_K_XL", "QAT-Q2_0", "UD-IQ2_S"):
+    for fname in EMPTIES_FILES:
         p, lf = serve(FILES[fname], 32768,
                       ["-ctk", "q8_0", "-ctv", "q8_0", "--spec-type", "none"],
                       "empties-%s" % fname)
@@ -402,7 +411,11 @@ TASKS = [("vram", task_vram), ("ngram", task_ngram), ("depth", task_depth),
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only", choices=[n for n, _ in TASKS])
+    ap.add_argument("--files", help="comma-separated file keys for --only empties")
     a = ap.parse_args()
+    if a.files:
+        global EMPTIES_FILES
+        EMPTIES_FILES = [x.strip() for x in a.files.split(",")]
     log("=" * 62)
     log("OVERNIGHT QUEUE START   host: %s" % refarm.quiet_report()["status"])
     for name, fn in TASKS:
