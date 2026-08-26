@@ -19,7 +19,8 @@ stating first:
 | decode measured at **99.16 t/s** | the plain-decode ceiling is 936 GB/s ÷ 14.25 GB = **65.7 t/s**. The observed rate EXCEEDS it, so one-weight-pass-per-token cannot explain it |
 | MTP mean accepted length **3.55** | real traffic = 99.16/3.55 × 14.25 GB = **398 GB/s = 43% of roofline** |
 | memory controller measured **~60% busy**, SM 86–95% | agrees with 43%; the memory system is idle enough to be nobody's constraint |
-| `sw_power_cap` **Active on every throttle sample**, thermal never | the SM clock sags 1620–1695 while the memory clock stays pinned at 9501 |
+| `SwPowerCap` on **97.0%** of busy throttle samples (n=201) | the SM clock sags 1620–1695 while the memory clock stays pinned at 9501 |
+| `SwThermalSlowdown` on **3.0%**, fan pinned at **100%**, 83 C median / 85 C max | the part is power-limited *at a thermal operating point with no headroom left*: the cooler is already at full output. Correction, 2026-08-27 — an earlier draft of this page said thermal "never" fired, from reading a raw mask histogram that was dominated by idle samples. Dropping the idle samples is what exposes the 3.0% |
 
 And the counter-case, from the same week:
 
@@ -38,7 +39,8 @@ power delivery.
 |---|---|---|
 | wider memory bus | traffic is 43% of the existing bus with speculation on | **buys nothing** for speculating workloads; buys a lot without one |
 | more compute | SM already 86–95% busy and clock-clipped by the power cap | **would be clipped**, not realised |
-| power delivery / efficiency | `sw_power_cap` active 100% of throttle samples, thermal 0% | **the binding constraint** |
+| power delivery / efficiency | `SwPowerCap` 97.0% of busy samples; `SwThermalSlowdown` 3.0% | **the binding constraint** |
+| cooling / acoustics | fan **100%**, 83 C median, thermal clipping only 3.0% | **not the throughput constraint** — a better cooler buys ~3% at most. But headroom is *zero*: this operating point costs the full fan curve |
 | memory **capacity** | the entire quant ladder exists because 24 GB is the ceiling; 2.595 bpw fits where 4.223 does not | **the constraint that decides what runs at all** |
 | PCIe width | 59–314 MB/s observed on Gen4 ×16 | **null** — not a constraint, recorded so nobody spends on it |
 | storage | ~100–133 KB/s steady state, pages-in = 0 | **null** in steady state; matters only at load |
@@ -111,9 +113,44 @@ design variable, not an implementation detail.
    real work, so watts-per-useful-token is the figure of merit, not peak TFLOPs
    and not peak GB/s.
 
+## Energy on real agentic work, recovered rather than measured
+
+The run above recorded a complete GPU power trace and complete pass rates and
+could not divide one by the other: the server was launched without `--metrics`
+and its log stayed empty for two hours, so no token counts were written on the
+GPU side. They survived on the **client** side — aider writes `prompt_tokens`
+and `completion_tokens` into every exercise — and joining those to the power
+trace by wall-clock recovers the figure. Over the **26 exercises that fall
+entirely inside the sampling window** (the sampler was started after the
+benchmark, so the window is partial — this is not the whole run):
+
+| quantity | value |
+|---|---|
+| energy | 393.5 kJ = **0.109 kWh** |
+| tokens | 63,738 completion, 209,238 prompt |
+| **J per completion token** | **6.17** |
+| J per token, prompt included | 1.44 |
+| J per exercise | 15,134 |
+
+**The spread is the finding, not the mean.** Across those exercises energy per
+completion token ranged from **0.417 J** (`doubly-linked-list`) to **13.079 J**
+(`gigasecond`) — a factor of **30**, driven entirely by how prompt-heavy the
+exercise is. A prompt-heavy task spends its joules on prefill and emits few
+tokens to divide them by. So an agentic J/token is only meaningful with its
+prompt:completion ratio attached, and it is **not** comparable with a
+decode-only J/token from a synthetic probe.
+
+These are whole-request figures — prefill and decode together — because aider
+records one duration per exercise and no phase split. Board power only.
+
 ## What is NOT measured here, stated so it is not mistaken for a result
 
-Wall power (no meter — board power only). CPU hardware counters: IPC, cache
+Wall power (no meter — board power only). **Two GPU fields were sought and are
+genuinely unavailable on this part, recorded so nobody reads their absence as an
+oversight:** memory junction temperature (`temperature.memory` and dmon `mtemp`
+both return N/A on this RTX 3090) and per-process GPU attribution (`nvidia-smi
+pmon` reports `-` for every process under Windows WDDM, so llama-server's share
+of the GPU cannot be separated from the desktop's here at all). CPU hardware counters: IPC, cache
 behaviour and memory-controller traffic on the host side are all unmeasured;
 only aggregate utilisation, syscall and context-switch rates were sampled. GPU
 internals below the NVML level — L2 hit rate, occupancy, warp stalls — need

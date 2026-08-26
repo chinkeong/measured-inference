@@ -111,20 +111,81 @@ def smi(q):
     return o.strip().splitlines()[0]
 
 
+# Sampled GPU fields, in row order. The first four positions are FROZEN: seven
+# scripts slice these rows positionally, so anything new is APPENDED, never
+# inserted.
+#
+# Why the extra four exist. Until 2026-08-27 this sampler collected clock,
+# temperature and power only - and every energy number this campaign published
+# was therefore unattributable. A joules-per-token figure with no memory-
+# controller reading and no throttle mask cannot say WHAT limited it, so it
+# cannot be compared against a different machine, a different quantisation or
+# the same card at a different power cap. The measurement is expensive (hours);
+# these fields cost one wider nvidia-smi query on a probe already being made.
+# The rule this earned: sample everything the instrument offers for free while
+# the workload is in front of you, because the run is what is scarce.
+ROW_FIELDS = ("t", "clocks_sm", "temp_c", "power_w",
+              "clocks_mem", "util_gpu_pct", "util_mem_pct", "throttle_mask")
+
+SAMPLE_QUERY = ("clocks.sm,temperature.gpu,power.draw,clocks.mem,"
+                "utilization.gpu,utilization.memory,clocks_event_reasons.active")
+
+# NVML clock-event bits. SwPowerCap means the part is power-limited: more
+# compute would be clipped, not realised. SwThermalSlowdown means the cooling
+# solution is the constraint instead, and the two are distinguishable only from
+# this mask - board power alone cannot tell them apart.
+THROTTLE_BITS = ((0x0001, "GpuIdle"), (0x0002, "AppClocks"), (0x0004, "SwPowerCap"),
+                 (0x0008, "HwSlowdown"), (0x0010, "SyncBoost"),
+                 (0x0020, "SwThermalSlowdown"), (0x0040, "HwThermalSlowdown"),
+                 (0x0080, "HwPowerBrake"))
+
+# NOT available on this part, recorded so a later reader does not assume the
+# sampler simply forgot to ask:
+#   temperature.memory     NVML returns N/A on this RTX 3090 (dmon mtemp too)
+#   nvidia-smi pmon sm/mem  all "-" under Windows WDDM; per-process GPU
+#                           attribution cannot be had here at all
+
+
 class Sampler(threading.Thread):
-    def __init__(self):
+    def __init__(self, interval=0.5):
         super().__init__(daemon=True)
-        self.rows, self.stop = [], False
+        self.rows, self.stop, self.interval = [], False, interval
 
     def run(self):
         while not self.stop:
             try:
-                v = smi("clocks.sm,temperature.gpu,power.draw")
-                sm, t, p = [float(x) for x in v.split(",")]
-                self.rows.append((time.time(), sm, t, p))
+                v = smi(SAMPLE_QUERY).split(",")
+                sm, t, p, mclk, ug, um = [float(x) for x in v[:6]]
+                try:
+                    mask = int(v[6].strip(), 16)
+                except Exception:
+                    mask = -1
+                self.rows.append((time.time(), sm, t, p, mclk, ug, um, mask))
             except Exception:
                 pass
-            time.sleep(0.5)
+            time.sleep(self.interval)
+
+
+def constraint(rows):
+    """What limited the GPU over these rows, from the throttle mask.
+
+    Idle samples are excluded: a mask of GpuIdle says the workload was not
+    running, and counting those as "unconstrained" makes any busy run look
+    healthier than it was.
+    """
+    busy = [r for r in rows if len(r) > 7 and r[7] > 0 and not r[7] & 0x0001]
+    if not busy:
+        return {"n_busy": 0}
+    out = {"n_busy": len(busy)}
+    for bit, name in THROTTLE_BITS:
+        if bit == 0x0001:
+            continue
+        k = sum(1 for r in busy if r[7] & bit)
+        if k:
+            out[name] = {"n": k, "pct": round(100.0 * k / len(busy), 1)}
+    um = [r[6] for r in busy]
+    out["util_mem_mean"] = round(sum(um) / len(um), 1)
+    return out
 
 
 def post(payload, timeout=1800):

@@ -85,9 +85,19 @@ class Sampler(threading.Thread):
     def run(self):
         while not self.stop:
             try:
-                v = smi("power.draw,clocks.sm,clocks.mem,temperature.gpu,utilization.gpu")
-                p, sm, mem, t, u = [float(x) for x in v.split(",")]
-                self.rows.append((time.time(), p, sm, mem, t, u))
+                v = smi("power.draw,clocks.sm,clocks.mem,temperature.gpu,"
+                        "utilization.gpu,utilization.memory,"
+                        "clocks_event_reasons.active").split(",")
+                p, sm, mem, t, u, um = [float(x) for x in v[:6]]
+                # The mask is the whole point of a cap experiment: it is the
+                # only field that says whether the cap actually BOUND during
+                # an arm. Without it a cap that never engaged and a cap that
+                # engaged constantly produce the same table.
+                try:
+                    mask = int(v[6].strip(), 16)
+                except Exception:
+                    mask = -1
+                self.rows.append((time.time(), p, sm, mem, t, u, um, mask))
             except Exception:
                 pass
             time.sleep(0.25)
@@ -200,6 +210,19 @@ def main():
                         r["peak_w"] = round(max(x[1] for x in win), 1)
                         r["mean_sm_mhz"] = round(sum(x[2] for x in win) / len(win))
                         r["mean_temp"] = round(sum(x[4] for x in win) / len(win), 1)
+                        r["mean_util_mem"] = round(sum(x[6] for x in win) / len(win), 1)
+                        # Record what BOUND during the arm, not just what it
+                        # drew. A cap arm whose mask never shows SwPowerCap did
+                        # not test a cap at all - it tested a workload that
+                        # stayed under it, which is exactly how this campaign's
+                        # published cap curve came to describe a regime the
+                        # real workload is not in.
+                        busy = [x for x in win if x[7] > 0 and not x[7] & 0x0001]
+                        if busy:
+                            r["pct_power_capped"] = round(
+                                100.0 * sum(1 for x in busy if x[7] & 0x0004) / len(busy), 1)
+                            r["pct_thermal"] = round(
+                                100.0 * sum(1 for x in busy if x[7] & 0x0060) / len(busy), 1)
                         r["samples"] = len(win)
                         dec_s = (r["predicted_ms"] or 0) / 1000.0
                         r["j_per_tok"] = round(

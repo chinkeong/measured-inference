@@ -72,6 +72,19 @@ def log(m):
 
 
 class Power(threading.Thread):
+    """Board power, and enough context to say what the power bought.
+
+    This sampled power.draw ALONE until 2026-08-27, which made every joules-
+    per-token figure it produced unattributable: two cards, or two quant
+    formats, can report the same J/token for opposite reasons - one starved of
+    bandwidth, the other clipped by its power limit - and watts cannot tell
+    them apart. The throttle mask can, and costs nothing extra on a query
+    already being issued four times a second.
+    """
+
+    QUERY = ("power.draw,utilization.gpu,utilization.memory,"
+             "clocks.sm,clocks_event_reasons.active")
+
     def __init__(self):
         super().__init__(daemon=True)
         self.rows, self.stop = [], False
@@ -80,24 +93,50 @@ class Power(threading.Thread):
         while not self.stop:
             try:
                 o = subprocess.run(
-                    ["nvidia-smi", "--query-gpu=power.draw",
+                    ["nvidia-smi", "--query-gpu=" + self.QUERY,
                      "--format=csv,noheader,nounits"],
                     capture_output=True, text=True, timeout=10).stdout
-                self.rows.append((time.time(), float(o.strip().splitlines()[0])))
+                v = o.strip().splitlines()[0].split(",")
+                w, ug, um, sm = [float(x) for x in v[:4]]
+                try:
+                    mask = int(v[4].strip(), 16)
+                except Exception:
+                    mask = -1
+                self.rows.append((time.time(), w, ug, um, sm, mask))
             except Exception:
                 pass
             time.sleep(0.25)
 
     def joules(self, t0, t1):
         """Trapezoidal integration of board watts over a window -> joules."""
-        w = [(t, p) for t, p in self.rows if t0 <= t <= t1]
+        w = [r for r in self.rows if t0 <= r[0] <= t1]
         if len(w) < 2:
             return None, None
         j = 0.0
         for i in range(1, len(w)):
             dt = w[i][0] - w[i - 1][0]
             j += (w[i][1] + w[i - 1][1]) / 2.0 * dt
-        return j, sum(p for _, p in w) / len(w)
+        return j, sum(r[1] for r in w) / len(w)
+
+    def limited_by(self, t0, t1):
+        """What constrained the part over this window, from the clock-event
+        mask. Idle samples are dropped - a run that was mostly idle would
+        otherwise look unconstrained."""
+        busy = [r for r in self.rows
+                if t0 <= r[0] <= t1 and r[5] > 0 and not r[5] & 0x0001]
+        if not busy:
+            return None
+        n = len(busy)
+        out = {"n_busy": n,
+               "util_mem_mean": round(sum(r[3] for r in busy) / n, 1),
+               "util_gpu_mean": round(sum(r[2] for r in busy) / n, 1)}
+        for bit, name in ((0x0004, "SwPowerCap"), (0x0008, "HwSlowdown"),
+                          (0x0020, "SwThermalSlowdown"),
+                          (0x0040, "HwThermalSlowdown"), (0x0080, "HwPowerBrake")):
+            k = sum(1 for r in busy if r[5] & bit)
+            if k:
+                out[name] = round(100.0 * k / n, 1)
+        return out
 
 
 def newest(pattern_dir, contains):

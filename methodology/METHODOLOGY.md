@@ -412,6 +412,45 @@ beyond its retrieval-tested depth is labeled
       machine (requires administrator)". An unmeasured knob is documented,
       never estimated.
 
+28. **The RUN is the scarce thing, not the sampling — collect every field the
+    instrument offers for free while the workload is in front of you.** A
+    measurement run costs hours; widening an `nvidia-smi` query that is already
+    being issued costs nothing. A field not written down during the run cannot
+    be recovered afterwards at any price, so the default is to over-collect.
+    - **A power number without a constraint reading is unattributable, and
+      therefore not comparable.** Two cards, two quantisations, or one card at
+      two caps can report the *same* J/token for opposite reasons — one starved
+      of bandwidth, the other clipped by its power limit — and watts alone
+      cannot separate them. Every energy sample therefore carries
+      `utilization.memory` and `clocks_event_reasons.active` alongside
+      `power.draw`. Audit of 2026-08-27: seven scripts shared a sampler
+      collecting clock, temperature and power only, so **every J/token this
+      campaign had published to that date was unattributable** — corrected at
+      source rather than by re-running.
+    - **Throttle masks are counted with idle samples REMOVED.** A mask of
+      `GpuIdle` says the workload was not running; counting those dilutes every
+      other reason. Reading a raw histogram produced the claim that thermal
+      throttling "never" fired on the reference part; dropping idle samples put
+      it at 3.0% of busy samples, with the fan already pinned at 100%.
+    - **Fields that are genuinely unavailable are recorded as such**, so their
+      absence is never read as an oversight. On the reference RTX 3090:
+      `temperature.memory` (and dmon `mtemp`) return N/A, and `nvidia-smi pmon`
+      reports `-` for every process under Windows WDDM, so per-process GPU
+      attribution cannot be had on that platform at all.
+    - **A server is instrumented before it is depended on.** `llama-server`
+      needs `--metrics`, and its stdout must go somewhere real. A full agentic
+      run was launched without either and produced a complete power trace and
+      complete pass rates that **could not be divided into each other**. The
+      standing recovery, which needs no flag and no restart, is to poll
+      `/slots`: it carries prompt depth, tokens served from cache, and
+      `n_decoded` per request. Prefer it to the log even when the log works.
+    - **An agentic J/token carries its prompt:completion ratio.** Measured
+      across one run's exercises, energy per completion token spanned **30×**
+      (0.417 to 13.079 J) purely because prompt-heavy exercises decode few
+      tokens. A single agentic J/token without that ratio is not a
+      characterisation of the machine, and rule 3's transport clause applies to
+      it in full.
+
 ## Sequencing
 25. **Cheap probes buy the map; the map locks the recipes; only locked recipes
     earn expensive hours.** Measurement has an order, and the order is not
