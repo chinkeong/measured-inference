@@ -2902,3 +2902,59 @@ and scored accuracy.
 **COST.** The base logits are 23.6 GiB for 200 chunks; the full corpus would
 have needed 68.4 GiB, which is why the disk was probed before anything
 committed to it. Each rung then scores in about 2 minutes 15.
+
+
+---
+
+## 2026-08-26 14:10 - THE EMPTY-ANSWER COLUMN, FINISHED: real, but greedy overstates it
+
+The overnight run left this finding half-made: only the three 2-bit-class files
+had been replayed under the sampler, so it could not say whether the empties at
+the bottom of the ladder were also a greedy artifact. They are not.
+
+**MEASURED**, the same 50 HumanEval/MBPP prompts, model card sampler
+(temperature 1.0 / top_p 0.95 / top_k 20), fresh seed each time:
+
+| file | bpw | greedy silent empties | sampled | rate | 95% CI |
+|---|---|---|---|---|---|
+| UD-Q2_K_XL | 2.912 | 0 of 75 | **0 of 300** | 0% | 0 - 1.26% |
+| QAT-Q2_0 | 2.595 | 0 of 75 | **0 of 300** | 0% | 0 - 1.26% |
+| UD-IQ2_S | 2.481 | 1 of 75 (1.3%) | **0 of 300** | 0% | 0 - 1.26% |
+| UD-IQ2_XXS | 2.153 | 2 of 75 (2.7%) | **1 of 300** | 0.33% | 0.06 - 1.87% |
+| UD-IQ1_M | 1.994 | 5 of 75 (6.7%) | **3 of 200** | 1.50% | 0.51 - 4.32% |
+
+UD-IQ1_M is a **PARTIAL** at 200 of 300 and is labelled so wherever it appears.
+The run was stopped deliberately: a degenerating file writes long answers that
+run to the cap, so IQ1_M was taking 23 minutes per seed against IQ2_XXS's 6,
+and UD-IQ1_S would have been worse. Neither is a file anyone ships - IQ1_S
+scores 34.70 and its code does not run - so four more hours of card time would
+have bought confirmation about files nobody uses. Recorded as a decision, not
+an omission.
+
+### Three things this settles
+
+**THE COLUMN IS REAL.** Empties survive the sampler at low bit rates, so this
+is not a greedy artifact and the column keeps its meaning as a degradation
+signal. Yesterday's note, which said only that the counts were greedy
+measurements, was correct but incomplete.
+
+**GREEDY OVERSTATES THE RATE BY ROUGHLY FOUR TO EIGHT TIMES.** 2.7% becomes
+0.33% at IQ2_XXS; 6.7% becomes 1.5% at IQ1_M. A reader reading the greedy
+column as their own failure rate is reading a number several times too large.
+
+**THE DAMAGE THRESHOLD MOVES DOWN A FULL RUNG.** Under greedy the column first
+leaves zero at **2.481** bpw. Under the sampler a reader actually runs, the
+first non-zero is at **2.153** - one rung lower. The page says the empty column
+"registers the first damage at 2.481 bits, a full rung above where the paired
+test can resolve anything". Under the shipped sampler that sentence is wrong by
+one rung, and it is one of the reasons the floor sat where it did.
+
+The floor itself is unaffected and stays at 2.912, for the reason it was
+rebased on yesterday - perplexity, where UD-Q2_K_XL and UD-IQ2_S differ by
+7.9% on a shared tokenizer. What changes is a supporting claim about where
+damage first shows.
+
+**ONE DIAGNOSTIC DETAIL WORTH KEEPING.** UD-IQ2_XXS's single sampled empty is
+`MBPP[21]` at seed 47, which produced **1 token and stopped** - `at_cap` false.
+A genuine silent empty, not a truncation, which is the failure mode the page
+calls the dangerous one because no truncation counter can see it.
