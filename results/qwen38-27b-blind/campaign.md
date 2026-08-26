@@ -2958,3 +2958,68 @@ damage first shows.
 `MBPP[21]` at seed 47, which produced **1 token and stopped** - `at_cap` false.
 A genuine silent empty, not a truncation, which is the failure mode the page
 calls the dangerous one because no truncation counter can see it.
+
+
+---
+
+## 2026-08-26 14:45 - THE ngram-mod CLAIM WAS WRONG, AND IT WAS MINE, PUBLISHED THREE HOURS EARLIER
+
+The register row written at 11:52 said `ngram-mod` gives **3.9x on code and
+1.5x on prose**. It rested on TWO prompts, was flagged in this log as thin at
+the time, and was ranked fourth on the work list for exactly that reason. The
+wider sweep ran three hours later and the claim did not survive it.
+
+**MEASURED**, six content types, three drafters, one server load per drafter,
+greedy, UD-Q2_K_XL:
+
+| content | none | ngram-mod | draft-mtp | ngram x | mtp x | predicted_n |
+|---|---|---|---|---|---|---|
+| boilerplate | 45.63 | 60.31 | **107.67** | 1.32 | **2.36** | 700 |
+| code (AVL tree) | 45.40 | 49.74 | **82.18** | **1.10** | 1.81 | 700 |
+| json | 45.28 | 59.88 | **108.01** | 1.32 | **2.39** | 700 |
+| refactor | 45.24 | 66.96 | **107.32** | 1.48 | 2.37 | 403 |
+| prose | 45.64 | **61.94** | 52.93 | 1.36 | 1.16 | ~655 |
+| translation | 45.70 | (251.25) | 65.03 | *discarded* | *discarded* | **71** |
+
+**ngram-mod ranges 1.10 to 1.48x, not 3.9x.** The 353 t/s that produced the
+original claim came from one unusually favourable prompt - an LRU cache, heavy
+in repeated getter/setter shapes. A different code task, an AVL tree, returns
+**1.10x**. Two code prompts differ by 3.5x from each other, which is precisely
+why n=2 could not support a published figure.
+
+**AND draft-mtp BEATS IT ON EVERYTHING EXCEPT PROSE**, 1.81x to 2.39x against
+ngram-mod's 1.10 to 1.48. The practical conclusion is close to the opposite of
+what the register said this morning: the built-in head is the better default
+almost everywhere, and ngram-mod matters mainly for files that have NO MTP
+layers and therefore cannot use it - which is exactly the QAT file's situation
+and how this line of work started.
+
+The published row has been corrected.
+
+### Two instrument findings from the same run, both worth keeping
+
+**THE TRANSLATION ROW IS DISCARDED, AND THE REASON IS ALREADY ON THIS PAGE.**
+It returned 251 t/s over **71 predicted tokens**. This campaign measured on
+2026-08-25 that short probes carry far more variance because a fixed
+per-request cost is a larger share of a smaller number - 80-token probes read
+0.58% CV against 700-token probes at 0.32%, and at 71 tokens it is worse again.
+A 5.5x speedup on 71 tokens is that effect, not a drafter. It is dropped rather
+than reported with a caveat, because a number that cannot be defended does not
+become defensible by being labelled.
+
+**OUTPUT IDENTITY IS NOT A VALID CORRECTNESS CHECK FOR SPECULATION ON A GPU,
+and this run refuted my own earlier reasoning.** The sweep compared the text
+produced by each drafter, expecting them to match, because speculative decoding
+samples from the same distribution as the target model. Three of six content
+types produced DIFFERENT text, and prose produced different LENGTHS - 659, 651
+and 700 tokens across the three drafters. The cause is not a bug: speculation
+changes the batch shape, GPU floating-point reductions are not associative, so
+a near-tie in the logits can resolve differently and the texts diverge from
+that token onward.
+
+That matters because `ngram-verify.py` on 2026-08-26 justified the ngram-mod
+speedup partly with "all three drafters produce identical distinct-trigram
+ratios, as lossless speculation must". **The "as it must" is wrong.** The
+ratios matched on that prompt; they need not. The verification still stands -
+the output was diverse, non-repetitive and terminated normally - but it stands
+on reading the text, not on an identity that is not guaranteed.
