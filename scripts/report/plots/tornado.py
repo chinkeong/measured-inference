@@ -247,17 +247,27 @@ def _bar_panel(ax, ys, key, lab_key, xlim, good_is_positive, band, nm_side):
             good = (v > 0) if good_is_positive else (v < 0)
             ax.barh(y, v, height=0.52, color=_C_GOOD if good else _C_BAD,
                     edgecolor="none", zorder=3)
-        if key == "tput" and lv.get("tput_whisker") is not None:
-            w = lv["tput_whisker"]
+        whisker = lv.get("tput_whisker") if key == "tput" else None
+        if whisker is not None:
+            w = whisker
             ax.plot([v, w], [y, y], color=_INK, lw=1.0, zorder=4)
             ax.plot([w], [y], marker="|", ms=8, mew=1.2, color=_INK, zorder=4)
-            ax.text(w, y + 0.37, lv["tput_whisker_lab"], va="center",
-                    ha="left", fontsize=7.2, color="#444444", zorder=5)
+            # BELOW the row, and stopped short of zero. Left-anchored at the
+            # whisker end this label ran straight through the zero rule; on
+            # the row itself it collided with the whisker line.
+            ax.text(-pad * 1.5 if w < 0 else pad * 1.5, y - 0.34,
+                    lv["tput_whisker_lab"], va="center",
+                    ha="right" if w < 0 else "left", fontsize=7.2,
+                    color="#444444", zorder=5)
+        # The value label goes ABOVE the row whenever a whisker shares that
+        # row: the whisker line runs through the y the label would otherwise
+        # sit on, and struck the text out.
+        ly = y + 0.34 if whisker is not None else y
         if v >= 0:
-            ax.text(v + pad, y, lv[lab_key], va="center", ha="left",
+            ax.text(v + pad, ly, lv[lab_key], va="center", ha="left",
                     fontsize=8.3, color=_INK, zorder=5)
         else:
-            ax.text(v - pad, y, lv[lab_key], va="center", ha="right",
+            ax.text(v - pad, ly, lv[lab_key], va="center", ha="right",
                     fontsize=8.3, color=_INK, zorder=5)
 
 

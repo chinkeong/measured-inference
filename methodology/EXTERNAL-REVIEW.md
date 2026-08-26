@@ -28,14 +28,48 @@ cannot say how much was already lost before the ladder starts.
 was under-stated: the limitation appears in the fine print rather than beside
 the numbers.
 
-**Action taken.** BF16 is genuinely out of reach here (55 GB against 24 GB VRAM
-plus 31.8 GB system RAM, with no headroom for KV or activations). **Q8_0 at
-29 GB is reachable** with partial offload, and is near-lossless against BF16 by
-every published account - Quesma's own ladder shows Q8_0 and BF16 indistinct
-wherever both were run. Queued: fetch Q8_0, re-base the KL ladder on it, and
-report both the Q8_0-referenced numbers and the IQ4_XS-referenced ones so the
-older figures remain comparable. Until that lands, every divergence figure must
-name its base in the same breath.
+**What was first proposed here, and why it was withdrawn.** An earlier version
+of this file queued a Q8_0 re-anchor: fetch the 29 GB file and re-base the
+ladder on it, since Q8_0 is near-lossless against BF16. On measuring the
+machine rather than estimating it, that is **not doable here and is dropped**.
+BF16 at 55 GB is plainly impossible. Q8_0 at 29 GB does not fit 24 GB of VRAM
+either: it would run with roughly 7 GB of weights resident in system RAM and
+computed on the CPU, on a machine with **31.8 GB of RAM in total**, of which
+8.8 GB was free with one benchmark running. A full 200-chunk KL pass under that
+split is hours of a loaded, noisy machine — which this campaign's own
+quiet-machine rule forbids while any other measurement is in flight, and which
+would perturb whatever else is running. Recorded as **out of scope for this
+hardware** rather than attempted and reported badly.
+
+**What was done instead, for free.** `scripts/quant-ladder/anchor-crosscheck.py`
+uses THEIR expensive BF16 measurement to bound ours. One file appears in both
+studies under the same metric — UD-IQ1_S, top-1 token agreement. Checking that
+the metrics really match came first: our column is llama-perplexity's "Same top
+p" output line, whose name collides with nucleus sampling and is unrelated to
+it, and which reports how often the quantised model's most likely next token
+matches the reference's. That is top-1 agreement, the same thing Quesma plots.
+
+    UD-IQ1_S vs our UD-IQ4_XS anchor    73.07%   (measured here, 200 chunks)
+    UD-IQ1_S vs BF16                    ~72%     (Quesma, read from a chart)
+
+    triangle inequality on token disagreement:
+    => our anchor differs from BF16 on AT LEAST 1.1% of tokens
+
+That is a **lower** bound, and the script says so plainly: it converts
+"unknown" into "at least this much", and it does **not** prove the anchor is
+close to full precision. Their figure is chart-read and approximate, so the
+bound inherits that imprecision.
+
+The same script reports the ladder's shape, also free: the cost per bit removed
+rises from **0.058 KLD/bpw** at the top of the ladder to **0.737** at the
+bottom, a factor of **12.7**. The curve is convex, so the flattest region is
+the one just above the anchor — consistent with the anchor sitting near the
+converged end, but an extrapolation past the last measured point and not
+evidence of its absolute quality.
+
+Until a full-precision anchor is affordable, **every divergence figure must
+name its base in the same breath**, and this campaign's KLD table must not be
+compared against a BF16-anchored one.
 
 ### 2. Token overhead: the best single metric in their study.
 
@@ -75,9 +109,18 @@ at higher effort**. This campaign runs with reasoning **off** throughout, so it
 is measuring one corner of that surface and reporting it as the surface. A
 quantisation that looks harmless with reasoning off may not be.
 
-**Action.** Open. Reasoning effort should become an axis, not a fixed setting.
-At minimum, every published pass rate must state that reasoning was off - which
-is a condition, and this campaign's rule 3 already requires it to travel.
+**Action, scoped to this hardware.** A full effort sweep is **not doable**:
+each level is another complete 225-exercise arm at three to four hours, and a
+useful comparison needs at least two levels on at least two quantisations —
+four arms, north of fourteen hours of exclusive machine time, on a rig that
+runs exactly one measurement at a time. Dropped as beyond capability rather
+than run at a sample size that could not resolve the effect anyway.
+
+What is free, and is therefore required instead: every published pass rate from
+this campaign **states that reasoning was off**, and states that the
+quantisation gap is known *from other people's work* to widen at higher effort
+— so a reader knows this is one corner of the surface, and which way the rest
+of it moves.
 
 ### 5. Breadth: benchmarks, hardware, context.
 
@@ -119,3 +162,32 @@ keep, especially while adopting the items above.
   coupling and per-request server state are absent from their study entirely.
 - **Per-task breakdown.** They state they have none. This campaign reports per
   language and per exercise, which is where the 3.0x energy spread was found.
+
+---
+
+## Scope decision, recorded once
+
+Adopted, because each costs nothing beyond analysis of data already collected:
+
+- **Token overhead**, paired over jointly-solved exercises, plus joules,
+  seconds and tokens per SOLVED exercise (`compare-arms.py`).
+- **Anchor cross-check** against their published BF16 point, reported as the
+  lower bound it is (`anchor-crosscheck.py`).
+- **Ladder convexity**, from the 200-chunk ladder already measured.
+- **Plain statement of conditions** on every figure: one machine, one runtime,
+  32k context, reasoning off, anchor is UD-IQ4_XS and not full precision.
+
+Not attempted, because this hardware cannot do it honestly:
+
+| item | why not |
+|---|---|
+| BF16 anchor | 55 GB against 24 GB VRAM + 31.8 GB system RAM |
+| Q8_0 anchor | 29 GB; ~7 GB would sit on the CPU, hours on a loaded machine |
+| reasoning-effort sweep | four full arms, 14+ hours of exclusive machine time |
+| second/third benchmark | GPQA, IFBench, Terminal-Bench are each a fresh harness |
+| multi-GPU comparison | one card exists here |
+| 98k-context agentic | KV at that depth does not fit alongside these weights |
+
+The rule this follows is the campaign's own: **an unmeasured value is
+documented, never estimated.** A limitation stated plainly is worth more than a
+number produced by a method the hardware cannot support.

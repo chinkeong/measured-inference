@@ -202,9 +202,13 @@ def _vram(ctx, outdir, t0):
     ax.set_ylim(0, ceil_gib * 1.10)
     ax.set_xlabel("elapsed time (minutes since GPU telemetry start)")
     ax.set_ylabel("board VRAM in use (GiB)")
+    # The drift percentage is stated WITH its denominator. A bare "0.17%" on
+    # a figure that also shows a 24,576 MiB ceiling reads as a share of the
+    # board, which is a different and much smaller number.
     ax.set_title("24 GiB is a gate, not a budget: the footprint is committed "
-                 "at load\nand then moves %.0f MiB (%.2f%%) across %.0f "
-                 "minutes of work" % (hi - lo, drift_pct, mins),
+                 "at load\nand then moves %.0f MiB across %.0f minutes of "
+                 "work - %.2f%% of the %s MiB it holds"
+                 % (hi - lo, mins, drift_pct, _n(med)),
                  fontsize=13, fontweight="bold", pad=10)
     _decorate(ax)
 
@@ -304,7 +308,8 @@ def _vram(ctx, outdir, t0):
         "bits per weight, -ngl 99, -c 32,768, --parallel 1, -fa on, KV q8_0 "
         "for both K and V, MTP speculative decoding on; workload is the aider "
         "polyglot agentic benchmark. FINDING: the footprint is %s MiB median "
-        "(%.2f GiB) and varies by only %.0f MiB (%.2f%%) across %.0f minutes. "
+        "(%.2f GiB) and varies by only %.0f MiB across %.0f minutes, which is "
+        "%.2f%% of that median footprint. "
         "Capacity is committed once at load and is never managed at run time, "
         "which is what makes a board ceiling a gate rather than a budget, and "
         "it is why a memory limit here is answered with a quantisation ladder "
@@ -320,7 +325,7 @@ def _vram(ctx, outdir, t0):
         "trace, and the figure says so on its face. The 24,576 MiB ceiling is "
         "specification; every other number on the figure is measured on this "
         "rig."
-        % (_n(med), med / 1024.0, hi - lo, drift_pct, mins, head / 1024.0,
+        % (_n(med), med / 1024.0, hi - lo, mins, drift_pct, head / 1024.0,
            _n(FULLWIN_IQ4XS_MIB), _n(BOARD_MIB - FULLWIN_IQ4XS_MIB),
            _n(FULLWIN_Q2KXL_MIB)))
     return p, cap
@@ -589,7 +594,10 @@ def _null_paths(ctx, outdir, t0):
                    else "an unmeasured share",
                    _n(avail_min)),
                 transform=ax.transAxes, ha="right", va="bottom", fontsize=7.2,
-                bbox=BOX, linespacing=1.38)
+                # Fully opaque, not the shared 0.96 alpha: this box sits over
+                # live traces, and a 4% bleed puts faint strokes through the
+                # sentences.
+                bbox=dict(BOX, alpha=1.0), linespacing=1.38, zorder=8)
 
         if not have_pin:
             ax.text(0.008, 0.90,

@@ -30,6 +30,7 @@ import numpy as np
 
 import matplotlib
 matplotlib.use("Agg")            # REQUIRED - never an interactive backend
+import matplotlib.patheffects as pe
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
 
@@ -318,7 +319,14 @@ def _fig_decomposition(ctx, outdir, offset, offnote):
              label="system calls, 27 s mean")
     ax2.plot(tm, _roll(ctxr, 9) / 1e3, color=C_CTX, lw=1.8, ls="--", zorder=3,
              label="context switches, 27 s mean")
-    ax2.axhline(sys_med / 1e3, color=C_SYS, ls=(0, (5, 2)), lw=1.4, zorder=4)
+    # The two medians are computed on independent axes and happen to land
+    # within about a pixel of each other here. Without a white halo the pink
+    # dashed line vanishes under the black dotted one and its label points
+    # at nothing a reader can find.
+    _sysmed = ax2.axhline(sys_med / 1e3, color=C_SYS, ls=(0, (5, 2)),
+                          lw=1.7, zorder=24)
+    _sysmed.set_path_effects([pe.withStroke(linewidth=4.0,
+                                            foreground="white")])
     ax2.set_ylabel("Rate (thousands per second)")
     sys_top = max(float(np.percentile(sysr, 99.0)) / 1e3 * 1.95, 60.0)
     ax2.set_ylim(0, sys_top)

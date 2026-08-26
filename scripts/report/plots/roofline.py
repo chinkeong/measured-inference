@@ -221,7 +221,7 @@ def _roofs(ax, bw, compute, xlim, compute_in_view=True):
     xs = np.logspace(np.log10(xlim[0]), np.log10(xlim[1]), 400)
     roof = np.minimum(bw * xs, compute)
     ach = DECODE_OFF * MODEL_GB
-    lab = ("roof: %.0f GB/s spec bandwidth, then %.0f tok/s compute"
+    lab = ("roof: %.0f GB/s bandwidth, then %.0f tok/s compute"
            % (bw, compute)) if compute_in_view else (
           "roof: %.0f GB/s spec bandwidth (the %.0f tok/s compute\n"
           "roof is far above and right of this view)" % (bw, compute))
@@ -336,12 +336,12 @@ def _fig_points(outdir, pp, spread, clk):
     ax.annotate("", xy=(x_on, roof_on), xytext=(x_on, DECODE_ON),
                 arrowprops=dict(arrowstyle="<->", color=CB["cap"], lw=1.7,
                                 shrinkA=0, shrinkB=0), zorder=6)
-    ax.annotate("%.1fx of the bandwidth roof is left unused here.\n"
-                "The binding limit at this point is the 350 W\n"
-                "board-power cap, not memory bandwidth."
+    ax.annotate("%.1fx of the bandwidth roof is unused here.\n"
+                "What binds at this point is the 350 W\n"
+                "board-power cap, not bandwidth."
                 % (roof_on / DECODE_ON),
                 xy=(x_on * 1.06, np.sqrt(DECODE_ON * roof_on)),
-                xytext=(x_on * 2.1, 260.0), fontsize=9.0, color=CB["cap"],
+                xytext=(x_on * 1.58, 250.0), fontsize=8.5, color=CB["cap"],
                 ha="left", va="top", linespacing=1.4, fontweight="bold",
                 bbox=_BOX, zorder=8,
                 arrowprops=dict(arrowstyle="-", color=CB["cap"], lw=1.0,
@@ -388,11 +388,10 @@ def _fig_points(outdir, pp, spread, clk):
                 ls="none", zorder=7)
     _tag(ax, "prompt processing: a whole micro-batch per weight pass.\n"
              "%.0f tok/s, about %.0fx BELOW the bandwidth roof at its own\n"
-             "intensity - this phase is compute-bound, not memory-bound.\n"
-             "Bar spans n_ubatch 512 to n_batch 2048: the micro-batch\n"
-             "was NOT logged, so only the throughput is measured."
+             "intensity - compute-bound, not memory-bound. Bar spans\n"
+             "n_ubatch 512 to 2048: NOT logged, so only y is measured."
              % (compute, bw * x_pp / compute),
-         (x_pp * 0.98, compute * 1.12), (x_pp * 0.46, 8600.0), "#5c2c48",
+         (x_pp * 0.98, compute * 1.12), (x_pp * 0.52, 9800.0), "#5c2c48",
          ha="right")
 
     # ---- ridge point
@@ -411,8 +410,8 @@ def _fig_points(outdir, pp, spread, clk):
 
     ax.set_title("Speculation moves decode off the bandwidth roof and onto "
                  "the power limit", fontsize=13.5, fontweight="bold", pad=26)
-    leg = ax.legend(loc="lower right", fontsize=7.5, framealpha=0.95,
-                    borderpad=0.6, labelspacing=0.45, handlelength=1.9,
+    leg = ax.legend(loc="lower right", fontsize=7.2, framealpha=0.95,
+                    borderpad=0.55, labelspacing=0.42, handlelength=1.8,
                     bbox_to_anchor=(0.997, 0.015))
     leg.set_zorder(10)
 
@@ -509,7 +508,7 @@ def _fig_sweep(outdir, pp, clk, fit):
     x_max = N_DRAFT_MAX / MODEL_GB
 
     xlim = (0.0410, 0.820)
-    ylim = (25.0, 3000.0)
+    ylim = (25.0, 12000.0)
 
     fig, ax = plt.subplots(**_FIG)
     _roofs(ax, bw, compute, xlim, compute_in_view=False)
@@ -527,8 +526,8 @@ def _fig_sweep(outdir, pp, clk, fit):
         ax.plot([x], [y], marker="o", ms=8, color="white", mec=CB["on"],
                 mew=1.8, ls="none", zorder=8)
         ax.annotate("L=%d\n%.0f tok/s" % (L, y), xy=(x, y),
-                    xytext=(x * 1.035, y * 1.05), fontsize=8.0, ha="left",
-                    va="bottom", color="#0b3a58", linespacing=1.3, zorder=7)
+                    xytext=(x * 1.03, y * 0.93), fontsize=8.0, ha="left",
+                    va="top", color="#0b3a58", linespacing=1.3, zorder=7)
 
     ax.plot([x_on], [DECODE_ON], marker="o", ms=12, color=CB["on"],
             mec="black", mew=1.0, ls="none", zorder=9,
@@ -537,16 +536,16 @@ def _fig_sweep(outdir, pp, clk, fit):
     ax.plot([x_off], [DECODE_OFF], marker="s", ms=11, color=CB["off"],
             mec="black", mew=1.0, ls="none", zorder=9,
             label="MEASURED: draft head off gives %.1f tok/s" % DECODE_OFF)
-    ax.annotate("L=1, %.1f tok/s\nMEASURED" % DECODE_OFF,
+    ax.annotate("L=1, %.1f tok/s" % DECODE_OFF,
                 xy=(x_off, DECODE_OFF),
-                xytext=(x_off * 0.93, DECODE_OFF * 0.97), fontsize=8.0,
-                ha="right", va="top", color="#7a5400", linespacing=1.3,
+                xytext=(x_off * 0.96, DECODE_OFF * 1.14), fontsize=8.0,
+                ha="right", va="bottom", color="#7a5400", linespacing=1.3,
                 bbox=_BOX, zorder=8)
     ax.annotate("L=%.2f, %.1f tok/s\nMEASURED (today)" % (ACCEPT_LEN,
                                                           DECODE_ON),
-                xy=(x_on, DECODE_ON * 0.94),
-                xytext=(x_on * 0.90, DECODE_ON * 0.66), fontsize=8.0,
-                ha="right", va="top", color="#0b3a58", linespacing=1.3,
+                xy=(x_on, DECODE_ON * 1.06),
+                xytext=(x_on * 1.02, DECODE_ON * 1.16), fontsize=8.0,
+                ha="left", va="bottom", color="#0b3a58", linespacing=1.3,
                 bbox=_BOX, zorder=8,
                 arrowprops=dict(arrowstyle="-", color=CB["on"], lw=1.0,
                                 shrinkA=1, shrinkB=4))
@@ -555,7 +554,7 @@ def _fig_sweep(outdir, pp, clk, fit):
     ax.annotate("--spec-draft-n-max = %d, the server's own cap.\n"
                 "Nothing to the right of this line is reachable\n"
                 "without changing the configuration." % N_DRAFT_MAX,
-                xy=(x_max, 44.0), xytext=(x_max * 1.05, 47.0), fontsize=8.2,
+                xy=(x_max, 780.0), xytext=(x_max * 1.06, 860.0), fontsize=8.2,
                 color=CB["cap"], ha="left", va="top", linespacing=1.4,
                 fontweight="bold", bbox=_BOX, zorder=8)
 
@@ -582,8 +581,8 @@ def _fig_sweep(outdir, pp, clk, fit):
             "and even the cap is worth only %+.0f%%."
             % (ACCEPT_LEN, N_DRAFT_MAX, 100 * g4, 100 * g6, 100 * gi,
                100 * ACCEPT_LEN / N_DRAFT_MAX, 100 * g6),
-            transform=ax.transAxes, ha="right", va="top", fontsize=8.3,
-            color="#222222", linespacing=1.55, fontweight="bold",
+            transform=ax.transAxes, ha="right", va="top", fontsize=8.0,
+            color="#222222", linespacing=1.5, fontweight="bold",
             bbox=dict(boxstyle="round,pad=0.5", fc="#FFF7E6", ec=CB["off"],
                       lw=1.1), zorder=10)
 
@@ -597,8 +596,8 @@ def _fig_sweep(outdir, pp, clk, fit):
     leg.set_zorder(10)
 
     left = ["CONDITIONS. " + PART + ", fan pinned at 100%.",
-            "Workload: agentic coding benchmark, one slot. "
-            "Qwen3.8-27B-UD-IQ4_XS, %.2f GB, KV cache q8_0, -c 32768."
+            "Workload: agentic coding benchmark, one slot."
+            " Qwen3.8-27B-UD-IQ4_XS, %.2f GB, KV q8_0, -c 32768."
             % MODEL_GB,
             "MODEL, NOT MEASUREMENT. The locus is a two-parameter fit through "
             "exactly two measured points,",

@@ -280,9 +280,14 @@ def _fig_timeline(thr, dmon, spot, outdir):
                 color="#555555", va="center", ha="left")
 
     ax.set_ylim(0, 118)
-    ax.set_yticks([0, 25, 50, 75, 100])
-    ax.set_ylabel("share of the sampled state (%)\n"
-                  "one limit per sample, chosen by severity")
+    # The band is CATEGORICAL: exactly one label holds each sample, so each
+    # band is either full height or absent and never takes an intermediate
+    # value. Numbered ticks would invite a reader to read a share off an
+    # axis that has none, so the axis carries no ticks and says what it is.
+    ax.set_yticks([])
+    ax.set_ylabel("which limit was active\n"
+                  "(one per sample, chosen by severity;\n"
+                  "the band is full height by construction)")
     ax.set_xlabel("time since telemetry start (minutes)")
     span = float(x[-1]) - float(x[0])
     ax.set_xlim(float(x[0]), float(x[-1]) + max(span * 0.004, 0.05))

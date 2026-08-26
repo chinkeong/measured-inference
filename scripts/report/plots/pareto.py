@@ -354,7 +354,8 @@ def _fig_cloud(ctx, op, capfrac, outdir):
                   % (med_w, med_tps))
     ax.plot([agg_w], [agg_tps], marker="*", ms=17, color="#000000", ls="none",
             markeredgecolor="white", markeredgewidth=1.0, zorder=6,
-            label="run aggregate %.0f W, %.1f tok/s = %.2f J per token"
+            label="run aggregate over DECODE intervals: %.0f W, %.1f tok/s"
+                  " = %.2f J per decoded token"
                   % (agg_w, agg_tps, agg_j))
     _better_arrow(ax, (xlo, xhi), (ylo, yhi))
 
@@ -386,6 +387,14 @@ def _fig_cloud(ctx, op, capfrac, outdir):
         lines.append("   a sample can carry both bits)")
     else:
         lines.append("throttle-reason trace: not available for this tag")
+    # Without this line a reader takes the star as the run's energy per
+    # completion token. It is not: prompt processing and the idle gaps
+    # between requests are outside every interval on this axis, and the
+    # whole-run figure denominated on completion tokens is higher.
+    lines.append("every point is a DECODE interval: prompt processing and")
+    lines.append("   inter-request idle are not on this axis, so J per")
+    lines.append("   decoded token here is BELOW the run's J per")
+    lines.append("   completion token")
     ax.text(0.022, 0.975, "\n".join(lines), transform=ax.transAxes, va="top",
             ha="left", fontsize=8.4, bbox=_BOX, zorder=7)
 
@@ -471,8 +480,10 @@ def _fig_sweep(ctx, arms, meta, sweep_path, op, stats, capfrac, outdir):
         ax.plot([stats["agg_w"]], [stats["agg_tps"]], marker="*", ms=17,
                 color="#000000", ls="none", markeredgecolor="white",
                 markeredgewidth=1.0, zorder=6,
-                label="agentic aggregate %.0f W, %.1f tok/s = %.2f J/tok"
-                      % (stats["agg_w"], stats["agg_tps"], stats["agg_j"]))
+                label="agentic aggregate, DECODE intervals only: %.0f W, "
+                      "%.1f tok/s = %.2f J per decoded token"
+                      % (stats["agg_w"], stats["agg_tps"],
+                         stats["agg_j"]))
 
     for a in arms:
         ax.plot([a["cap"], a["cap"]], [ylo, yhi], color=_C_SWEEP, lw=0.9,

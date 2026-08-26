@@ -281,8 +281,12 @@ def _fig_request_shape(ctx, rs, outdir):
     _note(fig, axL, 0.292, txtL)
     _note(fig, axR, 0.292, txtR)
 
-    fig.suptitle("Prefill dominates this agentic workload: %.1f prompt tokens "
-                 "arrive for every token generated" % ratio,
+    # The denominator of this ratio is a FLOOR (n_decoded is polled at 1 Hz
+    # and cleared when a slot idles), so the ratio itself is a ceiling. Said
+    # on the title rather than only in the right-hand panel note.
+    fig.suptitle("Prefill dominates this agentic workload: at most %.1f "
+                 "prompt tokens arrive for every token generated"
+                 % ratio,
                  fontsize=13.5, fontweight="bold", y=0.968)
 
     _footer(fig, ctx,

@@ -46,8 +46,8 @@ import subprocess
 
 import matplotlib
 matplotlib.use("Agg")            # REQUIRED - never an interactive backend
-import matplotlib.pyplot as plt
-import numpy as np
+import matplotlib.pyplot as plt  # noqa: E402
+import numpy as np  # noqa: E402
 
 try:
     import archdata as A
@@ -179,8 +179,10 @@ def _stats(dmon, slots):
     else:
         s["focus"] = busy
         s["focus_name"] = "busy"
-        s["focus_desc"] = ("busy samples (SM > %g%%; no /slots trace, so "
-                           "decode could not be separated)" % A.BUSY_SM_PCT)
+        why = ("no /slots trace for this run" if slots is None
+               else "the /slots trace holds no decode samples")
+        s["focus_desc"] = ("busy samples (SM > %g%%): %s, so decode could not "
+                           "be separated" % (A.BUSY_SM_PCT, why))
     f = s["focus"]
     s["n_focus"] = int(np.count_nonzero(f))
     s["focus_sec"] = float(dur[f].sum())
@@ -247,7 +249,7 @@ def _throttle_mix(throttle):
     if throttle is None or not len(throttle.get("t", [])):
         return {}
     _, lab = A.throttle_series(throttle)
-    lab = [l for l in lab if l not in ("Idle", "no data")]
+    lab = [x for x in lab if x not in ("Idle", "no data")]
     if not lab:
         return {}
     tot = float(len(lab))
@@ -278,26 +280,36 @@ def _band_frac(v, w, lo, hi):
     return 100.0 * float(w[m].sum()) / max(float(w.sum()), 1e-9)
 
 
+_PHASES = (("m_dec", "o", "decode"),
+           ("m_ppr", "^", "prompt processing"),
+           ("m_idl", "X", "idle (slot not processing)"))
+
+
 def _phase_scatter(ax, s, x, y, c, sizes=(11, 24, 30), unk=5, alpha=0.6):
     """The one scatter every panel uses: marker carries the workload phase,
     colour carries SM utilisation. Colour is never the only thing separating
-    two classes."""
+    two classes.
+
+    Returns (mappable, have_phase). When have_phase is False there was no
+    /slots trace to join against, every sample is drawn identically, and the
+    caller must NOT print a phase legend - a legend naming four classes that
+    were never resolved is a claim the figure cannot support."""
+    have = any(np.count_nonzero(s[k]) for k, _, _ in _PHASES)
+    if not have:
+        return ax.scatter(x, y, c=c, cmap=_CMAP, vmin=0, vmax=100,
+                          s=sizes[0], alpha=alpha, linewidths=0,
+                          zorder=3), False
     if np.count_nonzero(s["m_unk"]):
         ax.scatter(x[s["m_unk"]], y[s["m_unk"]], s=unk, c=_FAINT, marker=".",
                    alpha=0.5, linewidths=0, zorder=2)
     sc = None
-    for m, mk, sz, z in ((s["m_dec"], "o", sizes[0], 3),
-                         (s["m_ppr"], "^", sizes[1], 4),
-                         (s["m_idl"], "X", sizes[2], 4)):
+    for (k, mk, _), sz, z in zip(_PHASES, sizes, (3, 4, 4)):
+        m = s[k]
         if not np.count_nonzero(m):
             continue
         sc = ax.scatter(x[m], y[m], c=c[m], cmap=_CMAP, vmin=0, vmax=100,
                         s=sz, marker=mk, alpha=alpha, linewidths=0, zorder=z)
-    if sc is None:                      # no phase labels available at all
-        b = s["busy"]
-        sc = ax.scatter(x[b], y[b], c=c[b], cmap=_CMAP, vmin=0, vmax=100,
-                        s=sizes[0], alpha=alpha, linewidths=0, zorder=3)
-    return sc
+    return sc, True
 
 
 # --------------------------------------------------------------------------
@@ -325,7 +337,7 @@ def _fig_operating_point(dmon, s, throttle, outdir):
     gap = s["max_sm"] - s["pclk_med"]
 
     # ---- upper: the V/F cloud. shape = phase, colour = SM utilisation ------
-    sc = _phase_scatter(ax1, s, pwr, pclk, smu)
+    sc, have_phase = _phase_scatter(ax1, s, pwr, pclk, smu)
     cb = fig.colorbar(sc, cax=cax)
     cb.set_label("SM utilisation (%)", fontsize=8.5)
     cb.ax.tick_params(labelsize=8)
@@ -375,7 +387,7 @@ def _fig_operating_point(dmon, s, throttle, outdir):
     if zx1 > zx0 and zy1 > zy0:
         axz = ax1.inset_axes([0.315, 0.125, 0.415, 0.395])
         _phase_scatter(axz, s, pwr, pclk, smu, sizes=(9, 20, 26), unk=4,
-                       alpha=0.55)
+                       alpha=0.55)[0]
         axz.axhline(s["pclk_med"], color=_TRAF, ls="-", lw=1.1, zorder=5)
         axz.axvline(s["cap_w"], color=_INK, ls=":", lw=1.1, zorder=5)
         axz.set_xlim(zx0, zx1)
@@ -393,18 +405,33 @@ def _fig_operating_point(dmon, s, throttle, outdir):
     # The legend lives in the text column, not on the axes: every corner of the
     # upper panel is either data, the magnified inset, or one of the two
     # reference lines' labels, and a legend box on top of any of them would be
-    # hiding samples to explain samples.
-    hands = [plt.Line2D([], [], ls="", marker=mk, color=_GREY, ms=ms,
-                        label=lab)
-             for mk, ms, lab in (
-                 ("o", 5, "decode"),
-                 ("^", 6, "prompt processing"),
-                 ("X", 6, "idle (slot not processing)"),
-                 (".", 7, "no /slots coverage:\nphase unknown, NOT idle"))]
-    axT.legend(handles=hands, fontsize=7.2, loc="lower left",
-               bbox_to_anchor=(0.0, -0.02), frameon=True, framealpha=0.95,
-               title="marker = workload phase", title_fontsize=7.2,
-               borderpad=0.5, labelspacing=0.45, handletextpad=0.6)
+    # hiding samples to explain samples. It lists only the classes that were
+    # actually resolved.
+    if have_phase:
+        hands = [plt.Line2D([], [], ls="", marker=mk, color=_GREY, ms=5.5,
+                            label=lab)
+                 for k, mk, lab in _PHASES if np.count_nonzero(s[k])]
+        if np.count_nonzero(s["m_unk"]):
+            hands.append(plt.Line2D([], [], ls="", marker=".", color=_GREY,
+                                    ms=7,
+                                    label="no /slots coverage:\nphase unknown,"
+                                          " NOT idle"))
+        axT.legend(handles=hands, fontsize=7.2, loc="lower left",
+                   bbox_to_anchor=(0.0, -0.02), frameon=True, framealpha=0.95,
+                   title="marker = workload phase", title_fontsize=7.2,
+                   borderpad=0.5, labelspacing=0.45, handletextpad=0.6)
+    else:
+        axT.text(0.0, 0.0,
+                 "PHASE LABELS UNAVAILABLE\n"
+                 "The /slots trace is absent for this run, so\n"
+                 "decode cannot be separated from prompt\n"
+                 "processing. Every sample is drawn with one\n"
+                 "marker and every number above is over busy\n"
+                 "samples (SM > %g%%), not over decode."
+                 % A.BUSY_SM_PCT, transform=axT.transAxes, fontsize=7.2,
+                 color=_INK, va="bottom", ha="left", family="monospace",
+                 bbox=dict(boxstyle="round,pad=0.5", fc=_PANEL, ec="#c9ced8",
+                           lw=0.9))
 
     # ---- lower: the memory domain, clock against the traffic it serves -----
     mmax = max(s["max_mem"], s["obs_mem"]) * 1.06
@@ -601,7 +628,7 @@ def _fig_residency(dmon, s, outdir):
     axA.axvspan(s["pclk_p5"], s["pclk_p95"], color=_TRAF, alpha=0.11, lw=0)
     axA.axvline(s["max_sm"], color=_GREY, ls="--", lw=1.2)
     axA.axvline(s["pclk_med"], color=_TRAF, ls="-", lw=1.4)
-    axA.text(s["max_sm"] + hi * 0.017, top * 0.50, _refline_label(s, "SM"),
+    axA.text(s["max_sm"] + hi * 0.030, top * 0.50, _refline_label(s, "SM"),
              fontsize=7.6, color=_GREY, rotation=90, ha="center", va="center")
     axA.annotate("", xy=(s["max_sm"], top * 0.865),
                  xytext=(s["pclk_med"], top * 0.865),
@@ -662,18 +689,22 @@ def _fig_residency(dmon, s, outdir):
     axB.set_xlim(0, hib)
     tb = max(float(secs.max()) * 1.40, 1.0)
     axB.set_ylim(0, tb)
-    axB.text(s["max_mem"] + hib * 0.017, tb * 0.50, _refline_label(s, "memory"),
+    axB.text(s["max_mem"] + hib * 0.030, tb * 0.50, _refline_label(s, "memory"),
              fontsize=7.6, color=_GREY, rotation=90, ha="center", va="center")
     for x, y in zip(u, secs):
+        # A bar at 0.7% of busy time is still a measurement and still gets its
+        # number; the alignment just has to keep it inside the axes.
         big = y > secs.max() * 0.5
+        near_left = x < hib * 0.15
+        ha = "left" if near_left else ("right" if big else "center")
+        dx = hib * (0.012 if near_left else -0.022)
         axB.annotate("%.0f MHz\n%s s\n%.2f%% of busy time"
                      % (x, ("%.0f" % y) if y >= 1.0 else ("%.1f" % y),
                         100.0 * y / max(tot, 1e-9)),
-                     xy=(x, y), xytext=(x - hib * 0.022, y + tb * 0.035),
-                     fontsize=7.8, color=_INK if big else _MEM,
-                     ha="right" if big else "center", va="bottom",
-                     fontweight="bold" if big else "normal")
-    axB.set_xlabel("memory clock (MHz), one bar per P-state the part selected",
+                     xy=(x, y), xytext=(x + dx, y + tb * 0.035),
+                     fontsize=7.8, color=_INK if big else _MEM, ha=ha,
+                     va="bottom", fontweight="bold" if big else "normal")
+    axB.set_xlabel("memory clock (MHz), one bar per P-state selected while busy",
                    fontsize=9.5)
     axB.set_ylabel("wall time at this clock (s)", fontsize=9.5)
     axB.grid(alpha=0.3)
