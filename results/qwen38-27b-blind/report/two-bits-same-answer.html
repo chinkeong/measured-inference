@@ -1,0 +1,452 @@
+<title>Two Bits, Same Answer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@400;600&display=swap">
+
+<style>
+:root{
+  --paper:#f3f5f7;
+  --card:#ffffff;
+  --ink:#12161a;
+  --ink-2:#3d474f;
+  --ink-3:#6b767f;
+  --rule:#d8dee3;
+  --rule-2:#e8edf0;
+  --accent:#1d5a7a;
+  --accent-soft:#e4eef3;
+  --retract:#9c4a2f;
+  --retract-soft:#f6ebe6;
+  --null:#8b949b;
+  --shadow:0 1px 2px rgba(18,22,26,.06),0 8px 24px rgba(18,22,26,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0e1216;
+    --card:#161c22;
+    --ink:#e6ebef;
+    --ink-2:#aab5bd;
+    --ink-3:#7d888f;
+    --rule:#28313a;
+    --rule-2:#1e262d;
+    --accent:#6fb3d2;
+    --accent-soft:#152932;
+    --retract:#d98a68;
+    --retract-soft:#2a1d17;
+    --null:#78838a;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0e1216;
+  --card:#161c22;
+  --ink:#e6ebef;
+  --ink-2:#aab5bd;
+  --ink-3:#7d888f;
+  --rule:#28313a;
+  --rule-2:#1e262d;
+  --accent:#6fb3d2;
+  --accent-soft:#152932;
+  --retract:#d98a68;
+  --retract-soft:#2a1d17;
+  --null:#78838a;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:16.5px;line-height:1.62;
+  margin:0;padding:0;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:clamp(2rem,5vw,4.5rem) clamp(1.1rem,4vw,2.5rem) 5rem}
+.col{max-width:68ch}
+
+/* ---- masthead ---- */
+header{border-bottom:2px solid var(--ink);padding-bottom:1.6rem;margin-bottom:2.6rem}
+.eyebrow{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--accent);font-weight:600;margin:0 0 .9rem;
+}
+h1{
+  font-family:"IBM Plex Serif",Georgia,serif;
+  font-weight:600;font-size:clamp(2.1rem,5.4vw,3.35rem);
+  line-height:1.06;letter-spacing:-.02em;margin:0 0 .8rem;text-wrap:balance;
+}
+.standfirst{font-size:1.12rem;color:var(--ink-2);margin:0;max-width:60ch}
+.standfirst strong{color:var(--ink);font-weight:600}
+
+/* ---- conditions strip: the rule made visible ---- */
+.conditions{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:.74rem;line-height:1.75;color:var(--ink-3);
+  margin-top:1.5rem;padding-top:1.1rem;border-top:1px solid var(--rule-2);
+  display:flex;flex-wrap:wrap;gap:.35rem 1.4rem;
+}
+.conditions span{white-space:nowrap}
+.conditions b{color:var(--ink-2);font-weight:500}
+
+h2{
+  font-family:"IBM Plex Serif",Georgia,serif;
+  font-weight:600;font-size:1.62rem;letter-spacing:-.012em;
+  margin:3.4rem 0 .4rem;text-wrap:balance;
+}
+h2 .num{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:.8rem;color:var(--accent);font-weight:600;
+  display:block;letter-spacing:.1em;margin-bottom:.45rem;
+}
+h3{font-size:1.02rem;font-weight:600;margin:2.1rem 0 .5rem;letter-spacing:-.005em}
+p{margin:0 0 1.05rem}
+.lede{font-size:1.05rem;color:var(--ink-2)}
+
+/* ---- the measurement card: value + its condition ---- */
+.figures{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;
+  background:var(--rule);border:1px solid var(--rule);margin:1.8rem 0 1.4rem;box-shadow:var(--shadow)}
+.fig{background:var(--card);padding:1.15rem 1.25rem 1.05rem}
+.fig .v{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:1.72rem;font-weight:500;letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums;line-height:1.1;color:var(--ink);
+}
+.fig .v small{font-size:.92rem;color:var(--ink-3);font-weight:400;letter-spacing:0}
+.fig .k{font-size:.83rem;color:var(--ink-2);margin-top:.3rem;font-weight:500}
+.fig .c{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:.68rem;color:var(--ink-3);margin-top:.5rem;line-height:1.5;
+  padding-top:.5rem;border-top:1px dashed var(--rule);
+}
+
+/* ---- tables ---- */
+.scroll{overflow-x:auto;margin:1.5rem 0 1.2rem;border:1px solid var(--rule);background:var(--card);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:.9rem;min-width:520px}
+caption{
+  caption-side:bottom;text-align:left;padding:.8rem 1.1rem;
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:.7rem;line-height:1.65;color:var(--ink-3);border-top:1px solid var(--rule-2);
+}
+th,td{padding:.66rem 1.1rem;text-align:left;border-bottom:1px solid var(--rule-2)}
+thead th{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:600;background:var(--accent-soft);
+  border-bottom:1px solid var(--rule);
+}
+tbody tr:last-child td{border-bottom:none}
+td.n,th.n{text-align:right;font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+td.win{color:var(--accent);font-weight:500}
+td.lose{color:var(--retract)}
+.dim{color:var(--null)}
+
+/* ---- retraction block: dead claims kept, per rule 5 ---- */
+.retraction{
+  border-left:3px solid var(--retract);background:var(--retract-soft);
+  padding:1rem 1.2rem;margin:1.5rem 0;
+}
+.retraction .tag{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--retract);font-weight:600;display:block;margin-bottom:.5rem;
+}
+.retraction p{margin:0 0 .6rem;font-size:.94rem;color:var(--ink-2)}
+.retraction p:last-child{margin-bottom:0}
+.retraction s{color:var(--null);text-decoration-thickness:1px}
+.retraction b{color:var(--ink)}
+
+.note{
+  border-left:3px solid var(--accent);background:var(--accent-soft);
+  padding:1rem 1.2rem;margin:1.5rem 0;font-size:.94rem;color:var(--ink-2);
+}
+.note p{margin:0 0 .6rem}
+.note p:last-child{margin:0}
+.note b{color:var(--ink)}
+
+code,.m{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.88em;
+  font-variant-numeric:tabular-nums}
+code{background:var(--rule-2);padding:.1em .38em;border-radius:2px;color:var(--ink-2)}
+
+ul{margin:0 0 1.1rem;padding-left:1.15rem}
+li{margin-bottom:.5rem}
+li::marker{color:var(--accent)}
+
+footer{
+  margin-top:4.5rem;padding-top:1.5rem;border-top:2px solid var(--ink);
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:.73rem;line-height:1.8;color:var(--ink-3);
+}
+footer b{color:var(--ink-2);font-weight:500}
+</style>
+
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">Measured Inference · Agentic arm pair · 2026-08-27</p>
+  <h1>Two Bits, Same Answer</h1>
+  <p class="standfirst">A 2-bit quantisation of Qwen3.8-27B solved the same number of
+  coding tasks as a 4-bit one — and spent <strong>half again the energy</strong> doing it.
+  Both arms ran the full 225-exercise aider polyglot benchmark on one RTX 3090, with
+  identical settings and complete power telemetry.</p>
+  <div class="conditions">
+    <span><b>part</b> RTX 3090, 350 W cap</span>
+    <span><b>runtime</b> llama.cpp b10502</span>
+    <span><b>context</b> 32768</span>
+    <span><b>sampler</b> greedy</span>
+    <span><b>reasoning</b> off</span>
+    <span><b>format</b> whole</span>
+    <span><b>power</b> GPU board only</span>
+  </div>
+</header>
+
+<div class="col">
+<p class="lede">Two files of the same model, differing only in how tightly the weights are
+packed. The smaller one frees 4.4 GB of video memory — the difference between fitting on a
+card and not. The question a buyer actually has is what that costs.</p>
+</div>
+
+<h2><span class="num">01 — The comparison</span>Same accuracy, more of everything else</h2>
+
+<div class="figures">
+  <div class="fig">
+    <div class="v">+0.4<small> pts</small></div>
+    <div class="k">Pass-rate difference</div>
+    <div class="c">95% CI −6.3 to +7.2<br>McNemar p = 1.00, n = 223 paired</div>
+  </div>
+  <div class="fig">
+    <div class="v">1.20<small>×</small></div>
+    <div class="k">Completion tokens</div>
+    <div class="c">median over 66 exercises<br>BOTH arms solved · IQR 0.95–2.21</div>
+  </div>
+  <div class="fig">
+    <div class="v">1.52<small>×</small></div>
+    <div class="k">Energy per solved task</div>
+    <div class="c">23.2 kJ against 15.3 kJ<br>board power, busy samples only</div>
+  </div>
+  <div class="fig">
+    <div class="v">1.20<small>×</small></div>
+    <div class="k">Wall time</div>
+    <div class="c">median, paired · 68 s against<br>45 s of GPU-busy time</div>
+  </div>
+</div>
+
+<div class="col">
+<p>The pass rates are indistinguishable. That is not the same as equal: with 59 discordant
+exercises the interval spans thirteen points, and a real difference anywhere inside it fits
+this data. What <em>is</em> resolved is the cost. The 2-bit file needs about a fifth more
+tokens to reach the same answer, takes about a fifth longer, and burns half again the
+energy per task it actually completes.</p>
+</div>
+
+<div class="scroll">
+<table>
+  <caption>Both arms: 225 exercises, identical recipe, only the weights file differs.
+  Second-attempt pass rate is aider's headline metric.</caption>
+  <thead><tr>
+    <th>Measure</th><th class="n">UD-IQ4_XS</th><th class="n">UD-Q2_K_XL</th><th class="n">Ratio</th>
+  </tr></thead>
+  <tbody>
+    <tr><td>File size on disk</td><td class="n">14.25 GB</td><td class="n win">9.83 GB</td><td class="n">0.69×</td></tr>
+    <tr><td>Pass rate, 2nd attempt</td><td class="n">42.7%</td><td class="n">42.7%</td><td class="n dim">—</td></tr>
+    <tr><td>Pass rate, 1st attempt</td><td class="n win">13.3%</td><td class="n lose">8.4%</td><td class="n">0.63×</td></tr>
+    <tr><td>Well-formed responses</td><td class="n win">100.0%</td><td class="n">99.1%</td><td class="n">—</td></tr>
+    <tr><td>Seconds per case</td><td class="n win">53.1</td><td class="n lose">72.2</td><td class="n">1.36×</td></tr>
+    <tr><td>Completion tokens, total</td><td class="n win">601,849</td><td class="n lose">849,576</td><td class="n">1.41×</td></tr>
+    <tr><td>Tokens per solved exercise</td><td class="n win">2,102</td><td class="n lose">3,248</td><td class="n">1.55×</td></tr>
+    <tr><td>Energy per solved exercise</td><td class="n win">15.3 kJ</td><td class="n lose">23.2 kJ</td><td class="n">1.52×</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="col">
+<div class="note">
+<p><b>The first-attempt gap is the interesting one.</b> The 2-bit file gets it right first
+time far less often — 8.4% against 13.3% — and then recovers to exactly the same
+second-attempt rate. It is not less capable at these tasks so much as less likely to land
+them cleanly, and the retry is where the extra tokens and energy go.</p>
+</div>
+
+<p>The token-overhead measurement is borrowed from Quesma's August 2026 study, which
+reported roughly 1.25× output tokens for a 2-bit file against BF16. Measured here against a
+4-bit anchor instead, and paired over only the exercises both arms solved — so an arm
+cannot look efficient by quietly solving an easier subset.</p>
+</div>
+
+<h2><span class="num">02 — The machine</span>What actually limits this part</h2>
+
+<div class="col">
+<p>Speculative decoding moves this workload off the memory roofline and onto the power
+limit, and it is the single largest lever measured anywhere in the campaign.</p>
+</div>
+
+<div class="figures">
+  <div class="fig">
+    <div class="v">2.2<small>×</small></div>
+    <div class="k">Speculation on vs off</div>
+    <div class="c">45.2 → 99.2 tok/s<br>MTP draft head, mean length 3.55</div>
+  </div>
+  <div class="fig">
+    <div class="v">97<small>%</small></div>
+    <div class="k">Samples power-capped</div>
+    <div class="c">of busy samples; thermal 3%<br>idle excluded from denominator</div>
+  </div>
+  <div class="fig">
+    <div class="v">43<small>%</small></div>
+    <div class="k">Of the bandwidth roof</div>
+    <div class="c">398 GB/s of 936 GB/s spec<br>with the draft head on</div>
+  </div>
+  <div class="fig">
+    <div class="v">80.4<small>%</small></div>
+    <div class="k">Decode share of busy time</div>
+    <div class="c">exact, from server counters<br>over 285 minutes</div>
+  </div>
+</div>
+
+<div class="col">
+<p>Drafter off, the same file runs 45.2 tok/s — 644 GB/s, or 69% of the roof, which is
+bandwidth-bound. Turn the draft head on and measured throughput <em>exceeds</em> the
+one-weight-pass-per-token ceiling of 65.7 tok/s, so that model cannot explain it: real
+traffic is 398 GB/s and the memory system has 57% of its capacity spare. What binds instead
+is the 350 W board limit, active on essentially every busy sample.</p>
+
+<h3>The cap is paid in core clock, not memory clock</h3>
+<p>Reading both clocks against their own maxima explains why the bandwidth roof stays put
+while achievable throughput falls short of it: the SM clock is held at
+<span class="m">1650 of 2130 MHz (77%)</span> while the memory clock sits at
+<span class="m">9501 of 9751 MHz (97%)</span>. The power limit lowers the compute roof and
+leaves the bandwidth roof untouched. Power is being spent holding a clock this workload is
+not using — an unexploited firmware lever, and one this rig cannot test, because llama.cpp
+cannot express a clock policy and the driver does not expose one.</p>
+
+<div class="note">
+<p><b>Cooling is not the constraint, but there is no headroom either.</b> Thermal limiting
+fires on 3% of busy samples while the fan runs at 100% and the die sits at 83 °C median.
+A better cooler buys perhaps 3%; the current operating point already costs the entire fan
+curve. Memory junction temperature is not exposed by NVML on this part and is absent for
+that reason, not by omission.</p>
+</div>
+</div>
+
+<h2><span class="num">03 — Levers</span>What moved the needle, and what didn't</h2>
+
+<div class="scroll">
+<table>
+  <caption>Every row measured on this rig at the shipped recipe. Effects on throughput
+  unless stated. A lever whose effect on the other metric was not measured is left blank
+  rather than implied to be zero.</caption>
+  <thead><tr>
+    <th>Lever</th><th class="n">Throughput</th><th class="n">Energy</th><th>Verdict</th>
+  </tr></thead>
+  <tbody>
+    <tr><td>Speculative decoding (MTP)</td><td class="n win">2.2×</td><td class="n dim">—</td><td>Largest lever measured. Also changes which resource is scarce.</td></tr>
+    <tr><td>Quantisation format at equal size</td><td class="n win">1.30×</td><td class="n dim">—</td><td>Q2_0 over IQ2_S, at 70 MiB <em>less</em> memory. Dequantisation cost is a design variable.</td></tr>
+    <tr><td>Power cap 350 → 300 W</td><td class="n lose">−5.0%</td><td class="n win">−6.5% J/tok</td><td>Stock cap sits past the efficiency knee.</td></tr>
+    <tr><td>Power cap 350 → 250 W</td><td class="n lose">−12.8%</td><td class="n win">−13.7% J/tok</td><td>Still improving. Measured on a workload that never reached the cap — may not transfer.</td></tr>
+    <tr><td>KV cache q4_0 vs f16</td><td class="n dim">—</td><td class="n dim">—</td><td>No measurable retrieval cost to 119,435 tokens. Saves cache memory outright.</td></tr>
+    <tr><td>Host CPU contention</td><td class="n lose">−5.4%</td><td class="n dim">—</td><td>And the GPU clock <em>rises</em> while it happens. Invisible to clock and temperature logs.</td></tr>
+    <tr><td><code>--spec-draft-n-max</code> 4 → 8</td><td class="n dim">+2.0%</td><td class="n dim">—</td><td><b>Not a lever.</b> See the retraction below.</td></tr>
+    <tr><td>Sampler settings</td><td class="n dim">—</td><td class="n dim">—</td><td>Not a speed lever. Changes <em>variance</em>: 5.68% run-to-run against greedy's 0.77%.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2><span class="num">04 — Retractions</span>Claims this campaign published and then killed</h2>
+
+<div class="col">
+<p class="lede">Dead claims are kept as dated case studies rather than deleted. Each of
+these was measured, published, and then refuted by a better measurement — in every case one
+this campaign ran against its own work.</p>
+
+<div class="retraction">
+  <span class="tag">Retracted — drafter depth</span>
+  <p><s>Acceptance sits at 89% of the configured cap and stays 59% at the last permitted
+  position, so the flag and not the draft head limits speculation; raising it should be
+  worth about +24%.</s></p>
+  <p><b>Measured: −0.8% at n-max 6, +2.0% at n-max 8.</b> Mean accepted length rose exactly
+  as predicted, 2.71 → 3.54, and throughput did not follow. The cost model assumed a
+  constant marginal cost per speculated token; deeper drafts cost more per token
+  <em>and</em> are accepted less often — 99/73/55/44%, decaying to 13% by position 7 — so
+  wasted work grows faster than accepted work. A boundary acceptance rate says nothing about
+  the marginal return of the next position.</p>
+</div>
+
+<div class="retraction">
+  <span class="tag">Retracted — energy spread</span>
+  <p><s>Energy per completion token varies 30× across exercises.</s></p>
+  <p><b>Measured correctly: 3.2×.</b> The window was anchored to the results-file
+  timestamp minus the recorded duration — but that duration covers only model calls, while
+  the file is written after the unit tests and the build cleanup. Right length, wrong place:
+  it billed test-time idle to the model. The cheapest exercise was published at 0.417 J/token
+  against a true 5.830.</p>
+</div>
+
+<div class="retraction">
+  <span class="tag">Retracted — polling bias</span>
+  <p><s>A poll-derived phase split overstates the long phase by 6.3 points.</s></p>
+  <p><b>Measured over the full arm: −1.5 points</b> — wrong in magnitude and in sign. The
+  earlier figure came from a four-minute window dominated by start-up transients. Splits
+  already published stand. The lesson kept is that a bias estimated on a short window is not
+  a small version of the long-window bias, and may not even point the same way.</p>
+</div>
+
+<div class="retraction">
+  <span class="tag">Retracted — thermal headroom</span>
+  <p><s>Thermal throttling never fires on this part.</s></p>
+  <p><b>It fires on 3.0% of busy samples.</b> The earlier reading counted idle samples,
+  which are 14% of the trace and swamped the histogram. Idle is a state, not a limit.</p>
+</div>
+
+<div class="retraction">
+  <span class="tag">Corrected — uncertainty understated</span>
+  <p><s>With 59 discordant pairs, a difference of up to 1.3 points remains consistent.</s></p>
+  <p><b>The true interval is about five times wider.</b> The rule of three is the bound for
+  <em>zero</em> discordant pairs and is the wrong instrument once there are any. The paired
+  comparison at the top of this page now carries a proper confidence interval. Understating
+  uncertainty is the one direction this campaign must never round.</p>
+</div>
+</div>
+
+<h2><span class="num">05 — Limits</span>What this rig cannot say</h2>
+
+<div class="col">
+<p>Stated plainly so absence is never read as a result.</p>
+<ul>
+  <li><b>No full-precision anchor.</b> The quantisation ladder is referenced to UD-IQ4_XS —
+  itself a lossy 4-bit file — because 55 GB of BF16 does not fit a 24 GB card, and 29 GB of
+  Q8_0 would put roughly 7 GB of weights on a CPU with 31.8 GB of system RAM. Borrowing
+  Quesma's published BF16 point bounds the anchor at <em>at least</em> 1.1% of tokens away
+  from full precision — a lower bound, which cannot prove it is close.</li>
+  <li><b>Wall power is not measured.</b> Every watt on this page is the NVML GPU board
+  domain. Power supply, CPU, memory, drives and display are excluded.</li>
+  <li><b>Reasoning is off throughout.</b> Other people's work finds the gap between
+  quantisations <em>widens</em> at higher reasoning effort, so this is one corner of that
+  surface. A full sweep is four more arms and fourteen hours of exclusive machine time.</li>
+  <li><b>One machine, one runtime, one context length.</b> No second GPU vendor, no second
+  inference engine, and 32k rather than the ~98k an agentic benchmark can demand.</li>
+  <li><b>Per-process GPU attribution is impossible here.</b> <code>nvidia-smi pmon</code>
+  reports nothing per process under Windows WDDM, so the server's share cannot be separated
+  from the desktop's.</li>
+</ul>
+
+<div class="note">
+<p><b>The practical read.</b> If 4.4 GB of video memory is what stands between the model
+fitting and not fitting, the 2-bit file costs about a fifth more tokens and half again the
+energy per finished task, at a pass rate this sample cannot distinguish. If the 4-bit file
+already fits, there is no measured reason to move down.</p>
+</div>
+</div>
+
+<footer>
+<b>Instrumentation tier: in-band GPU board power only.</b> Power supply, CPU, system memory,
+drives and display are excluded and unmeasured — nothing here may be called system power.<br>
+Both arms: aider polyglot benchmark, 225 exercises, whole edit format, reasoning off,
+<span class="m">-c 32768</span>, <span class="m">--spec-type draft-mtp</span>,
+<span class="m">--spec-draft-n-max 4</span>, KV cache q8_0, greedy sampling
+(<span class="m">temperature 0</span>), llama.cpp build 10502, one RTX 3090 at its stock
+350 W board limit.<br>
+Paired statistics use exact two-sided McNemar on discordant exercises; proportions carry
+Wilson 95% intervals. Every scripted step, raw telemetry and the analysis code are committed.
+</footer>
+
+</div>
