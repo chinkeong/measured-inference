@@ -199,3 +199,50 @@ only aggregate utilisation, syscall and context-switch rates were sampled. GPU
 internals below the NVML level — L2 hit rate, occupancy, warp stalls — need
 Nsight and were not collected. One machine, one GPU vendor, one runtime. And
 the power-cap curve does not yet cover the capped regime this workload sits in.
+
+---
+
+## A cheap lever found by the figure work, not yet pulled
+
+The accepted-length sweep says the draft head is **not** what limits
+speculation here — the flag is.
+
+| quantity | value |
+|---|---|
+| `--spec-draft-n-max` as configured | **4** (read from the live server process) |
+| mean accepted length, measured | **3.55** |
+| ratio | **89% of the cap it was told to use** |
+
+Fitting the two measured points (drafter off at 45.2 t/s, drafter on at
+99.16 t/s) to `throughput = L / (T0 + T1·L)` separates the two costs: **T0 =
+16.8 ms** is the pass over the weights, paid once per verification cycle
+however many tokens ride on it, and **T1 = 5.36 ms** is the marginal cost of
+each speculated token — the draft head's own serial pass, the wider
+verification matrix multiply, the extra sampling.
+
+That fit is a **model through two points, not a measurement**, and it says
+three things worth acting on:
+
+- raising the cap to reach L = 6 is worth about **+24%**, not the +69% that
+  naive linear scaling suggests, because above roughly L = 3 the marginal
+  per-token cost dominates the weight pass;
+- a *perfect* draft head asymptotes at **1/T1 = 186 t/s**, so all remaining
+  speculative upside on this part is under 2×;
+- the roofline ridge sits at **31 tokens per weight pass** while MTP delivers
+  3.55, so there is no nearby batching regime that turns this into a
+  compute-bound problem.
+
+**The action, and why it is not being taken yet.** Raising
+`--spec-draft-n-max` is a flag and a short probe — minutes, not hours, and well
+within this hardware. It is deliberately **not** being changed now: both
+agentic arms must run the identical recipe or the comparison between them stops
+being a comparison. Queued for after the second arm completes, as a standalone
+sweep at the shipped recipe (rule 25).
+
+**And the mechanism behind the first finding, which the telemetry gave up only
+when core and memory clocks were read against their own maxima:** the 350 W cap
+is paid almost entirely in **core** clock — 1650 of 2130 MHz, **77%** — and
+almost not at all in **memory** clock — 9501 of 9751 MHz, **97%**. That is
+precisely why the bandwidth roof stays where it is while achievable throughput
+falls short of it. The cap lowers the compute roof and leaves the bandwidth roof
+untouched.

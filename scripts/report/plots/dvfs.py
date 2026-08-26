@@ -83,6 +83,18 @@ _NOTMEAS = ("NOT measured: system or wall power (this is GPU board power from "
             "is NULL in every sample); and the memory-for-SM clock trade "
             "itself, which nothing in this run varied.")
 
+# Both utilisation numbers on these figures are NVML DUTY CYCLES. Saying "the
+# memory system is 60% utilised" invites the reader to hear "60% of 936 GB/s",
+# which is a different and unmeasured claim, so the definition travels on the
+# face of every figure this module emits.
+_DEFS = ("Both utilisation figures here are NVML duty cycles, not bandwidth or "
+         "occupancy fractions: SM utilisation is the percentage of the sample "
+         "period with at least one kernel resident, and memory-controller busy "
+         "is the percentage of the sample period with a device-memory "
+         "transaction in flight. Neither is a fraction of peak bandwidth, and "
+         "neither says how much of the SM array or of the memory bus was in "
+         "use while it was busy.")
+
 _SMI_MEMO = {}
 
 
@@ -269,9 +281,14 @@ def _refline_label(s, which):
 
 
 def _footer(fig, extra=""):
-    fig.text(0.007, 0.010,
-             "Part: %s.   Workload: %s.\n%s%s"
-             % (_PART, _WORKLOAD, _NOTMEAS, ("  " + extra) if extra else ""),
+    """Figure-level caveat block, drawn into a band reserved for it by the
+    caller's subplots_adjust(bottom=...). It is deliberately NOT laid out
+    automatically: tight_layout cannot see figure text at all, so a footer left
+    to it lands on top of the x-axis label every time."""
+    fig.text(0.007, 0.012,
+             "Part: %s.   Workload: %s.\n%s\n%s%s"
+             % (_PART, _WORKLOAD, _DEFS, _NOTMEAS,
+                ("  " + extra) if extra else ""),
              fontsize=6.6, color=_GREY, va="bottom", ha="left", wrap=True)
 
 
@@ -322,6 +339,13 @@ def _fig_operating_point(dmon, s, throttle, outdir):
     # their own gridspec cell, and without reserved space they land on top of
     # the text column.
     fig = plt.figure(figsize=(13.4, 8.3))
+    # Every margin in this figure is set by hand at the end. The automatic
+    # engine is switched OFF rather than left to be warned about: this figure
+    # carries a twinx pair, an inset axes, a colorbar in its own gridspec cell
+    # and a block of figure-level footer text, and tight_layout can measure
+    # none of those - it either refuses and warns, or fits the axes and walks
+    # the footer under the x-axis label.
+    fig.set_layout_engine("none")
     gs = fig.add_gridspec(2, 4, width_ratios=[46, 1.4, 7.5, 23],
                           height_ratios=[3.0, 2.15], hspace=0.22, wspace=0.035)
     ax1 = fig.add_subplot(gs[0, 0])
@@ -333,7 +357,12 @@ def _fig_operating_point(dmon, s, throttle, outdir):
     axL.axis("off")
 
     xmax = max(s["cap_w"], float(np.nanmax(pwr))) * 1.055
-    ymax = max(s["max_sm"], s["obs_sm"]) * 1.10
+    # Headroom above the ceiling line is reserved on purpose, not wasted. The
+    # band between the highest clock this workload ever asked for and the
+    # part's maximum P-state is empty BY THE FINDING, so the gap callout is
+    # parked in it. Written across the cloud instead, it lands on top of the
+    # idle-phase samples that sit just under the ceiling.
+    ymax = max(s["max_sm"], s["obs_sm"]) * 1.16
     gap = s["max_sm"] - s["pclk_med"]
 
     # ---- upper: the V/F cloud. shape = phase, colour = SM utilisation ------
@@ -361,13 +390,15 @@ def _fig_operating_point(dmon, s, throttle, outdir):
     ax1.annotate("", xy=(xa, s["max_sm"]), xytext=(xa, s["pclk_med"]),
                  arrowprops=dict(arrowstyle="<->", color=_INK, lw=1.4),
                  zorder=6)
-    ax1.text(xa - xmax * 0.012, (s["max_sm"] + s["pclk_med"]) / 2.0,
-             "%.0f MHz of SM clock\nnever asked for\n(%.0f%% of the maximum)"
+    # Above the ceiling line, directly over the arrow that measures the gap.
+    # Nothing is drawn up there - that is the point being made - so the label
+    # covers no sample, and it is centred on the arrow so the two read as one
+    # object rather than as a caption that has to be searched for.
+    ax1.text(xa, s["max_sm"] + ymax * 0.014,
+             "%.0f MHz of SM clock never asked for\n(%.0f%% of the maximum)"
              % (gap, 100.0 * gap / max(s["max_sm"], 1.0)),
-             fontsize=8.6, color=_INK, va="center", ha="right",
-             fontweight="bold", zorder=6,
-             bbox=dict(boxstyle="round,pad=0.28", fc="white", ec="none",
-                       alpha=0.78))
+             fontsize=8.6, color=_INK, va="bottom", ha="center",
+             fontweight="bold", zorder=6, linespacing=1.35)
 
     ax1.set_ylabel("SM (graphics) clock (MHz)", fontsize=9.5)
     ax1.set_ylim(0, ymax)
@@ -498,7 +529,12 @@ def _fig_operating_point(dmon, s, throttle, outdir):
              "fraction-of-maximum:\nclock at %.0f%% of its ceiling, traffic at "
              "%.0f%% of its ceiling."
              % (100.0 * s["mclk_top"] / max(s["max_mem"], 1.0), s["mem_med"]),
-             fontsize=7.3, color=_GREY, va="bottom", ha="right")
+             fontsize=7.3, color=_GREY, va="bottom", ha="right",
+             # The low tail of the traffic cloud reaches down into this corner,
+             # so the note is given a solid ground of its own rather than being
+             # read through a scatter of open circles.
+             bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="#dfe3ea",
+                       lw=0.6, alpha=0.94))
 
     # ---- right column: the numbers, and the lever ---------------------------
     stat = ("THE OPERATING POINT, %s phase\n"
@@ -513,20 +549,18 @@ def _fig_operating_point(dmon, s, throttle, outdir):
             "\n"
             "INSIDE THE CAP THE CLOUD IS VERTICAL, NOT\n"
             "SLOPED. r(board power, SM clock) = %+.2f over\n"
-            "the %d busy samples in the top memory\n"
-            "P-state: watts are not buying clock, the cap\n"
-            "is handing clock back. Across ALL busy\n"
-            "samples that same correlation reads %+.2f -\n"
-            "the opposite conclusion, and an artefact of\n"
-            "the light samples where power and clock fall\n"
-            "together. The conditioned number is the one\n"
-            "that describes this workload."
+            "the %d busy samples in the top memory P-state:\n"
+            "watts are not buying clock, the cap is handing\n"
+            "clock back. The same correlation over ALL busy\n"
+            "samples reads %+.2f - the opposite conclusion,\n"
+            "and an artefact of the light samples. The\n"
+            "conditioned number is this workload's."
             % (s["focus_name"], s["pwr_med"], s["pwr_p5"], s["pwr_p95"],
                s["pclk_med"], s["pclk_p5"], s["pclk_p95"], s["mclk_top"],
                s["mclk_top_pct"], s["smu_med"], s["mem_med"], s["mem_p5"],
                s["mem_p95"], s["pviol_mean"], s["n_focus"], s["focus_sec"],
                s["r_top"], s["n_top"], s["r_busy"]))
-    axT.text(0.0, 1.0, stat, transform=axT.transAxes, fontsize=7.2,
+    axT.text(0.0, 1.0, stat, transform=axT.transAxes, fontsize=7.0,
              color=_INK, va="top", ha="left", family="monospace",
              bbox=dict(boxstyle="round,pad=0.5", fc=_PANEL, ec="#c9ced8",
                        lw=0.9))
@@ -572,7 +606,7 @@ def _fig_operating_point(dmon, s, throttle, outdir):
              if mix else
              "NVML clock-limit reasons: not collected for this run.")
     _footer(fig, extra)
-    fig.subplots_adjust(left=0.073, right=0.996, top=0.912, bottom=0.113)
+    fig.subplots_adjust(left=0.073, right=0.996, top=0.912, bottom=0.152)
     path = os.path.join(outdir, "dvfs-operating-point.png")
     fig.savefig(path, dpi=140, facecolor="white")
     plt.close(fig)
@@ -596,13 +630,14 @@ def _fig_operating_point(dmon, s, throttle, outdir):
            "load. THE PHASE-AWARE CLOCK TRADE THIS SUGGESTS IS AN OPPORTUNITY, "
            "NOT A RESULT: nothing in this run varied the memory clock, and with "
            "no per-rail power on this part the watts at stake are unmeasured. "
-           "Part: %s. Workload: %s. %s"
+           "Part: %s. Workload: %s. %s %s"
            % (s["n_focus"], s["focus_desc"],
               int(np.count_nonzero(s["busy"] & ~s["focus"])), dt_med,
               s["pwr_med"], s["cap_w"], gap,
               100.0 * gap / max(s["max_sm"], 1.0), s["max_sm"],
               s["pviol_mean"], s["r_top"], s["mclk_top"], s["mclk_top_pct"],
-              s["focus_name"], s["mem_med"], _PART, _WORKLOAD, _NOTMEAS))
+              s["focus_name"], s["mem_med"], _PART, _WORKLOAD, _DEFS,
+              _NOTMEAS))
     return path, cap
 
 
@@ -613,6 +648,10 @@ def _fig_residency(dmon, s, outdir):
     tot = float(dur[busy].sum())
 
     fig, (axA, axB) = plt.subplots(1, 2, figsize=(12.6, 6.9))
+    # As in the figure above: margins by hand, automatic layout off. Both
+    # panels carry an inset axes and a secondary top axis, and the figure
+    # carries footer text - none of which tight_layout can account for.
+    fig.set_layout_engine("none")
 
     # ---- SM clock ----------------------------------------------------------
     v, w = pclk[busy], dur[busy]
@@ -633,10 +672,13 @@ def _fig_residency(dmon, s, outdir):
     axA.annotate("", xy=(s["max_sm"], top * 0.865),
                  xytext=(s["pclk_med"], top * 0.865),
                  arrowprops=dict(arrowstyle="<->", color=_INK, lw=1.4))
-    axA.text((s["max_sm"] + s["pclk_med"]) / 2.0, top * 0.885,
+    # Right-aligned just inside the ceiling line rather than centred on the
+    # arrow: centred, the last word of it is struck through by the dashed
+    # maximum-P-state line it is talking about.
+    axA.text(s["max_sm"] - hi * 0.012, top * 0.885,
              "%.0f MHz never\nreached under load"
              % (s["max_sm"] - s["pclk_med"]), fontsize=8.4, color=_INK,
-             ha="center", va="bottom", fontweight="bold")
+             ha="right", va="bottom", fontweight="bold")
     frac = _band_frac(v, w, s["pclk_p5"], s["pclk_p95"])
     axA.text(0.03, 0.985,
              "%.0f%% of busy time inside a %.0f MHz band\n(%.0f-%.0f MHz, "
@@ -726,7 +768,10 @@ def _fig_residency(dmon, s, outdir):
     ok = np.isfinite(tv)
     tv, tw = tv[ok], tw[ok]
     if tv.size:
-        axBz = axB.inset_axes([0.115, 0.365, 0.395, 0.385])
+        # Kept clear of the tall bar's three-line label on the right: an inset
+        # frame running through that label makes both unreadable, and the
+        # label is the number the panel exists to state.
+        axBz = axB.inset_axes([0.085, 0.355, 0.360, 0.375])
         axBz.hist(tv, bins=np.arange(0, 102, 2), weights=tw, color=_TRAF,
                   edgecolor="none")
         axBz.axvline(s["mem_med"], color=_INK, ls="-", lw=1.2)
@@ -760,7 +805,7 @@ def _fig_residency(dmon, s, outdir):
             "clock trade this contrast suggests was NOT tested: no clock was "
             "locked, offset or varied anywhere in this campaign."
             % (A.BUSY_SM_PCT, tot))
-    fig.subplots_adjust(left=0.062, right=0.985, top=0.838, bottom=0.155,
+    fig.subplots_adjust(left=0.062, right=0.985, top=0.838, bottom=0.205,
                         wspace=0.19)
     path = os.path.join(outdir, "dvfs-clock-residency.png")
     fig.savefig(path, dpi=140, facecolor="white")
@@ -782,11 +827,11 @@ def _fig_residency(dmon, s, outdir):
            "HERE MEASURES WHAT A DIFFERENT POLICY WOULD COST OR SAVE: no clock "
            "was locked, offset or varied in this campaign, and NVML on this "
            "part gives one board-power number with no per-rail split. Part: %s. "
-           "Workload: %s. %s"
+           "Workload: %s. %s %s"
            % (tot, A.BUSY_SM_PCT, dt_med, len(np.unique(v)), s["max_sm"], frac,
               s["pclk_p95"] - s["pclk_p5"], s["pclk_med"], s["mclk_top"],
               100.0 * secs.max() / max(tot, 1e-9), s["mem_med"], s["mem_p5"],
-              s["mem_p95"], _PART, _WORKLOAD, _NOTMEAS))
+              s["mem_p95"], _PART, _WORKLOAD, _DEFS, _NOTMEAS))
     return path, cap
 
 

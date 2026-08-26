@@ -165,14 +165,21 @@ def _clock_state(dmon, throttle):
     out = {}
     if dmon is not None and len(dmon.get("t", ())) > 10:
         busy = dmon["sm"] > A.BUSY_SM_PCT
-        if busy.sum() > 10 and np.isfinite(dmon["pwr"][busy]).any():
-            out["pwr"] = float(np.nanmean(dmon["pwr"][busy]))
-            out["pwr_cv"] = float(np.nanstd(dmon["pwr"][busy])
-                                  / np.nanmean(dmon["pwr"][busy]))
-            out["mclk"] = float(np.nanmedian(dmon["mclk"][busy]))
-            out["pclk"] = float(np.nanmedian(dmon["pclk"][busy]))
-            out["gtemp"] = float(np.nanmedian(dmon["gtemp"][busy]))
+        if busy.sum() > 10:
             out["nbusy"] = int(busy.sum())
+            # Each field is guarded on its own. A column that is NULL on this
+            # part must not suppress a neighbouring column that is live: the
+            # figure states what was measured, field by field.
+            if np.isfinite(dmon["pwr"][busy]).any():
+                out["pwr"] = float(np.nanmean(dmon["pwr"][busy]))
+                out["pwr_cv"] = float(np.nanstd(dmon["pwr"][busy])
+                                      / np.nanmean(dmon["pwr"][busy]))
+            if np.isfinite(dmon["gtemp"][busy]).any():
+                out["gtemp"] = float(np.nanmedian(dmon["gtemp"][busy]))
+            if (np.isfinite(dmon["mclk"][busy]).any()
+                    and np.isfinite(dmon["pclk"][busy]).any()):
+                out["mclk"] = float(np.nanmedian(dmon["mclk"][busy]))
+                out["pclk"] = float(np.nanmedian(dmon["pclk"][busy]))
     if throttle is not None and len(throttle.get("t", ())) > 10:
         _, lab = A.throttle_series(throttle)
         act = [l for l in lab if l not in ("Idle", "no data")]
@@ -322,7 +329,7 @@ def _fig_points(outdir, pp, spread, clk):
                   "prompt processing was not measured this run")
 
     xlim = (0.020, 260.0)
-    ylim = (16.0, 11000.0)
+    ylim = (16.0, 14000.0)
     roof_on = bw * x_on
     x_ridge = compute / bw
 
@@ -391,7 +398,7 @@ def _fig_points(outdir, pp, spread, clk):
              "intensity - compute-bound, not memory-bound. Bar spans\n"
              "n_ubatch 512 to 2048: NOT logged, so only y is measured."
              % (compute, bw * x_pp / compute),
-         (x_pp * 0.98, compute * 1.12), (x_pp * 0.52, 9800.0), "#5c2c48",
+         (x_pp * 0.98, compute * 1.12), (x_pp * 0.70, 12200.0), "#5c2c48",
          ha="right")
 
     # ---- ridge point
@@ -427,7 +434,8 @@ def _fig_points(outdir, pp, spread, clk):
                     "coefficient of variation %.0f%% (the standard"
                     % (clk["pwr"], clk["nbusy"], 100 * clk["pwr_cv"]))
         left.append("  deviation as a percentage of the mean). GPU die "
-                    "%.0f C median." % clk["gtemp"])
+                    "%s." % ("%.0f C median" % clk["gtemp"]
+                             if "gtemp" in clk else "temperature NOT measured"))
     if clk and "swpow" in clk:
         left.append("SW power cap active on %.0f%% of %d non-idle samples; "
                     "SW thermal on %.0f%%." % (clk["swpow"], clk["nact"],
@@ -525,9 +533,13 @@ def _fig_sweep(outdir, pp, clk, fit):
             continue
         ax.plot([x], [y], marker="o", ms=8, color="white", mec=CB["on"],
                 mew=1.8, ls="none", zorder=8)
-        ax.annotate("L=%d\n%.0f tok/s" % (L, y), xy=(x, y),
-                    xytext=(x * 1.03, y * 0.93), fontsize=8.0, ha="left",
-                    va="top", color="#0b3a58", linespacing=1.3, zorder=7)
+        # Label every other L only: consecutive markers are closer together
+        # than a two-line label is wide, and the summary box carries the rest.
+        if L % 2 == 0:
+            ax.annotate("L=%d\n%.0f tok/s" % (L, y), xy=(x, y),
+                        xytext=(x * 1.03, y * 0.93), fontsize=8.0,
+                        ha="left", va="top", color="#0b3a58",
+                        linespacing=1.3, zorder=7)
 
     ax.plot([x_on], [DECODE_ON], marker="o", ms=12, color=CB["on"],
             mec="black", mew=1.0, ls="none", zorder=9,
@@ -541,10 +553,10 @@ def _fig_sweep(outdir, pp, clk, fit):
                 xytext=(x_off * 0.96, DECODE_OFF * 1.14), fontsize=8.0,
                 ha="right", va="bottom", color="#7a5400", linespacing=1.3,
                 bbox=_BOX, zorder=8)
-    ax.annotate("L=%.2f, %.1f tok/s\nMEASURED (today)" % (ACCEPT_LEN,
-                                                          DECODE_ON),
-                xy=(x_on, DECODE_ON * 1.06),
-                xytext=(x_on * 1.02, DECODE_ON * 1.16), fontsize=8.0,
+    ax.annotate("L=%.2f, %.1f tok/s (measured today)" % (ACCEPT_LEN,
+                                                         DECODE_ON),
+                xy=(x_on, DECODE_ON * 1.05),
+                xytext=(x_on * 1.03, DECODE_ON * 1.11), fontsize=8.0,
                 ha="left", va="bottom", color="#0b3a58", linespacing=1.3,
                 bbox=_BOX, zorder=8,
                 arrowprops=dict(arrowstyle="-", color=CB["on"], lw=1.0,

@@ -354,14 +354,24 @@ def _fig_cloud(ctx, op, capfrac, outdir):
                   % (med_w, med_tps))
     ax.plot([agg_w], [agg_tps], marker="*", ms=17, color="#000000", ls="none",
             markeredgecolor="white", markeredgewidth=1.0, zorder=6,
-            label="run aggregate over DECODE intervals: %.0f W, %.1f tok/s"
-                  " = %.2f J per decoded token"
+            label="run aggregate, DECODE intervals only:\n"
+                  "%.0f W, %.1f tok/s = %.2f J per decoded token"
                   % (agg_w, agg_tps, agg_j))
     _better_arrow(ax, (xlo, xhi), (ylo, yhi))
 
     ax.set_xlim(xlo, xhi)
     ax.set_ylim(ylo, yhi)
-    ax.set_xlabel("GPU board power (W, NVML in-band board rail)")
+    # The caveat rides on the axis label, not in the stats box: without it
+    # a reader takes the star for the run's energy per completion token,
+    # and it is not - prompt processing and the idle gaps between requests
+    # are outside every interval plotted here, so this number is lower. In
+    # the box it either pushed the box down over the topmost iso-efficiency
+    # label or widened it over the top of the point cloud.
+    ax.set_xlabel("GPU board power (W, NVML in-band board rail)\n"
+                  "one point is one DECODE interval; prompt processing "
+                  "and the idle between requests\nare off this axis, so "
+                  "this is not the run's energy per completion token",
+                  fontsize=9.5, linespacing=1.45)
     ax.set_ylabel("decode throughput (tokens per second)")
     ax.set_title("The board is pinned at its power limit and only throughput "
                  "moves,\nso energy per token is set by the decoder, not by "
@@ -387,14 +397,6 @@ def _fig_cloud(ctx, op, capfrac, outdir):
         lines.append("   a sample can carry both bits)")
     else:
         lines.append("throttle-reason trace: not available for this tag")
-    # Without this line a reader takes the star as the run's energy per
-    # completion token. It is not: prompt processing and the idle gaps
-    # between requests are outside every interval on this axis, and the
-    # whole-run figure denominated on completion tokens is higher.
-    lines.append("every point is a DECODE interval: prompt processing and")
-    lines.append("   inter-request idle are not on this axis, so J per")
-    lines.append("   decoded token here is BELOW the run's J per")
-    lines.append("   completion token")
     ax.text(0.022, 0.975, "\n".join(lines), transform=ax.transAxes, va="top",
             ha="left", fontsize=8.4, bbox=_BOX, zorder=7)
 
@@ -480,8 +482,8 @@ def _fig_sweep(ctx, arms, meta, sweep_path, op, stats, capfrac, outdir):
         ax.plot([stats["agg_w"]], [stats["agg_tps"]], marker="*", ms=17,
                 color="#000000", ls="none", markeredgecolor="white",
                 markeredgewidth=1.0, zorder=6,
-                label="agentic aggregate, DECODE intervals only: %.0f W, "
-                      "%.1f tok/s = %.2f J per decoded token"
+                label="agentic aggregate, DECODE intervals only:\n"
+                      "%.0f W, %.1f tok/s = %.2f J per decoded token"
                       % (stats["agg_w"], stats["agg_tps"],
                          stats["agg_j"]))
 

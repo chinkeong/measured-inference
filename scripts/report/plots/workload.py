@@ -378,18 +378,18 @@ def _fig_kv_reuse(ctx, rs, outdir):
                         xytext=(0, 13 if k % 2 == 0 else 28),
                         textcoords="offset points",
                         ha="center", va="bottom", fontsize=7.8,
-                        color=_GREEN, fontweight="bold",
+                        color=_GREEN, fontweight="bold", zorder=9,
                         bbox=dict(boxstyle="round,pad=0.15",
                                   facecolor="white", edgecolor="none",
-                                  alpha=0.85))
+                                  alpha=0.95))
 
     ax.axhline(tokw, color=_GREY, linestyle="--", linewidth=1.6, zorder=3)
     ax.annotate("whole run, token-weighted: %.1f%%" % tokw,
                 xy=(0.995, tokw), xycoords=("axes fraction", "data"),
-                xytext=(0, 6), textcoords="offset points", ha="right",
-                fontsize=8.6, color=_GREY, fontweight="bold",
+                xytext=(0, 9), textcoords="offset points", ha="right",
+                fontsize=8.6, color=_GREY, fontweight="bold", zorder=9,
                 bbox=dict(boxstyle="round,pad=0.2", facecolor="white",
-                          edgecolor="none", alpha=0.85))
+                          edgecolor="none", alpha=0.95))
 
     ax.set_xscale("log")
     ax.set_xlim(max(float(d.min()) * 0.72, 1.0), float(d.max()) * 1.5)
