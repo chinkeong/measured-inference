@@ -444,6 +444,23 @@ beyond its retrieval-tested depth is labeled
       standing recovery, which needs no flag and no restart, is to poll
       `/slots`: it carries prompt depth, tokens served from cache, and
       `n_decoded` per request. Prefer it to the log even when the log works.
+    - **A phase split derived by POLLING overstates the long phase.** Measured
+      2026-08-27 by running both methods over the same window of the same run:
+      1 Hz `/slots` polling put decode at **77.6%** of busy time while
+      `llama-server`'s own cumulative counters put it at **71.3%** - a 6.3-point
+      bias in a figure this campaign had already published and already
+      corrected once. The mechanism is structural, not noise: a poll interval
+      in which the decode counter advanced at all is scored wholly as decode,
+      and prompt processing runs an order of magnitude faster per token
+      (measured 1055 against 77 tokens per second), so it frequently begins and
+      ends INSIDE one interval and is absorbed. The short phase is the one that
+      disappears, and shortening the interval reduces the bias without removing
+      it. Consequence for anything already published: a poll-derived split is an
+      UPPER bound on the long phase. The first arm of the agentic pair was
+      launched without `--metrics` and therefore cannot be corrected at all -
+      which is the concrete cost of instrumenting a run after starting it.
+      (Preliminary: measured on a four-minute window early in a run; to be
+      re-measured over the full arm.)
     - **An agentic J/token carries its prompt:completion ratio.** Measured
       across one run's exercises, energy per completion token spans **3.0×**
       (4.512 to 13.617 J) because prompt-heavy exercises decode few tokens to
