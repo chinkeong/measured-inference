@@ -74,11 +74,35 @@ OUT = os.path.join(ROOT, "results", "qwen38-27b-blind", "data", "telemetry")
 
 DMON_FIELDS = "pucvmet"
 SPEC_BW_GBS = 936.0          # RTX 3090 quoted memory bandwidth
+# Throttle reasons, plus the four fields dmon does NOT carry. They are
+# APPENDED so that a file written before 2026-08-27 still parses on its first
+# two columns, which is all any reader of this file uses.
+#
+#   fan.speed             the cooling solution's actual output. Measured at
+#                         100% on the reference part while thermal throttling
+#                         fires on only ~3% of busy samples: the part is not
+#                         thermally limited, but it is holding that operating
+#                         point with nothing in reserve. A designer reading
+#                         only "thermal throttle 3%" would conclude there is
+#                         headroom; the fan curve says it has already been
+#                         spent. Acoustics are a product constraint.
+#   pstate                the coarse DVFS state, for residency
+#   enforced.power.limit  the cap actually in force, so board power can be
+#                         expressed as a FRACTION of the limit rather than as
+#                         a bare number that means nothing on another part
+#
+# NOT collected, and checked rather than assumed: clocks.applications.graphics
+# returns "[Requested functionality has been deprecated]" on this driver, and
+# temperature.memory returns N/A on this part. Recording either would put an
+# error string or a null into a column that later reads as data.
 THROTTLE_Q = ("clocks_throttle_reasons.active,"
               "clocks_throttle_reasons.sw_power_cap,"
               "clocks_throttle_reasons.hw_slowdown,"
               "clocks_throttle_reasons.sw_thermal_slowdown,"
-              "clocks_throttle_reasons.hw_thermal_slowdown")
+              "clocks_throttle_reasons.hw_thermal_slowdown,"
+              "fan.speed,"
+              "pstate,"
+              "enforced.power.limit")
 
 
 def collect(tag, seconds):
