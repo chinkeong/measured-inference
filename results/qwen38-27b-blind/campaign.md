@@ -2678,3 +2678,74 @@ increments and the depth was under-reported by more than half - 33.2 tokens per
 record read as 17.7. Any depth series that reuses a prefix must either take its
 depth from the first uncached query or load a server per depth, which is what
 this now does.
+
+
+---
+
+## 2026-08-26 10:50 - TWO REGISTER ENTRIES CLOSED
+
+### System RAM under either load mode - the inherited figure, checked at last
+
+The page said plainly that the 15 GB saving attributed to `--load-mode none`
+was "an inherited figure, not a reading taken here". It is now a reading taken
+here, on UD-IQ4_XS at `-c 32768`, `-ngl 99`, drafter off:
+
+| mode | working set | private bytes | system RAM consumed | load | t/s |
+|---|---|---|---|---|---|
+| none | **1,275 MiB** | 16,471 MiB | **1,028 MiB** | 10.6 s | 43.02 |
+| mmap | 13,480 MiB | 15,973 MiB | 13,230 MiB | 6.5 s | 43.39 |
+| auto | 13,480 MiB | 15,975 MiB | 13,540 MiB | 6.5 s | 43.26 |
+
+**The inherited claim is directionally right: `none` cuts resident RAM by
+12,205 MiB.** Two independent measures agree to 3 MiB - the process working set
+and the system free-memory delta. The magnitude is about 20% smaller than the
+15,360 MiB inherited, for this file.
+
+**I PREDICTED THE OPPOSITE and said so before running it** - that mmap would use
+less because mapped pages are file-backed. Recorded because the prediction was
+wrong and the measurement is the only reason anyone knows.
+
+**But the nuance changes the advice, and the private-bytes column is why.**
+Private footprint is the SAME within 500 MiB, and `none` is the higher of the
+two. So what mmap holds is evictable page cache rather than private allocation:
+on a machine with spare RAM it costs nothing real, and under pressure the OS
+reclaims it. `none` buys a smaller resident set at the price of 4 seconds of
+load time and no throughput at all (43.0 against 43.4 t/s, inside the noise
+floor). `auto` is byte-identical to `mmap`, which confirms what it resolves to
+on this machine.
+
+### Board power below 4 bits - never priced before
+
+The 19-arm power matrix predates the ladder and all three of its quant arms are
+4-bit, so nothing on the page priced the energy of the file it RECOMMENDS.
+Measured, `-c 32768`, q8_0 KV, drafter n4/p0.75, three settled probes after one
+discarded, host quiet:
+
+| file | bpw | t/s | board W | J/token |
+|---|---|---|---|---|
+| UD-IQ4_XS | 4.223 | 74.12 | 311.7 | 4.1985 |
+| UD-Q3_K_XL | 3.895 | 71.48 | 314.2 | 4.3890 |
+| **UD-IQ3_XXS** | 3.240 | 79.60 | 311.1 | **3.9032** |
+| UD-Q2_K_XL | 2.912 | 76.60 | 313.3 | 4.0852 |
+| UD-IQ2_S | 2.481 | 47.76 | 326.6 | 6.8286 |
+
+**SMALLER FILES ARE NOT MORE ENERGY-EFFICIENT, and that is the finding.** From
+4.223 down to 2.912 bpw the J/token figures span 3.90 to 4.39 - 12% - with no
+monotone trend, and the most efficient file is UD-IQ3_XXS in the middle rather
+than the smallest. The intuition that a smaller file costs less energy per
+token does not survive contact with the drafter: throughput is what sets
+J/token here, board power barely moves (311-314 W across four files), and
+throughput is set by how well each file drafts rather than by how big it is.
+
+**UD-IQ2_S's 6.83 J/token is NOT a quantisation penalty and must not be read as
+one.** That file contains no MTP layers, so it ran drafter-off while the four
+above it speculated. It is the cost of losing speculation - real for anyone
+running that file, and not comparable to the rows above it. Board power is also
+higher there (326.6 W), which is what a card does when it is not being fed
+drafted tokens to verify in batches.
+
+**TIER, and it is not negotiable.** Every joule here is in-band GPU board power
+as NVML reports it. The power supply's conversion loss, the processor, system
+memory, drives and the display are excluded and unmeasured. This is not system
+power and may not be called that; the wall-power register entry stays open
+until somebody buys a plug meter.
