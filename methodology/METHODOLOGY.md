@@ -445,11 +445,38 @@ beyond its retrieval-tested depth is labeled
       `/slots`: it carries prompt depth, tokens served from cache, and
       `n_decoded` per request. Prefer it to the log even when the log works.
     - **An agentic J/token carries its prompt:completion ratio.** Measured
-      across one run's exercises, energy per completion token spanned **30×**
-      (0.417 to 13.079 J) purely because prompt-heavy exercises decode few
-      tokens. A single agentic J/token without that ratio is not a
-      characterisation of the machine, and rule 3's transport clause applies to
-      it in full.
+      across one run's exercises, energy per completion token spans **3.0×**
+      (4.512 to 13.617 J) because prompt-heavy exercises decode few tokens to
+      divide their energy by; the residual correlates with the
+      prompt-to-completion ratio at 0.78. A single agentic J/token without that
+      ratio is not a characterisation of the machine, and rule 3's transport
+      clause applies to it in full.
+    - **Energy attribution is only as good as its window, and a plausible
+      window is not a correct one.** The first version of that measurement
+      reported a **30×** spread. It was an artefact: the harness records a
+      duration that covers only model calls, while the file whose timestamp
+      anchors the window is written after the unit tests and the build
+      cleanup, so the window had the right LENGTH in the wrong PLACE and
+      billed test-time idle to the model. The cheapest exercise was published
+      at 0.417 J/token against a true 5.830. Attribute each unit of work to the
+      interval since the previous one finished, integrate only the busy
+      samples, and state the busy fraction — 96.3% here — so a reader can see
+      how much of the window was real.
+    - **A cross-check must run over a window both sources cover.** Comparing
+      client-side and server-side token counts across a span where one
+      collector started late measures the missing prefix, not any disagreement:
+      it produced a −19.5% "gap" that was pure window mismatch. Restricted to
+      the overlap, the real disagreement is **+9.7%**, and it is a finding in
+      its own right — the benchmark passes no separate small model, so
+      chat-history summarisation is served by the same server through a path
+      that does no token accounting, spending energy that reaches the numerator
+      with nothing in the denominator.
+    - **While power is pinned at the cap, J/token is a restatement of
+      throughput.** Measured mean 335 W at 12.2% coefficient of variation with
+      the part busy 93% of the trace: J/token is then `power ÷ tokens per
+      second`, and it separates two designs only where they also differ in
+      speed, or where the cap stops binding. An energy column that adds nothing
+      to the speed column says so.
 
 ## Sequencing
 25. **Cheap probes buy the map; the map locks the recipes; only locked recipes

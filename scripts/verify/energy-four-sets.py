@@ -119,15 +119,25 @@ class Power(threading.Thread):
         return j, sum(r[1] for r in w) / len(w)
 
     def limited_by(self, t0, t1):
-        """What constrained the part over this window, from the clock-event
-        mask. Idle samples are dropped - a run that was mostly idle would
-        otherwise look unconstrained."""
-        busy = [r for r in self.rows
-                if t0 <= r[0] <= t1 and r[5] > 0 and not r[5] & 0x0001]
+        """What constrained the part over this window.
+
+        BUSY IS DECIDED ON UTILISATION, NOT ON THE MASK. NVML reports
+        ClocksEventReasonNone as 0x0 - busy and unconstrained - so filtering
+        with `mask > 0` (as this did on first writing) discards exactly the
+        samples that say the part was fine, and every percentage is then taken
+        over "samples that already had a reason". A part capped for a tenth of
+        a run reports 100%, and a part never limited reports nothing at all.
+        Unconstrained is returned explicitly so a clean result cannot be
+        mistaken for a dead instrument.
+        """
+        win = [r for r in self.rows if t0 <= r[0] <= t1]
+        fail = sum(1 for r in win if r[5] < 0)
+        busy = [r for r in win
+                if r[5] >= 0 and not r[5] & 0x0001 and r[2] > 5.0]
         if not busy:
-            return None
+            return {"n_busy": 0, "n_parse_fail": fail, "n_window": len(win)}
         n = len(busy)
-        out = {"n_busy": n,
+        out = {"n_busy": n, "n_parse_fail": fail, "n_window": len(win),
                "util_mem_mean": round(sum(r[3] for r in busy) / n, 1),
                "util_gpu_mean": round(sum(r[2] for r in busy) / n, 1)}
         for bit, name in ((0x0004, "SwPowerCap"), (0x0008, "HwSlowdown"),
@@ -136,6 +146,8 @@ class Power(threading.Thread):
             k = sum(1 for r in busy if r[5] & bit)
             if k:
                 out[name] = round(100.0 * k / n, 1)
+        out["Unconstrained"] = round(
+            100.0 * sum(1 for r in busy if r[5] == 0) / n, 1)
         return out
 
 
@@ -226,6 +238,7 @@ def main():
                "j_per_generated_token_whole_window":
                    round(joules / toks, 4) if (joules and toks) else None,
                "transcript": os.path.basename(tr) if tr else None,
+               "limited_by": p.limited_by(t0, t1),
                "returncode": r.returncode}
         rows.append(row)
         log("  %-12s %6.0f s  %4d items  %7d tok  %5.1f W  %8.1f J  "
@@ -233,6 +246,13 @@ def main():
             % (name, wall, items, toks, row["mean_board_w"] or 0,
                row["whole_set_joules"] or 0, row["whole_set_wh"] or 0,
                row["j_per_generated_token_whole_window"] or 0))
+        lb = row.get("limited_by") or {}
+        if lb.get("n_busy"):
+            log("               limited by: " + ", ".join(
+                "%s %s%%" % (k, v) for k, v in sorted(lb.items())
+                if k in ("SwPowerCap", "SwThermalSlowdown", "HwThermalSlowdown",
+                         "HwSlowdown", "HwPowerBrake", "Unconstrained"))
+                + "  (mem util %.0f%%)" % (lb.get("util_mem_mean") or 0))
         json.dump({"date": time.strftime("%Y-%m-%d %H:%M"),
                    "tier": "in-band GPU board power (NVML) only; PSU, CPU, RAM, "
                            "drives and display excluded. NOT system power.",

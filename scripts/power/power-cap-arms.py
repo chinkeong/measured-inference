@@ -217,12 +217,31 @@ def main():
                         # stayed under it, which is exactly how this campaign's
                         # published cap curve came to describe a regime the
                         # real workload is not in.
-                        busy = [x for x in win if x[7] > 0 and not x[7] & 0x0001]
+                        # Busy is decided on UTILISATION (x[5]), not on the
+                        # mask. NVML's ClocksEventReasonNone is 0x0 - busy and
+                        # unconstrained - so `mask > 0` would throw away every
+                        # sample where the cap did NOT bind, pinning
+                        # pct_power_capped at 100.0 and making it impossible
+                        # for this script to report the one outcome it exists
+                        # to detect: an arm whose cap never engaged.
+                        busy = [x for x in win
+                                if x[7] >= 0 and not x[7] & 0x0001 and x[5] > 5.0]
                         if busy:
+                            nb = float(len(busy))
+                            r["n_busy"] = len(busy)
                             r["pct_power_capped"] = round(
-                                100.0 * sum(1 for x in busy if x[7] & 0x0004) / len(busy), 1)
-                            r["pct_thermal"] = round(
-                                100.0 * sum(1 for x in busy if x[7] & 0x0060) / len(busy), 1)
+                                100.0 * sum(1 for x in busy if x[7] & 0x0004) / nb, 1)
+                            # Software and hardware thermal slowdown are kept
+                            # apart: the software bit is a driver-managed clock
+                            # step, the hardware bit means the part protected
+                            # itself. Merging them would report a benign
+                            # condition and an alarming one as one number.
+                            r["pct_thermal_sw"] = round(
+                                100.0 * sum(1 for x in busy if x[7] & 0x0020) / nb, 1)
+                            r["pct_thermal_hw"] = round(
+                                100.0 * sum(1 for x in busy if x[7] & 0x0040) / nb, 1)
+                            r["pct_unconstrained"] = round(
+                                100.0 * sum(1 for x in busy if x[7] == 0) / nb, 1)
                         r["samples"] = len(win)
                         dec_s = (r["predicted_ms"] or 0) / 1000.0
                         r["j_per_tok"] = round(
@@ -236,12 +255,33 @@ def main():
                 stop_srv(p, lf)
             vals = lambda k: [x[k] for x in got_probes if x.get(k) is not None]
             mean = lambda k: (round(sum(vals(k)) / len(vals(k)), 3) if vals(k) else None)
+            # The constraint fields are aggregated to arm level too. They were
+            # computed per probe and left there on first writing, so the
+            # summary table and every consumer that reads `rows` saw a J/token
+            # with no statement of what limited it - which is the defect the
+            # mask was added to close. An arm whose cap never bound is the
+            # single most important thing this script can report.
             rows.append({"cap": cap, "mean_tps": mean("decode_tps"),
                          "mean_w": mean("mean_w"),
                          "peak_w": (max(vals("peak_w")) if vals("peak_w") else None),
                          "mean_sm_mhz": mean("mean_sm_mhz"),
                          "mean_temp": mean("mean_temp"),
+                         "mean_util_mem": mean("mean_util_mem"),
+                         "pct_power_capped": mean("pct_power_capped"),
+                         "pct_thermal_sw": mean("pct_thermal_sw"),
+                         "pct_thermal_hw": mean("pct_thermal_hw"),
+                         "pct_unconstrained": mean("pct_unconstrained"),
+                         "cap_bound": (None if mean("pct_power_capped") is None
+                                       else mean("pct_power_capped") >= 50.0),
                          "j_per_tok": mean("j_per_tok"), "probes": got_probes})
+            pc = mean("pct_power_capped")
+            if pc is not None:
+                print("  arm %s W: power-capped %.1f%% of busy samples, "
+                      "unconstrained %.1f%%, mem util %.0f%%%s"
+                      % (cap, pc, mean("pct_unconstrained") or 0.0,
+                         mean("mean_util_mem") or 0.0,
+                         "" if pc >= 50.0 else
+                         "   <-- THE CAP DID NOT BIND: this arm did not test a cap"))
     finally:
         ok, got, _ = set_cap(int(default_w))
         print("\nRESTORE to default: ok=%s, card now reads %.0f W (default %.0f)"

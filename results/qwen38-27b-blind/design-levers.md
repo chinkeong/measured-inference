@@ -26,6 +26,18 @@ And the counter-case, from the same week:
 
 | drafter off, 45.2 t/s | traffic = 644 GB/s = **69% of roofline** → bandwidth-bound |
 
+And the phase split, measured on the real workload rather than assumed from it.
+Polling the server's own per-request state once a second across an agentic run:
+**71.1%** of wall-clock seconds had tokens being generated, **15.8%** had a
+request in flight that was not yet generating (prompt processing), and **4.6%**
+had no request at all. So decode is where the time goes — but by 71%, not the
+higher figure an earlier draft of this analysis assumed before the per-request
+telemetry existed to check it. In tokens rather than time the ratio inverts
+completely: **4.6 prompt tokens are recomputed per token generated**, because
+prompt processing runs batched and is far cheaper per token than decode. The
+two ratios describe the same run and point opposite ways, which is why each one
+has to name its unit.
+
 **So the answer to "what is this limited by" is not a property of the chip. It
 is a property of whether the model ships a draft head.** Same silicon, same
 file, same flags — one setting moves the bottleneck from the memory system to
@@ -120,25 +132,56 @@ could not divide one by the other: the server was launched without `--metrics`
 and its log stayed empty for two hours, so no token counts were written on the
 GPU side. They survived on the **client** side — aider writes `prompt_tokens`
 and `completion_tokens` into every exercise — and joining those to the power
-trace by wall-clock recovers the figure. Over the **26 exercises that fall
-entirely inside the sampling window** (the sampler was started after the
-benchmark, so the window is partial — this is not the whole run):
+trace by wall-clock recovers the figure.
+
+**The join has to be built carefully, and a first attempt at it was wrong.**
+Aider's `duration` accumulates only around the model call; unit tests and the
+build-directory cleanup run afterwards, and the results file whose timestamp
+anchors the window is written after *those*. A window of `[mtime − duration,
+mtime]` therefore has the right length in the wrong place — it bills compile
+and test time and misses the model work it names. What is used instead: each
+exercise owns the interval since the previous exercise finished (they run
+strictly one at a time), and only GPU-busy samples inside it are integrated.
+
+Over the **90 exercises whose intervals fall inside the sampling window**:
 
 | quantity | value |
 |---|---|
-| energy | 393.5 kJ = **0.109 kWh** |
-| tokens | 63,738 completion, 209,238 prompt |
-| **J per completion token** | **6.17** |
-| J per token, prompt included | 1.44 |
-| J per exercise | 15,134 |
+| energy | 1,633 kJ busy = **0.454 kWh** |
+| GPU busy | 4,897 s of 5,084 s wall (**96.3%**) |
+| tokens | 233,578 completion, 999,583 prompt |
+| **J per completion token** | **6.99** (upper bound — see below) |
+| J per token, prompt included | 1.32 |
+| J per exercise | 18,148 |
 
-**The spread is the finding, not the mean.** Across those exercises energy per
-completion token ranged from **0.417 J** (`doubly-linked-list`) to **13.079 J**
-(`gigasecond`) — a factor of **30**, driven entirely by how prompt-heavy the
-exercise is. A prompt-heavy task spends its joules on prefill and emits few
-tokens to divide them by. So an agentic J/token is only meaningful with its
-prompt:completion ratio attached, and it is **not** comparable with a
-decode-only J/token from a synthetic probe.
+**The denominator is short by about a tenth.** Over the 65 exercises where a
+server-side `/slots` trace overlaps, the server decoded **9.7% more** tokens
+than aider accounts for: the benchmark passes no separate small model, so
+chat-history summarisation is served by this same server through a path that
+does no token accounting. Those tokens cost energy that lands in the numerator
+with nothing in the denominator. Denominated on the server's own count the
+figure is **6.41 J per completion token**, and the aider-denominated 6.99 is an
+upper bound.
+
+**The spread is 3.0×, not 30×.** An earlier draft of this page reported a
+factor of 30 between the cheapest and dearest exercise. That was an artefact of
+the misplaced window described above: the cheap tail was not cheap, it was
+mis-attributed — `doubly-linked-list` was published at 0.417 J/token against a
+true 5.830. Correctly attributed the range is **4.512 J** (`book-store`) to
+**13.617 J** (`gigasecond`), a factor of **3.0**. The direction of the original
+claim survives and the magnitude did not: the residual spread still tracks how
+prompt-heavy an exercise is (correlation 0.78 against the prompt-to-completion
+ratio — `gigasecond` sends 14.8 prompt tokens per completion token,
+`book-store` 0.2). So an agentic J/token is still only meaningful with that
+ratio attached, and it is **not** comparable with a decode-only J/token from a
+synthetic probe.
+
+**A caveat that limits what any of this buys.** Board power is pinned near the
+cap — mean 335 W at 12.2% coefficient of variation across busy samples, with
+the GPU busy 93% of the trace. While that holds, J/token is close to
+`335 W ÷ tokens per second`: a restatement of throughput rather than an
+independent measurement of it. Energy separates designs here only where it also
+changes speed, or where the cap stops binding.
 
 These are whole-request figures — prefill and decode together — because aider
 records one duration per exercise and no phase split. Board power only.

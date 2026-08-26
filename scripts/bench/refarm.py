@@ -150,39 +150,84 @@ class Sampler(threading.Thread):
     def __init__(self, interval=0.5):
         super().__init__(daemon=True)
         self.rows, self.stop, self.interval = [], False, interval
+        self.degraded = False
+
+    # If the wide query is unsupported on some driver, nvidia-smi emits NO row
+    # at all - not a partial one. Without a fallback the sampler would then
+    # collect nothing while still exiting cleanly, and take the three fields
+    # seven consumers depend on down with the four new ones. Degrade instead,
+    # once, and record that it happened.
+    NARROW_QUERY = "clocks.sm,temperature.gpu,power.draw"
 
     def run(self):
         while not self.stop:
             try:
-                v = smi(SAMPLE_QUERY).split(",")
-                sm, t, p, mclk, ug, um = [float(x) for x in v[:6]]
-                try:
-                    mask = int(v[6].strip(), 16)
-                except Exception:
-                    mask = -1
-                self.rows.append((time.time(), sm, t, p, mclk, ug, um, mask))
+                if self.degraded:
+                    sm, t, p = [float(x) for x in smi(self.NARROW_QUERY).split(",")]
+                    self.rows.append((time.time(), sm, t, p, -1.0, -1.0, -1.0, -1))
+                else:
+                    v = smi(SAMPLE_QUERY).split(",")
+                    sm, t, p, mclk, ug, um = [float(x) for x in v[:6]]
+                    try:
+                        mask = int(v[6].strip(), 16)
+                    except Exception:
+                        mask = -1
+                    self.rows.append((time.time(), sm, t, p, mclk, ug, um, mask))
             except Exception:
-                pass
+                if not self.degraded:
+                    try:
+                        smi(self.NARROW_QUERY)
+                        self.degraded = True
+                    except Exception:
+                        pass
             time.sleep(self.interval)
 
 
-def constraint(rows):
-    """What limited the GPU over these rows, from the throttle mask.
+# A sample counts as BUSY on utilisation, not on the throttle mask. This is
+# the whole correctness of constraint() and it was wrong on first writing.
+#
+# NVML reports ClocksEventReasonNone as 0x0, meaning "clocks are as high as
+# possible" - that is the BUSY AND UNCONSTRAINED state. An earlier version
+# filtered with `mask > 0` to skip the -1 parse sentinel, which silently threw
+# every unconstrained sample away too. The percentages were then taken over
+# "samples that already had a reason", so a part that was power-capped for a
+# tenth of a run reported SwPowerCap at 100%, and a part never limited at all
+# reported no data. That is exactly backwards from the intent, and it is
+# undetectable in the output: 100.0% looks like a clean, decisive result.
+#
+# Utilisation is the honest test of whether work was running, and on this card
+# 0x0 straddles two states that utilisation separates cleanly: genuinely busy
+# and unconstrained (util high) against a between-request lull with the clocks
+# still boosted (util ~1%). True idle reports GpuIdle at ~30 W.
+BUSY_UTIL_PCT = 5.0
 
-    Idle samples are excluded: a mask of GpuIdle says the workload was not
-    running, and counting those as "unconstrained" makes any busy run look
-    healthier than it was.
+
+def constraint(rows):
+    """What limited the GPU over these rows.
+
+    Returns Unconstrained explicitly rather than by omission, so a healthy run
+    is distinguishable from a dead instrument. n_parse_fail is reported for the
+    same reason: a partly-failed mask read must not quietly shrink the
+    denominator of every percentage.
     """
-    busy = [r for r in rows if len(r) > 7 and r[7] > 0 and not r[7] & 0x0001]
+    usable = [r for r in rows if len(r) > 7]
+    fail = sum(1 for r in usable if r[7] < 0)
+    busy = [r for r in usable
+            if r[7] >= 0 and not r[7] & 0x0001 and r[5] > BUSY_UTIL_PCT]
+    out = {"n_rows": len(rows), "n_busy": len(busy), "n_parse_fail": fail}
+    if len(usable) < len(rows):
+        # Old 4-field rows cannot be interpreted; say so instead of ignoring.
+        out["n_unshaped"] = len(rows) - len(usable)
     if not busy:
-        return {"n_busy": 0}
-    out = {"n_busy": len(busy)}
+        return out
     for bit, name in THROTTLE_BITS:
         if bit == 0x0001:
             continue
         k = sum(1 for r in busy if r[7] & bit)
         if k:
             out[name] = {"n": k, "pct": round(100.0 * k / len(busy), 1)}
+    unc = sum(1 for r in busy if r[7] == 0)
+    out["Unconstrained"] = {"n": unc, "pct": round(100.0 * unc / len(busy), 1)}
     um = [r[6] for r in busy]
     out["util_mem_mean"] = round(sum(um) / len(um), 1)
     return out

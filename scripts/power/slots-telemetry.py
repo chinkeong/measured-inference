@@ -82,6 +82,26 @@ def collect(tag, port, interval):
 
 
 def analyse(tag):
+    """Aggregate per-request statistics from a /slots trace.
+
+    THE FIELD THAT LOOKS LIKE THE PROMPT IS NOT THE PROMPT. /slots reports
+    n_prompt_tokens as the slot's CURRENT CONTEXT-ARRAY length, so it grows as
+    tokens are generated. Publishing max() of it as "prompt depth" inflates the
+    figure by the whole decoded count, and worse: because the array is carried
+    over and only truncated when a new task takes the slot, a task's first
+    sample can still show the PREVIOUS occupant's longer context, which max()
+    then latches permanently. The prompt is n_prompt_tokens_processed +
+    n_prompt_tokens_cache - two disjoint, monotone counters that sum to it -
+    and those are what this reports.
+
+    WHAT A 1 Hz POLL CANNOT SEE, stated rather than smoothed over. n_decoded is
+    read between polls and llama-server clears it when the slot goes idle, so
+    the last reading before a request ends is always short of the true total:
+    every decoded count here is a FLOOR, understated by up to one poll interval
+    of generation. Requests shorter than the interval may not be sampled at
+    all. Both are reported as counts so the reader can judge the bias instead
+    of inheriting it silently.
+    """
     path = os.path.join(OUT, "%s-slots.csv" % tag)
     if not os.path.exists(path):
         sys.exit("no slots telemetry at %s" % path)
@@ -89,69 +109,96 @@ def analyse(tag):
     for i, ln in enumerate(io.open(path, encoding="utf-8", errors="replace")):
         if i == 0:
             continue
-        p = ln.strip().split(",")
-        if len(p) != len(COLS):
+        p_ = ln.strip().split(",")
+        if len(p_) != len(COLS):
             continue
         try:
-            rows.append((float(p[0]), int(p[1]), int(p[2]), int(p[3]),
-                         int(p[4]), int(p[5]), int(p[6])))
+            rows.append((float(p_[0]), int(p_[1]), int(p_[2]), int(p_[3]),
+                         int(p_[4]), int(p_[5]), int(p_[6])))
         except ValueError:
             continue
     if not rows:
         sys.exit("no parsable rows")
 
-    # Group by request. A task id repeats across polls; its last sample holds
-    # the final decoded count and its first holds the prompt shape.
     tasks, order = {}, []
     for t, tid, proc, npt, nptp, nptc, ndec in rows:
         if tid < 0:
             continue
         if tid not in tasks:
-            tasks[tid] = {"t0": t, "t1": t, "npt": npt, "nptp": nptp,
+            tasks[tid] = {"t0": t, "t1": t, "n": 0, "nptp": nptp,
                           "nptc": nptc, "ndec": ndec}
             order.append(tid)
-        else:
-            d = tasks[tid]
-            d["t1"] = t
-            d["ndec"] = max(d["ndec"], ndec)
-            d["npt"] = max(d["npt"], npt)
-            d["nptp"] = max(d["nptp"], nptp)
-            d["nptc"] = max(d["nptc"], nptc)
+        d = tasks[tid]
+        d["t1"] = t
+        d["n"] += 1
+        # Monotone counters: max is right. n_prompt_tokens is deliberately NOT
+        # tracked - it is the context array, not the prompt.
+        d["ndec"] = max(d["ndec"], ndec)
+        d["nptp"] = max(d["nptp"], nptp)
+        d["nptc"] = max(d["nptc"], nptc)
+    for d in tasks.values():
+        d["depth"] = d["nptp"] + d["nptc"]
 
     span = rows[-1][0] - rows[0][0]
-    busy = sum(1 for r in rows if r[2])
+    # Slot occupancy, not wall-clock duty cycle: with several slots these
+    # differ, so it is named for what it measures.
+    busy_samples = sum(1 for r in rows if r[2])
+    nslots = max(1, len(set(r[1] for r in rows if r[2])) and
+                 int(round(len(rows) / max(1, len(set(
+                     round(r[0], 0) for r in rows))))))
     done = [tasks[i] for i in order if tasks[i]["ndec"] > 0]
+
+    # Requests observed only once cannot have a reliable final count, and
+    # requests live at either edge of the window are partly outside it.
+    single = [d for d in done if d["n"] == 1]
+    edge = [d for d in done
+            if d["t0"] <= rows[0][0] + 1e-9 or d["t1"] >= rows[-1][0] - 1e-9]
+
     tot_dec = sum(d["ndec"] for d in done)
     tot_pro = sum(d["nptp"] for d in done)
     tot_cache = sum(d["nptc"] for d in done)
-    tot_depth = sum(d["npt"] for d in done)
+    tot_depth = sum(d["depth"] for d in done)
 
-    print("window            %.1f min  (%d polls, %.1f%% with a request in flight)"
-          % (span / 60.0, len(rows), 100.0 * busy / len(rows)))
+    def med(v):
+        v = sorted(v)
+        n = len(v)
+        if not n:
+            return 0
+        return v[n // 2] if n % 2 else (v[n // 2 - 1] + v[n // 2]) / 2.0
+
+    print("window            %.1f min  (%d polls at ~%.2f Hz)"
+          % (span / 60.0, len(rows), len(rows) / max(span, 1e-9)))
+    print("slot occupancy    %.1f%% of samples had a request in flight"
+          % (100.0 * busy_samples / len(rows)))
     print("requests seen     %d  (%d produced tokens)" % (len(order), len(done)))
+    if single or edge:
+        print("  caveats         %d observed in a single poll, %d live at a "
+              "window edge" % (len(single), len(edge)))
     print()
-    print("tokens decoded    %d" % tot_dec)
+    print("tokens decoded    %d   (FLOOR - see docstring; 1 Hz truncation)" % tot_dec)
     print("prompt recomputed %d" % tot_pro)
     print("prompt from cache %d" % tot_cache)
-    print("prompt depth      %d" % tot_depth)
+    print("prompt depth      %d   (= recomputed + cache, NOT n_prompt_tokens)"
+          % tot_depth)
     if tot_depth:
         print("  cache supplied  %.1f%% of all prompt tokens"
               % (100.0 * tot_cache / tot_depth))
     if done:
-        dec = sorted(d["ndec"] for d in done)
-        dep = sorted(d["npt"] for d in done)
         print()
-        print("per request       median %d decoded, median %d prompt depth"
-              % (dec[len(dec) // 2], dep[len(dep) // 2]))
+        print("per request       median %.0f decoded, median %.0f prompt depth"
+              % (med([d["ndec"] for d in done]), med([d["depth"] for d in done])))
         print("                  max    %d decoded, max    %d prompt depth"
-              % (dec[-1], dep[-1]))
+              % (max(d["ndec"] for d in done), max(d["depth"] for d in done)))
     if tot_dec and tot_pro:
         print()
-        print("prefill:decode    %.2f prompt tokens recomputed per decoded token"
+        print("prefill:decode    %.2f prompt TOKENS recomputed per decoded token"
               % (float(tot_pro) / tot_dec))
+        print("                  (a token ratio, NOT a time split - prefill runs")
+        print("                   batched and far faster per token than decode)")
     return {"span_s": span, "requests": len(order), "decoded": tot_dec,
             "prompt_processed": tot_pro, "prompt_cached": tot_cache,
-            "prompt_depth": tot_depth}
+            "prompt_depth": tot_depth, "n_single_poll": len(single),
+            "n_edge": len(edge)}
 
 
 if __name__ == "__main__":
