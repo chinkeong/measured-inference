@@ -165,14 +165,27 @@ if __name__ == "__main__":
     print("  concordant pairs carry no information and are excluded")
     print("  p = %.4f  -> %s" % (p, "a real difference" if p < 0.05 else
                                  "NOT distinguishable at this sample size"))
-    if p >= 0.05 and b_only + c_only > 0:
-        # Rule of three: with n discordant pairs and no significant split, the
-        # true difference can still be as large as this. Silence about it would
-        # let a null read as an equivalence.
-        print("  the data does NOT establish equivalence - with %d discordant"
-              % (b_only + c_only))
-        print("  pairs a difference of up to ~%.1f points remains consistent"
-              % (100.0 * 3.0 / max(len(common), 1)))
+    # Confidence interval on the PAIRED difference, printed whether or not the
+    # test is significant. A p-value alone lets a null read as an equivalence,
+    # and this interval is the only thing that says how large a real difference
+    # could still be hiding.
+    #
+    # An earlier version printed the rule of three (3/n) here. That is the
+    # bound for ZERO discordant pairs and is simply the wrong instrument once
+    # there are any: with 59 discordant pairs on 223 it claimed 1.3 points
+    # where the true interval is about five times wider. Understating
+    # uncertainty is the one direction this campaign must never round.
+    n = len(common)
+    d = (c_only - b_only) / float(n)          # B minus A, as a proportion
+    if b_only + c_only > 0:
+        var = (b_only + c_only - (c_only - b_only) ** 2 / float(n)) / float(n * n)
+        se = math.sqrt(max(var, 0.0))
+        lo95, hi95 = 100.0 * (d - 1.96 * se), 100.0 * (d + 1.96 * se)
+        print("  paired difference (B - A): %+.1f points, 95%% CI %+.1f to %+.1f"
+              % (100.0 * d, lo95, hi95))
+        if p >= 0.05:
+            print("  NOT significant, and NOT equivalence: a true difference")
+            print("  anywhere in that interval is consistent with this data.")
 
     both = [k for k in common
             if A_["by"][k]["passed"] and B_["by"][k]["passed"]]

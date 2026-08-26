@@ -246,3 +246,44 @@ almost not at all in **memory** clock — 9501 of 9751 MHz, **97%**. That is
 precisely why the bandwidth roof stays where it is while achievable throughput
 falls short of it. The cap lowers the compute roof and leaves the bandwidth roof
 untouched.
+
+### That lever was pulled, and it is not a lever
+
+**Measured 2026-08-27**, shipped recipe on UD-IQ4_XS, quiet machine, greedy,
+three probes per arm, only `--spec-draft-n-max` varying:
+
+| `--spec-draft-n-max` | throughput | vs baseline | mean accepted length |
+|---|---|---|---|
+| 4 (shipped) | 74.13 t/s | — | 2.71 |
+| 6 | 73.52 t/s | **−0.8%** | 3.25 |
+| 8 | 75.59 t/s | **+2.0%** | 3.54 |
+
+**The prediction above was +24% at length 6. The measurement is −0.8%.** The
+accepted length moves exactly as expected — 2.71 to 3.54, a 31% rise — and
+throughput does not follow it. The extra accepted tokens are paid for, almost
+exactly, by the cost of drafting the ones that are rejected.
+
+**Why the model was wrong, stated because the failure is the useful part.** The
+fit assumed a constant marginal cost `T1` per speculated token. It is not
+constant: drafting deeper costs more per token *and* the deeper tokens are
+accepted less often, so wasted draft work grows faster than accepted work. The
+per-position acceptance measured during the sweep shows it directly — 99%, 73%,
+55%, 44% at n-max 4, decaying to 25% at position 5 and **13% at position 7**.
+Beyond about position 3 the drafter is mostly generating tokens that will be
+thrown away.
+
+**And the reasoning that motivated the probe was also wrong.** Acceptance at
+the last permitted position was 59% on the agentic arm, which was read here as
+"the drafter is not exhausted, the flag cuts it off". A 59% acceptance rate at
+the boundary does not imply the *next* position pays: it was 44% on this
+workload, then 37%, then 25%. The boundary rate says nothing on its own about
+the marginal return, and a two-point model cannot supply it. Only the sweep
+could.
+
+**Consequence for the lever table.** `--spec-draft-n-max` is **not** a
+throughput lever on this part at this recipe: the shipped value of 4 is within
+2% of the best of 4, 6 and 8, and the +2.0% at n-max 8 is close to this rig's
+measured run-to-run band for greedy decode (0.77% coefficient of variation, so
+2.0% is roughly at the edge of resolvable). It is removed from the ranked
+levers. Speculation itself remains the largest lever measured anywhere in this
+campaign at 2.2×; **tuning its depth is not.**

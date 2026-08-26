@@ -444,23 +444,20 @@ beyond its retrieval-tested depth is labeled
       standing recovery, which needs no flag and no restart, is to poll
       `/slots`: it carries prompt depth, tokens served from cache, and
       `n_decoded` per request. Prefer it to the log even when the log works.
-    - **A phase split derived by POLLING overstates the long phase.** Measured
-      2026-08-27 by running both methods over the same window of the same run:
-      1 Hz `/slots` polling put decode at **77.6%** of busy time while
-      `llama-server`'s own cumulative counters put it at **71.3%** - a 6.3-point
-      bias in a figure this campaign had already published and already
-      corrected once. The mechanism is structural, not noise: a poll interval
-      in which the decode counter advanced at all is scored wholly as decode,
-      and prompt processing runs an order of magnitude faster per token
-      (measured 1055 against 77 tokens per second), so it frequently begins and
-      ends INSIDE one interval and is absorbed. The short phase is the one that
-      disappears, and shortening the interval reduces the bias without removing
-      it. Consequence for anything already published: a poll-derived split is an
-      UPPER bound on the long phase. The first arm of the agentic pair was
-      launched without `--metrics` and therefore cannot be corrected at all -
-      which is the concrete cost of instrumenting a run after starting it.
-      (Preliminary: measured on a four-minute window early in a run; to be
-      re-measured over the full arm.)
+    - **A poll-derived phase split is close, but only over a long window -
+      and a short window can invert the error.** Measured 2026-08-27 by running
+      both methods over the same run. Over the FULL arm (285 minutes, 16,931
+      poll samples) 1 Hz `/slots` polling put decode at **78.9%** of busy time
+      against the server's own cumulative counters at **80.4%** - a bias of
+      **-1.5 points**, small enough that poll-derived splits already published
+      stand. But an earlier measurement of the same quantity on a **4-minute**
+      window early in the same run reported **+6.3 points**, wrong in
+      magnitude AND in sign, because start-up transients dominated it. That
+      preliminary figure was published here and is retracted.
+      The lesson is the general one, not the number: a bias estimated on a
+      short window is not a small version of the bias on a long one, and may
+      not even point the same way. Any instrument-versus-instrument comparison
+      is measured over the full run or not reported.
     - **An agentic J/token carries its prompt:completion ratio.** Measured
       across one run's exercises, energy per completion token spans **3.0×**
       (4.512 to 13.617 J) because prompt-heavy exercises decode few tokens to
