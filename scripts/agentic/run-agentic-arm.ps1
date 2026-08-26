@@ -111,13 +111,21 @@ try {
 $py = (Get-Command py -ErrorAction SilentlyContinue)
 if (-not $py) { throw "py launcher not found" }
 
+# Collector output goes to a REAL FILE, not a hidden window. A collector that
+# dies on startup - a mistyped flag is enough, and was: argparse exits 2 and
+# prints to a stderr nobody was reading - is otherwise completely silent, and
+# the only evidence is a missing CSV found minutes later by the pre-flight
+# guard. The guard is the backstop; this is the diagnosis.
 function Start-Collector([string]$name, [string[]]$argv) {
+    $slug = ($name -replace '[^a-zA-Z0-9]', '-')
+    $out = Join-Path $logs "$Tag-collector-$slug.log"
     Start-Process -FilePath "py" -ArgumentList $argv -WorkingDirectory $Repo `
+        -RedirectStandardOutput $out -RedirectStandardError "$out.err" `
         -WindowStyle Hidden | Out-Null
-    Write-Output "  collector: $name"
+    Write-Output "  collector: $name  (log: $out)"
 }
 
-Start-Collector "gpu (dmon + throttle)" @("scripts\power\silicon-telemetry.py", "--tag", $Tag)
+Start-Collector "gpu (dmon + throttle)" @("scripts\power\silicon-telemetry.py", "--tag", $Tag, "--seconds", "0")
 Start-Collector "slots (per request)"   @("scripts\power\slots-telemetry.py", "--tag", $Tag, "--port", "$Port")
 Start-Collector "metrics (cumulative)"  @("scripts\power\metrics-telemetry.py", "--tag", $Tag, "--port", "$Port")
 Start-Process -FilePath "powershell" -ArgumentList @(
@@ -125,18 +133,36 @@ Start-Process -FilePath "powershell" -ArgumentList @(
     "-Tag", $Tag) -WindowStyle Hidden | Out-Null
 Write-Output "  collector: host"
 
-Start-Sleep -Seconds 4
-$missing = @()
+# Verify the files GREW, not merely that they exist. An empty file with a
+# header is the exact shape of a collector that started, wrote its columns and
+# then died - which reads as success to any check that only asks Test-Path.
+Start-Sleep -Seconds 6
+$first = @{}
 foreach ($k in @("dmon", "throttle", "slots", "metrics", "host")) {
     $f = Join-Path $tel "$Tag-$k.csv"
-    if (-not (Test-Path $f)) { $missing += $k }
+    $first[$k] = if (Test-Path $f) { (Get-Item $f).Length } else { -1 }
 }
-if ($missing.Count -gt 0) {
-    throw ("these collectors wrote no file: " + ($missing -join ", ") +
+Start-Sleep -Seconds 8
+$bad = @()
+foreach ($k in @("dmon", "throttle", "slots", "metrics", "host")) {
+    $f = Join-Path $tel "$Tag-$k.csv"
+    if (-not (Test-Path $f)) { $bad += "$k (no file)"; continue }
+    $now = (Get-Item $f).Length
+    if ($now -le $first[$k]) { $bad += "$k (file not growing: $now bytes)" }
+}
+if ($bad.Count -gt 0) {
+    Write-Output ""
+    Write-Output "collector logs (a dead collector prints its reason here):"
+    Get-ChildItem (Join-Path $logs "$Tag-collector-*") -ErrorAction SilentlyContinue |
+        ForEach-Object {
+            $txt = (Get-Content $_.FullName -Tail 3 -ErrorAction SilentlyContinue) -join ' | '
+            if ($txt) { Write-Output ("  {0}: {1}" -f $_.Name, $txt) }
+        }
+    throw ("instrumentation incomplete: " + ($bad -join "; ") +
            ". Refusing to start the benchmark - a run whose instrumentation " +
            "is already incomplete cannot be fixed afterwards.")
 }
-Write-Output "all five collectors are writing"
+Write-Output "all five collectors are writing AND growing"
 
 # The benchmark runs in WSL. Attached under setsid, never `docker run -d`:
 # measured on this machine, detached completed ONE exercise in 80 minutes

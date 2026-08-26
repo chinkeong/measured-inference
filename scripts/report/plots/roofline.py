@@ -31,8 +31,16 @@ WHAT IS MEASURED AND WHAT IS NOT, stated once here so the figures can be terse:
   NOT measured  FLOPs; KV-cache read traffic (the x axis counts weight bytes
                 only); the draft head's own weight traffic; per-request
                 accepted length; any power figure other than board power.
+
+LAYOUT RULE, because a figure that carries its own conditions carries a lot of
+text and every word of it has to be readable: the conditions block is a
+FIGURE-level footer whose HEIGHT IS COMPUTED FROM ITS CONTENT, never a hand-
+tuned fraction, and every line in it is re-flowed to the column width before it
+is drawn. A longer condition therefore makes the block taller and the axes
+shorter; it can never run off the page or print on top of the other column.
 """
 import os
+import textwrap
 
 import matplotlib
 matplotlib.use("Agg")            # REQUIRED - never an interactive backend
@@ -84,7 +92,11 @@ CB = {"off": "#E69F00", "on": "#0072B2", "spread": "#56B4E9",
       "pp": "#CC79A7", "compute": "#009E73", "cap": "#D55E00",
       "roof": "#000000", "grey": "#8C8C8C"}
 
-_FIG = dict(figsize=(10, 6.5), dpi=140, facecolor="white")
+# Wide and tall on purpose. These figures carry their conditions, a legend and
+# six or seven callouts; on a 10 x 6.5 canvas those blocks are each a third of
+# the axes wide and they collide. Giving the canvas more room shrinks every
+# text block as a fraction of the axes without shrinking a single word of it.
+_FIG = dict(figsize=(13.6, 8.8), dpi=140, facecolor="white")
 _BOX = dict(boxstyle="round,pad=0.28", fc="white", ec="none", alpha=0.86)
 
 
@@ -272,19 +284,61 @@ def _tag(ax, text, xy, xytext, colour, ha="left", va="top", size=8.3,
                                 shrinkA=1, shrinkB=6))
 
 
-def _footer(fig, left, right, height):
+def _cols(width_in, pt, k=0.545):
+    """Roughly how many characters of a given point size fit across a column of
+    the given width in inches. Deliberately pessimistic: over-estimating the
+    column is what clips text at the figure edge, which is the one failure this
+    helper exists to prevent."""
+    return max(int(width_in * 72.0 / (pt * k)), 30)
+
+
+def _reflow(items, ncols):
+    """Re-flow the conditions lines to the column width. Lines that already fit
+    come back untouched, so the hand-set line breaks are respected; a line that
+    would have overrun the column is wrapped instead of being clipped, with a
+    hanging indent if it is a bullet."""
+    out = []
+    for it in items:
+        body = it.lstrip(" ")
+        lead = len(it) - len(body)
+        sub = " " * (lead + 2) if body.startswith("- ") else " " * lead
+        out.extend(textwrap.wrap(it, width=ncols, subsequent_indent=sub,
+                                 break_long_words=False,
+                                 break_on_hyphens=False) or [""])
+    return out
+
+
+def _footer(fig, left, right, pt=6.9, lead=1.6):
     """Conditions live BELOW the axes, in two columns, so they never sit on
-    top of the data. tight_layout is called here, before any inset is added,
-    because an inset axes makes tight_layout refuse to run."""
-    fig.tight_layout(rect=(0.0, height, 1.0, 1.0))
-    y = height - 0.014
-    fig.text(0.010, y, "\n".join(left), ha="left", va="top", fontsize=6.9,
-             color="#222222", linespacing=1.6)
-    fig.text(0.513, y, "\n".join(right), ha="left", va="top", fontsize=6.9,
-             color="#444444", linespacing=1.6)
+    top of the data.
+
+    The block's height is COMPUTED from how many lines it actually holds, so
+    the text can neither be cut off at the bottom of the page nor leave a band
+    of empty grey behind it, whichever way the conditions grow. The axes get
+    whatever is left. Returns that height as a figure fraction.
+
+    tight_layout is called here, before any inset is added, because an inset
+    axes makes tight_layout refuse to run.
+    """
+    hpt = fig.get_figheight() * 72.0
+    x0, xm, gap = 0.010, 0.513, 0.014
+    col = _cols((xm - x0 - 0.012) * fig.get_figwidth(), pt)
+    L, R = _reflow(left, col), _reflow(right, col)
+    rows = max(len(L), len(R))
+    height = (rows * pt * lead + 18.0) / hpt
+    fig.tight_layout(rect=(0.0, height + gap, 1.0, 1.0))
+    dy = pt * lead / hpt
+    y = height - 9.0 / hpt
+    for i, ln in enumerate(L):
+        fig.text(x0, y - i * dy, ln, ha="left", va="top", fontsize=pt,
+                 color="#222222")
+    for i, ln in enumerate(R):
+        fig.text(xm, y - i * dy, ln, ha="left", va="top", fontsize=pt,
+                 color="#444444")
     fig.patches.append(plt.Rectangle(
-        (0.006, 0.004), 0.988, height - 0.022, transform=fig.transFigure,
+        (0.006, 0.005), 0.988, height - 0.005, transform=fig.transFigure,
         fc="#FAFAFA", ec="#DDDDDD", lw=0.8, zorder=-5))
+    return height
 
 
 def _not_measured(extra):
@@ -461,7 +515,7 @@ def _fig_points(outdir, pp, spread, clk):
         "    its vertical extent is measured, not where it sits on x."]
         + pp_src)
 
-    _footer(fig, left, right, 0.298)
+    _footer(fig, left, right)
     path = os.path.join(outdir, "roofline-operating-points.png")
     fig.savefig(path, facecolor="white")
     plt.close(fig)
@@ -548,16 +602,20 @@ def _fig_sweep(outdir, pp, clk, fit):
     ax.plot([x_off], [DECODE_OFF], marker="s", ms=11, color=CB["off"],
             mec="black", mew=1.0, ls="none", zorder=9,
             label="MEASURED: draft head off gives %.1f tok/s" % DECODE_OFF)
+    # Both measured labels hang BELOW-LEFT and ABOVE-LEFT of their markers.
+    # Anywhere above-right and they would print over the roof (L=1) or over the
+    # L=5 and L=6 markers (L=3.55), and hiding the roof on a roofline is the
+    # one thing this figure cannot afford.
     ax.annotate("L=1, %.1f tok/s" % DECODE_OFF,
                 xy=(x_off, DECODE_OFF),
-                xytext=(x_off * 0.96, DECODE_OFF * 1.14), fontsize=8.0,
-                ha="right", va="bottom", color="#7a5400", linespacing=1.3,
+                xytext=(x_off * 0.98, DECODE_OFF * 0.90), fontsize=8.0,
+                ha="right", va="top", color="#7a5400", linespacing=1.3,
                 bbox=_BOX, zorder=8)
     ax.annotate("L=%.2f, %.1f tok/s (measured today)" % (ACCEPT_LEN,
                                                          DECODE_ON),
                 xy=(x_on, DECODE_ON * 1.05),
-                xytext=(x_on * 1.03, DECODE_ON * 1.11), fontsize=8.0,
-                ha="left", va="bottom", color="#0b3a58", linespacing=1.3,
+                xytext=(x_on * 0.97, DECODE_ON * 1.10), fontsize=8.0,
+                ha="right", va="bottom", color="#0b3a58", linespacing=1.3,
                 bbox=_BOX, zorder=8,
                 arrowprops=dict(arrowstyle="-", color=CB["on"], lw=1.0,
                                 shrinkA=1, shrinkB=4))
@@ -566,24 +624,29 @@ def _fig_sweep(outdir, pp, clk, fit):
     ax.annotate("--spec-draft-n-max = %d, the server's own cap.\n"
                 "Nothing to the right of this line is reachable\n"
                 "without changing the configuration." % N_DRAFT_MAX,
-                xy=(x_max, 780.0), xytext=(x_max * 1.06, 860.0), fontsize=8.2,
+                xy=(x_max, 780.0), xytext=(0.655, 0.720),
+                textcoords=ax.transAxes, fontsize=8.2,
                 color=CB["cap"], ha="left", va="top", linespacing=1.4,
                 fontweight="bold", bbox=_BOX, zorder=8)
 
     ax.axhline(fit["asym"], color=CB["compute"], lw=1.6, ls="--", alpha=0.9,
                zorder=4)
-    ax.text(xlim[0] * 1.04, fit["asym"] * 1.09,
+    # Placed in AXES FRACTIONS, not data coordinates, so this block, the
+    # legend, the cap note and the summary box can be checked against one
+    # another without doing log arithmetic. It sits in the wedge above the
+    # roof, which is unreachable by construction and therefore always empty.
+    ax.text(0.012, 0.338,
             "asymptote 1 / T1 = %.0f tok/s. A PERFECT draft head, accepting "
             "every token it drafts,\nstill stops here: above L of about 3 the "
             "marginal cost per speculated token,\nnot the weight pass, is what "
             "binds." % fit["asym"],
-            color="#00563f", fontsize=8.2, va="bottom", ha="left",
-            linespacing=1.4, bbox=_BOX, zorder=8)
+            transform=ax.transAxes, color="#00563f", fontsize=8.2,
+            va="bottom", ha="left", linespacing=1.4, bbox=_BOX, zorder=8)
 
     g4 = float(fit["f"](N_DRAFT_MAX)) / DECODE_ON - 1.0
     g6 = float(fit["f"](6.0)) / DECODE_ON - 1.0
     gi = fit["asym"] / DECODE_ON - 1.0
-    ax.text(0.986, 0.978,
+    ax.text(0.988, 0.988,
             "What a better draft head buys, from today's L = %.2f\n"
             "     L to %d   today's configured cap       %+.0f%%\n"
             "     L to 6   needs n-max raised          %+.0f%%\n"
@@ -641,7 +704,7 @@ def _fig_sweep(outdir, pp, clk, fit):
         "    that point also pays T1. The split between them is a model "
         "choice, not an observation."])
 
-    _footer(fig, left, right, 0.278)
+    _footer(fig, left, right)
 
     path = os.path.join(outdir, "roofline-accepted-length-sweep.png")
     fig.savefig(path, facecolor="white")

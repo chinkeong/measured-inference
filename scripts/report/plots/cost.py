@@ -97,13 +97,13 @@ _LANG_MEMO = {}
 def _langs_by_mtime(run):
     """Best-effort map {rounded results-file mtime -> language}.
 
-    A.load_exercises reports lang as basename(dirname^3(path)), which on the
-    polyglot layout <run>/<lang>/exercises/practice/<case>/.aider.results.json
-    lands one level short and returns the literal "exercises" for every row.
-    Rather than edit the shared loader, recover the language here with ONE
-    read-only `find`, keyed on the same mtime the loader used for t_end so the
-    join is exact. If WSL is not there, the caller falls back to a single
-    series and says so ON the figure.
+    A.load_exercises now resolves lang correctly itself (it once landed one
+    directory short and returned the literal "exercises" for every row, which
+    drew a six-language figure in one colour). This local map is kept because
+    it is keyed on the same mtime the loader uses for t_end, so the join to a
+    record is exact rather than by case name, which repeats across languages.
+    ONE read-only `find`. If WSL is not there, the caller falls back to a
+    single series and says so ON the figure.
     """
     if run in _LANG_MEMO:
         return _LANG_MEMO[run]
@@ -133,15 +133,22 @@ def _langs_by_mtime(run):
 def _attribute(dmon, exercises, run):
     """Per-exercise energy records under the previous-exercise-finished rule.
 
-    Returns (records, dropped_no_predecessor, dropped_outside_trace).
+    Returns (records, dropped_no_predecessor, dropped_outside_trace,
+    dropped_no_busy_energy, telemetry_late_minutes). The last two used to be
+    folded into the outside-trace count, which reported an exercise whose
+    window held no busy sample as though the trace did not cover it.
     """
     ex = sorted((e for e in exercises if e.get("completion")),
                 key=lambda e: e["t_end"])
     if len(ex) < 2:
-        return [], len(ex), 0
+        return [], len(ex), 0, 0, 0.0
     lang = _langs_by_mtime(run)
     t_lo, t_hi = float(dmon["t"][0]), float(dmon["t"][-1])
-    recs, outside = [], 0
+    # How much of the run had already happened before the GPU collector
+    # started. Every exercise in that stretch is unattributable, and the
+    # count of them is meaningless without the reason.
+    late_min = max(0.0, (t_lo - ex[0]["t_end"]) / 60.0)
+    recs, outside, empty = [], 0, 0
     for i in range(1, len(ex)):
         prev, cur = ex[i - 1], ex[i]
         # The window must be COVERED by the telemetry trace at both ends.
@@ -152,7 +159,7 @@ def _attribute(dmon, exercises, run):
         j, busy_s = A.energy(dmon, prev["t_end"], cur["t_end"], busy_only=True)
         comp = float(cur["completion"])
         if j <= 0 or busy_s <= 0 or comp <= 0:
-            outside += 1
+            empty += 1
             continue
         recs.append({
             "case": cur.get("case", "?"),
@@ -161,7 +168,7 @@ def _attribute(dmon, exercises, run):
             "comp": comp, "prompt": float(cur.get("prompt", 0) or 0),
             "passed": bool(cur.get("passed")),
         })
-    return recs, 1, outside
+    return recs, 1, outside, empty, late_min
 
 
 def _pearson(x, y):
@@ -202,7 +209,8 @@ def _throttle_mix(throttle):
 # --------------------------------------------------------------------------
 # Figure 1: cost against the shape of the request
 # --------------------------------------------------------------------------
-def _fig_cost_vs_ratio(recs, ctx, n_nopred, n_outside, outdir):
+def _fig_cost_vs_ratio(recs, ctx, n_nopred, n_outside, n_empty, late_min,
+                       outdir):
     jpt = np.array([r["j"] / r["comp"] for r in recs])
     ratio = np.array([r["prompt"] / r["comp"] for r in recs])
     ok = np.isfinite(jpt) & np.isfinite(ratio) & (ratio > 0)
@@ -274,12 +282,15 @@ def _fig_cost_vs_ratio(recs, ctx, n_nopred, n_outside, outdir):
 
     note = ("Window: the interval since the previous exercise finished,\n"
             "GPU-busy samples only (SM > %.0f%%).\n"
-            "n = %d attributed; dropped %d with no predecessor and %d\n"
-            "whose window falls outside the telemetry trace.\n"
+            "n = %d attributed. Dropped: %d with no predecessor, %d whose\n"
+            "window falls outside the telemetry trace (the GPU collector\n"
+            "started %.0f min after the first exercise finished), %d whose\n"
+            "window held no GPU-busy sample.\n"
             "Pearson r = %.2f on the raw ratio, %.2f in log10;\n"
             "Spearman rho = %.2f.\n"
             "%s"
-            % (A.BUSY_SM_PCT, len(jpt), n_nopred, n_outside, r_raw, r_log, rho,
+            % (A.BUSY_SM_PCT, len(jpt), n_nopred, n_outside, late_min,
+               n_empty, r_raw, r_log, rho,
                "Language read from the exercise path."
                if have_lang else
                "Language: NOT resolvable here, all points drawn alike."))
@@ -305,12 +316,15 @@ def _fig_cost_vs_ratio(recs, ctx, n_nopred, n_outside, outdir):
            "not used as the window because the results-file timestamp is "
            "written after the unit tests, which would bill test-time idle to "
            "the model. %d exercises attributed, %d dropped for having no "
-           "predecessor and %d for falling outside the telemetry trace. Run "
+           "predecessor, %d for falling outside the telemetry trace (the GPU "
+           "collector started %.0f minutes after the first exercise finished) "
+           "and %d for holding no GPU-busy sample. Run "
            "mean %.2f J per completion token (%.2f kWh per million completion "
            "tokens); range %.2f (%s) to %.2f (%s), a spread of %.1fx, "
            "correlating with the prompt:completion ratio at Pearson r = %.2f "
            "(Spearman rho = %.2f, n = %d). %s"
            % (_PART, _WORKLOAD, A.BUSY_SM_PCT, len(jpt), n_nopred, n_outside,
+              late_min, n_empty,
               overall, overall * 1e6 / 3.6e6, float(jpt.min()),
               keep[lo_i]["case"], float(jpt.max()), keep[hi_i]["case"],
               spread, r_raw, rho, len(jpt), _NOTMEAS))
@@ -472,12 +486,13 @@ def make(ctx, outdir):
     except Exception:
         return out
 
-    recs, n_nopred, n_outside = _attribute(dmon, exercises, run)
+    recs, n_nopred, n_outside, n_empty, late_min = _attribute(
+        dmon, exercises, run)
     if len(recs) < 3:
         return out
 
     for fn in (lambda: _fig_cost_vs_ratio(recs, ctx, n_nopred, n_outside,
-                                          outdir),
+                                          n_empty, late_min, outdir),
                lambda: _fig_cost_is_throughput(recs, ctx, outdir)):
         try:
             r = fn()

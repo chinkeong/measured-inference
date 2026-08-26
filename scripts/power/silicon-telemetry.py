@@ -268,7 +268,11 @@ def analyse(tag, model_bytes, server_log):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--collect", metavar="TAG")
+    # --tag is the interface every other collector in this campaign uses.
+    # This script alone took --collect, and a launcher that passed --tag got an
+    # argparse exit(2) into a hidden window: no file, no message, no clue. The
+    # pre-flight guard caught it, but only after a model load. One spelling.
+    ap.add_argument("--collect", "--tag", dest="collect", metavar="TAG")
     ap.add_argument("--analyse", metavar="TAG")
     ap.add_argument("--seconds", type=float, default=0)
     ap.add_argument("--model-bytes", type=float, default=0)

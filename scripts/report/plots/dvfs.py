@@ -375,11 +375,17 @@ def _fig_operating_point(dmon, s, throttle, outdir):
     ax1.text(xmax * 0.015, s["max_sm"] + ymax * 0.012, _refline_label(s, "SM"),
              fontsize=7.6, color=_GREY, va="bottom")
     ax1.axvline(s["cap_w"], color=_INK, ls=":", lw=1.3, zorder=5)
-    ax1.text(s["cap_w"] - xmax * 0.011, ymax * 0.035,
+    # Outside the cap line, not inside it. Inside, this label runs up through
+    # the lower fringe of the working cloud and covers samples.
+    ax1.text(s["cap_w"] + xmax * 0.005, ymax * 0.035,
              ("enforced board-power limit, %.0f W" % s["cap_w"])
              if s["from_nvml"] else
              ("highest board power OBSERVED, %.0f W" % s["cap_w"]),
-             fontsize=7.6, color=_INK, rotation=90, ha="right", va="bottom")
+             fontsize=7.6, color=_INK, rotation=90, ha="left", va="bottom",
+             # The idle arm of the curve runs under this label. A ground of its
+             # own keeps both the label and the samples readable.
+             bbox=dict(boxstyle="round,pad=0.25", fc="white", ec="none",
+                       alpha=0.92))
     ax1.axhline(s["pclk_med"], color=_TRAF, ls="-", lw=1.2, alpha=0.9,
                 zorder=5)
     ax1.text(xmax * 0.015, s["pclk_med"] + ymax * 0.012,
@@ -480,9 +486,13 @@ def _fig_operating_point(dmon, s, throttle, outdir):
                  alpha=0.30, linewidths=0.7, zorder=4)
     ax2b.axhline(s["mem_med"], color=_TRAF, ls="-", lw=1.3, zorder=5)
     ax2b.set_ylim(0, 100)
-    ax2b.set_ylabel("memory-controller busy\n(%% of the sample period, %s "
-                    "samples; axis 0-100%%)" % s["focus_name"], fontsize=8.4,
-                    color=_TRAF)
+    # Three short lines rather than two long ones. This label is rotated, so
+    # its lines are laid out along the HEIGHT of the panel, and two lines of it
+    # are longer than the panel is tall - it then runs out of both ends of the
+    # axes, into the title above and the footer below.
+    ax2b.set_ylabel("memory-controller busy\n(%% of the sample period,\n"
+                    "%s samples; axis 0-100%%)" % s["focus_name"],
+                    fontsize=8.4, color=_TRAF)
     ax2b.tick_params(axis="y", labelsize=8.5, colors=_TRAF)
 
     ax2.set_ylim(0, mmax)
@@ -695,7 +705,7 @@ def _fig_residency(dmon, s, outdir):
     axA.grid(alpha=0.3)
     axA.tick_params(labelsize=8.5)
     axA.set_title("SM clock: spread over %d frequencies, none of them the "
-                  "part's maximum" % len(np.unique(v)), fontsize=10.5,
+                  "part's maximum" % len(np.unique(v)), fontsize=9.9,
                   color=_INK, pad=24)
     sa = axA.secondary_xaxis("top", functions=(
         lambda x, m=s["max_sm"]: 100.0 * x / m,
@@ -733,9 +743,17 @@ def _fig_residency(dmon, s, outdir):
     axB.set_ylim(0, tb)
     axB.text(s["max_mem"] + hib * 0.030, tb * 0.50, _refline_label(s, "memory"),
              fontsize=7.6, color=_GREY, rotation=90, ha="center", va="center")
+    # Adjacent P-states can be a few hundred MHz apart on a 10 GHz axis, so
+    # their captions would print through each other. A caption that would land
+    # on the previous one is lifted a caption-height instead: a bar at 0.01% of
+    # busy time is still a measurement and still gets its number, and no
+    # measurement may be hidden by another measurement's caption.
+    lab_w = hib * 0.21               # a three-line caption, in x data units
+    lab_h = tb * 0.105               # the same caption, in y data units
+    level, prev_x = 0, None
     for x, y in zip(u, secs):
-        # A bar at 0.7% of busy time is still a measurement and still gets its
-        # number; the alignment just has to keep it inside the axes.
+        level = level + 1 if (prev_x is not None and x - prev_x < lab_w) else 0
+        prev_x = x
         big = y > secs.max() * 0.5
         near_left = x < hib * 0.15
         ha = "left" if near_left else ("right" if big else "center")
@@ -743,7 +761,8 @@ def _fig_residency(dmon, s, outdir):
         axB.annotate("%.0f MHz\n%s s\n%.2f%% of busy time"
                      % (x, ("%.0f" % y) if y >= 1.0 else ("%.1f" % y),
                         100.0 * y / max(tot, 1e-9)),
-                     xy=(x, y), xytext=(x + dx, y + tb * 0.035),
+                     xy=(x, y),
+                     xytext=(x + dx, y + tb * 0.035 + level * lab_h),
                      fontsize=7.8, color=_INK if big else _MEM, ha=ha,
                      va="bottom", fontweight="bold" if big else "normal")
     axB.set_xlabel("memory clock (MHz), one bar per P-state selected while busy",
@@ -752,7 +771,7 @@ def _fig_residency(dmon, s, outdir):
     axB.grid(alpha=0.3)
     axB.tick_params(labelsize=8.5)
     axB.set_title("Memory clock: one frequency for %.1f%% of busy time"
-                  % (100.0 * secs.max() / max(tot, 1e-9)), fontsize=10.5,
+                  % (100.0 * secs.max() / max(tot, 1e-9)), fontsize=9.9,
                   color=_INK, pad=24)
     sb = axB.secondary_xaxis("top", functions=(
         lambda x, m=s["max_mem"]: 100.0 * x / m,
@@ -771,7 +790,7 @@ def _fig_residency(dmon, s, outdir):
         # Kept clear of the tall bar's three-line label on the right: an inset
         # frame running through that label makes both unreadable, and the
         # label is the number the panel exists to state.
-        axBz = axB.inset_axes([0.085, 0.355, 0.360, 0.375])
+        axBz = axB.inset_axes([0.105, 0.355, 0.360, 0.375])
         axBz.hist(tv, bins=np.arange(0, 102, 2), weights=tw, color=_TRAF,
                   edgecolor="none")
         axBz.axvline(s["mem_med"], color=_INK, ls="-", lw=1.2)
