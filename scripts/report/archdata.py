@@ -251,18 +251,28 @@ def throttle_series(thr):
 def load_exercises(run, cache=True):
     """aider per-exercise results, via WSL. Cached, because the run holds
     hundreds of files and a plot pass should not shell out hundreds of times."""
+    # The listing is one cheap call; catting hundreds of files is the expensive
+    # part, so the cache is validated against the CURRENT file count rather
+    # than trusted. A run in flight gains exercises continuously, and a cache
+    # that never invalidates would quietly build every later report from the
+    # first snapshot it happened to take - a report that is stale and complete-
+    # looking at the same time.
     cf = os.path.join(TEL, "exercises-%s.json" % run)
-    if cache and os.path.exists(cf):
-        try:
-            return json.load(io.open(cf, encoding="utf-8"))
-        except Exception:
-            pass
     cmd = ("find ~/bench/aider/tmp.benchmarks/" + run +
            " -name .aider.results.json -printf '%T@ %p\\n' 2>/dev/null")
     o = subprocess.run(["wsl", "-e", "bash", "-lc", cmd],
                        capture_output=True, text=True, timeout=300).stdout
     items = sorted((float(l.split(" ", 1)[0]), l.split(" ", 1)[1].strip())
                    for l in o.strip().splitlines() if l.strip())
+    if cache and os.path.exists(cf):
+        try:
+            blob = json.load(io.open(cf, encoding="utf-8"))
+            # The cache records how many files existed when it was built. If
+            # the listing has grown, it is stale by definition.
+            if isinstance(blob, dict) and blob.get("n_listed") == len(items):
+                return blob["items"]
+        except Exception:
+            pass
     out = []
     for mt, path in items:
         cat = subprocess.run(["wsl", "-e", "bash", "-lc",
@@ -280,14 +290,20 @@ def load_exercises(run, cache=True):
                     "prompt": r.get("prompt_tokens", 0),
                     "completion": r.get("completion_tokens", 0),
                     "case": r.get("testcase", "?"),
-                    "lang": os.path.basename(os.path.dirname(
-                        os.path.dirname(os.path.dirname(path)))),
+                    # <run>/<lang>/exercises/practice/<case>/.aider.results.json
+                    # - FOUR levels up, not three. Three lands on the literal
+                    # directory "exercises", which is the same for every row,
+                    # so a figure colouring by language would draw one colour
+                    # and look fine doing it.
+                    "lang": os.path.basename(os.path.dirname(os.path.dirname(
+                        os.path.dirname(os.path.dirname(path))))),
                     # The polyglot benchmark allows two attempts; the LAST
                     # outcome is the one the pass rate counts.
                     "passed": bool((r.get("tests_outcomes") or [False])[-1])})
     if cache:
         try:
-            json.dump(out, io.open(cf, "w", encoding="utf-8"))
+            json.dump({"n_listed": len(items), "items": out},
+                      io.open(cf, "w", encoding="utf-8"))
         except Exception:
             pass
     return out
