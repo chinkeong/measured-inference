@@ -37,6 +37,29 @@ measured failure.
    greedy-only and non-transferable. **Every table declares its comparability
    scope** — which other tables in the same report its numbers may NOT be
    compared against, and what differs (build, workload, run state).
+   **THE CONDITION TRAVELS WITH THE NUMBER, AND THE BURDEN IS ON THE
+   DESTINATION.** Stating the condition where a figure is measured is necessary
+   and not sufficient: the failures happen where it is later QUOTED, and the
+   origin is usually blameless. Four in one session, 2026-08-25/26, every one a
+   correct number in the wrong place:
+   **11,396 MiB** lost "board VRAM, contains this machine's desktop" three
+   sections downstream and became a card verdict that told every 12 GB owner
+   "No, use a smaller model" about a configuration needing 10,497 MiB;
+   **2 of 75 empty answers** lost "at temperature 0" and became a
+   recommendation floor no reader running the shipped sampler could ever meet
+   (measured: 0 of 300 per file at the card's own settings);
+   **`prompt_n` 13,771** lost "newly processed tokens, not depth" under
+   `cache_prompt` and under-reported a retrieval depth by more than half;
+   a **196,608-token recipe's prose** lost "at that window" and was pasted into
+   a block running `-c 229376`. Rule 10 already says this for FLAGS - "tuned
+   flags travel silently otherwise" - and it is the same disease with a
+   different carrier. **A figure marked measured carries its condition in the
+   same sentence, the same table cell, or one link away; a quoting section that
+   cannot state the condition may not state the number.** These survive review:
+   the 12 GB row passed four gates and a 137-agent audit, because every number
+   in it was correct. Only re-deriving a figure from the raw measurement
+   exposes it, which is why `scripts/verify/condition-check.py` runs before
+   publication.
 4. **Two independent cheap metrics agreeing beats one expensive one** — but
    only when at least ONE of the differences exceeds its own error bar. Two
    null results agreeing in sign is a tie, not corroboration (reference:
