@@ -84,7 +84,7 @@ CB = {"off": "#E69F00", "on": "#0072B2", "spread": "#56B4E9",
       "pp": "#CC79A7", "compute": "#009E73", "cap": "#D55E00",
       "roof": "#000000", "grey": "#8C8C8C"}
 
-_FIG = dict(figsize=(10, 6), dpi=140, facecolor="white")
+_FIG = dict(figsize=(10, 6.5), dpi=140, facecolor="white")
 _BOX = dict(boxstyle="round,pad=0.28", fc="white", ec="none", alpha=0.86)
 
 
@@ -216,17 +216,19 @@ def _fit_speculation():
 # ---------------------------------------------------------------------------
 # Shared furniture
 # ---------------------------------------------------------------------------
-def _roofs(ax, bw, compute, xlim):
+def _roofs(ax, bw, compute, xlim, compute_in_view=True):
     """The roof itself, plus the bandwidth a real controller actually gave."""
     xs = np.logspace(np.log10(xlim[0]), np.log10(xlim[1]), 400)
     roof = np.minimum(bw * xs, compute)
     ach = DECODE_OFF * MODEL_GB
-    ax.plot(xs, roof, color=CB["roof"], lw=2.4, zorder=4,
-            label="roof: %.0f GB/s spec bandwidth, then %.0f tok/s compute"
-                  % (bw, compute))
+    lab = ("roof: %.0f GB/s spec bandwidth, then %.0f tok/s compute"
+           % (bw, compute)) if compute_in_view else (
+          "roof: %.0f GB/s spec bandwidth (the %.0f tok/s compute\n"
+          "roof is far above and right of this view)" % (bw, compute))
+    ax.plot(xs, roof, color=CB["roof"], lw=2.4, zorder=4, label=lab)
     ax.plot(xs, np.minimum(ach * xs, compute), color=CB["grey"], lw=1.5,
             ls="--", zorder=3,
-            label="bandwidth actually achieved: %.0f GB/s, %.0f%% of spec"
+            label="bandwidth achieved: %.0f GB/s, %.0f%% of spec"
                   % (ach, 100 * ach / bw))
     ax.fill_between(xs, np.minimum(ach * xs, compute), roof,
                     color=CB["grey"], alpha=0.10, lw=0, zorder=1)
@@ -268,28 +270,27 @@ def _footer(fig, left, right, height):
     top of the data. tight_layout is called here, before any inset is added,
     because an inset axes makes tight_layout refuse to run."""
     fig.tight_layout(rect=(0.0, height, 1.0, 1.0))
-    y = height - 0.012
-    fig.text(0.010, y, "\n".join(left), ha="left", va="top", fontsize=7.0,
-             color="#222222", linespacing=1.55)
-    fig.text(0.505, y, "\n".join(right), ha="left", va="top", fontsize=7.0,
-             color="#444444", linespacing=1.55)
+    y = height - 0.014
+    fig.text(0.010, y, "\n".join(left), ha="left", va="top", fontsize=6.9,
+             color="#222222", linespacing=1.6)
+    fig.text(0.513, y, "\n".join(right), ha="left", va="top", fontsize=6.9,
+             color="#444444", linespacing=1.6)
     fig.patches.append(plt.Rectangle(
         (0.006, 0.004), 0.988, height - 0.022, transform=fig.transFigure,
         fc="#FAFAFA", ec="#DDDDDD", lw=0.8, zorder=-5))
 
 
 def _not_measured(extra):
-    base = ["NOT MEASURED, and therefore implied nowhere above:",
-            "  - FLOPs. That is why neither axis is in FLOP/s: a FLOP count "
-            "per token would have to be invented.",
-            "  - KV-cache reads and the draft head's own weight traffic. x "
-            "counts WEIGHT bytes only, so the true",
-            "    intensity is a little lower and the true bandwidth use a "
-            "little higher than plotted.",
-            "  - system power and wall power. Board power only, throughout "
-            "this campaign."]
+    base = ["NOT MEASURED, and so implied nowhere above:",
+            "  - FLOPs. Neither axis is in FLOP/s because a FLOP count per "
+            "token would have to be invented.",
+            "  - KV-cache reads, and the draft head's own weights. x counts "
+            "WEIGHT bytes only, so true intensity",
+            "    is a little lower, and true bandwidth use a little higher, "
+            "than plotted.",
+            "  - system power and wall power. Board power only, throughout."]
     return base + extra + [
-        "  - memory junction temperature: not exposed by NVML on this part "
+        "  - memory junction temperature: NVML exposes none on this part "
         "(mtemp is NULL on every sample)."]
 
 
@@ -305,16 +306,23 @@ def _fig_points(outdir, pp, spread, clk):
 
     if pp is not None:
         compute = pp["rate"]
-        pp_src = ("measured over %d sustained prompt-processing windows; the "
-                  "~1 s poll cannot resolve anything faster, so it is a FLOOR "
-                  "on the true ceiling" % pp["n"])
+        pp_src = ["  - the compute roof as a spec number. It is measured over "
+                  "%d sustained prompt-processing" % pp["n"],
+                  "    windows, and the ~1 s poll resolves nothing faster, so "
+                  "it is a FLOOR on the true ceiling."]
+        pp_why = ("measured over %d sustained prompt-processing windows, and "
+                  "the ~1 s poll resolves nothing faster, so it is a floor on "
+                  "the true ceiling" % pp["n"])
     else:
         compute = PP_FALLBACK
-        pp_src = ("a FALLBACK CONSTANT - the /slots trace was absent, so "
-                  "prompt processing was NOT measured this run")
+        pp_src = ["  - the compute roof at all. It is a FALLBACK CONSTANT: "
+                  "the /slots trace was absent, so",
+                  "    prompt processing was NOT measured this run."]
+        pp_why = ("a fallback constant - the /slots trace was absent, so "
+                  "prompt processing was not measured this run")
 
     xlim = (0.020, 260.0)
-    ylim = (16.0, 9000.0)
+    ylim = (16.0, 11000.0)
     roof_on = bw * x_on
     x_ridge = compute / bw
 
@@ -342,24 +350,25 @@ def _fig_points(outdir, pp, spread, clk):
     # ---- operating points
     ax.plot([x_off], [DECODE_OFF], marker="s", ms=11, color=CB["off"],
             mec="black", mew=0.9, ls="none", zorder=9,
-            label="decode, draft head OFF - measured")
-    _tag(ax, "draft head OFF\n1 token / weight pass\n%.1f tok/s = %.0f GB/s\n"
-             "= %.0f%% of the roof: bound by bandwidth"
+            label="decode, draft head OFF (measured)")
+    _tag(ax, "draft head OFF: 1 token per weight pass.\n"
+             "%.1f tok/s = %.0f GB/s = %.0f%% of the roof.\n"
+             "For practical purposes this point IS the roof."
              % (DECODE_OFF, DECODE_OFF * MODEL_GB,
                 100 * DECODE_OFF / (bw * x_off)),
-         (x_off, DECODE_OFF * 0.94), (x_off * 0.60, DECODE_OFF * 0.68),
+         (x_off * 0.97, DECODE_OFF * 1.06), (0.0235, 2400.0),
          "#7a5400", ha="left")
 
     if spread is not None:
         ax.vlines(x_on * 0.80, spread["p10"], spread["p90"],
                   color=CB["spread"], lw=7, alpha=0.65, zorder=5,
-                  label="same part, live agentic run - p10 to p90 spread")
+                  label="live agentic run, p10 to p90 spread")
         ax.plot([x_on * 0.80], [spread["agg"]], marker="_", ms=16,
                 color="#12587f", mew=2.6, ls="none", zorder=6)
 
     ax.plot([x_on], [DECODE_ON], marker="o", ms=12, color=CB["on"],
             mec="black", mew=0.9, ls="none", zorder=9,
-            label="decode, MTP draft head ON - measured")
+            label="decode, MTP draft head ON (measured)")
     _tag(ax, "draft head ON: %.2f tokens / weight pass\n"
              "%.2f tok/s BEATS the %.1f tok/s one-pass-per-token ceiling,\n"
              "so traffic is only %.0f GB/s = %.0f%% of the roof"
@@ -371,8 +380,7 @@ def _fig_points(outdir, pp, spread, clk):
     # ---- prompt processing: y measured, x inferred and said to be inferred
     ax.plot([x_pp], [compute], marker="D", ms=10, color=CB["pp"],
             mec="black", mew=0.9, ls="none", zorder=9,
-            label="prompt processing - throughput measured, intensity "
-                  "inferred")
+            label="prompt processing (throughput measured)")
     ax.hlines(compute, x_pp, x_pp_hi, color=CB["pp"], lw=2.6, alpha=0.85,
               zorder=7)
     for xe in (x_pp, x_pp_hi):
@@ -384,69 +392,69 @@ def _fig_points(outdir, pp, spread, clk):
              "Bar spans n_ubatch 512 to n_batch 2048: the micro-batch\n"
              "was NOT logged, so only the throughput is measured."
              % (compute, bw * x_pp / compute),
-         (x_pp * 1.02, compute * 1.10), (x_pp * 0.62, 8200.0), "#5c2c48",
-         ha="left")
+         (x_pp * 0.98, compute * 1.12), (x_pp * 0.46, 8600.0), "#5c2c48",
+         ha="right")
 
     # ---- ridge point
     ax.plot([x_ridge], [compute], marker="*", ms=16, color=CB["compute"],
             mec="black", mew=0.7, ls="none", zorder=9,
-            label="ridge point - where compute takes over from bandwidth")
+            label="ridge point: compute takes over from bandwidth")
     _tag(ax, "ridge point: %.0f tokens per weight pass.\n"
              "Everything left of here is memory-bound.\nMTP delivers %.2f."
              % (x_ridge * MODEL_GB, ACCEPT_LEN),
          (x_ridge, compute * 0.90), (x_ridge * 1.5, compute * 0.62),
          "#00563f", ha="left")
 
-    ax.text(0.026, 0.965, "above the roof:\nphysically unreachable",
-            transform=ax.transAxes, fontsize=7.6, color="#9A9A9A",
-            style="italic", ha="left", va="top", linespacing=1.4, zorder=3)
+    ax.text(0.022, 0.985, "above the roof: physically unreachable",
+            transform=ax.transAxes, fontsize=7.8, color="#9A9A9A",
+            style="italic", ha="left", va="top", zorder=3)
 
     ax.set_title("Speculation moves decode off the bandwidth roof and onto "
                  "the power limit", fontsize=13.5, fontweight="bold", pad=26)
-    leg = ax.legend(loc="upper left", fontsize=7.6, framealpha=0.95,
-                    borderpad=0.6, labelspacing=0.5, handlelength=1.9,
-                    bbox_to_anchor=(0.010, 0.905))
+    leg = ax.legend(loc="lower right", fontsize=7.5, framealpha=0.95,
+                    borderpad=0.6, labelspacing=0.45, handlelength=1.9,
+                    bbox_to_anchor=(0.997, 0.015))
     leg.set_zorder(10)
 
-    left = [PART + ", fan pinned at 100%",
-            "Workload: agentic coding benchmark. Qwen3.8-27B-UD-IQ4_XS, "
-            "%.2f GB of weights resident." % MODEL_GB,
-            "Server, read from the live process: -c 32768, --parallel 1, "
-            "-fa on, -ctk q8_0, -ctv q8_0,",
+    left = ["CONDITIONS. " + PART + ", fan pinned at 100%.",
+            "Workload: agentic coding benchmark, one slot. "
+            "Qwen3.8-27B-UD-IQ4_XS, %.2f GB of weights." % MODEL_GB,
+            "Server flags, read from the live process: -c 32768, "
+            "--parallel 1, -fa on, -ctk q8_0, -ctv q8_0,",
             "  --spec-type draft-mtp, --spec-draft-n-max %d, "
             "--spec-draft-p-min 0.75." % N_DRAFT_MAX]
     if clk and "pwr" in clk:
-        left.append("Board power %.0f W mean over %d busy samples "
-                    "(coefficient of variation - the standard deviation as a"
-                    % (clk["pwr"], clk["nbusy"]))
-        left.append("  percentage of the mean - %.0f%%); GPU die %.0f C "
-                    "median." % (100 * clk["pwr_cv"], clk["gtemp"]))
+        left.append("Board power %.0f W mean over %d busy samples, "
+                    "coefficient of variation %.0f%% (the standard"
+                    % (clk["pwr"], clk["nbusy"], 100 * clk["pwr_cv"]))
+        left.append("  deviation as a percentage of the mean). GPU die "
+                    "%.0f C median." % clk["gtemp"])
     if clk and "swpow" in clk:
         left.append("SW power cap active on %.0f%% of %d non-idle samples; "
                     "SW thermal on %.0f%%." % (clk["swpow"], clk["nact"],
                                                clk["swthm"]))
     if clk and "pclk" in clk:
         left.append("The cap takes CORE clock, not memory clock: core %.0f of "
-                    "%.0f MHz (%.0f%%), memory %.0f of %.0f MHz (%.0f%%)."
+                    "%.0f MHz (%.0f%%), memory %.0f of"
                     % (clk["pclk"], PCLK_MAX, 100 * clk["pclk"] / PCLK_MAX,
-                       clk["mclk"], MCLK_MAX, 100 * clk["mclk"] / MCLK_MAX))
-        left.append("That is the mechanism: the bandwidth roof stays where it "
-                    "is, and the compute roof comes down.")
+                       clk["mclk"]))
+        left.append("  %.0f MHz (%.0f%%). So the bandwidth roof stays put and "
+                    "the compute roof comes down."
+                    % (MCLK_MAX, 100 * clk["mclk"] / MCLK_MAX))
     if not clk:
         left.append("GPU telemetry absent for this run: board power, clocks "
                     "and throttle reasons were NOT measured.")
 
     right = _not_measured([
-        "  - the prompt-processing micro-batch size. Its intensity bar spans "
-        "n_ubatch 512 to n_batch 2048;",
-        "    only its throughput is measured.",
-        "  - per-request accepted length. The live agentic spread is placed "
-        "at the RUN-MEAN intensity,",
-        "    so its horizontal position is nominal; only its vertical extent "
-        "is measured.",
-        "  - the compute roof as a spec number. It is %s." % pp_src])
+        "  - the prompt-processing micro-batch. Its bar spans n_ubatch 512 to "
+        "n_batch 2048; only",
+        "    its throughput is measured.",
+        "  - per-request accepted length. The live spread sits at the RUN-MEAN "
+        "intensity, so only",
+        "    its vertical extent is measured, not where it sits on x."]
+        + pp_src)
 
-    _footer(fig, left, right, 0.235)
+    _footer(fig, left, right, 0.298)
     path = os.path.join(outdir, "roofline-operating-points.png")
     fig.savefig(path, facecolor="white")
     plt.close(fig)
@@ -501,10 +509,10 @@ def _fig_sweep(outdir, pp, clk, fit):
     x_max = N_DRAFT_MAX / MODEL_GB
 
     xlim = (0.0410, 0.820)
-    ylim = (30.0, 3000.0)
+    ylim = (25.0, 3000.0)
 
     fig, ax = plt.subplots(**_FIG)
-    _roofs(ax, bw, compute, xlim)
+    _roofs(ax, bw, compute, xlim, compute_in_view=False)
     _frame(ax, xlim, ylim)
 
     ax.plot(xs, fit["f"](Ls), color=CB["on"], lw=2.4, zorder=6,
@@ -519,8 +527,8 @@ def _fig_sweep(outdir, pp, clk, fit):
         ax.plot([x], [y], marker="o", ms=8, color="white", mec=CB["on"],
                 mew=1.8, ls="none", zorder=8)
         ax.annotate("L=%d\n%.0f tok/s" % (L, y), xy=(x, y),
-                    xytext=(x * 1.045, y * 0.955), fontsize=8.0, ha="left",
-                    va="top", color="#0b3a58", linespacing=1.3, zorder=7)
+                    xytext=(x * 1.035, y * 1.05), fontsize=8.0, ha="left",
+                    va="bottom", color="#0b3a58", linespacing=1.3, zorder=7)
 
     ax.plot([x_on], [DECODE_ON], marker="o", ms=12, color=CB["on"],
             mec="black", mew=1.0, ls="none", zorder=9,
@@ -529,41 +537,46 @@ def _fig_sweep(outdir, pp, clk, fit):
     ax.plot([x_off], [DECODE_OFF], marker="s", ms=11, color=CB["off"],
             mec="black", mew=1.0, ls="none", zorder=9,
             label="MEASURED: draft head off gives %.1f tok/s" % DECODE_OFF)
-    ax.annotate("L=1\n%.1f tok/s\n(measured)" % DECODE_OFF,
-                xy=(x_off, DECODE_OFF), xytext=(x_off * 1.05, DECODE_OFF * 0.95),
-                fontsize=8.0, ha="left", va="top", color="#7a5400",
-                linespacing=1.3, zorder=7)
-    ax.annotate("L=%.2f\n%.1f tok/s\n(measured)" % (ACCEPT_LEN, DECODE_ON),
-                xy=(x_on, DECODE_ON), xytext=(x_on * 0.955, DECODE_ON * 0.94),
-                fontsize=8.0, ha="right", va="top", color="#0b3a58",
-                linespacing=1.3, zorder=7)
+    ax.annotate("L=1, %.1f tok/s\nMEASURED" % DECODE_OFF,
+                xy=(x_off, DECODE_OFF),
+                xytext=(x_off * 0.93, DECODE_OFF * 0.97), fontsize=8.0,
+                ha="right", va="top", color="#7a5400", linespacing=1.3,
+                bbox=_BOX, zorder=8)
+    ax.annotate("L=%.2f, %.1f tok/s\nMEASURED (today)" % (ACCEPT_LEN,
+                                                          DECODE_ON),
+                xy=(x_on, DECODE_ON * 0.94),
+                xytext=(x_on * 0.90, DECODE_ON * 0.66), fontsize=8.0,
+                ha="right", va="top", color="#0b3a58", linespacing=1.3,
+                bbox=_BOX, zorder=8,
+                arrowprops=dict(arrowstyle="-", color=CB["on"], lw=1.0,
+                                shrinkA=1, shrinkB=4))
 
     ax.axvline(x_max, color=CB["cap"], lw=1.7, ls="-.", alpha=0.9, zorder=4)
-    ax.annotate("--spec-draft-n-max = %d\nthe server's own cap: nothing to the\n"
-                "right of this line is reachable without\nchanging the "
-                "configuration" % N_DRAFT_MAX,
-                xy=(x_max, 640.0), xytext=(x_max * 0.965, 620.0), fontsize=8.2,
-                color=CB["cap"], ha="right", va="top", linespacing=1.4,
+    ax.annotate("--spec-draft-n-max = %d, the server's own cap.\n"
+                "Nothing to the right of this line is reachable\n"
+                "without changing the configuration." % N_DRAFT_MAX,
+                xy=(x_max, 44.0), xytext=(x_max * 1.05, 47.0), fontsize=8.2,
+                color=CB["cap"], ha="left", va="top", linespacing=1.4,
                 fontweight="bold", bbox=_BOX, zorder=8)
 
     ax.axhline(fit["asym"], color=CB["compute"], lw=1.6, ls="--", alpha=0.9,
                zorder=4)
-    ax.text(xlim[0] * 1.04, fit["asym"] * 1.07,
+    ax.text(xlim[0] * 1.04, fit["asym"] * 1.09,
             "asymptote 1 / T1 = %.0f tok/s. A PERFECT draft head, accepting "
-            "every token it drafts, still stops here:\nabove L of about 3 it "
-            "is the marginal cost per speculated token, not the weight pass, "
-            "that binds." % fit["asym"],
+            "every token it drafts,\nstill stops here: above L of about 3 the "
+            "marginal cost per speculated token,\nnot the weight pass, is what "
+            "binds." % fit["asym"],
             color="#00563f", fontsize=8.2, va="bottom", ha="left",
             linespacing=1.4, bbox=_BOX, zorder=8)
 
     g4 = float(fit["f"](N_DRAFT_MAX)) / DECODE_ON - 1.0
     g6 = float(fit["f"](6.0)) / DECODE_ON - 1.0
     gi = fit["asym"] / DECODE_ON - 1.0
-    ax.text(0.988, 0.975,
+    ax.text(0.986, 0.978,
             "What a better draft head buys, from today's L = %.2f\n"
-            "    L -> %d   today's configured cap        %+.0f%%\n"
-            "    L -> 6   needs n-max raised           %+.0f%%\n"
-            "    L -> infinity   a perfect draft head        %+.0f%%\n"
+            "     L to %d   today's configured cap       %+.0f%%\n"
+            "     L to 6   needs n-max raised          %+.0f%%\n"
+            "     L to infinity   a perfect draft head       %+.0f%%\n"
             "Acceptance already runs at %.0f%% of the configured cap,\n"
             "so the lever is the cap, not the draft head's quality -\n"
             "and even the cap is worth only %+.0f%%."
@@ -574,69 +587,50 @@ def _fig_sweep(outdir, pp, clk, fit):
             bbox=dict(boxstyle="round,pad=0.5", fc="#FFF7E6", ec=CB["off"],
                       lw=1.1), zorder=10)
 
-    ax.set_title("A better draft head is worth %+.0f%%, not %+.0f%%: "
-                 "speculation saturates far short of the roof"
+    ax.set_title("Speculation saturates: a better draft head is worth "
+                 "%+.0f%%, not %+.0f%%"
                  % (100 * g6, 100 * (6.0 / ACCEPT_LEN - 1.0)),
                  fontsize=13.5, fontweight="bold", pad=26)
-    leg = ax.legend(loc="upper left", fontsize=7.6, framealpha=0.95,
-                    borderpad=0.6, labelspacing=0.5, handlelength=1.9,
-                    bbox_to_anchor=(0.010, 0.905))
+    leg = ax.legend(loc="upper left", fontsize=7.4, framealpha=0.95,
+                    borderpad=0.6, labelspacing=0.45, handlelength=1.9,
+                    bbox_to_anchor=(0.010, 0.990))
     leg.set_zorder(10)
 
-    left = ["%s. Qwen3.8-27B-UD-IQ4_XS, %.2f GB resident, KV cache q8_0, "
-            "-c 32768." % (PART, MODEL_GB),
-            "Workload: agentic coding benchmark, one slot.",
+    left = ["CONDITIONS. " + PART + ", fan pinned at 100%.",
+            "Workload: agentic coding benchmark, one slot. "
+            "Qwen3.8-27B-UD-IQ4_XS, %.2f GB, KV cache q8_0, -c 32768."
+            % MODEL_GB,
             "MODEL, NOT MEASUREMENT. The locus is a two-parameter fit through "
-            "exactly two measured points, L = 1 and L = %.2f."
-            % ACCEPT_LEN,
-            "  T0 = %.1f ms is the pass over the weights, paid once per "
-            "verification cycle however many tokens ride on it."
-            % (1000 * fit["T0"]),
-            "  T1 = %.2f ms is the marginal cost of each speculated token: "
-            "the draft head's own serial pass, the wider" % (1000 * fit["T1"]),
-            "    verification GEMM, the extra sampling.",
+            "exactly two measured points,",
+            "  L = 1 and L = %.2f. T0 = %.1f ms is the pass over the weights, "
+            "paid once per verification cycle"
+            % (ACCEPT_LEN, 1000 * fit["T0"]),
+            "  however many tokens ride on it. T1 = %.2f ms is the marginal "
+            "cost of each speculated token:" % (1000 * fit["T1"]),
+            "  the draft head's own serial pass, the wider verification GEMM, "
+            "the extra sampling.",
             "Two points and two parameters leave zero degrees of freedom, so "
-            "there is no residual and no open marker carries an error bar."]
+            "there is no residual and no",
+            "  open marker carries an error bar."]
     if clk and "swpow" in clk:
-        left.append("Every point on this curve is subject to the same 350 W "
-                    "board-power cap, active on %.0f%% of non-idle samples."
-                    % clk["swpow"])
+        left.append("Every point on this curve is under the same 350 W "
+                    "board-power cap, active on %.0f%% of" % clk["swpow"])
+        left.append("  non-idle samples. Board power only.")
 
     right = _not_measured([
-        "  - any accepted length other than L = 1 and L = %.2f. Every open "
-        "marker is interpolation, not data." % ACCEPT_LEN,
+        "  - any accepted length but L = 1 and L = %.2f. Every open marker is "
+        "interpolation, not data." % ACCEPT_LEN,
         "  - whether raising --spec-draft-n-max would itself change "
-        "acceptance. The sweep assumes it does not.",
-        "  - the draft head's own weight traffic and power draw. Both are "
-        "folded into T1 and cannot be separated.",
-        "  - T0 on its own implies %.0f GB/s for the weight pass, above the "
-        "%.0f GB/s measured at L = 1, because" % (fit["bw_at_T0"],
-                                                  DECODE_OFF * MODEL_GB),
-        "    the measured point also pays T1. The split between them is a "
-        "model choice, not an observation."])
+        "acceptance. The sweep assumes not.",
+        "  - the draft head's own traffic and power. Both are folded into T1 "
+        "and cannot be separated.",
+        "  - T0 alone implies %.0f GB/s for the weight pass, above the %.0f "
+        "GB/s measured at L = 1, because" % (fit["bw_at_T0"],
+                                             DECODE_OFF * MODEL_GB),
+        "    that point also pays T1. The split between them is a model "
+        "choice, not an observation."])
 
-    _footer(fig, left, right, 0.255)
-
-    # The inset is added AFTER tight_layout, which refuses to run once an
-    # incompatible axes exists. It sits in the empty corner below the locus.
-    ins = ax.inset_axes([0.665, 0.055, 0.315, 0.275])
-    ins.plot(Ls, fit["f"](Ls) / DECODE_OFF, color=CB["on"], lw=2.0)
-    ins.plot(Ls, Ls, color=CB["grey"], lw=1.3, ls=":")
-    ins.plot([ACCEPT_LEN], [DECODE_ON / DECODE_OFF], marker="o", ms=7,
-             color=CB["on"], mec="black", mew=0.8, ls="none")
-    ins.axvline(N_DRAFT_MAX, color=CB["cap"], lw=1.2, ls="-.", alpha=0.9)
-    ins.set_xlabel("mean accepted length L (tokens/pass)", fontsize=7.2,
-                   labelpad=1.5)
-    ins.set_ylabel("speed-up (x)", fontsize=7.2, labelpad=1.5)
-    ins.tick_params(labelsize=6.8, pad=1.5)
-    ins.grid(True, alpha=0.3)
-    ins.set_xlim(1, 6)
-    ins.set_ylim(0.8, 6.4)
-    ins.set_facecolor("white")
-    ins.set_title("returns flatten; free speculation would not", fontsize=7.4,
-                  pad=2.5)
-    for s in ("top", "right"):
-        ins.spines[s].set_visible(False)
+    _footer(fig, left, right, 0.278)
 
     path = os.path.join(outdir, "roofline-accepted-length-sweep.png")
     fig.savefig(path, facecolor="white")

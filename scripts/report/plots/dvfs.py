@@ -305,15 +305,20 @@ def _fig_operating_point(dmon, s, throttle, outdir):
     pwr, pclk, mclk = dmon["pwr"], dmon["pclk"], dmon["mclk"]
     smu, mem = dmon["sm"], dmon["mem"]
 
-    fig = plt.figure(figsize=(12.8, 8.2))
-    gs = fig.add_gridspec(2, 3, width_ratios=[45, 1.3, 22.5],
-                          height_ratios=[3.0, 2.15], hspace=0.21, wspace=0.045)
+    # Column 2 is an empty spacer, and it is load-bearing: the colorbar's label
+    # and the twinned right-hand axis of the lower panel both live outside
+    # their own gridspec cell, and without reserved space they land on top of
+    # the text column.
+    fig = plt.figure(figsize=(13.4, 8.3))
+    gs = fig.add_gridspec(2, 4, width_ratios=[46, 1.4, 7.5, 23],
+                          height_ratios=[3.0, 2.15], hspace=0.22, wspace=0.035)
     ax1 = fig.add_subplot(gs[0, 0])
     cax = fig.add_subplot(gs[0, 1])
     ax2 = fig.add_subplot(gs[1, 0], sharex=ax1)
-    fig.add_subplot(gs[1, 1]).axis("off")
-    axT = fig.add_subplot(gs[:, 2])
+    axT = fig.add_subplot(gs[0, 3])
+    axL = fig.add_subplot(gs[1, 3])
     axT.axis("off")
+    axL.axis("off")
 
     xmax = max(s["cap_w"], float(np.nanmax(pwr))) * 1.055
     ymax = max(s["max_sm"], s["obs_sm"]) * 1.10
@@ -348,16 +353,18 @@ def _fig_operating_point(dmon, s, throttle, outdir):
              "%.0f MHz of SM clock\nnever asked for\n(%.0f%% of the maximum)"
              % (gap, 100.0 * gap / max(s["max_sm"], 1.0)),
              fontsize=8.6, color=_INK, va="center", ha="right",
-             fontweight="bold", zorder=6)
+             fontweight="bold", zorder=6,
+             bbox=dict(boxstyle="round,pad=0.28", fc="white", ec="none",
+                       alpha=0.78))
 
     ax1.set_ylabel("SM (graphics) clock (MHz)", fontsize=9.5)
     ax1.set_ylim(0, ymax)
     ax1.set_xlim(0, xmax)
     ax1.grid(alpha=0.3)
     ax1.tick_params(labelsize=8.5, labelbottom=False)
-    ax1.set_title("SM clock: held %.0f MHz below the part's ceiling, with the "
-                  "power cap cutting clocks on %.0f%% of the sample period"
-                  % (gap, s["pviol_mean"]), fontsize=10.5, color=_INK, pad=7)
+    ax1.set_title("SM clock: held %.0f MHz below the part's ceiling by a cap\n"
+                  "that cuts clocks on %.0f%% of the sample period"
+                  % (gap, s["pviol_mean"]), fontsize=10.5, color=_INK, pad=6)
 
     # The whole workload lives in the top-right corner of the full envelope, so
     # the corner is drawn again at a readable size. The parent axes keep the
@@ -366,7 +373,7 @@ def _fig_operating_point(dmon, s, throttle, outdir):
     zx0, zx1 = s["pwr_p1"] - 6.0, s["cap_w"] * 1.012
     zy0, zy1 = s["pclk_p1"] - 45.0, s["pclk_p99"] + 45.0
     if zx1 > zx0 and zy1 > zy0:
-        axz = ax1.inset_axes([0.145, 0.135, 0.435, 0.40])
+        axz = ax1.inset_axes([0.315, 0.125, 0.415, 0.395])
         _phase_scatter(axz, s, pwr, pclk, smu, sizes=(9, 20, 26), unk=4,
                        alpha=0.55)
         axz.axhline(s["pclk_med"], color=_TRAF, ls="-", lw=1.1, zorder=5)
@@ -375,23 +382,29 @@ def _fig_operating_point(dmon, s, throttle, outdir):
         axz.set_ylim(zy0, zy1)
         axz.grid(alpha=0.25)
         axz.tick_params(labelsize=6.8)
+        axz.set_xlabel("board power (W)", fontsize=6.6, labelpad=1)
+        axz.set_ylabel("SM clock (MHz)", fontsize=6.6, labelpad=1)
         axz.set_title("the working corner, magnified", fontsize=7.4,
                       color=_INK, pad=3)
         for sp in axz.spines.values():
             sp.set_color(_INK)
         ax1.indicate_inset_zoom(axz, edgecolor=_INK, alpha=0.55, lw=0.9)
 
+    # The legend lives in the text column, not on the axes: every corner of the
+    # upper panel is either data, the magnified inset, or one of the two
+    # reference lines' labels, and a legend box on top of any of them would be
+    # hiding samples to explain samples.
     hands = [plt.Line2D([], [], ls="", marker=mk, color=_GREY, ms=ms,
                         label=lab)
              for mk, ms, lab in (
                  ("o", 5, "decode"),
                  ("^", 6, "prompt processing"),
                  ("X", 6, "idle (slot not processing)"),
-                 (".", 7, "no /slots coverage: phase unknown, NOT idle"))]
-    ax1.legend(handles=hands, fontsize=7.5, loc="upper left",
-               bbox_to_anchor=(0.005, 0.80), frameon=True, framealpha=0.93,
-               title="marker = workload phase", title_fontsize=7.5,
-               borderpad=0.5)
+                 (".", 7, "no /slots coverage:\nphase unknown, NOT idle"))]
+    axT.legend(handles=hands, fontsize=7.2, loc="lower left",
+               bbox_to_anchor=(0.0, -0.02), frameon=True, framealpha=0.95,
+               title="marker = workload phase", title_fontsize=7.2,
+               borderpad=0.5, labelspacing=0.45, handletextpad=0.6)
 
     # ---- lower: the memory domain, clock against the traffic it serves -----
     mmax = max(s["max_mem"], s["obs_mem"]) * 1.06
@@ -423,10 +436,10 @@ def _fig_operating_point(dmon, s, throttle, outdir):
                    "wall power)", fontsize=9.5)
     ax2.grid(alpha=0.3)
     ax2.set_title("Memory clock: one frequency, %.0f MHz, on %.1f%% of %s "
-                  "samples - while its controller is busy only %.0f%% of the "
+                  "samples\nwhile its controller is busy only %.0f%% of the "
                   "time"
                   % (s["mclk_top"], s["mclk_top_pct"], s["focus_name"],
-                     s["mem_med"]), fontsize=10.5, color=_INK, pad=7)
+                     s["mem_med"]), fontsize=10.5, color=_INK, pad=6)
 
     ax2.annotate("clock pinned here at every power level",
                  xy=(s["cap_w"] * 0.72, s["mclk_top"]),
@@ -462,36 +475,31 @@ def _fig_operating_point(dmon, s, throttle, outdir):
 
     # ---- right column: the numbers, and the lever ---------------------------
     stat = ("THE OPERATING POINT, %s phase\n"
-            "  board power     %5.0f W      median (%.0f-%.0f, 5-95 pct)\n"
-            "  SM clock        %5.0f MHz    median (%.0f-%.0f)\n"
-            "  memory clock    %5.0f MHz    on %.1f%% of samples\n"
-            "  SM busy         %5.0f %%      median\n"
-            "  memory busy     %5.0f %%      median (%.0f-%.0f)\n"
-            "  cap cutting     %5.0f %%      of the sample period\n"
-            "                              (NVML power-violation duty)\n"
-            "  samples         %5d        over %.0f s\n"
+            "  board power  %5.0f W    median (%.0f-%.0f, 5-95 pct)\n"
+            "  SM clock     %5.0f MHz  median (%.0f-%.0f)\n"
+            "  memory clock %5.0f MHz  on %.1f%% of samples\n"
+            "  SM busy      %5.0f %%    median\n"
+            "  memory busy  %5.0f %%    median (%.0f-%.0f)\n"
+            "  cap cutting  %5.0f %%    of the sample period\n"
+            "                        (NVML power-violation duty)\n"
+            "  samples      %5d      over %.0f s\n"
             "\n"
-            "INSIDE THE CAP THE CLOUD IS VERTICAL,\n"
-            "NOT SLOPED. Board power barely moves\n"
-            "while the SM clock ranges %.0f-%.0f MHz.\n"
-            "r(board power, SM clock) = %+.2f over the\n"
-            "%d busy samples in the top memory\n"
-            "P-state: watts are not buying clock, the\n"
-            "cap is handing clock back.\n"
-            "\n"
-            "Across ALL busy samples that same\n"
-            "correlation reads %+.2f, which is the\n"
-            "opposite conclusion. It is an artefact of\n"
-            "the light samples, where power and clock\n"
-            "fall together. The conditioned number is\n"
-            "the one that describes the workload."
+            "INSIDE THE CAP THE CLOUD IS VERTICAL, NOT\n"
+            "SLOPED. r(board power, SM clock) = %+.2f over\n"
+            "the %d busy samples in the top memory\n"
+            "P-state: watts are not buying clock, the cap\n"
+            "is handing clock back. Across ALL busy\n"
+            "samples that same correlation reads %+.2f -\n"
+            "the opposite conclusion, and an artefact of\n"
+            "the light samples where power and clock fall\n"
+            "together. The conditioned number is the one\n"
+            "that describes this workload."
             % (s["focus_name"], s["pwr_med"], s["pwr_p5"], s["pwr_p95"],
                s["pclk_med"], s["pclk_p5"], s["pclk_p95"], s["mclk_top"],
                s["mclk_top_pct"], s["smu_med"], s["mem_med"], s["mem_p5"],
                s["mem_p95"], s["pviol_mean"], s["n_focus"], s["focus_sec"],
-               s["pclk_p5"], s["pclk_p95"], s["r_top"], s["n_top"],
-               s["r_busy"]))
-    axT.text(0.0, 1.0, stat, transform=axT.transAxes, fontsize=7.35,
+               s["r_top"], s["n_top"], s["r_busy"]))
+    axT.text(0.0, 1.0, stat, transform=axT.transAxes, fontsize=7.2,
              color=_INK, va="top", ha="left", family="monospace",
              bbox=dict(boxstyle="round,pad=0.5", fc=_PANEL, ec="#c9ced8",
                        lw=0.9))
@@ -521,7 +529,7 @@ def _fig_operating_point(dmon, s, throttle, outdir):
              "not show what pulling it would buy."
              % (s["pviol_mean"], 100.0 - s["mem_med"], s["smu_med"],
                 s["mem_med"]))
-    axT.text(0.0, 0.455, lever, transform=axT.transAxes, fontsize=7.35,
+    axL.text(0.0, 1.0, lever, transform=axL.transAxes, fontsize=7.35,
              color=_INK, va="top", ha="left", family="monospace",
              bbox=dict(boxstyle="round,pad=0.5", fc=_LEVERBG, ec=_LEVEREC,
                        lw=1.3))
@@ -537,7 +545,7 @@ def _fig_operating_point(dmon, s, throttle, outdir):
              if mix else
              "NVML clock-limit reasons: not collected for this run.")
     _footer(fig, extra)
-    fig.subplots_adjust(left=0.058, right=0.995, top=0.928, bottom=0.115)
+    fig.subplots_adjust(left=0.073, right=0.996, top=0.912, bottom=0.113)
     path = os.path.join(outdir, "dvfs-operating-point.png")
     fig.savefig(path, dpi=140, facecolor="white")
     plt.close(fig)
@@ -595,10 +603,10 @@ def _fig_residency(dmon, s, outdir):
     axA.axvline(s["pclk_med"], color=_TRAF, ls="-", lw=1.4)
     axA.text(s["max_sm"] + hi * 0.017, top * 0.50, _refline_label(s, "SM"),
              fontsize=7.6, color=_GREY, rotation=90, ha="center", va="center")
-    axA.annotate("", xy=(s["max_sm"], top * 0.80),
-                 xytext=(s["pclk_med"], top * 0.80),
+    axA.annotate("", xy=(s["max_sm"], top * 0.865),
+                 xytext=(s["pclk_med"], top * 0.865),
                  arrowprops=dict(arrowstyle="<->", color=_INK, lw=1.4))
-    axA.text((s["max_sm"] + s["pclk_med"]) / 2.0, top * 0.825,
+    axA.text((s["max_sm"] + s["pclk_med"]) / 2.0, top * 0.885,
              "%.0f MHz never\nreached under load"
              % (s["max_sm"] - s["pclk_med"]), fontsize=8.4, color=_INK,
              ha="center", va="bottom", fontweight="bold")
@@ -626,7 +634,9 @@ def _fig_residency(dmon, s, outdir):
     sa.set_xlabel("% of the maximum SM clock P-state", fontsize=8, color=_GREY)
     sa.tick_params(labelsize=7.5, colors=_GREY)
 
-    axAz = axA.inset_axes([0.075, 0.135, 0.42, 0.42])
+    # Placed right of the lowest occupied bin: an inset that covers a bar is
+    # hiding a measurement in order to explain one.
+    axAz = axA.inset_axes([0.195, 0.125, 0.375, 0.40])
     zlo, zhi = s["pclk_p1"] - 60.0, s["pclk_p99"] + 60.0
     axAz.hist(v, bins=np.arange(0.0, hi + step, step), weights=w, color=_SM,
               edgecolor="none")
@@ -634,6 +644,8 @@ def _fig_residency(dmon, s, outdir):
     axAz.set_xlim(zlo, zhi)
     axAz.grid(alpha=0.25)
     axAz.tick_params(labelsize=6.8)
+    axAz.set_xlabel("SM clock (MHz)", fontsize=6.6, labelpad=1)
+    axAz.set_ylabel("time (s)", fontsize=6.6, labelpad=1)
     axAz.set_title("the used band, magnified", fontsize=7.4, color=_INK, pad=3)
     for sp in axAz.spines.values():
         sp.set_color(_INK)
@@ -654,10 +666,10 @@ def _fig_residency(dmon, s, outdir):
              fontsize=7.6, color=_GREY, rotation=90, ha="center", va="center")
     for x, y in zip(u, secs):
         big = y > secs.max() * 0.5
-        axB.annotate("%.0f MHz\n%s s  (%.2f%% of busy time)"
+        axB.annotate("%.0f MHz\n%s s\n%.2f%% of busy time"
                      % (x, ("%.0f" % y) if y >= 1.0 else ("%.1f" % y),
                         100.0 * y / max(tot, 1e-9)),
-                     xy=(x, y), xytext=(x - hib * 0.02, y + tb * 0.035),
+                     xy=(x, y), xytext=(x - hib * 0.022, y + tb * 0.035),
                      fontsize=7.8, color=_INK if big else _MEM,
                      ha="right" if big else "center", va="bottom",
                      fontweight="bold" if big else "normal")
@@ -683,7 +695,7 @@ def _fig_residency(dmon, s, outdir):
     ok = np.isfinite(tv)
     tv, tw = tv[ok], tw[ok]
     if tv.size:
-        axBz = axB.inset_axes([0.115, 0.40, 0.44, 0.40])
+        axBz = axB.inset_axes([0.115, 0.365, 0.395, 0.385])
         axBz.hist(tv, bins=np.arange(0, 102, 2), weights=tw, color=_TRAF,
                   edgecolor="none")
         axBz.axvline(s["mem_med"], color=_INK, ls="-", lw=1.2)
@@ -717,7 +729,7 @@ def _fig_residency(dmon, s, outdir):
             "clock trade this contrast suggests was NOT tested: no clock was "
             "locked, offset or varied anywhere in this campaign."
             % (A.BUSY_SM_PCT, tot))
-    fig.subplots_adjust(left=0.062, right=0.985, top=0.875, bottom=0.155,
+    fig.subplots_adjust(left=0.062, right=0.985, top=0.838, bottom=0.155,
                         wspace=0.19)
     path = os.path.join(outdir, "dvfs-clock-residency.png")
     fig.savefig(path, dpi=140, facecolor="white")

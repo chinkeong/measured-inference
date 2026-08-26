@@ -428,7 +428,7 @@ def _null_paths(ctx, outdir, t0):
                 transform=ax.transAxes, ha="right", va="top", fontsize=7.5,
                 family="monospace", bbox=BOX, linespacing=1.3)
 
-        ax.text(0.008, 0.775,
+        ax.text(0.008, 0.728,
                 "THE TAIL IS NAMED, NOT HIDDEN. %.1f%% of samples burst above "
                 "1,000 MB/s, peaking at %.0f%% of the\n"
                 "link. Those bursts are brief and never sustained, and this "
@@ -588,8 +588,8 @@ def _null_paths(ctx, outdir, t0):
                    ("%.0f%%" % share) if np.isfinite(share)
                    else "an unmeasured share",
                    _n(avail_min)),
-                transform=ax.transAxes, ha="right", va="bottom", fontsize=7.5,
-                bbox=BOX, linespacing=1.4)
+                transform=ax.transAxes, ha="right", va="bottom", fontsize=7.2,
+                bbox=BOX, linespacing=1.38)
 
         if not have_pin:
             ax.text(0.008, 0.90,
