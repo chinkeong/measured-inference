@@ -185,12 +185,16 @@ footer b{color:var(--ink-2);font-weight:500}
 <header>
   <p class="eyebrow">Measured Inference · Agentic arm pair · 2026-08-27</p>
   <h1>Two Bits, Same Answer</h1>
-  <p class="standfirst">A 2-bit quantisation of Qwen3.8-27B solved the same number of
-  coding tasks as a 4-bit one — and spent <strong>about a third more energy</strong> doing it.
-  Both arms ran the full 225-exercise aider polyglot benchmark on one RTX 3090 with
-  identical settings. Power telemetry covers all 225 exercises of the second arm and 132
-  of the first, whose sampler was started after its benchmark — every energy figure below
-  is paired over exercises both arms recorded.</p>
+  <p class="standfirst">A 2-bit quantisation of Qwen3.8-27B finished 96 of 225 coding
+  tasks. So did a 4-bit one. They did <strong>not finish the same 96</strong> — a quarter
+  of the benchmark went to exactly one of them — and the 2-bit file spent
+  <strong>about a third more energy</strong>, which is the one difference here that is
+  statistically resolved.</p>
+  <p class="standfirst" style="margin-top:.9rem;font-size:1rem">Both arms ran the full
+  225-exercise aider polyglot benchmark on one RTX 3090 with identical settings. Power
+  telemetry covers all 225 exercises of the second arm and 132 of the first, whose sampler
+  was started after its benchmark — every energy figure below is paired over exercises both
+  arms recorded.</p>
   <div class="conditions">
     <span><b>part</b> RTX 3090, 350 W cap</span>
     <span><b>runtime</b> llama.cpp b10502</span>
@@ -222,9 +226,9 @@ card and not. The question a buyer actually has is what that costs.</p>
     <div class="c">median over 66 exercises<br>BOTH arms solved · IQR 0.95–2.21</div>
   </div>
   <div class="fig">
-    <div class="v">1.32<small>×</small></div>
-    <div class="k">Energy per solved task</div>
-    <div class="c">17.6 kJ against 13.4 kJ · paired on 36<br>exercises both solved WITH power data</div>
+    <div class="v">1.34<small>×</small></div>
+    <div class="k">Energy, paired</div>
+    <div class="c">95% CI 1.21–1.49 · geometric mean over<br>132 exercises both arms recorded</div>
   </div>
   <div class="fig">
     <div class="v">1.20<small>×</small></div>
@@ -234,9 +238,15 @@ card and not. The question a buyer actually has is what that costs.</p>
 </div>
 
 <div class="col">
-<p>The pass rates are indistinguishable. That is not the same as equal: with 59 discordant
-exercises the interval spans thirteen points, and a real difference anywhere inside it fits
-this data. What <em>is</em> resolved is the cost. The 2-bit file needs about a fifth more
+<p><b>The equal totals hide the more interesting fact.</b> Only 66 exercises were solved by
+both arms. Fifty-nine — a quarter of the benchmark — were solved by exactly one of them,
+split almost evenly at 29 and 30. So the matching scores are substantially coincidence: the
+two files succeed on materially different tasks and happen to land on the same total. The
+pass rates are indistinguishable, which is not the same as equal — the interval spans
+thirteen points, and a real difference anywhere inside it fits this data.</p>
+
+<p>What <em>is</em> resolved is the cost. Its confidence interval excludes 1.0, so unlike
+the accuracy difference the energy difference is a measured result rather than a null. The 2-bit file needs about a fifth more
 tokens to reach the same answer, takes about a fifth longer, and burns roughly a third
 more energy per task it actually completes.</p>
 
@@ -369,6 +379,16 @@ these was measured, published, and then refuted by a better measurement — in e
 this campaign ran against its own work.</p>
 
 <div class="retraction">
+  <span class="tag">Corrected — a true number that read as the wrong claim</span>
+  <p><s>A 2-bit quantisation solved the same number of coding tasks as a 4-bit one.</s></p>
+  <p><b>True as arithmetic, misleading as a claim.</b> Both finished 96 of 225 — but only
+  66 were solved by both, and 59 by exactly one, split 29 to 30. The equal totals conceal
+  disagreement on a quarter of the benchmark, and the sentence invited the reading that the
+  two files are interchangeable here. They score alike in aggregate; they do not succeed on
+  the same work.</p>
+</div>
+
+<div class="retraction">
   <span class="tag">Corrected — energy compared across different exercises</span>
   <p><s>The 2-bit file costs 1.52× the energy per solved task: 23.2 kJ against 15.3 kJ.</s></p>
   <p><b>Paired properly: 1.32×.</b> The first arm's power sampler was started after its
@@ -456,7 +476,9 @@ this campaign ran against its own work.</p>
 <p><b>The practical read.</b> If 4.4 GB of video memory is what stands between the model
 fitting and not fitting, the 2-bit file costs about a fifth more tokens and roughly a third
 more energy per finished task, at a pass rate this sample cannot distinguish. If the 4-bit
-file already fits, there is no measured reason to move down.</p>
+file already fits, there is no measured reason to move down. And the two files are not
+interchangeable task-for-task even where their totals match — swapping one for the other
+changes which quarter of the work succeeds.</p>
 </div>
 </div>
 
