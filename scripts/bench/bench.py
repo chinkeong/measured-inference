@@ -698,6 +698,16 @@ def main():
                      # setting that dominates the result. The effort survived
                      # only in the FILENAME, which rule 3 forbids.
                      "server_started_by_harness": not args.no_spawn,
+                     # llama.cpp reads every flag from the environment too, and
+                     # a flag set that way NEVER appears in server_args. That is
+                     # not hypothetical: the GPQA anchor passes reasoning effort
+                     # as LLAMA_ARG_CHAT_TEMPLATE_KWARGS, because the JSON could
+                     # not survive the quoting layers on the command line - and
+                     # doing so silently removed the run's single most important
+                     # condition from this artefact. Captured here so the record
+                     # is complete however the flag arrived.
+                     "server_env": {k: v for k, v in os.environ.items()
+                                    if k.startswith("LLAMA_ARG_")} or None,
                      "server_args": (args.server_args if not args.no_spawn
                                      else None),
                      "server_args_note": (None if not args.no_spawn else

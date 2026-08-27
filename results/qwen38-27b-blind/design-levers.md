@@ -321,6 +321,15 @@ put a number on it.
 **A second consequence, for cost planning rather than for silicon.** The same
 run showed GPQA at xhigh spending **4,247 to over 16,384 output tokens per
 question**, against 326–463 for GSM8K on this rig. Three of nine questions
-exhausted a 16,384-token cap and were scored wrong for truncation. Any estimate
-of what a reasoning benchmark costs that was extrapolated from GSM8K token
-counts is wrong by an order of magnitude.
+exhausted a 16,384-token cap and were scored wrong for truncation. An estimate
+of a reasoning benchmark's **token** cost extrapolated from GSM8K is wrong by an
+order of magnitude.
+
+**Corrected the same day, because that does not carry over to hours.** Measured
+over 12 questions with an adequate 30,000-token cap: mean **5,980** output
+tokens, median 868, max 24,276, and **zero** truncations. The full 198-question
+run projects to **6.2 hours** at the measured 53.2 tokens per second — inside
+the 1.8–7.1 hour range this page had called wrong. The token claim stands; the
+inference drawn from it did not. The distribution is also bimodal rather than
+merely skewed — seven of twelve questions answered directly in 201–1,127 tokens,
+five reasoned at length for 8,658–24,276 — so a mean alone describes it badly.
