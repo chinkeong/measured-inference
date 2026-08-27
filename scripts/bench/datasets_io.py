@@ -9,6 +9,10 @@ Scoring follows METHODOLOGY rule 21: every *scored* benchmark normalizes to
 0-100 by its own scorer, and only scored benchmarks enter the composite Mean.
 
     GSM8K, MATH-500     exact match (final #### number / last \\boxed{})
+    GPQA-Diamond        exact match on the chosen option letter. An answer the
+                        extractor cannot read scores WRONG, not unscored, so the
+                        denominator stays at all 198 questions — see
+                        _grade_choice for why that direction is the safe one
     HumanEval, MBPP     execution pass@1 — runs the generated code locally
                         (ScoreOptions(exec_enabled=False) -> unscored)
     MeetingBank         ROUGE-L F1 against the reference summary
