@@ -1,5 +1,5 @@
 """Download, cache, build prompts for — and score — the benchmark datasets:
-GSM8K, MATH-500, HumanEval, MBPP, ALPACA, MeetingBank, MT-Bench.
+GSM8K, MATH-500, GPQA-Diamond, HumanEval, MBPP, ALPACA, MeetingBank, MT-Bench.
 
 Every set loads in METHODOLOGY rule 23's order — the committed frozen copy in
 ./datasets-frozen/, then the ./datasets/ cache, then (once) its canonical public
@@ -76,12 +76,41 @@ SOURCES = {
         "url": "https://raw.githubusercontent.com/lm-sys/FastChat/main/fastchat/llm_judge/data/mt_bench/question.jsonl",
         "file": "mtbench_questions.jsonl",
     },
+    "GPQA-Diamond": {
+        # A MIRROR, and it must be labelled as one. The canonical dataset,
+        # Idavidrein/gpqa, is gated ("gated": "auto" on the Hub API) and the
+        # token on this machine is refused by it. This copy is ungated, carries
+        # exactly 198 rows, and presents the canonical FOUR-OPTION multiple
+        # choice with the options already shuffled into A/B/C/D and the answer
+        # as a letter.
+        #
+        # A second ungated mirror was rejected after inspection:
+        # hendrydong/gpqa_diamond has been converted to FREE-RESPONSE with
+        # LaTeX-boxed answers. That is a different task with no 25% guess floor,
+        # and scoring it against a published multiple-choice figure would have
+        # compared two different benchmarks. Checked before use, not after.
+        #
+        # Frozen at scripts/bench/datasets-frozen/gpqa_diamond.jsonl,
+        # sha256 71991ea576f83033e20ec1e57be0b83b7a909ccab601803416dcf57227faa4f9,
+        # 132,103 bytes, 198 rows. Answer distribution A 55 / B 54 / C 48 / D 41.
+        # Fetched via the dataset-viewer API, which needs no parquet reader:
+        #   https://datasets-server.huggingface.co/rows?dataset=fingertap%2FGPQA-Diamond&config=default&split=test&offset=0&length=100
+        #
+        # THE SHUFFLE IS THIS MIRROR'S, NOT THE PUBLISHER'S. Option order is
+        # fixed here, which makes our runs reproducible, but it is not the order
+        # that produced any published score. Position bias is a real effect in
+        # language models, so a comparison against a published number inherits
+        # an unquantified difference on top of everything else.
+        "url": "https://datasets-server.huggingface.co/rows?dataset=fingertap%2FGPQA-Diamond&config=default&split=test&offset=0&length=100",
+        "file": "gpqa_diamond.jsonl",
+        "frozen_only": True,
+    },
 }
 
 DATASET_NAMES = list(SOURCES.keys())
 
 # which scorer each set uses (rule 21)
-EXACT_MATCH_SETS = ("GSM8K", "MATH-500")
+EXACT_MATCH_SETS = ("GSM8K", "MATH-500", "GPQA-Diamond")
 EXEC_SETS = ("HumanEval", "MBPP")
 ROUGE_SETS = ("MeetingBank",)
 JUDGED_SETS = ("ALPACA", "MT-Bench")
@@ -203,6 +232,17 @@ def build_item(name, row, max_prompt_tokens=DEFAULT_MAX_PROMPT_TOKENS):
         tests = "\n".join(row.get("test_list", [])[:1])
         prompt = (row["text"] + "\n\nYour code should satisfy this test:\n" + tests +
                   "\n\nReturn the solution in a single Python code block.")
+    elif name == "GPQA-Diamond":
+        # The row already ends in its four labelled options, so the prompt only
+        # has to fix the ANSWER FORMAT. "Answer: X" on its own final line is
+        # asked for explicitly because this model reasons at length by default
+        # and an unconstrained reply buries the choice in prose, where an
+        # extractor has to guess - and a guessing extractor scores the
+        # extractor, not the model.
+        prompt = (row["question"].rstrip() +
+                  "\n\nAnswer with the single letter of the correct option. "
+                  "End your reply with a final line in exactly this form:\n"
+                  "Answer: X")
     elif name == "ALPACA":
         instruction = (row.get("instruction") or "").strip()
         extra = (row.get("input") or "").strip()
@@ -239,6 +279,9 @@ def reference_answer(name, row):
                 "test_setup_code": row.get("test_setup_code", "")}
     if name == "MeetingBank":
         return {"summary": row.get("summary", ""), "uid": row.get("uid")}
+    if name == "GPQA-Diamond":
+        a = str(row.get("answer", "")).strip().upper()
+        return a if a in ("A", "B", "C", "D") else None
     return None
 
 
@@ -364,6 +407,8 @@ def grade(name, response, ref):
             pred = nums[-1] if nums else ""
     elif name == "MATH-500":
         pred = _last_boxed(response) or ""
+    elif name == "GPQA-Diamond":
+        return _grade_choice(response, ref)
     else:
         return None
     a, b = _norm_answer(pred), _norm_answer(ref)
@@ -373,6 +418,67 @@ def grade(name, response, ref):
         return abs(float(a) - float(b)) < 1e-6
     except (TypeError, ValueError):
         return False
+
+
+# Leading markdown is tolerated as well as trailing. Models bold their
+# conclusion as **Answer: D**, and a pattern that allowed only the trailing
+# asterisks scored that as unparsed - a failure that would have been charged to
+# the model rather than to this regex.
+_CHOICE_TAGGED = re.compile(
+    r"(?:^|\n)[\s*_#>]*(?:final\s+)?answer\s*[:\-]?\s*[\(\[]?\*{0,2}([ABCD])\b",
+    re.IGNORECASE)
+_CHOICE_BARE = re.compile(r"(?:^|\n)\s*\(?\*{0,2}([ABCD])[\.\)\*\s]*$",
+                          re.MULTILINE)
+
+
+def _grade_choice(response, ref):
+    """Did the model pick the right option letter?
+
+    Returns True or False. None is returned ONLY when the row carries no
+    reference answer - a data fault, not a model fault - because the harness
+    drops None-scored items from the denominator entirely
+    (accuracy = sum(scores)/len(graded)).
+
+    AN UNREADABLE ANSWER IS SCORED WRONG, DELIBERATELY. On a four-option
+    question a reply the extractor cannot resolve is a failure to answer, and
+    the published figures this is meant to be compared against are means over
+    all 198 questions. Returning None here would silently shrink the
+    denominator and inflate the score by exactly the rate at which the model
+    ignores the requested format - the one failure most likely to correlate
+    with a broken chat template, which is what this benchmark exists to detect.
+    OpenAI's simple-evals scores an unextractable multiple-choice answer as
+    incorrect for the same reason.
+
+    The diagnostic is preserved elsewhere: run with transcripts kept, and the
+    unparsed rate can be recovered by re-running this extractor over them. A
+    high rate means the prompt or the template is wrong, not that the model is
+    poor, and it must be checked before any score from this set is quoted.
+
+    THINKING IS STRIPPED FIRST. This model reasons inside <think> blocks by
+    default, and that reasoning routinely contains sentences like "so the answer
+    would be B" on the way to rejecting B. Scoring the visible reply only is the
+    difference between grading the model's answer and grading its scratch work.
+
+    Extraction runs in order of how much the model committed to the choice:
+      1. a tagged final answer - "Answer: C", "final answer: (C)", "Answer - C"
+      2. a bare letter alone on the last line
+    The LAST match wins in both cases, because a reply that revises itself ends
+    on its conclusion.
+    """
+    if ref is None:
+        return None
+    body = strip_think(response or "")
+    pred = None
+    m = list(_CHOICE_TAGGED.finditer(body))
+    if m:
+        pred = m[-1].group(1).upper()
+    else:
+        m = list(_CHOICE_BARE.finditer(body.rstrip()))
+        if m:
+            pred = m[-1].group(1).upper()
+    if pred is None:
+        return False
+    return pred == str(ref).strip().upper()
 
 
 # ---- ROUGE-L (MeetingBank) ----
