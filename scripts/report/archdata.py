@@ -284,9 +284,21 @@ def load_exercises(run, cache=True):
             continue
         if isinstance(r, list):
             r = r[-1] if r else {}
-        if not r.get("completion_tokens"):
-            continue
+        # A ZERO-TOKEN EXERCISE IS A REAL ATTEMPT AND A REAL FAILURE, and it is
+        # kept. This used to `continue` past them, which silently deleted work
+        # the benchmark had done - and the deletion was ASYMMETRIC. The 2-bit
+        # arm had two such exercises (go/robot-simulator, javascript/pig-latin);
+        # the 4-bit arm had none. Both failed after 353 s and 334 s having
+        # produced nothing at all, so dropping them moved that arm's pass rate
+        # from the true 96 of 225 (42.7%) to 96 of 223 (43.0%) and its seconds
+        # per case from 72.2 down to 69.8 - flattering, in both directions, the
+        # one file under scrutiny. aider's own run summary was right and every
+        # figure derived here was the biased one.
+        #
+        # zero_tokens is flagged rather than dropped so a caller that must
+        # divide by tokens can exclude them explicitly and say that it did.
         out.append({"t_end": mt, "dur": r.get("duration", 0.0),
+                    "zero_tokens": not r.get("completion_tokens"),
                     "prompt": r.get("prompt_tokens", 0),
                     "completion": r.get("completion_tokens", 0),
                     "case": r.get("testcase", "?"),

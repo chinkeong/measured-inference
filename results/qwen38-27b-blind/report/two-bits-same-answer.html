@@ -233,7 +233,7 @@ That is what the overheads below are made of — extra work, not slower work.</p
   <div class="fig">
     <div class="v">+0.4<small> pts</small></div>
     <div class="k">Pass-rate difference</div>
-    <div class="c">95% CI −6.3 to +7.2 · McNemar p = 1.00<br>n = 223 paired · a NULL, not equivalence</div>
+    <div class="c">95% CI −6.7 to +6.7 · McNemar p = 1.00<br>n = 225 paired · a NULL, not equivalence</div>
   </div>
   <div class="fig">
     <div class="v">1.20<small>×</small></div>
@@ -304,7 +304,7 @@ or a finished task, and only the second one is what a user pays.</p>
     <tr><td>Well-formed responses</td><td class="n win">100.0%</td><td class="n">99.1%</td><td class="n">—</td></tr>
     <tr><td>Seconds per case</td><td class="n win">53.1</td><td class="n lose">72.2</td><td class="n">1.36×</td></tr>
     <tr><td>Completion tokens, total</td><td class="n win">601,849</td><td class="n lose">849,576</td><td class="n">1.41×</td></tr>
-    <tr><td>Tokens per solved exercise <span class="dim">(each arm's mean over the exercises it solved itself, within the 223 paired)</span></td><td class="n win">2,102</td><td class="n lose">3,248</td><td class="n">1.55×</td></tr>
+    <tr><td>Tokens per solved exercise <span class="dim">(each arm's mean over the exercises it solved itself, within the 225 paired)</span></td><td class="n win">2,102</td><td class="n lose">3,248</td><td class="n">1.55×</td></tr>
     <tr><td>Energy per solved exercise</td><td class="n win">13.4 kJ</td><td class="n lose">17.6 kJ</td><td class="n">1.32×</td></tr>
   </tbody>
 </table>
@@ -446,7 +446,7 @@ this campaign ran against its own work.</p>
   <span class="tag">Corrected — energy compared across different exercises</span>
   <p><s>The 2-bit file costs 1.52× the energy per solved task: 23.2 kJ against 15.3 kJ.</s></p>
   <p><b>Paired properly: 1.32×.</b> The first arm's power sampler was started after its
-  benchmark, so it has telemetry for <span class="m">132</span> of 223 exercises while the
+  benchmark, so it has telemetry for <span class="m">132</span> of 225 exercises while the
   second has <span class="m">222</span>. The cost table averaged each arm over whatever it
   happened to have — different exercises — and divided tokens over a third set again.
   Recomputed over only the exercises where both arms have power, the ratio is

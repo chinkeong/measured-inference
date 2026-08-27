@@ -121,7 +121,17 @@ def exercises(run):
             continue
         if isinstance(r, list):
             r = r[-1] if r else {}
+        # Zero-token exercises are kept here too, for the same reason as in
+        # archdata.load_exercises: they are real attempts and real failures, and
+        # dropping them was asymmetric between the two arms. They ARE excluded
+        # from any per-token figure below, because dividing energy by zero
+        # tokens is undefined - but that exclusion is now explicit and counted
+        # rather than happening silently at load time.
         if not r.get("completion_tokens"):
+            out.append({"t_end": mt, "dur": r.get("duration", 0.0),
+                        "prompt": r.get("prompt_tokens", 0), "completion": 0,
+                        "zero_tokens": True,
+                        "case": r.get("testcase", "?")})
             continue
         out.append({"t_end": mt, "dur": r.get("duration", 0.0),
                     "prompt": r.get("prompt_tokens", 0),
