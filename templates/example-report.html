@@ -53,13 +53,43 @@
   .layout { display: grid; grid-template-columns: 210px minmax(0,1fr); gap: clamp(36px, 4vw, 72px); max-width: 1240px; margin: 0 auto; padding: clamp(28px, 4vh, 56px) clamp(20px, 3vw, 40px) 96px; }
   @media (min-width: 1600px) { body { font-size: 17px; } .layout { max-width: 1360px; } }
   nav.toc { position: sticky; top: 36px; align-self: start; font-family: var(--mono); font-size: 12px; line-height: 1.5; padding-top: 120px; max-height: calc(100vh - 60px); overflow-y: auto; }
+  nav.toc .toctoggle { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  nav.toc .toclabel { display: none; }
+  nav.toc .toctoggle:focus-visible ~ .toclabel { outline: 2px solid var(--accent); outline-offset: 2px; }
   nav.toc .toctitle { letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-ink); margin-bottom: 10px; font-size: 11px; }
   nav.toc a { display: block; padding: 5px 0 5px 12px; color: var(--muted); text-decoration: none; border-left: 2px solid var(--line); }
   nav.toc a:hover, nav.toc a:focus-visible { color: var(--accent-ink); border-left-color: var(--accent); }
   .content { min-width: 0; }
   @media (max-width: 940px) {
     .layout { grid-template-columns: 1fr; gap: 0; padding: 28px 18px 64px; }
-    nav.toc { display: none; }
+    /* Same defect as the published page carried: the contents list was
+       REMOVED below 940px rather than collapsed, so every phone in
+       portrait lost it. A checkbox and a label, because the desktop
+       layout needs the list always open and `open` is an HTML attribute
+       CSS cannot set, and this file has no script tag to spend. */
+    nav.toc {
+      display: block; position: static; z-index: auto;
+      padding: 0; margin: 0 0 18px; max-height: none; overflow: visible;
+      background: var(--ground); border-bottom: 1px solid var(--line);
+    }
+    nav.toc .toctitle { display: none; }
+    nav.toc .toclabel {
+      display: block; cursor: pointer; padding: 14px 2px;
+      font-family: var(--ui); font-size: 14px; font-weight: 600;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--accent-ink); -webkit-user-select: none; user-select: none;
+    }
+    nav.toc .toclabel::after { content: "  \25BE"; }
+    nav.toc .toctoggle:checked ~ .toclabel::after { content: "  \25B4"; }
+    nav.toc .toclinks { display: none; }
+    nav.toc .toctoggle:checked ~ .toclinks {
+      display: block; max-height: 55vh; overflow-y: auto;
+      padding: 2px 0 14px; -webkit-overflow-scrolling: touch;
+    }
+    nav.toc .toclinks a {
+      font-family: var(--ui); font-size: 15px; line-height: 1.3;
+      padding: 8px 0 8px 12px; color: var(--ink);
+    }
     body { font-size: 15px; }
     pre { font-size: 12px; padding: 14px 14px; }
     section { margin-top: 40px; }
@@ -122,11 +152,140 @@
   ul { margin: 0 0 14px; padding-left: 22px; max-width: 74ch; }
   li { margin-bottom: 6px; }
   ol { margin: 0 0 14px; padding-left: 24px; max-width: 74ch; }
+  /* ====================================================================
+     LINKEDIN-STYLE TYPOGRAPHY PASS, 2026-08-27.
+
+     The page set font-family: var(--mono) on 24 selectors - h1, h2, h3,
+     recipe titles, table headers, glossary terms, chips, the contents
+     list, the footer. Monospace gives every glyph the width of the widest
+     one, which fights the eye at small sizes, and those are precisely the
+     elements a reader SCANS rather than reads.
+
+     Mono is kept where alignment or code-ness is the point: code, pre,
+     tabular figures, numeric cells. Everything else takes the UI stack.
+
+     This is an override block on purpose. Deleting it restores the
+     previous look exactly, and it cannot half-apply the way editing 24
+     scattered rules could.
+     ==================================================================== */
+  :root {
+    --ui: -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --accent: #0a66c2;
+    --accent-ink: #0a66c2;
+    --ink: #000000e6;
+    --muted: #00000099;
+    --line: #00000026;
+    --surface: #f4f2ee;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --accent: #70b5f9; --accent-ink: #70b5f9;
+      --ink: #ffffffe6; --muted: #ffffff99; --line: #ffffff26;
+      --surface: #1b1f23;
+    }
+  }
+
+  /* headings: sans, heavier, and a step larger at every level */
+  h1 { font-family: var(--ui); font-weight: 600; letter-spacing: -0.02em;
+       font-size: clamp(26px, 4.4vw, 34px); }
+  h2 { font-family: var(--ui); font-weight: 600; letter-spacing: -0.01em;
+       font-size: 24px; line-height: 1.3; }
+  h3 { font-family: var(--ui); font-weight: 600; font-size: 18px;
+       line-height: 1.4; }
+
+  /* recipe titles were 14.5px mono with 0.06em tracking - three things
+     working against legibility at once */
+  .rt { font-family: var(--ui); font-weight: 600; font-size: 16px;
+        letter-spacing: 0; border-left-color: var(--accent); }
+  .eyebrow { font-family: var(--ui); font-weight: 600; letter-spacing: 0.06em; }
+
+  /* scanned furniture: sans, and big enough to read */
+  .spec, .fno, .callout .tag, .glossary dt, figcaption,
+  .dlabel, .dlabel-m, .axis-t, footer, sup.cref,
+  .retraction .rtag, details.cmds summary, nav.toc {
+    font-family: var(--ui);
+  }
+  .chip { font-family: var(--ui); font-size: 11px; letter-spacing: 0.04em;
+          padding: 2px 7px; border-radius: 10px; font-weight: 600; }
+  .hint { font-size: 12px; }
+  .small { font-size: 13px; }
+  .callout .tag { font-weight: 600; letter-spacing: 0.04em; }
+  .glossary dt { font-weight: 600; }
+
+  /* table headers are scanned, so sans; numeric CELLS keep mono because
+     the whole point of a figure column is that the digits line up */
+  th { font-family: var(--ui); font-weight: 600; letter-spacing: 0.02em; }
+  /* .num MARKS A NUMBER FOR EMPHASIS and it is used inline in prose far more
+     than in tables - "spent about <span class=num>12.9</span> hours". Setting
+     it in mono made it RECEDE instead: monospace has a smaller x-height than
+     the sans around it at the same px, so the digit a sentence is built on
+     rendered smaller and lighter than the words either side of it. That was my
+     error in the previous pass - I kept mono on .num reasoning about column
+     alignment, in a class that is mostly not in a column.
+
+     So: inline numbers inherit the surrounding face and gain weight, which is
+     what emphasis means. Only td.n - an actual numeric table cell, where the
+     whole point is that digits line up down the column - stays monospaced. */
+  .num { font-family: inherit; font-weight: 600; font-variant-numeric: tabular-nums;
+         font-feature-settings: "tnum"; }
+  td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  td.n .num, th .num { font-family: var(--mono); font-weight: 600; }
+
+  /* The spec strip was 13px mono values under 11px grey uppercase labels with
+     0.1em tracking. Small, monospaced, letterspaced AND low-contrast, which is
+     four things at once. */
+  .spec { font-family: var(--ui); font-size: 15px; line-height: 1.5; }
+  .spec b { font-size: 12px; letter-spacing: 0.05em; font-weight: 600;
+            color: var(--label); }
+
+  /* 60% black on white is 5.7:1 - it passes, and it still reads as washed out
+     at 11-12px. Labels get a darker grey than running prose does. */
+  :root { --label: #000000a6; }
+  :root { --label: rgba(0,0,0,0.72); }
+  @media (prefers-color-scheme: dark) { :root { --label: rgba(255,255,255,0.72); } }
+
+  /* LinkedIn-ish surfaces: a warm ground with white cards, soft radius,
+     hairline borders instead of hard rules */
+  body { background: var(--surface); }
+  .layout { background: var(--ground); border-radius: 8px;
+            box-shadow: 0 0 0 1px var(--line); }
+  .callout { border-radius: 8px; }
+  pre { border-radius: 8px; }
+  table { border-radius: 6px; }
+
+  /* INLINE CODE WAS GREY ON GREY, and I caused it. `code` has always read
+     `background: var(--surface)`, and the restyle redefined --surface from
+     #f5f5f7 to the warm #f4f2ee AND handed it to the page background. One
+     token was then doing two jobs that need different values: the ground
+     behind the card, and a pill that has to stand off the card. `code` also
+     set no colour of its own, so the text inside inherited whatever ran
+     around it.
+
+     Code chips get their own two tokens now - a light tint of the accent and
+     a dark ink to sit on it - so a flag is legible on its own terms and the
+     page ground can change without dragging the chips with it. */
+  :root { --code-bg: rgba(10,102,194,0.09); --code-ink: #0b3c66;
+          --code-line: rgba(10,102,194,0.22); }
+  @media (prefers-color-scheme: dark) {
+    :root { --code-bg: rgba(112,181,249,0.15); --code-ink: #cfe6ff;
+            --code-line: rgba(112,181,249,0.30); }
+  }
+  code { background: var(--code-bg); color: var(--code-ink);
+         border-color: var(--code-line); font-size: 0.9em; }
+  /* a chip inside a heading or a bold run should not fight the weight it sits in */
+  h1 code, h2 code, h3 code, b code, strong code { color: inherit;
+         background: var(--code-bg); }
+
+  /* links pick up the accent rather than staying ink-coloured */
+  .content a { color: var(--accent); }
 </style>
 
 <div class="layout">
 <nav class="toc" aria-label="Contents">
+  <input type="checkbox" id="toctoggle" class="toctoggle">
+  <label for="toctoggle" class="toclabel">Contents</label>
   <div class="toctitle">Contents</div>
+  <div class="toclinks">
   <a href="#s01">01 · What this page is, and what it measured</a>
   <a href="#s02">02 · Plain words: every term used here</a>
   <a href="#s03">03 · The recipes — copy one for your card</a>
@@ -172,6 +331,7 @@
   <a href="#s15-corrections" style="padding-left:22px">Where this page corrected itself</a>
   <a href="#s15-negative" style="padding-left:22px">What was not measured</a>
   <a href="#s15-repro" style="padding-left:22px">The reproduction check</a>
+  </div>
 </nav>
 
 <div class="content">
