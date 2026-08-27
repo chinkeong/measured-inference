@@ -54,14 +54,49 @@ TWO LATER CORRECTIONS, 2026-08-27, neither of which moves the boundary:
      is now the ordinary pass dot. The diamonds stay in the plot above, where
      they distinguish an off-ladder file from the ladder's polylines.
 
-  5. The empty-answer column is measured with the decoding fixed - temperature
-     0, top_k 1 - so the model always takes the likeliest next word and a
-     repeat is identical. Nobody runs the model that way. The one rung
-     re-counted under the publisher's own sampling settings, over 300 fresh
-     generations, gave an order of magnitude fewer empties than its column
-     entry, and the red label now says so. Only that rung is quoted: the same
-     artifact holds an unfinished row for another file, and read_empty_power()
-     refuses to read it.
+  5. The empty-answer column is measured with greedy decoding - temperature 0,
+     top_k 1 - so a repeat of the run is identical. Nobody runs the model that
+     way. The one rung re-counted at the sampling the model card recommends,
+     over 300 fresh generations, gave an order of magnitude fewer empties than
+     its column entry, and the red label now says so. Only that rung is
+     quoted: the same artifact holds an unfinished row for another file, and
+     read_empty_power() refuses to read it.
+
+TWO CHANGES OF PRESENTATION, 2026-08-27. Neither moves a number; both are about
+how much of a reader's attention a side note is allowed to take.
+
+  6. QAT-Q2_0 carried a five-row block in the open middle of the plot: a
+     heading, a subtitle, and three rows arguing that its KL divergence is
+     2.3x what this ladder predicts AT ITS OWN BIT RATE - a figure obtained by
+     INTERPOLATING the PTQ curve between the two rungs it sits between. That
+     is the fairest form of the point and it is also the most technical thing
+     on the canvas, defending a claim almost no reader had come to check; at
+     five rows it read as a second headline rather than as a footnote. It is
+     now one sentence on two rows, tucked under its own diamonds, making the
+     one comparison that needs no model at all: it carries more bits per
+     weight than the IQ2_S file below it and still diverges further from the
+     4-bit reference (0.297 against 0.141, both measured). The interpolated
+     form is still computed and still printed to stdout. Its markers are
+     untouched - three hollow diamonds in the plot, an ordinary pass dot in
+     the execute row.
+
+     Worth recording, because it is why the wording is "diverges further" and
+     not "scores worse": on the three series this chart actually draws,
+     QAT-Q2_0 is not worse than the IQ2_S file below it. Accuracy is an exact
+     tie (68 of 75 each), it has one empty answer against IQ2_S's two, and its
+     perplexity is slightly the better of the pair (+13.71% against +14.44%).
+     KL divergence is the only instrument on which the extra 0.115 bits per
+     weight visibly fail to pay, which is exactly why the note names it.
+
+  7. The empty-answer caveat threw three ratios at the reader in one breath -
+     one in 300, at most one in 100, and 3 of 75 - so none of them landed, and
+     it spent two of its five rows paraphrasing greedy decoding as "decoding
+     fixed to always pick the likeliest next word" for an audience that has
+     the word. It now names the decoding, names both temperatures, and states
+     the contrast once. The rule-of-three upper bound moved to stdout; the
+     guard that it stays below the plotted rate did not move, and a new guard
+     requires the sampled rate to be several times smaller, which is what
+     makes "mostly disappear" a measurement rather than an impression.
 
 Nothing about the central finding changed, and it is better supported than it
 was: the functional boundary is still between 2.481 and 2.153 bits per weight,
@@ -76,6 +111,7 @@ import json
 import math
 import os
 import re
+import textwrap
 
 import matplotlib
 matplotlib.use('Agg')
@@ -262,10 +298,11 @@ def read_kld():
 def read_samplers():
     """scripts/quant-ladder/overnight.py names the two decoding settings that
     produced the two empty counts the chart now compares. The caveat calls one
-    of them "decoding fixed to always pick the likeliest next word" and the
-    other "the settings the model's publisher recommends", so both are read
-    from the runner that produced the counts rather than described from
-    memory. If either stops being what the caveat says it is, this raises."""
+    of them "greedy decoding (temperature 0)" and the other "the sampling the
+    model card recommends", and PRINTS BOTH TEMPERATURES from this dict, so
+    the numbers on the canvas come from the runner that produced the counts
+    rather than from memory. If either stops being what the caveat says it is,
+    this raises."""
     src = open(os.path.join(HERE, "overnight.py"), encoding="utf-8").read()
     out = {}
     for name in ("GREEDY", "SHIPPED"):
@@ -275,10 +312,11 @@ def read_samplers():
         out[name] = ast.literal_eval(m.group(1))
     if out["GREEDY"].get("temperature") != 0 or out["GREEDY"].get("top_k") != 1:
         die("the ladder arms are no longer decoded greedily (%r) - the "
-            "empty-answer caveat says the decoding is fixed" % out["GREEDY"])
+            "empty-answer caveat says greedy decoding, temperature 0"
+            % out["GREEDY"])
     if not out["SHIPPED"].get("temperature"):
         die("the better-powered rerun is no longer sampled (%r) - the "
-            "empty-answer caveat contrasts it with fixed decoding"
+            "empty-answer caveat contrasts it with greedy decoding"
             % out["SHIPPED"])
     return out
 
@@ -317,6 +355,22 @@ def wilson(k, n, z=1.96):
 
 def interp(x, x0, y0, x1, y1):
     return y0 + (x - x0) / (x1 - x0) * (y1 - y0)
+
+
+WORDS = {0: "no", 1: "one", 2: "two", 3: "three", 4: "four", 5: "five",
+         6: "six", 7: "seven", 8: "eight", 9: "nine", 10: "ten"}
+
+
+def word(n):
+    """Small counts read as words in a sentence and as digits in a table. The
+    caveat is a sentence, so it gets the words - and it gets them from the
+    count, not from a literal spelled out by hand."""
+    return WORDS.get(n, "%d" % n)
+
+
+def temp(v):
+    """A temperature as this audience writes it: 0, or 1.0."""
+    return ("%.1f" % v) if v else "0"
 
 
 # =============================================================== load and check
@@ -386,6 +440,37 @@ if RUNS[POWER_FILE] or not RUNS["UD-IQ2_S"]:
         "boundary this chart draws does not rest on the empty column alone"
         % POWER_FILE)
 
+# THE SENTENCE ITSELF. Two counts, one comparison, and both temperatures read
+# out of overnight.py rather than typed here. What it no longer does is quote a
+# third ratio. It used to say "1 empty in 300 answers - at most 1 in 100, not
+# 3 of 75", which is three ratios for one point, and a reader has to hold two
+# of them to use the third. The rule-of-three upper bound is a real number and
+# it is still checked above; it is a stdout line now, because its job is to
+# stop one-in-300 being read as luck, and a reader who has not yet suspected
+# luck does not need it.
+#
+# "mostly disappear" is the one qualitative phrase on this label, so it gets a
+# quantitative guard: the sampled rate has to be several times smaller, not
+# merely smaller. The check above only requires "below".
+EMPTY_PER_100 = GREEDY_RATE
+if abs(EMPTY_PER_100 - round(EMPTY_PER_100)) > 0.005:
+    die("%s's plotted empty rate is %.3f in a hundred - the caveat states it "
+        "as a whole number and would be rounding a measurement into a claim"
+        % (POWER_FILE, EMPTY_PER_100))
+if GREEDY_RATE / POWER_RATE < 3.0:
+    die("%s: sampling cuts empties only %.1fx (%.2f%% to %.2f%%) - the caveat "
+        "says they 'mostly disappear'"
+        % (POWER_FILE, GREEDY_RATE / POWER_RATE, GREEDY_RATE, POWER_RATE))
+CAVEAT = ("Counted with greedy decoding (temperature\u00a0%s). Sampled as the "
+          "model card recommends (temperature\u00a0%s), empty answers mostly "
+          "disappear: the %.2f-bit file gave %s empty answer%s in %d tries, "
+          "against the %s in a hundred shown here."
+          % (temp(SAMPLERS["GREEDY"]["temperature"]),
+             temp(SAMPLERS["SHIPPED"]["temperature"]),
+             BPW[POWER_FILE], word(POWER["empty"]),
+             "" if POWER["empty"] == 1 else "s", POWER["generations"],
+             word(int(round(EMPTY_PER_100)))))
+
 REF_PASS, REF_PPL = PASS[REFERENCE], PPL[REFERENCE]
 
 order = sorted(LADDER, key=lambda n: -BPW[n])
@@ -401,13 +486,18 @@ qat_ppl = (PPL[OFF_LADDER] - REF_PPL) / REF_PPL * 100.0
 qat_emp = EMPTY[OFF_LADDER] / float(N_ITEMS) * 100.0
 qat_acc = (REF_PASS - PASS[OFF_LADDER]) / float(REF_PASS) * 100.0
 
-# The point QAT-Q2_0 makes, in the fairest form available: not "worse than the
-# file below it" but "worse than the ladder predicts AT ITS OWN BIT RATE".
-# Interpolate the PTQ KLD curve between the two rungs it sits between.
-kld_qat = KLD[OFF_LADDER][0]
-kld_hat = interp(QX, BPW["UD-Q2_K_XL"], KLD["UD-Q2_K_XL"][0],
-                 BPW["UD-IQ2_S"],  KLD["UD-IQ2_S"][0])
-kld_x   = kld_qat / kld_hat
+# The point QAT-Q2_0 makes, in two forms. The FAIRER one - "worse than the
+# ladder predicts AT ITS OWN BIT RATE" - interpolates the PTQ KLD curve
+# between the two rungs it sits between, and that is the form the chart used
+# to argue on the canvas over three rows. It is now a stdout diagnostic. The
+# canvas makes the DIRECT comparison instead: two measured numbers, this file
+# against the smaller file immediately below it, no curve in between.
+kld_qat  = KLD[OFF_LADDER][0]
+kld_below = KLD["UD-IQ2_S"][0]
+kld_hat  = interp(QX, BPW["UD-Q2_K_XL"], KLD["UD-Q2_K_XL"][0],
+                  BPW["UD-IQ2_S"],  KLD["UD-IQ2_S"][0])
+kld_x    = kld_qat / kld_hat
+kld_vs_below = kld_qat / kld_below
 bits_more = QX - BPW["UD-IQ2_S"]
 
 # Widths of a 95% Wilson interval on the real counts, for the accuracy label.
@@ -434,18 +524,27 @@ j_ratio = b_cost["j_per_solved"] / float(a_cost["j_per_solved"])
 if ARMS["mcnemar_p"] < 0.999:
     die("compare-arms McNemar p is %.4f - the annotation says p=1.00"
         % ARMS["mcnemar_p"])
-# Both annotations use the words "ties" and "exact tie". If either paired test
-# ever stops being a tie the words have to change, so they are checked, not
-# assumed.
-for what, p in (("UD-Q2_K_XL vs the reference", P_PICK),
-                ("QAT-Q2_0 vs UD-IQ2_S", P_QAT)):
+# The green annotation says "ties" and the QAT tie is asserted in stdout. If
+# either paired test ever stops being a tie the words have to change, so they
+# are checked, not assumed. The QAT one no longer appears on the canvas - the
+# note there was cut to one sentence - but the diagnostics still print it, and
+# a diagnostic that lies is worse than none.
+for what, p, where in (("UD-Q2_K_XL vs the reference", P_PICK, "the chart"),
+                       ("QAT-Q2_0 vs UD-IQ2_S", P_QAT, "the diagnostics")):
     if p < 0.995:
-        die("%s is p=%.4f - the chart calls it a tie" % (what, p))
+        die("%s is p=%.4f - %s calls it a tie" % (what, p, where))
 if PASS[OFF_LADDER] != PASS["UD-IQ2_S"]:
-    die("QAT-Q2_0 %d/75 and UD-IQ2_S %d/75 - the chart says 'each'"
+    die("QAT-Q2_0 %d/75 and UD-IQ2_S %d/75 - the diagnostics say 'each'"
         % (PASS[OFF_LADDER], PASS["UD-IQ2_S"]))
+# The two halves of the one sentence the off-ladder file now gets. Both are
+# direct comparisons against the rung immediately below it, and both are
+# checked here so the sentence cannot outlive the measurement.
 if BPW[OFF_LADDER] <= BPW["UD-IQ2_S"]:
     die("QAT-Q2_0 no longer carries MORE bits than UD-IQ2_S")
+if kld_qat <= kld_below:
+    die("QAT-Q2_0 KLD %.4f is no longer above UD-IQ2_S's %.4f - the note says "
+        "it diverges further from the reference despite the extra bits"
+        % (kld_qat, kld_below))
 
 # ===================================================================== drawing
 SANS, MONO = 'Segoe UI', 'Cascadia Mono'
@@ -542,22 +641,17 @@ rlabel(62.0, ACC, "accuracy lost", [
     "on %d items the 95%% interval is %d\u2013%d points"
     % (N_ITEMS, round(min(widths)), round(max(widths)))])
 # The red block carries the caveat, so it is anchored higher than the series
-# it labels would suggest: five extra lines have to land ABOVE the blue block
+# it labels would suggest: six extra rows have to land ABOVE the blue block
 # without crowding it. The grey block moves up with it to keep the three
-# stacked in the order the lines finish at the right-hand edge.
+# stacked in the order the lines finish at the right-hand edge. The wrap width
+# below is load-bearing for that: at 40 columns the sentence needs a seventh
+# row and the seventh lands on "accuracy lost".
 rlabel(32.0, BAD, "empty answers", [
     "exactly zero down to %.3f bits" % BPW[ZERO_FLOOR],
     "%d of %d vs %d of %d: not resolved, p=%.2f"
     % (EMPTY[ZERO_FLOOR], N_ITEMS, EMPTY[FIRST_NONZERO], N_ITEMS, P_EMPTY),
-    "every empty answer is also a failed one"], note=[
-    "counted with decoding fixed to always pick",
-    "the likeliest next word. Under the sampling",
-    "settings the model's publisher recommends,",
-    "the %.2f-bit file gave %d empty in %d"
-    % (BPW[POWER_FILE], POWER["empty"], POWER["generations"]),
-    "answers \u2014 at most 1 in %d, not %d of %d"
-    % (round(100.0 / POWER["rule_of_three_upper_pct"]),
-       EMPTY[POWER_FILE], N_ITEMS)])
+    "every empty answer is also a failed one"],
+    note=textwrap.wrap(CAVEAT, 41))
 rlabel(20.0, MUTED, "worse at predicting text", [
     "perplexity, on fixed Wikipedia prose"])
 
@@ -591,25 +685,29 @@ for x, lb, n in zip(bpw, labs, order):
     fig.text(xc(x), 0.206, n.replace("UD-", ""), ha='center', va='top', fontname=MONO,
              fontsize=9.5, color=PICK if p else MUTED)
 
-# The off-ladder block, right-aligned against the drop line, in the empty
-# quadrant under the curves.
+# The off-ladder note. It was five rows sitting in the open middle of the
+# plot - heading, subtitle, and three rows of argument from an interpolated KL
+# divergence - which is how a footnote turns into a second headline. It is one
+# sentence now, on two rows, and it has moved UP out of the middle to sit
+# directly under its own diamonds, so it reads as a caption on those three
+# markers rather than as a panel of its own. Right-aligned against the drop
+# line, which is what ties it to the column.
+#
+# What it says is what a reader needs and no more: whose file this is, and the
+# one comparison that needs no interpolation - more bits per weight than the
+# rung below it, and further from the 4-bit reference all the same. The
+# interpolated version of that second clause, which is the fairer one, is a
+# stdout line now.
 QT = 2.655
-for y, size, colour, weight, text in (
-        (36.0, 11.5, INK, 'bold',
-         "QAT-Q2_0  \u00b7  %.3f bits  \u00b7  not an Unsloth rung" % QX),
-        (39.4, 10.0, MUTED, 'normal',
-         "a vendor quantisation-aware-trained build, drawn off the lines"),
-        (44.2, 10.0, INK, 'normal',
-         "%.3f MORE bits per weight than IQ2_S below it, and it buys nothing:"
-         % bits_more),
-        (47.4, 10.0, INK, 'normal',
-         "an exact tie on accuracy (%d of %d each, p=%.2f), and %.1f\u00d7 the KL"
-         % (PASS[OFF_LADDER], N_ITEMS, P_QAT, kld_x)),
-        (50.6, 10.0, INK, 'normal',
-         "divergence this ladder predicts at its bit rate (%.3f against %.3f)"
-         % (kld_qat, kld_hat))):
+for y, size, colour, text in (
+        (21.5, 10.0, INK,
+         "QAT-Q2_0  \u00b7  %.3f bits  \u00b7  another vendor's QAT build, not an "
+         "Unsloth rung" % QX),
+        (24.7, 9.5, MUTED,
+         "%.3f more bits per weight than IQ2_S below it, and %.1f\u00d7 its KL "
+         "divergence" % (bits_more, kld_vs_below))):
     ax.text(QT, y, text, ha='right', va='center', fontname=SANS,
-            fontsize=size, color=colour, fontweight=weight, zorder=8)
+            fontsize=size, color=colour, zorder=8)
 
 fig.text(L - 0.046, 0.963, "Qwen3.8-27B: where the quant ladder actually breaks",
          ha='left', va='top', fontname=SANS, fontsize=23, color=INK, fontweight='bold')
@@ -666,8 +764,17 @@ print("  9 files, reference %s = %d/%d, PPL %.4f" % (REFERENCE, REF_PASS, N_ITEM
 print("  %s: %.4f bpw, PPL %.4f (+%.2f%%), %d/75, %d empty, execute %s (shape %s)"
       % (OFF_LADDER, QX, PPL[OFF_LADDER], qat_ppl, PASS[OFF_LADDER],
          EMPTY[OFF_LADDER], "RUNS" if RUNS[OFF_LADDER] else "FAILS", SHAPE[OFF_LADDER]))
-print("  KLD %.4f against %.4f interpolated = %.2fx; %d empty answers scored a pass"
-      % (kld_qat, kld_hat, kld_x, EMPTY_THAT_PASSED))
+print("  KLD %.4f vs UD-IQ2_S %.4f = %.2fx (the canvas note); against %.4f "
+      "interpolated at its own bit rate = %.2fx (the fairer form, cut from "
+      "the canvas 2026-08-27)"
+      % (kld_qat, kld_below, kld_vs_below, kld_hat, kld_x))
+print("  QAT-Q2_0 vs UD-IQ2_S on the three DRAWN series: accuracy %d and %d "
+      "of %d (paired p=%.2f), empties %d and %d, PPL +%.2f%% and +%.2f%% - "
+      "worse on none of them, which is why the note names KLD"
+      % (PASS[OFF_LADDER], PASS["UD-IQ2_S"], N_ITEMS, P_QAT,
+         EMPTY[OFF_LADDER], EMPTY["UD-IQ2_S"], qat_ppl,
+         (PPL["UD-IQ2_S"] - REF_PPL) / REF_PPL * 100.0))
+print("  %d empty answers scored a pass" % EMPTY_THAT_PASSED)
 print("  Wilson widths %.1f to %.1f points; agentic tokens x%.3f median / x%.3f total,"
       " energy x%.3f" % (min(widths), max(widths), tok_med, tok_tot, j_ratio))
 print("  paired p: pick %.4f, QAT tie %.4f, 1.99-vs-2.15 bump %.4f; empty step"
@@ -677,10 +784,13 @@ print("  paired p: pick %.4f, QAT tie %.4f, 1.99-vs-2.15 bump %.4f; empty step"
 print("  empties under decoding fixed (%r) vs sampled (%r):"
       % (SAMPLERS["GREEDY"], SAMPLERS["SHIPPED"]))
 print("    %s %d of %d = %.2f%% plotted, against %d of %d = %.2f%% "
-      "(upper limit %.2f%%) - a factor of %.1f"
+      "(rule-of-three upper limit %.2f%%, at most one in %d - checked, cut "
+      "from the canvas 2026-08-27) - a factor of %.1f"
       % (POWER_FILE, EMPTY[POWER_FILE], N_ITEMS, GREEDY_RATE, POWER["empty"],
          POWER["generations"], POWER_RATE, POWER["rule_of_three_upper_pct"],
+         round(100.0 / POWER["rule_of_three_upper_pct"]),
          GREEDY_RATE / POWER_RATE))
+print("    caveat as drawn: %s" % CAVEAT.replace("\u00a0", " "))
 print("  agentic pair: %d exercises, %.1f%% vs %.1f%%, discordant %d and %d, "
       "McNemar p=%.2f"
       % (ARMS["paired_n"], ARMS["a_pass"], ARMS["b_pass"], ARMS["a_only"],
