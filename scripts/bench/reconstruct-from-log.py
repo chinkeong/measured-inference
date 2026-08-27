@@ -30,8 +30,146 @@ response 0.0, which is correct - an answer that ran out of context is not a
 right answer - but it means a run against a small context window carries a
 penalty that is not a quality signal. Both figures are emitted: the score as
 scored, and the score over the subset that was not truncated.
+
+A STOPPED RUN IS A PREFIX, AND A PREFIX IS ONLY A SAMPLE IF THE FILE IS SHUFFLED.
+Added 2026-08-27, after a run of four consecutive truncations prompted a look at
+the file itself rather than at the server.
+
+gpqa_diamond.jsonl is SUBJECT-ORDERED. Classifying its 198 questions by keyword
+and counting adjacent same-subject pairs gives 106 against 48.2 expected under
+random ordering - a permutation test over 20,000 shuffles puts p below 0.0001.
+The blocks are visible by eye: astronomy and astrophysics at the front, particle
+physics around 41-60, biology and genetics around 61-80, then roughly forty
+consecutive organic chemistry questions from 81, and a quantum block at the end.
+
+So a run stopped at question 100 is NOT a random sample of the benchmark. It
+covers the front subjects, most of one chemistry block, and none of the quantum
+block at all. A Wilson interval assumes the draws are exchangeable and therefore
+describes sampling noise ONLY - it cannot describe the subject imbalance, and it
+will be too narrow whenever subject difficulty differs, which on this benchmark
+it plainly does.
+
+This script now measures that ordering from the frozen file at reconstruct time
+and records what a partial run covered and what it missed, so the omission
+travels with the number instead of being left for a reader to discover.
+
+CORRECTION RECORDED HERE BECAUSE IT WAS MINE. An earlier check declared this file
+free of order effects on the strength of a chi-square of 4.30 on the ANSWER KEY
+between halves, 3 degrees of freedom. That test asks whether the correct letter
+A/B/C/D is evenly spread. It cannot see subject ordering, and subject ordering is
+the thing that actually breaks a prefix. The answer key is evenly spread AND the
+file is strongly subject-ordered; both are true, and only the second one matters
+for stopping early.
 """
-import argparse, io, json, os, re, statistics as st, sys, time
+import argparse, io, json, os, random, re, statistics as st, sys, time
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+
+# The frozen GPQA file carries only `question` and `answer` - no subject label -
+# so subject is inferred from vocabulary. This is a HEURISTIC and is reported as
+# one. It is good enough for the job it does here for a specific reason: a noisy
+# classifier can only DILUTE an ordering signal, never manufacture one, so a
+# significant clustering result measured through it is a conservative floor
+# rather than an artefact of the labelling.
+SUBJECT_SIGNATURES = {
+    "astronomy/astrophysics": ("exoplanet", "star", "astronom", "telescope",
+                               "galax", "orbit", "luminosit", "redshift",
+                               "planet", "spectr"),
+    "quantum": ("quantum", "wavefunction", "eigen", "hamiltonian", "spin",
+                "operator", "qubit", "uncertainty principle", "oscillator"),
+    "particle/relativity": ("decay", "meson", "quark", "lepton", "boson",
+                            "annihilat", "lorentz", "relativis",
+                            "cross section", "muon"),
+    "organic chemistry": ("nmr", "synthes", "reagent", "stereochem", "alkene",
+                          "carbon", "product", "reaction", "proton", "ppm",
+                          "molecul"),
+    "biology/genetics": ("gene", "protein", "cell", "mrna", "dna", "chromosom",
+                         "enzym", "mice", "mutat", "transcript", "allele"),
+}
+
+FROZEN = {"GPQA-Diamond": os.path.join(HERE, "datasets-frozen",
+                                       "gpqa_diamond.jsonl")}
+
+
+def classify(question):
+    q = question.lower()
+    best, score = "unclassified", 0
+    for name, words in SUBJECT_SIGNATURES.items():
+        hits = sum(q.count(w) for w in words)
+        if hits > score:
+            best, score = name, hits
+    return best if score else "unclassified"
+
+
+def subject_profile(dataset, completed_n, shuffles=20000, seed=0):
+    """Measure whether the frozen file is subject-ordered, and if a run stopped
+    short, say which subjects it covered and which it never reached.
+
+    Returns None when the frozen file is unavailable - and the CALLER records
+    that it could not be checked, because a missing check must never read as a
+    passing one."""
+    path = FROZEN.get(dataset)
+    if not path or not os.path.exists(path):
+        return None
+    rows = [json.loads(l) for l in io.open(path, encoding="utf-8") if l.strip()]
+    labels = [classify(r.get("question", "")) for r in rows]
+
+    def adjacent_pairs(seq):
+        return sum(1 for i in range(1, len(seq)) if seq[i] == seq[i - 1])
+
+    observed = adjacent_pairs(labels)
+    rng = random.Random(seed)
+    shuffled = labels[:]
+    null = []
+    for _ in range(shuffles):
+        rng.shuffle(shuffled)
+        null.append(adjacent_pairs(shuffled))
+    at_least = sum(1 for v in null if v >= observed)
+    # An exact-zero count is reported as an upper bound rather than as 0, since
+    # a permutation test cannot resolve below 1/shuffles.
+    p_value = at_least / float(shuffles)
+
+    seen, missed = {}, {}
+    for i, lab in enumerate(labels):
+        (seen if i < completed_n else missed)[lab] = \
+            (seen if i < completed_n else missed).get(lab, 0) + 1
+    never = sorted(k for k in missed if k not in seen)
+
+    # Per-subject coverage: what share of each subject's questions the prefix
+    # reached. A subject can be present in the prefix and still be almost
+    # entirely unmeasured, which an absence test cannot see.
+    subjects = sorted(set(labels))
+    coverage = {}
+    for lab in subjects:
+        total = labels.count(lab)
+        got = seen.get(lab, 0)
+        coverage[lab] = {"covered": got, "total": total,
+                         "pct": round(100.0 * got / total, 1)}
+    # The threshold is the run's own overall completion rate. A subject covered
+    # at less than half the rate the run achieved overall is under-represented
+    # by the ordering rather than by chance.
+    overall = 100.0 * completed_n / len(labels)
+    under = sorted([lab for lab, c in coverage.items()
+                    if c["pct"] < overall * 0.5],
+                   key=lambda l: coverage[l]["pct"])
+    return {
+        "labelling": "keyword heuristic - the frozen file carries no subject "
+                     "field. A noisy classifier can only dilute an ordering "
+                     "signal, so this result is a floor.",
+        "adjacent_same_subject_pairs": observed,
+        "expected_under_random_order": round(sum(null) / float(len(null)), 1),
+        "permutation_p": ("< %.5f" % (1.0 / shuffles)) if at_least == 0
+                         else round(p_value, 5),
+        "shuffles": shuffles,
+        "is_subject_ordered": p_value < 0.01,
+        "subjects_covered": dict(sorted(seen.items(), key=lambda kv: -kv[1])),
+        "subjects_remaining": dict(sorted(missed.items(), key=lambda kv: -kv[1])),
+        "subjects_never_reached": never,
+        "overall_completion_pct": round(overall, 1),
+        "per_subject_coverage": dict(sorted(coverage.items(),
+                                            key=lambda kv: kv[1]["pct"])),
+        "under_represented": under,
+    }
 
 LINE = re.compile(
     r"prompt (\d+)/(\d+):\s*(\d+) tok,\s*([0-9.]+) tok/s"
@@ -126,9 +264,50 @@ if __name__ == "__main__":
             "min": min(tok), "max": max(tok),
         },
         "accept_len_mean": round(st.mean(acc), 3) if acc else None,
+        # Per-block scores. A subject-ordered file makes the block index a
+        # proxy for subject, so this is where a coverage problem becomes
+        # visible as a number rather than as a caveat.
+        "score_by_block_of_20": [
+            {"first": b[0]["index"], "last": b[-1]["index"],
+             "n": len(b),
+             "correct": sum(1 for r in b if r["correct"]),
+             "truncated": sum(1 for r in b if r["truncated"]),
+             "mean_tokens": round(st.mean([r["tokens"] for r in b]), 0)}
+            for b in [rows[i:i + 20] for i in range(0, len(rows), 20)]
+        ],
         "tok_s_mean": round(st.mean([r["tok_s"] for r in rows]), 2),
         "rows": rows,
     }
+    prof = subject_profile(a.dataset, n)
+    if prof is None:
+        # NOT silence. A check that could not run is recorded as not having run.
+        out["subject_coverage"] = {
+            "checked": False,
+            "why": "the frozen dataset file for %s was not found, so subject "
+                   "ordering could not be measured. Do not read this as "
+                   "'no ordering'." % a.dataset,
+        }
+    else:
+        prof["checked"] = True
+        if out["partial"] and prof["is_subject_ordered"]:
+            bits = []
+            for lab in prof["under_represented"]:
+                c = prof["per_subject_coverage"][lab]
+                bits.append("%s %d of %d (%.0f%%)"
+                            % (lab, c["covered"], c["total"], c["pct"]))
+            prof["warning"] = (
+                "THIS RUN IS A PREFIX OF A SUBJECT-ORDERED FILE, NOT A RANDOM "
+                "SAMPLE. %d of %d questions were answered, which is %.0f%% "
+                "overall, but the subjects are not covered at that rate: %s. "
+                "The Wilson intervals above describe sampling noise only. They "
+                "cannot describe this imbalance, and they are too narrow to "
+                "the extent that subject difficulty differs on this benchmark "
+                "- which it does."
+                % (n, out["planned_n"], prof["overall_completion_pct"],
+                   "; ".join(bits) or "no subject falls below half the overall "
+                                      "rate"))
+        out["subject_coverage"] = prof
+
     if a.conditions:
         out["conditions"] = json.loads(a.conditions)
     if a.published is not None:
@@ -155,6 +334,23 @@ if __name__ == "__main__":
           % (len(trunc), out["truncated_pct"], out["truncated_indices"][:12]))
     print("  tokens             mean %.0f, median %.0f, max %d"
           % (out["tokens"]["mean"], out["tokens"]["median"], out["tokens"]["max"]))
+    sc = out.get("subject_coverage") or {}
+    if not sc.get("checked"):
+        print("  subject order     NOT CHECKED - %s" % sc.get("why", ""))
+    else:
+        print("  subject order     %d adjacent same-subject pairs against %.1f "
+              "expected, p %s"
+              % (sc["adjacent_same_subject_pairs"],
+                 sc["expected_under_random_order"], sc["permutation_p"]))
+        if sc.get("warning"):
+            print("  COVERAGE          run is %.0f%% complete overall, but by "
+                  "subject:" % sc["overall_completion_pct"])
+            for lab, c in sc["per_subject_coverage"].items():
+                flag = "  <- under-represented" if lab in sc["under_represented"] else ""
+                print("                      %-24s %3d/%3d = %5.1f%%%s"
+                      % (lab, c["covered"], c["total"], c["pct"], flag))
+            print("                    a prefix of a subject-ordered file is "
+                  "not a random sample; the intervals above are too narrow")
     if a.published is not None:
         verdict = ("INSIDE" if out["published_reference"]["inside_wilson95"]
                    else "OUTSIDE")
