@@ -122,6 +122,20 @@ ARMS = [
      "spec": ["--spec-type", "draft-mtp,ngram-mod",
               "--spec-draft-n-max", "10", "--spec-draft-p-min", "0.5"],
      "what": "draft head AND n-gram matcher together"},
+    # Added 2026-08-27 from a stranger's llama-server log on r/LocalLLM. They
+    # run this same file, window and KV width on a 16 GB mobile 4090 and set NO
+    # --spec-draft-p-min, so it takes llama.cpp's default of 0.00. At n-max 4
+    # that reported acceptance ~73% with MEAN DRAFT LENGTH 3.93, against this
+    # rig's 85.9% and 2.71 at the same n-max with p-min 0.75. Rule 11 on this
+    # page says mean draft length - not acceptance - is what predicts
+    # throughput, and 3.93 against 2.71 is 45% longer drafts. So the shipped
+    # recipe may be leaving speed on the table at its OWN n-max, and the
+    # eight-row grid never tested this cell: it holds n3/p0 and n10/p0 but no
+    # n4/p0.
+    {"id": "E-32k-n4-p0", "ctx": "32768", "kv": "q8_0",
+     "spec": ["--spec-type", "draft-mtp",
+              "--spec-draft-n-max", "4", "--spec-draft-p-min", "0.0"],
+     "what": "the shipped n-max with llama.cpp's DEFAULT p-min, never tested here"},
 ]
 
 # Novel code: the content where speculation pays best, so a drafter change has
