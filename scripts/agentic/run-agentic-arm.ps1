@@ -51,6 +51,37 @@ if ($live) {
            "every result.")
 }
 
+# AND refuse to start on top of an ORPHANED COLLECTOR. The llama-server guard
+# above catches the loud failure; this catches the quiet one. Collectors are
+# launched detached and do NOT die with the benchmark that started them, so a
+# previous arm can leave one appending to ITS OWN telemetry file for hours.
+#
+# Measured 2026-08-28: a host-telemetry collector tagged iq4xs-retest was still
+# running nine hours after that arm ended, and had appended 3,904 rows to
+# iq4xs-retest-host.csv - a file already committed as a primary record - while
+# the q2kxl arm ran. The figures survived only because the coupling plots bound
+# host rows to the GPU collectors span, and those DID stop with their run. That
+# is luck, not design.
+#
+# The earlier cleanup for that arm killed the three PYTHON collectors and missed
+# this one because it is PowerShell. So this guard matches on the script name,
+# not the interpreter.
+$orphans = @(Get-CimInstance Win32_Process -Filter "Name = 'powershell.exe'" -ErrorAction SilentlyContinue |
+    Where-Object { $_.CommandLine -match 'host-telemetry\.ps1' })
+foreach ($o in $orphans) {
+    $otag = [regex]::Match($o.CommandLine, '-Tag\s+(\S+)').Groups[1].Value
+    if ($otag -and $otag -ne $Tag) {
+        Write-Output "stopping orphaned collector: pid $($o.ProcessId), tag $otag"
+        Stop-Process -Id $o.ProcessId -Force -ErrorAction Continue
+    }
+}
+$stale = @(Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" -ErrorAction SilentlyContinue |
+    Where-Object { $_.CommandLine -match '(silicon|slots|metrics)-telemetry\.py' -and $_.CommandLine -notmatch [regex]::Escape($Tag) })
+foreach ($o in $stale) {
+    Write-Output "stopping stale python collector: pid $($o.ProcessId)"
+    Stop-Process -Id $o.ProcessId -Force -ErrorAction Continue
+}
+
 $srvLog = Join-Path $logs "$Tag-server.log"
 
 # The flags below are the shipped recipe and must match across arms: only the
