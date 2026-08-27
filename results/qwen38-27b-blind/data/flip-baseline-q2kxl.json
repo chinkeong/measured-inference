@@ -1,0 +1,280 @@
+{
+ "what": "test-retest flip count: the same file and flags, run twice",
+ "run_a": {
+  "file": "E:\\AI\\measured-inference\\results\\qwen38-27b-blind\\data\\telemetry\\exercises-2026-08-26-18-41-54--q2kxl-agentic.json",
+  "label": "q2kxl run 1 (225)",
+  "n_listed": 225
+ },
+ "run_b": {
+  "file": "E:\\AI\\measured-inference\\results\\qwen38-27b-blind\\data\\telemetry\\exercises-2026-08-27-18-18-02--q2kxl-retest.json",
+  "label": "q2kxl retest (113)",
+  "n_listed": 113
+ },
+ "paired_n": 113,
+ "pass_rate_a_on_paired": 45.13,
+ "pass_rate_b_on_paired": 42.48,
+ "agree_pass": 37,
+ "agree_fail": 51,
+ "flips": 25,
+ "flip_rate_pct": 22.12,
+ "flip_rate_wilson95": [
+  15.46,
+  30.62
+ ],
+ "flipped_pass_to_fail": 14,
+ "flipped_fail_to_pass": 11,
+ "flipped_exercises": [
+  {
+   "case": "bank-account",
+   "lang": "cpp",
+   "a_passed": true,
+   "b_passed": false,
+   "a_completion": 6142,
+   "b_completion": 7548,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "bank-account",
+   "lang": "java",
+   "a_passed": false,
+   "b_passed": true,
+   "a_completion": 1399,
+   "b_completion": 1219,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "book-store",
+   "lang": "java",
+   "a_passed": true,
+   "b_passed": false,
+   "a_completion": 5263,
+   "b_completion": 12398,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "book-store",
+   "lang": "rust",
+   "a_passed": false,
+   "b_passed": true,
+   "a_completion": 11963,
+   "b_completion": 5197,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "bottle-song",
+   "lang": "python",
+   "a_passed": false,
+   "b_passed": true,
+   "a_completion": 1423,
+   "b_completion": 1252,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "bowling",
+   "lang": "python",
+   "a_passed": true,
+   "b_passed": false,
+   "a_completion": 10229,
+   "b_completion": 14828,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "list-ops",
+   "lang": "javascript",
+   "a_passed": true,
+   "b_passed": false,
+   "a_completion": 2491,
+   "b_completion": 23841,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "markdown",
+   "lang": "go",
+   "a_passed": false,
+   "b_passed": true,
+   "a_completion": 1513,
+   "b_completion": 1566,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "mazy-mice",
+   "lang": "java",
+   "a_passed": false,
+   "b_passed": true,
+   "a_completion": 11578,
+   "b_completion": 5398,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "nucleotide-codons",
+   "lang": "rust",
+   "a_passed": false,
+   "b_passed": true,
+   "a_completion": 2145,
+   "b_completion": 4805,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "ocr-numbers",
+   "lang": "javascript",
+   "a_passed": false,
+   "b_passed": true,
+   "a_completion": 10952,
+   "b_completion": 2976,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "poker",
+   "lang": "rust",
+   "a_passed": false,
+   "b_passed": true,
+   "a_completion": 3748,
+   "b_completion": 4030,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "pov",
+   "lang": "go",
+   "a_passed": true,
+   "b_passed": false,
+   "a_completion": 7286,
+   "b_completion": 9148,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "pov",
+   "lang": "java",
+   "a_passed": true,
+   "b_passed": false,
+   "a_completion": 11610,
+   "b_completion": 4790,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "rest-api",
+   "lang": "java",
+   "a_passed": true,
+   "b_passed": false,
+   "a_completion": 8128,
+   "b_completion": 3265,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "robot-name",
+   "lang": "rust",
+   "a_passed": true,
+   "b_passed": false,
+   "a_completion": 1478,
+   "b_completion": 1342,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "scale-generator",
+   "lang": "javascript",
+   "a_passed": true,
+   "b_passed": false,
+   "a_completion": 4141,
+   "b_completion": 6322,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "simple-cipher",
+   "lang": "rust",
+   "a_passed": true,
+   "b_passed": false,
+   "a_completion": 10681,
+   "b_completion": 6500,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "transpose",
+   "lang": "go",
+   "a_passed": false,
+   "b_passed": true,
+   "a_completion": 6396,
+   "b_completion": 7654,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "tree-building",
+   "lang": "java",
+   "a_passed": true,
+   "b_passed": false,
+   "a_completion": 1482,
+   "b_completion": 4866,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "two-bucket",
+   "lang": "go",
+   "a_passed": true,
+   "b_passed": false,
+   "a_completion": 5878,
+   "b_completion": 8527,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "variable-length-quantity",
+   "lang": "go",
+   "a_passed": false,
+   "b_passed": true,
+   "a_completion": 870,
+   "b_completion": 3179,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "variable-length-quantity",
+   "lang": "javascript",
+   "a_passed": true,
+   "b_passed": false,
+   "a_completion": 5403,
+   "b_completion": 1453,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "zebra-puzzle",
+   "lang": "java",
+   "a_passed": false,
+   "b_passed": true,
+   "a_completion": 9655,
+   "b_completion": 4194,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "zipper",
+   "lang": "javascript",
+   "a_passed": true,
+   "b_passed": false,
+   "a_completion": 3059,
+   "b_completion": 3834,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  }
+ ],
+ "pairing": "by (case, language). aider shuffles UNSEEDED before truncating to --num-tests, so a run is a random subsample and not a stable prefix; pairing by position would compare unrelated exercises.",
+ "how_to_read": "This is the noise floor. Any two-arm difference on this benchmark must clear it before it can be called real. It does NOT decompose the 60 discordant exercises between quantisations into signal and noise - it bounds how much of that 60 the benchmark can produce on its own."
+}
