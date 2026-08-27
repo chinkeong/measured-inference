@@ -285,7 +285,9 @@ def run_one(base_url, prompt, max_tokens, seed=None, sampling=None,
 
 def bench_model(label, base_url, prompts_by_ds, max_tokens, seed, sampling,
                 answers_by_ds=None, checkpoint_cb=None, opts=None,
-                notes_by_ds=None, transcripts=None, record_all=False):
+                notes_by_ds=None, transcripts=None, record_all=False,
+                partial_path=None):
+    _partial_path = partial_path
     opts = opts or ScoreOptions(exec_enabled=False)
     results = {}
     speculative = False
@@ -334,6 +336,24 @@ def bench_model(label, base_url, prompts_by_ds, max_tokens, seed, sampling,
                      "tokens": rec["tokens"],
                      **({"score": round(sc * 100, 1)} if sc is not None else {})})
             recs.append(rec)
+            # PER-PROMPT CRASH PROTECTION. checkpoint_cb below fires once per
+            # DATASET, which protects a seven-dataset suite and does nothing at
+            # all for a run of one - the shape every anchor run takes. A
+            # 198-question GPQA run interrupted at question 100 wrote no result
+            # file whatsoever; ten hours of measurement survived only because
+            # its console output happened to be redirected to a log.
+            #
+            # Appending each record as it completes costs one short write per
+            # question and makes the run recoverable from disk rather than from
+            # scrollback. Failure to write is swallowed on purpose: losing the
+            # safety net must never take the measurement down with it.
+            if _partial_path:
+                try:
+                    with open(_partial_path, "a", encoding="utf-8") as _pf:
+                        _pf.write(json.dumps({"dataset": ds, "i": i, **rec},
+                                             ensure_ascii=False) + "\n")
+                except OSError:
+                    pass
             al = f", accept_len {rec['accept_len']:.2f}" if "accept_len" in rec else ""
             trunc = " (truncated)" if truncated else ""
             sc_txt = ("" if sc is None else
@@ -758,7 +778,8 @@ def main():
                                                checkpoint_cb=save, opts=opts,
                                                notes_by_ds=notes_by_ds,
                                                transcripts=transcripts,
-                                               record_all=args.transcripts)
+                                               record_all=args.transcripts,
+                                               partial_path=path + ".partial.jsonl")
         finally:
             if server:
                 server.stop()

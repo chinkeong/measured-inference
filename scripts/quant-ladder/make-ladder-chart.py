@@ -85,6 +85,12 @@ def px(bpw):
 
 
 def py(pct):
+    # Larger percentage -> larger y, and in SVG a larger y is FURTHER
+    # DOWN the page. So a worse file is drawn LOWER. The axis note used
+    # to read "worse is higher", which contradicted this mapping and
+    # shipped that way on the live page; the standalone PNG had been
+    # corrected but this generator had not, and it would have
+    # reintroduced the wrong label on its next run.
     return T + min(pct, YMAX) / YMAX * (B - T)
 
 
@@ -173,7 +179,7 @@ def main():
     A('<text class="axis-t" x="%.0f" y="%d" style="font-size:9.5px" '
       'fill="var(--bad)">&#8592; nothing below here runs</text>' % (xb + 6, STRIP + 26))
     A('<text class="axis-t" x="%d" y="%d" text-anchor="end">bits per weight '
-      '&#8594; smaller file &#183; worse is higher</text>' % (R, T - 12))
+      '&#8594; smaller file &#183; worse is LOWER</text>' % (R, T - 12))
 
     # legend
     ly = 262
