@@ -46,12 +46,31 @@ here, all found by audit rather than by re-reading the chart:
      75-item suite (with the empty count as a component of its losses), and
      the execute probe on a separate prompt.
 
+TWO LATER CORRECTIONS, 2026-08-27, neither of which moves the boundary:
+
+  4. The "did the code it wrote run?" row drew QAT-Q2_0 as a diamond. That row
+     is the only binary thing on the chart and it had three symbols in it, so
+     a reader had to stop and look for a third meaning that is not there. It
+     is now the ordinary pass dot. The diamonds stay in the plot above, where
+     they distinguish an off-ladder file from the ladder's polylines.
+
+  5. The empty-answer column is measured with the decoding fixed - temperature
+     0, top_k 1 - so the model always takes the likeliest next word and a
+     repeat is identical. Nobody runs the model that way. The one rung
+     re-counted under the publisher's own sampling settings, over 300 fresh
+     generations, gave an order of magnitude fewer empties than its column
+     entry, and the red label now says so. Only that rung is quoted: the same
+     artifact holds an unfinished row for another file, and read_empty_power()
+     refuses to read it.
+
 Nothing about the central finding changed, and it is better supported than it
 was: the functional boundary is still between 2.481 and 2.153 bits per weight,
 still with two witnesses that share no machinery - the accuracy cliff and a
-JavaScript parser.
+JavaScript parser. Correction 5 qualifies ONE series and touches neither
+witness; the checks beside it refuse to draw if it ever starts to.
 """
 
+import ast
 import glob
 import json
 import math
@@ -65,12 +84,18 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 from scipy.stats import binomtest, fisher_exact
 
+HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = r"E:\AI\measured-inference\results\qwen38-27b-blind"
 QL   = os.path.join(ROOT, "data", "quant-ladder")
 OUT  = r"E:\chinkeong.github.io\qwen-27b\quant-ladder.png"
 
 REFERENCE = "UD-IQ4_XS"
 N_ITEMS   = 75
+# The one rung that has been re-counted under sampling, and the ONLY one the
+# empty-answer caveat is allowed to quote. empties-power.json also carries an
+# unfinished row for a second file; an unfinished count must never reach a
+# caption, so read_empty_power() refuses to read it.
+POWER_FILE = "UD-IQ2_XXS"
 
 # The eight Unsloth rungs, biggest first. One publisher, one production
 # method, so a line through them is meaningful.
@@ -233,6 +258,54 @@ def read_kld():
             for r in load(os.path.join(QL, "kld-errorbars.json"))}
 
 
+# ------------------------------------- what the empty count is worth, and why
+def read_samplers():
+    """scripts/quant-ladder/overnight.py names the two decoding settings that
+    produced the two empty counts the chart now compares. The caveat calls one
+    of them "decoding fixed to always pick the likeliest next word" and the
+    other "the settings the model's publisher recommends", so both are read
+    from the runner that produced the counts rather than described from
+    memory. If either stops being what the caveat says it is, this raises."""
+    src = open(os.path.join(HERE, "overnight.py"), encoding="utf-8").read()
+    out = {}
+    for name in ("GREEDY", "SHIPPED"):
+        m = re.search(r"^%s\s*=\s*(\{[^}]*\})" % name, src, re.M)
+        if not m:
+            die("overnight.py no longer defines " + name)
+        out[name] = ast.literal_eval(m.group(1))
+    if out["GREEDY"].get("temperature") != 0 or out["GREEDY"].get("top_k") != 1:
+        die("the ladder arms are no longer decoded greedily (%r) - the "
+            "empty-answer caveat says the decoding is fixed" % out["GREEDY"])
+    if not out["SHIPPED"].get("temperature"):
+        die("the better-powered rerun is no longer sampled (%r) - the "
+            "empty-answer caveat contrasts it with fixed decoding"
+            % out["SHIPPED"])
+    return out
+
+
+def read_empty_power():
+    """data/overnight/empties-power.json: the better-powered re-count of empty
+    answers under the publisher's own sampling settings. Only a COMPLETED row
+    is accepted, and only for POWER_FILE. The recorded rate is cross-checked
+    against its own counts so a stale rate_pct cannot reach the caption."""
+    doc = load(os.path.join(ROOT, "data", "overnight", "empties-power.json"))
+    rows = {r["file"]: r for r in doc.get("rows", [])}
+    if doc.get("in_progress", {}).get("file") == POWER_FILE:
+        die("%s is still in progress in empties-power.json - an unfinished "
+            "count must not be drawn" % POWER_FILE)
+    if POWER_FILE not in rows:
+        die("no completed empties-power row for " + POWER_FILE)
+    r = rows[POWER_FILE]
+    got = r["empty"] / float(r["generations"]) * 100.0
+    if abs(got - r["rate_pct"]) > 0.01:
+        die("empties-power %s records rate_pct %.2f but %d of %d is %.2f%%"
+            % (POWER_FILE, r["rate_pct"], r["empty"], r["generations"], got))
+    if r["rule_of_three_upper_pct"] <= r["rate_pct"]:
+        die("empties-power %s upper bound %.2f%% is not above its own rate"
+            % (POWER_FILE, r["rule_of_three_upper_pct"]))
+    return r
+
+
 # ------------------------------------------------------------------ statistics
 def wilson(k, n, z=1.96):
     p = k / float(n)
@@ -267,6 +340,8 @@ RUNS, SHAPE = read_execute()
 KLD = read_kld()
 ARMS = load(os.path.join(ROOT, "data", "compare-arms.json"))
 IQ1S_TRUNC = read_truncations("qwen-iq1s")
+POWER = read_empty_power()
+SAMPLERS = read_samplers()
 
 # Claim 3, settled by counting rather than by argument. If a single empty
 # answer ever scored a pass, the empty series would carry information the
@@ -275,6 +350,41 @@ IQ1S_TRUNC = read_truncations("qwen-iq1s")
 if EMPTY_THAT_PASSED:
     die("%d empty answers scored as passes - the subtitle's 'three independent "
         "instruments' is wrong and must be re-checked" % EMPTY_THAT_PASSED)
+
+# THE CAVEAT ON THE RED SERIES, and what makes it true. Every count in the
+# empty-answer column comes from ONE deterministic pass: temperature 0, top_k
+# 1, so the model always takes the likeliest next word and a repeat is
+# identical. That is not how anyone runs the model, and it is not a small
+# difference. The one rung re-counted under the publisher's own sampling
+# settings - 300 fresh generations - produced an order of magnitude fewer
+# empties. Both halves of that sentence are checked here rather than asserted:
+# the sampled rate must genuinely be the lower one, and it must be lower by
+# enough that the caption's contrast is worth the space it takes.
+POWER_RATE  = POWER["empty"] / float(POWER["generations"]) * 100.0
+GREEDY_RATE = EMPTY[POWER_FILE] / float(N_ITEMS) * 100.0
+if EMPTY[POWER_FILE] == 0:
+    die("%s has no empty answers in the plotted column - the caveat contrasts "
+        "it with a smaller sampled count" % POWER_FILE)
+if POWER_RATE >= GREEDY_RATE:
+    die("%s: sampled %.2f%% is not below the fixed-decoding %.2f%% - the "
+        "empty-answer caveat no longer holds" % (POWER_FILE, POWER_RATE,
+                                                 GREEDY_RATE))
+if POWER["rule_of_three_upper_pct"] >= GREEDY_RATE:
+    die("%s: the sampled upper bound %.2f%% reaches the fixed-decoding rate "
+        "%.2f%% - the caveat's 'at most' clause says otherwise"
+        % (POWER_FILE, POWER["rule_of_three_upper_pct"], GREEDY_RATE))
+# And the caveat must not be allowed to move the boundary. The break this
+# chart is about sits between UD-IQ2_S and UD-IQ2_XXS and rests on the execute
+# probe and on perplexity, neither of which the empty column touches. If the
+# re-counted file ever stopped being BELOW that break, a caveat about its
+# empty count would be sitting on the recommendation itself.
+if BPW[POWER_FILE] >= BPW["UD-IQ2_S"]:
+    die("%s is no longer below the boundary - a caveat about its empty count "
+        "would now qualify the recommended side of the chart" % POWER_FILE)
+if RUNS[POWER_FILE] or not RUNS["UD-IQ2_S"]:
+    die("the execute probe no longer separates UD-IQ2_S from %s - the "
+        "boundary this chart draws does not rest on the empty column alone"
+        % POWER_FILE)
 
 REF_PASS, REF_PPL = PASS[REFERENCE], PPL[REFERENCE]
 
@@ -411,25 +521,44 @@ strip.set_xticks([]); strip.set_yticks([])
 #      discordant 0:1, McNemar p = 1.0000). Unpaired bands would put a wrong
 #      interval on the chart in place of a missing one, which is worse than
 #      stating the resolution in words.
-def rlabel(y, color, title, subs):
+def rlabel(y, color, title, subs, note=()):
+    """`note` is a caveat on the series, not another bullet of it: set a step
+    smaller, after a gap, so a reader takes it as a qualification of the lines
+    above rather than as one more measured fact of equal standing."""
     yy = AXB + AXH * (1 - y / YMAX)
     fig.text(R + 0.016, yy, title, ha='left', va='center', fontname=SANS,
              fontsize=13, color=color, fontweight='bold')
     for i, s in enumerate(subs):
         fig.text(R + 0.016, yy - 0.025 - i * 0.021, s, ha='left', va='center',
                  fontname=SANS, fontsize=10.5, color=MUTED)
+    base = yy - 0.025 - (len(subs) - 1) * 0.021 - 0.030
+    for i, s in enumerate(note):
+        fig.text(R + 0.016, base - i * 0.019, s, ha='left', va='center',
+                 fontname=SANS, fontsize=9.8, color=MUTED)
 
 
 rlabel(62.0, ACC, "accuracy lost", [
     "a paired statistical tie down to %.2f" % BPW["UD-IQ2_S"],
     "on %d items the 95%% interval is %d\u2013%d points"
     % (N_ITEMS, round(min(widths)), round(max(widths)))])
-rlabel(45.0, BAD, "empty answers", [
+# The red block carries the caveat, so it is anchored higher than the series
+# it labels would suggest: five extra lines have to land ABOVE the blue block
+# without crowding it. The grey block moves up with it to keep the three
+# stacked in the order the lines finish at the right-hand edge.
+rlabel(32.0, BAD, "empty answers", [
     "exactly zero down to %.3f bits" % BPW[ZERO_FLOOR],
     "%d of %d vs %d of %d: not resolved, p=%.2f"
     % (EMPTY[ZERO_FLOOR], N_ITEMS, EMPTY[FIRST_NONZERO], N_ITEMS, P_EMPTY),
-    "every empty answer is also a failed one"])
-rlabel(30.0, MUTED, "worse at predicting text", [
+    "every empty answer is also a failed one"], note=[
+    "counted with decoding fixed to always pick",
+    "the likeliest next word. Under the sampling",
+    "settings the model's publisher recommends,",
+    "the %.2f-bit file gave %d empty in %d"
+    % (BPW[POWER_FILE], POWER["empty"], POWER["generations"]),
+    "answers \u2014 at most 1 in %d, not %d of %d"
+    % (round(100.0 / POWER["rule_of_three_upper_pct"]),
+       EMPTY[POWER_FILE], N_ITEMS)])
+rlabel(20.0, MUTED, "worse at predicting text", [
     "perplexity, on fixed Wikipedia prose"])
 
 for x, ok in zip(bpw, runs):
@@ -440,10 +569,17 @@ for x, ok in zip(bpw, runs):
         for a_, b_ in ((0.30, 0.80), (0.80, 0.30)):
             strip.plot([x - 0.030, x + 0.030], [a_, b_], color=BAD, lw=2.7,
                        solid_capstyle='round', zorder=6)
-# QAT-Q2_0's code RUNS, so it gets a pass marker in the pass colour. A cross
-# would be false. Diamond, not dot, only to keep one visual language with its
-# markers above; the colour carries the verdict and the verdict is a pass.
-strip.scatter([QX], [0.55], s=112, marker='D', color=ACC, zorder=6,
+# QAT-Q2_0's code RUNS, so it gets the ORDINARY pass marker: same dot, same
+# colour, same size as every other file that passed. This row is the only
+# binary thing on the chart - one yes/no question, two symbols - and a third
+# shape in it sends a reader hunting for a third meaning that does not exist.
+# The diamonds are kept where they earn their keep, in the plot above, where
+# they say "this file is not a rung of these polylines". Here there are no
+# polylines and nothing to be off; there is only "did it run", and it did.
+# (Its probe row reads shape RE-EMITTED, which is how the model continued the
+# prompt and not a verdict - the harness's own splice made that look like a
+# syntax error. The RESULT field says RUNS.)
+strip.scatter([QX], [0.55], s=115, color=ACC, zorder=6,
               edgecolor='white', linewidth=1.6)
 strip.text(XMIN + 0.045, 0.55, "did the code\nit wrote run?", ha='right', va='center',
            fontname=SANS, fontsize=10.5, color=MUTED, linespacing=1.25, clip_on=False)
@@ -538,3 +674,14 @@ print("  paired p: pick %.4f, QAT tie %.4f, 1.99-vs-2.15 bump %.4f; empty step"
       " Fisher %.4f (%s %d vs %s %d)"
       % (P_PICK, P_QAT, P_BUMP, P_EMPTY, ZERO_FLOOR, EMPTY[ZERO_FLOOR],
          FIRST_NONZERO, EMPTY[FIRST_NONZERO]))
+print("  empties under decoding fixed (%r) vs sampled (%r):"
+      % (SAMPLERS["GREEDY"], SAMPLERS["SHIPPED"]))
+print("    %s %d of %d = %.2f%% plotted, against %d of %d = %.2f%% "
+      "(upper limit %.2f%%) - a factor of %.1f"
+      % (POWER_FILE, EMPTY[POWER_FILE], N_ITEMS, GREEDY_RATE, POWER["empty"],
+         POWER["generations"], POWER_RATE, POWER["rule_of_three_upper_pct"],
+         GREEDY_RATE / POWER_RATE))
+print("  agentic pair: %d exercises, %.1f%% vs %.1f%%, discordant %d and %d, "
+      "McNemar p=%.2f"
+      % (ARMS["paired_n"], ARMS["a_pass"], ARMS["b_pass"], ARMS["a_only"],
+         ARMS["b_only"], ARMS["mcnemar_p"]))
