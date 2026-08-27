@@ -185,16 +185,17 @@ footer b{color:var(--ink-2);font-weight:500}
 <header>
   <p class="eyebrow">Measured Inference · Agentic arm pair · 2026-08-27</p>
   <h1>Two Bits, Same Answer</h1>
-  <p class="standfirst">A 2-bit quantisation of Qwen3.8-27B finished 96 of 225 coding
-  tasks. So did a 4-bit one. They did <strong>not finish the same 96</strong> — a quarter
-  of the benchmark went to exactly one of them — and the 2-bit file spent
-  <strong>about a third more energy</strong>, which is the one difference here that is
+  <p class="standfirst">Two quantisations of Qwen3.8-27B — 4-bit and 2-bit — run against
+  the same 225 agentic coding tasks on the same card. Their scores are
+  <strong>indistinguishable</strong>. They nonetheless succeed on
+  <strong>materially different tasks</strong>, and the smaller file spends
+  <strong>about a third more energy</strong> — the one difference here that is
   statistically resolved.</p>
-  <p class="standfirst" style="margin-top:.9rem;font-size:1rem">Both arms ran the full
-  225-exercise aider polyglot benchmark on one RTX 3090 with identical settings. Power
-  telemetry covers all 225 exercises of the second arm and 132 of the first, whose sampler
-  was started after its benchmark — every energy figure below is paired over exercises both
-  arms recorded.</p>
+  <p class="standfirst" style="margin-top:.9rem;font-size:1rem">This page reports how the
+  two files differ <em>from each other</em>. It is not a score for the model: absolute pass
+  rates here are depressed by deliberate choices and are not comparable with published
+  leaderboards — see <a href="#comparability" style="color:var(--accent)">what these numbers
+  are not</a>.</p>
   <div class="conditions">
     <span><b>part</b> RTX 3090, 350 W cap</span>
     <span><b>runtime</b> llama.cpp b10502</span>
@@ -218,7 +219,7 @@ card and not. The question a buyer actually has is what that costs.</p>
   <div class="fig">
     <div class="v">+0.4<small> pts</small></div>
     <div class="k">Pass-rate difference</div>
-    <div class="c">95% CI −6.3 to +7.2<br>McNemar p = 1.00, n = 223 paired</div>
+    <div class="c">95% CI −6.3 to +7.2 · McNemar p = 1.00<br>n = 223 paired · a NULL, not equivalence</div>
   </div>
   <div class="fig">
     <div class="v">1.20<small>×</small></div>
@@ -268,8 +269,8 @@ or a finished task, and only the second one is what a user pays.</p>
   </tr></thead>
   <tbody>
     <tr><td>File size on disk</td><td class="n">14.25 GB</td><td class="n win">9.83 GB</td><td class="n">0.69×</td></tr>
-    <tr><td>Pass rate, 2nd attempt</td><td class="n">42.7%</td><td class="n">42.7%</td><td class="n dim">—</td></tr>
-    <tr><td>Pass rate, 1st attempt</td><td class="n win">13.3%</td><td class="n lose">8.4%</td><td class="n">0.63×</td></tr>
+    <tr><td>Pass rate, 2nd attempt <span class="dim">(not leaderboard-comparable)</span></td><td class="n">42.7%</td><td class="n">42.7%</td><td class="n dim">1.00×</td></tr>
+    <tr><td>Pass rate, 1st attempt <span class="dim">(not leaderboard-comparable)</span></td><td class="n win">13.3%</td><td class="n lose">8.4%</td><td class="n">0.63×</td></tr>
     <tr><td>Well-formed responses</td><td class="n win">100.0%</td><td class="n">99.1%</td><td class="n">—</td></tr>
     <tr><td>Seconds per case</td><td class="n win">53.1</td><td class="n lose">72.2</td><td class="n">1.36×</td></tr>
     <tr><td>Completion tokens, total</td><td class="n win">601,849</td><td class="n lose">849,576</td><td class="n">1.41×</td></tr>
@@ -450,7 +451,59 @@ this campaign ran against its own work.</p>
 </div>
 </div>
 
-<h2><span class="num">05 — Limits</span>What this rig cannot say</h2>
+<h2 id="comparability"><span class="num">05 — Comparability</span>What these numbers are not</h2>
+
+<div class="col">
+<p class="lede">The pass rates on this page are <b>internally comparable and externally
+not</b>. They exist to put the two files on the same footing as each other. Read as a score
+for Qwen3.8-27B they would be wrong, and every reason is a choice made here on purpose.</p>
+</div>
+
+<div class="scroll">
+<table>
+  <caption>Each row is a deliberate difference between this rig and how a public
+  leaderboard entry is produced. All four push the same way.</caption>
+  <thead><tr><th>Choice made here</th><th>Why</th><th>Effect on the absolute score</th></tr></thead>
+  <tbody>
+    <tr><td><code>--reasoning off</code></td>
+        <td>Holds the variable fixed across arms, and keeps a 225-exercise run inside a
+        night rather than a weekend.</td>
+        <td class="lose">Lowers it. This is a reasoning-capable model measured with its
+        reasoning disabled.</td></tr>
+    <tr><td><code>--edit-format whole</code></td>
+        <td>Chosen for reliability: it produced 100% well-formed responses.</td>
+        <td class="lose">Generally lower than <code>diff</code> for models that can hold a
+        diff format.</td></tr>
+    <tr><td>Quantised local weights</td>
+        <td>The entire subject of this page — a 24 GB card cannot hold the unquantised
+        model.</td>
+        <td class="lose">Lowers it against a full-precision reference.</td></tr>
+    <tr><td><code>-c 32768</code></td>
+        <td>What fits alongside these weights on 24 GB.</td>
+        <td class="lose">Two runs hit an exhausted context window.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="col">
+<div class="note">
+<p><b>The harness itself is not the problem.</b> This is aider's official polyglot
+benchmark, unmodified, run inside aider's own container — not a re-implementation. What
+makes the number non-transferable is the four settings above, not the instrument.</p>
+<p><b>And it has never been validated against a published figure.</b> No score from this
+campaign has been checked against a known reference run, so absolute rates should be read
+as internally comparable only. That is an open item, not a solved one.</p>
+</div>
+
+<p>An apples-to-apples absolute score would need reasoning enabled and the edit format the
+leaderboard assigns — and then it would still be a quantised local model against
+full-precision API entries, which is a different measurement again. That rerun is not being
+made: it is four more arms of machine time on a rig that runs one measurement at a time, and
+it would not change anything on this page, because everything here is a comparison of two
+files to each other under identical conditions.</p>
+</div>
+
+<h2><span class="num">06 — Limits</span>What this rig cannot say</h2>
 
 <div class="col">
 <p>Stated plainly so absence is never read as a result.</p>
