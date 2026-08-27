@@ -383,9 +383,22 @@
      not lighter. Weight 600, size back to parity, and the ink darkened from a
      mid navy to near-black so the glyphs hold colour at small sizes instead of
      greying out. */
-  code { background: var(--code-bg); color: var(--code-ink);
-         border-color: var(--code-line); font-size: 0.95em;
-         font-weight: 600; letter-spacing: -0.005em; padding: 2px 6px; }
+  /* INLINE CODE LEAVES MONOSPACE. Weight 600 was not enough and could not be:
+     a monospace face has thinner strokes and looser fitting than the sans
+     beside it, so a chip set in mono reads lighter than its sentence at ANY
+     weight short of bold. Three passes tried to win that on colour, size and
+     weight while leaving the face alone.
+
+     An inline flag does not need character alignment - nothing lines up under
+     it. It needs to be read and copied. So it takes the UI face at 700, and
+     the tinted pill and border go on carrying the this-is-a-literal signal.
+     Monospace stays where alignment IS the point: pre blocks and numeric
+     table cells. */
+  code { font-family: var(--ui); font-weight: 700; font-size: 0.94em;
+         letter-spacing: 0; background: var(--code-bg); color: var(--code-ink);
+         border-color: var(--code-line); padding: 2px 7px; }
+  pre code { font-family: var(--mono); font-weight: inherit; font-size: inherit;
+             background: none; border: 0; padding: 0; }
   /* a chip inside a heading or a bold run should not fight the weight it sits in */
   h1 code, h2 code, h3 code, b code, strong code { color: inherit;
          background: var(--code-bg); }
