@@ -191,10 +191,10 @@ footer b{color:var(--ink-2);font-weight:500}
   <strong>about a third more energy</strong> — the one difference here that is
   statistically resolved.</p>
   <p class="standfirst" style="margin-top:.9rem;font-size:1rem">This page reports how the
-  two files differ <em>from each other</em>. It is not a score for the model: absolute pass
-  rates here are depressed by deliberate choices and are not comparable with published
-  leaderboards — see <a href="#comparability" style="color:var(--accent)">what these numbers
-  are not</a>.</p>
+  two files differ <em>from each other</em>. It is not a score for the model, and no
+  comparable published score exists — aider's polyglot leaderboard has not been updated
+  since ten months before this model was released. See
+  <a href="#comparability" style="color:var(--accent)">what these numbers are not</a>.</p>
   <div class="conditions">
     <span><b>part</b> RTX 3090, 350 W cap</span>
     <span><b>runtime</b> llama.cpp b10502</span>
@@ -392,6 +392,22 @@ these was measured, published, and then refuted by a better measurement — in e
 this campaign ran against its own work.</p>
 
 <div class="retraction">
+  <span class="tag">Corrected — the settings were blamed without checking</span>
+  <p><s>Four deliberate choices — reasoning off, the whole edit format, quantisation and a
+  32k context — all depress the absolute score, so it is not comparable with published
+  leaderboards.</s></p>
+  <p><b>Checked against aider's own published data, three of the four go the other way or do
+  nothing.</b> <code>whole</code> beat <code>diff</code> on every published Qwen3 matched
+  pair by 2.2 to 4.5 points and is aider's own default for lesser-known models. For Qwen,
+  aider <em>recommends</em> thinking off and its no-think arm scored 11.5 points higher than
+  its thinking arm. The 32k window shows no evidence of harm — the largest file the model
+  re-emits is about 1,900 tokens, and 100% well-formed is the signature of a window that is
+  not truncating. Only quantisation clearly costs. The conclusion that the score is not
+  externally comparable survives, but for a different and simpler reason: <b>no comparable
+  published score exists at all.</b></p>
+</div>
+
+<div class="retraction">
   <span class="tag">Withdrawn — discordance attributed without evidence</span>
   <p><s>The two files succeed on materially different tasks: 60 of 225 exercises went to
   exactly one of them.</s></p>
@@ -480,53 +496,82 @@ this campaign ran against its own work.</p>
 <h2 id="comparability"><span class="num">05 — Comparability</span>What these numbers are not</h2>
 
 <div class="col">
-<p class="lede">The pass rates on this page are <b>internally comparable and externally
-not</b>. They exist to put the two files on the same footing as each other. Read as a score
-for Qwen3.8-27B they would be wrong, and every reason is a choice made here on purpose.</p>
+<p class="lede">The pass rates here are <b>internally comparable and externally not</b> —
+but not for the reason first assumed. An earlier draft of this section claimed four
+deliberate choices had depressed the score. Checked against aider's own published data,
+three of the four go the other way or do nothing.</p>
 </div>
 
 <div class="scroll">
 <table>
-  <caption>Each row is a deliberate difference between this rig and how a public
-  leaderboard entry is produced. All four push the same way.</caption>
-  <thead><tr><th>Choice made here</th><th>Why</th><th>Effect on the absolute score</th></tr></thead>
+  <caption>Each row checked against aider's published leaderboard data and documentation
+  rather than assumed. Sources: aider's polyglot_leaderboard.yml (69 entries), aider's
+  Qwen3 results page, aider's benchmark README.</caption>
+  <thead><tr><th>Choice made here</th><th class="n">Effect on the score</th><th>Evidence</th></tr></thead>
   <tbody>
-    <tr><td><code>--reasoning off</code></td>
-        <td>Holds the variable fixed across arms, and keeps a 225-exercise run inside a
-        night rather than a weekend.</td>
-        <td class="lose">Lowers it. This is a reasoning-capable model measured with its
-        reasoning disabled.</td></tr>
     <tr><td><code>--edit-format whole</code></td>
-        <td>Chosen for reliability: it produced 100% well-formed responses.</td>
-        <td class="lose">Generally lower than <code>diff</code> for models that can hold a
-        diff format.</td></tr>
-    <tr><td>Quantised local weights</td>
-        <td>The entire subject of this page — a 24 GB card cannot hold the unquantised
-        model.</td>
-        <td class="lose">Lowers it against a full-precision reference.</td></tr>
+        <td class="n win">raises it<br>≈ +3.6 pp</td>
+        <td>On every published Qwen3 same-model pair, <code>whole</code> beat
+        <code>diff</code>: +4.5, +4.0, +2.2 pp. Aider's own README: “For lesser known models
+        aider will default to using the <code>whole</code> editing format.” This flag made
+        aider's own default explicit — it was not an override away from a better setting.</td></tr>
+    <tr><td><code>--reasoning off</code></td>
+        <td class="n dim">unclear;<br>for Qwen, may raise</td>
+        <td>Across five same-model pairs on other models, thinking-off costs 1.3–11.1 pp
+        (median 4.5). But for Qwen specifically aider <em>recommends</em> thinking off, and
+        its no-think arm scored <b>11.5 pp higher</b> than its thinking arm (61.3% vs
+        49.8%). Direction for this model: not established.</td></tr>
     <tr><td><code>-c 32768</code></td>
-        <td>What fits alongside these weights on 24 GB.</td>
-        <td class="lose">Two runs hit an exhausted context window.</td></tr>
+        <td class="n dim">no evidence<br>of harm</td>
+        <td>The largest file the model must re-emit under <code>whole</code> is ~1,900
+        tokens against a 32,768-token window. Aider's only context experiment is at 2k,
+        where truncation collapses edit-format compliance to 46%. This run reported
+        <b>100% well-formed</b> — the signature of a window that is not truncating.</td></tr>
+    <tr><td>Quantised local weights</td>
+        <td class="n lose">lowers it</td>
+        <td>The only lever here that clearly costs. Aider's one matched pair under the same
+        edit format — bfloat16 against a llama.cpp Q5_K_M build — cost <b>6.2 pp</b>.
+        Q5_K_M is far lighter than either file measured here, so that bounds nothing about
+        these weights; it establishes only that the direction is real.</td></tr>
   </tbody>
 </table>
 </div>
 
 <div class="col">
 <div class="note">
-<p><b>The harness itself is not the problem.</b> This is aider's official polyglot
-benchmark, unmodified, run inside aider's own container — not a re-implementation. What
-makes the number non-transferable is the four settings above, not the instrument.</p>
-<p><b>And it has never been validated against a published figure.</b> No score from this
-campaign has been checked against a known reference run, so absolute rates should be read
-as internally comparable only. That is an open item, not a solved one.</p>
+<p><b>For scale, since the number is not low.</b> On aider's official polyglot leaderboard
+the open-weight 27B–32B class runs from 4.9% to <b>40.0%</b>. The 42.7% measured here — from
+a smaller model, quantised, on one consumer card — sits above that class. The closest
+like-for-like published figure is Qwen3-32B at bfloat16, <code>whole</code> format,
+reasoning off: <b>45.8%</b>, which is 3.1 points higher. That figure is a third-party
+submission aider flags as unverified; the only Qwen3-32B number on the official board is
+40.0%.</p>
 </div>
 
-<p>An apples-to-apples absolute score would need reasoning enabled and the edit format the
-leaderboard assigns — and then it would still be a quantised local model against
-full-precision API entries, which is a different measurement again. That rerun is not being
-made: it is four more arms of machine time on a rig that runs one measurement at a time, and
-it would not change anything on this page, because everything here is a comparison of two
-files to each other under identical conditions.</p>
+<h3>Why no clean comparison exists, and cannot</h3>
+<p>Aider's polyglot leaderboard data file has not been updated since <b>4 October 2025</b>.
+Qwen3.8-27B was released on <b>14 August 2026</b> — about ten months later. There is no
+leaderboard entry for this model, and there structurally cannot be one. No aider polyglot
+score for it exists anywhere: not on the board, not in aider's blog, not on the model card.</p>
+
+<p>Two further gaps make any cross-comparison unsafe, and both are absences rather than
+differences. <b>All 69 leaderboard entries were served by hosted APIs; none was served
+locally.</b> And the leaderboard records <b>no precision field at all</b> — so it cannot be
+said that its open-weight entries are full precision, only that their precision is unknown.
+Aider has itself documented that provider-served open weights arrive at provider-chosen
+quantisation.</p>
+
+<div class="note">
+<p><b>One number on this page that should not be read as quality.</b> The 100% well-formed
+rate is close to automatic under <code>whole</code>: aider writes any unlabelled fenced
+block straight over the solution file and does not count that as malformed. Two leaderboard
+models with 100% well-formed scored 3.6% and 4.9% on the actual task. It means the harness
+could parse the output. It says nothing about the code.</p>
+</div>
+
+<p>What remains true is the narrow claim this page makes: two files, one benchmark, one
+machine, identical settings, byte-identical inputs. The comparison between them is sound.
+Its absolute level is a measurement of a configuration, not of a model.</p>
 </div>
 
 <h2><span class="num">06 — Limits</span>What this rig cannot say</h2>
