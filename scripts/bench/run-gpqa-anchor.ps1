@@ -37,6 +37,11 @@
 # It detects a BROKEN harness. It does not validate one.
 param(
     [int]$Samples = 12,
+    # Skip the first N questions. The 2026-08-27 run was stopped at 100 of
+    # 198 and gpqa_diamond.jsonl is SUBJECT-ORDERED, so that prefix is not a
+    # sample: quantum ended 3 of 21 covered, biology 16 of 16. -Offset 100
+    # runs the complement so the two halves combine into an unbiased 198.
+    [int]$Offset = 0,
     [int]$MaxTokens = 30000,
     [string]$Effort = "xhigh",
     [int]$Port = 1291,
@@ -92,11 +97,12 @@ $cmd = @(
     "--max-tokens", "$MaxTokens",
     "--seed", "42",
     "--presence-penalty", "0.0",
+    "--offset", "$Offset",
     "--port", "$Port",
     "--server-args", "`"$serverArgs`""
 ) -join " "
 
-Write-Output "conditions: effort=$Effort  samples=$Samples  max_tokens=$MaxTokens"
+Write-Output "conditions: effort=$Effort  samples=$Samples  offset=$Offset  max_tokens=$MaxTokens"
 Write-Output "sampler   : temperature 1.0, top_p 0.95, top_k 20, presence_penalty 0.0 (vendor thinking profile)"
 Write-Output "log       : $log"
 Write-Output ""

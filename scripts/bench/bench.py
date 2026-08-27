@@ -473,6 +473,14 @@ def main():
                     help="comma-separated subset of: " + ", ".join(DATASET_NAMES))
     ap.add_argument("--samples", type=int, default=None,
                     help="prompts per dataset (default 10; --rule21: 25)")
+    ap.add_argument("--offset", type=int, default=0,
+                    help="skip the first N rows of each dataset BEFORE "
+                         "selecting. A run stopped early leaves a prefix, "
+                         "and on a subject-ordered file a prefix is not a "
+                         "sample - this runs the complement so the two "
+                         "halves can be combined. Determinism holds: same "
+                         "file, same offset, same samples give byte-"
+                         "identical picks.")
     ap.add_argument("--max-tokens", type=int, default=None,
                     help="max completion tokens (default 1024; --rule21: 16384)")
     ap.add_argument("--seed", type=int, default=None,
@@ -628,7 +636,8 @@ def main():
                          "re-freeze it with the current bench.py")
         print(f"using suite {args.suite} (hash {suite_hash})")
     else:
-        items_by_ds = {ds: load_items(ds, args.samples, args.max_prompt_tokens)
+        items_by_ds = {ds: load_items(ds, args.samples, args.max_prompt_tokens,
+                                      offset=args.offset)
                        for ds in datasets}
         prompts_by_ds = {ds: [it["prompt"] for it in items]
                          for ds, items in items_by_ds.items()}

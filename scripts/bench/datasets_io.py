@@ -298,15 +298,29 @@ def _evenly_spaced(rows, n_samples):
     return [rows[int(i * step)] for i in range(n_samples)]
 
 
-def load_items(name, n_samples, max_prompt_tokens=DEFAULT_MAX_PROMPT_TOKENS):
+def load_items(name, n_samples, max_prompt_tokens=DEFAULT_MAX_PROMPT_TOKENS,
+               offset=0):
     """Up to n_samples items ({prompt, ref, note}), deterministically spread
     over the dataset. For guaranteed cross-machine fairness, freeze them into a
     suite file (bench.py --freeze-suite) and share that file instead."""
-    rows = _evenly_spaced(_read_jsonl(dataset_path(name)), n_samples)
+    rows = _read_jsonl(dataset_path(name))
+    # OFFSET IS APPLIED BEFORE THE SPACING, and it exists for one reason: a
+    # run stopped early leaves a PREFIX, and on a subject-ordered file a
+    # prefix is not a sample. gpqa_diamond.jsonl is ordered by subject - 106
+    # adjacent same-subject pairs against 48.1 expected, permutation
+    # p < 0.00005 - so stopping the anchor at question 100 left quantum at 3
+    # of 21 covered and biology at 16 of 16. Running the COMPLEMENT and
+    # combining is what removes that, and it needs an offset.
+    #
+    # The determinism guarantee is unchanged and now reads: same file, same
+    # offset, same n_samples -> byte-identical picks on any machine.
+    if offset:
+        rows = rows[offset:]
+    rows = _evenly_spaced(rows, n_samples)
     return [build_item(name, r, max_prompt_tokens) for r in rows]
 
 
-def load_prompts(name, n_samples):
+def load_prompts(name, n_samples, offset=0):
     """Return up to n_samples prompt strings, deterministically spread over the dataset.
 
     Selection is a pure function of (dataset file, n_samples): evenly spaced
@@ -314,7 +328,7 @@ def load_prompts(name, n_samples):
     For guaranteed cross-machine fairness, freeze them into a suite file
     (bench.py --freeze-suite) and share that file instead.
     """
-    return [it["prompt"] for it in load_items(name, n_samples)]
+    return [it["prompt"] for it in load_items(name, n_samples, offset=offset)]
 
 
 def load_qa(name, n_samples):
