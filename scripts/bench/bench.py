@@ -457,6 +457,12 @@ def main():
                     help="max completion tokens (default 1024; --rule21: 16384)")
     ap.add_argument("--seed", type=int, default=None,
                     help="sampler seed sent with every request (default 42)")
+    ap.add_argument("--presence-penalty", type=float, default=None,
+                    help="override the presence penalty. The built-in default "
+                         "is 1.5, which is Qwen's NON-thinking recommendation; "
+                         "their thinking profile specifies 0.0. A run meant to "
+                         "be compared against a published figure must match the "
+                         "profile that figure was produced under.")
     ap.add_argument("--greedy", action="store_true",
                     help="temperature 0 / top-k 1: deterministic decoding for "
                          "quality comparisons (overrides default sampling)")
@@ -616,6 +622,10 @@ def main():
 
     if args.greedy:
         sampling.update(temperature=0.0, top_k=1, top_p=1.0, presence_penalty=0.0)
+    # Applied AFTER --greedy so an explicit value always wins, and so the
+    # artefact's settings block records what was actually sent.
+    if args.presence_penalty is not None:
+        sampling["presence_penalty"] = args.presence_penalty
 
     # A presence penalty is measured as harmful to code and JSON: those formats
     # legitimately repeat braces, keys and indentation, so penalising a repeat
