@@ -1,0 +1,1078 @@
+{
+ "reconstructed": true,
+ "reconstructed_from": "E:\\AI\\measured-inference\\results\\qwen38-27b-blind\\logs\\gpqa-anchor-20260827_133815.log",
+ "reconstructed_at": "2026-08-27T19:17:04",
+ "why": "bench.py checkpoints once per DATASET; a single-dataset run writes nothing until the last question, so an interrupted run survives only in its log",
+ "model_label": "Qwen3.8-27B-UD-IQ4_XS",
+ "dataset": "GPQA-Diamond",
+ "planned_n": 198,
+ "completed_n": 100,
+ "partial": true,
+ "score": {
+  "correct": 82,
+  "n": 100,
+  "pct": 82.0,
+  "wilson95": [
+   73.33,
+   88.3
+  ]
+ },
+ "score_excluding_truncated": {
+  "correct": 82,
+  "n": 87,
+  "pct": 94.25,
+  "wilson95": [
+   87.24,
+   97.52
+  ]
+ },
+ "truncated_n": 13,
+ "truncated_pct": 13.0,
+ "truncated_indices": [
+  11,
+  29,
+  32,
+  66,
+  77,
+  78,
+  79,
+  80,
+  85,
+  86,
+  88,
+  89,
+  98
+ ],
+ "tokens": {
+  "mean": 10166.0,
+  "median": 5520.5,
+  "min": 195,
+  "max": 30000
+ },
+ "accept_len_mean": 2.211,
+ "score_by_block_of_20": [
+  {
+   "first": 1,
+   "last": 20,
+   "n": 20,
+   "correct": 17,
+   "truncated": 1,
+   "mean_tokens": 7988.0
+  },
+  {
+   "first": 21,
+   "last": 40,
+   "n": 20,
+   "correct": 18,
+   "truncated": 2,
+   "mean_tokens": 7703.0
+  },
+  {
+   "first": 41,
+   "last": 60,
+   "n": 20,
+   "correct": 19,
+   "truncated": 0,
+   "mean_tokens": 4625.0
+  },
+  {
+   "first": 61,
+   "last": 80,
+   "n": 20,
+   "correct": 13,
+   "truncated": 5,
+   "mean_tokens": 13358.0
+  },
+  {
+   "first": 81,
+   "last": 100,
+   "n": 20,
+   "correct": 15,
+   "truncated": 5,
+   "mean_tokens": 17156.0
+  }
+ ],
+ "tok_s_mean": 52.07,
+ "rows": [
+  {
+   "index": 1,
+   "planned_n": 198,
+   "tokens": 338,
+   "tok_s": 51.8,
+   "accept_len": 2.02,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 2,
+   "planned_n": 198,
+   "tokens": 3215,
+   "tok_s": 48.7,
+   "accept_len": 1.95,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 3,
+   "planned_n": 198,
+   "tokens": 2061,
+   "tok_s": 51.2,
+   "accept_len": 2.15,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 4,
+   "planned_n": 198,
+   "tokens": 7536,
+   "tok_s": 54.2,
+   "accept_len": 2.2,
+   "correct": false,
+   "truncated": false
+  },
+  {
+   "index": 5,
+   "planned_n": 198,
+   "tokens": 4927,
+   "tok_s": 51.4,
+   "accept_len": 2.22,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 6,
+   "planned_n": 198,
+   "tokens": 1487,
+   "tok_s": 46.1,
+   "accept_len": 2.04,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 7,
+   "planned_n": 198,
+   "tokens": 8840,
+   "tok_s": 45.3,
+   "accept_len": 2.07,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 8,
+   "planned_n": 198,
+   "tokens": 6965,
+   "tok_s": 55.1,
+   "accept_len": 2.67,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 9,
+   "planned_n": 198,
+   "tokens": 1704,
+   "tok_s": 47.4,
+   "accept_len": 2.25,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 10,
+   "planned_n": 198,
+   "tokens": 26927,
+   "tok_s": 39.2,
+   "accept_len": 2.34,
+   "correct": false,
+   "truncated": false
+  },
+  {
+   "index": 11,
+   "planned_n": 198,
+   "tokens": 30000,
+   "tok_s": 46.5,
+   "accept_len": 2.32,
+   "correct": false,
+   "truncated": true
+  },
+  {
+   "index": 12,
+   "planned_n": 198,
+   "tokens": 4658,
+   "tok_s": 48.0,
+   "accept_len": 2.16,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 13,
+   "planned_n": 198,
+   "tokens": 3546,
+   "tok_s": 46.7,
+   "accept_len": 2.07,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 14,
+   "planned_n": 198,
+   "tokens": 499,
+   "tok_s": 51.0,
+   "accept_len": 2.27,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 15,
+   "planned_n": 198,
+   "tokens": 16798,
+   "tok_s": 44.7,
+   "accept_len": 2.0,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 16,
+   "planned_n": 198,
+   "tokens": 5431,
+   "tok_s": 50.5,
+   "accept_len": 2.17,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 17,
+   "planned_n": 198,
+   "tokens": 3676,
+   "tok_s": 50.9,
+   "accept_len": 2.27,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 18,
+   "planned_n": 198,
+   "tokens": 732,
+   "tok_s": 56.2,
+   "accept_len": 2.43,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 19,
+   "planned_n": 198,
+   "tokens": 29453,
+   "tok_s": 50.0,
+   "accept_len": 2.2,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 20,
+   "planned_n": 198,
+   "tokens": 961,
+   "tok_s": 62.8,
+   "accept_len": 2.67,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 21,
+   "planned_n": 198,
+   "tokens": 10200,
+   "tok_s": 54.1,
+   "accept_len": 2.22,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 22,
+   "planned_n": 198,
+   "tokens": 9835,
+   "tok_s": 55.4,
+   "accept_len": 2.26,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 23,
+   "planned_n": 198,
+   "tokens": 3941,
+   "tok_s": 56.3,
+   "accept_len": 2.24,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 24,
+   "planned_n": 198,
+   "tokens": 537,
+   "tok_s": 56.7,
+   "accept_len": 2.34,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 25,
+   "planned_n": 198,
+   "tokens": 9571,
+   "tok_s": 51.2,
+   "accept_len": 2.25,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 26,
+   "planned_n": 198,
+   "tokens": 10986,
+   "tok_s": 53.5,
+   "accept_len": 2.47,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 27,
+   "planned_n": 198,
+   "tokens": 974,
+   "tok_s": 51.5,
+   "accept_len": 2.35,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 28,
+   "planned_n": 198,
+   "tokens": 581,
+   "tok_s": 46.4,
+   "accept_len": 2.02,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 29,
+   "planned_n": 198,
+   "tokens": 30000,
+   "tok_s": 52.4,
+   "accept_len": 2.38,
+   "correct": false,
+   "truncated": true
+  },
+  {
+   "index": 30,
+   "planned_n": 198,
+   "tokens": 20967,
+   "tok_s": 48.2,
+   "accept_len": 2.03,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 31,
+   "planned_n": 198,
+   "tokens": 11277,
+   "tok_s": 55.7,
+   "accept_len": 2.38,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 32,
+   "planned_n": 198,
+   "tokens": 30000,
+   "tok_s": 50.1,
+   "accept_len": 2.19,
+   "correct": false,
+   "truncated": true
+  },
+  {
+   "index": 33,
+   "planned_n": 198,
+   "tokens": 1208,
+   "tok_s": 54.7,
+   "accept_len": 2.15,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 34,
+   "planned_n": 198,
+   "tokens": 382,
+   "tok_s": 56.9,
+   "accept_len": 2.3,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 35,
+   "planned_n": 198,
+   "tokens": 2991,
+   "tok_s": 58.1,
+   "accept_len": 2.33,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 36,
+   "planned_n": 198,
+   "tokens": 1781,
+   "tok_s": 52.2,
+   "accept_len": 2.06,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 37,
+   "planned_n": 198,
+   "tokens": 559,
+   "tok_s": 47.4,
+   "accept_len": 1.85,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 38,
+   "planned_n": 198,
+   "tokens": 532,
+   "tok_s": 62.7,
+   "accept_len": 2.61,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 39,
+   "planned_n": 198,
+   "tokens": 5820,
+   "tok_s": 52.0,
+   "accept_len": 2.1,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 40,
+   "planned_n": 198,
+   "tokens": 1922,
+   "tok_s": 43.8,
+   "accept_len": 1.67,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 41,
+   "planned_n": 198,
+   "tokens": 8244,
+   "tok_s": 51.5,
+   "accept_len": 2.12,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 42,
+   "planned_n": 198,
+   "tokens": 5293,
+   "tok_s": 59.9,
+   "accept_len": 2.5,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 43,
+   "planned_n": 198,
+   "tokens": 10763,
+   "tok_s": 49.4,
+   "accept_len": 2.01,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 44,
+   "planned_n": 198,
+   "tokens": 937,
+   "tok_s": 53.1,
+   "accept_len": 2.09,
+   "correct": false,
+   "truncated": false
+  },
+  {
+   "index": 45,
+   "planned_n": 198,
+   "tokens": 567,
+   "tok_s": 55.3,
+   "accept_len": 2.3,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 46,
+   "planned_n": 198,
+   "tokens": 406,
+   "tok_s": 60.3,
+   "accept_len": 2.62,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 47,
+   "planned_n": 198,
+   "tokens": 5667,
+   "tok_s": 56.4,
+   "accept_len": 2.35,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 48,
+   "planned_n": 198,
+   "tokens": 851,
+   "tok_s": 60.4,
+   "accept_len": 2.45,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 49,
+   "planned_n": 198,
+   "tokens": 509,
+   "tok_s": 50.5,
+   "accept_len": 1.95,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 50,
+   "planned_n": 198,
+   "tokens": 6957,
+   "tok_s": 47.1,
+   "accept_len": 1.83,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 51,
+   "planned_n": 198,
+   "tokens": 3323,
+   "tok_s": 55.4,
+   "accept_len": 2.23,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 52,
+   "planned_n": 198,
+   "tokens": 621,
+   "tok_s": 50.3,
+   "accept_len": 1.98,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 53,
+   "planned_n": 198,
+   "tokens": 1393,
+   "tok_s": 51.7,
+   "accept_len": 2.02,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 54,
+   "planned_n": 198,
+   "tokens": 673,
+   "tok_s": 54.5,
+   "accept_len": 2.29,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 55,
+   "planned_n": 198,
+   "tokens": 724,
+   "tok_s": 51.6,
+   "accept_len": 1.94,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 56,
+   "planned_n": 198,
+   "tokens": 8829,
+   "tok_s": 49.4,
+   "accept_len": 1.97,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 57,
+   "planned_n": 198,
+   "tokens": 338,
+   "tok_s": 51.7,
+   "accept_len": 2.04,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 58,
+   "planned_n": 198,
+   "tokens": 979,
+   "tok_s": 50.6,
+   "accept_len": 1.94,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 59,
+   "planned_n": 198,
+   "tokens": 10215,
+   "tok_s": 54.0,
+   "accept_len": 2.24,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 60,
+   "planned_n": 198,
+   "tokens": 25214,
+   "tok_s": 56.7,
+   "accept_len": 2.53,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 61,
+   "planned_n": 198,
+   "tokens": 7404,
+   "tok_s": 48.7,
+   "accept_len": 1.91,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 62,
+   "planned_n": 198,
+   "tokens": 811,
+   "tok_s": 61.4,
+   "accept_len": 2.61,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 63,
+   "planned_n": 198,
+   "tokens": 2209,
+   "tok_s": 56.4,
+   "accept_len": 2.24,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 64,
+   "planned_n": 198,
+   "tokens": 4086,
+   "tok_s": 53.9,
+   "accept_len": 2.18,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 65,
+   "planned_n": 198,
+   "tokens": 22214,
+   "tok_s": 52.3,
+   "accept_len": 2.25,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 66,
+   "planned_n": 198,
+   "tokens": 30000,
+   "tok_s": 53.6,
+   "accept_len": 2.41,
+   "correct": false,
+   "truncated": true
+  },
+  {
+   "index": 67,
+   "planned_n": 198,
+   "tokens": 367,
+   "tok_s": 57.8,
+   "accept_len": 2.35,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 68,
+   "planned_n": 198,
+   "tokens": 5610,
+   "tok_s": 54.2,
+   "accept_len": 2.2,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 69,
+   "planned_n": 198,
+   "tokens": 504,
+   "tok_s": 57.0,
+   "accept_len": 2.28,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 70,
+   "planned_n": 198,
+   "tokens": 27881,
+   "tok_s": 51.5,
+   "accept_len": 2.25,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 71,
+   "planned_n": 198,
+   "tokens": 488,
+   "tok_s": 55.0,
+   "accept_len": 2.18,
+   "correct": false,
+   "truncated": false
+  },
+  {
+   "index": 72,
+   "planned_n": 198,
+   "tokens": 29945,
+   "tok_s": 63.6,
+   "accept_len": 2.94,
+   "correct": false,
+   "truncated": false
+  },
+  {
+   "index": 73,
+   "planned_n": 198,
+   "tokens": 2772,
+   "tok_s": 50.7,
+   "accept_len": 1.95,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 74,
+   "planned_n": 198,
+   "tokens": 195,
+   "tok_s": 53.5,
+   "accept_len": 2.14,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 75,
+   "planned_n": 198,
+   "tokens": 1400,
+   "tok_s": 54.7,
+   "accept_len": 2.17,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 76,
+   "planned_n": 198,
+   "tokens": 11273,
+   "tok_s": 52.2,
+   "accept_len": 2.15,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 77,
+   "planned_n": 198,
+   "tokens": 30000,
+   "tok_s": 49.0,
+   "accept_len": 2.12,
+   "correct": false,
+   "truncated": true
+  },
+  {
+   "index": 78,
+   "planned_n": 198,
+   "tokens": 30000,
+   "tok_s": 50.3,
+   "accept_len": 2.2,
+   "correct": false,
+   "truncated": true
+  },
+  {
+   "index": 79,
+   "planned_n": 198,
+   "tokens": 30000,
+   "tok_s": 48.8,
+   "accept_len": 2.12,
+   "correct": false,
+   "truncated": true
+  },
+  {
+   "index": 80,
+   "planned_n": 198,
+   "tokens": 30000,
+   "tok_s": 51.2,
+   "accept_len": 2.28,
+   "correct": false,
+   "truncated": true
+  },
+  {
+   "index": 81,
+   "planned_n": 198,
+   "tokens": 10859,
+   "tok_s": 52.5,
+   "accept_len": 2.2,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 82,
+   "planned_n": 198,
+   "tokens": 14373,
+   "tok_s": 51.1,
+   "accept_len": 2.14,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 83,
+   "planned_n": 198,
+   "tokens": 9428,
+   "tok_s": 54.4,
+   "accept_len": 2.27,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 84,
+   "planned_n": 198,
+   "tokens": 24421,
+   "tok_s": 53.8,
+   "accept_len": 2.51,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 85,
+   "planned_n": 198,
+   "tokens": 30000,
+   "tok_s": 50.9,
+   "accept_len": 2.38,
+   "correct": false,
+   "truncated": true
+  },
+  {
+   "index": 86,
+   "planned_n": 198,
+   "tokens": 30000,
+   "tok_s": 47.7,
+   "accept_len": 2.25,
+   "correct": false,
+   "truncated": true
+  },
+  {
+   "index": 87,
+   "planned_n": 198,
+   "tokens": 1945,
+   "tok_s": 44.6,
+   "accept_len": 1.95,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 88,
+   "planned_n": 198,
+   "tokens": 30000,
+   "tok_s": 45.1,
+   "accept_len": 2.09,
+   "correct": false,
+   "truncated": true
+  },
+  {
+   "index": 89,
+   "planned_n": 198,
+   "tokens": 30000,
+   "tok_s": 45.9,
+   "accept_len": 2.26,
+   "correct": false,
+   "truncated": true
+  },
+  {
+   "index": 90,
+   "planned_n": 198,
+   "tokens": 19141,
+   "tok_s": 52.2,
+   "accept_len": 2.42,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 91,
+   "planned_n": 198,
+   "tokens": 13622,
+   "tok_s": 50.5,
+   "accept_len": 2.06,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 92,
+   "planned_n": 198,
+   "tokens": 11439,
+   "tok_s": 53.8,
+   "accept_len": 2.23,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 93,
+   "planned_n": 198,
+   "tokens": 375,
+   "tok_s": 52.8,
+   "accept_len": 2.07,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 94,
+   "planned_n": 198,
+   "tokens": 12523,
+   "tok_s": 52.7,
+   "accept_len": 2.15,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 95,
+   "planned_n": 198,
+   "tokens": 26870,
+   "tok_s": 49.2,
+   "accept_len": 2.07,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 96,
+   "planned_n": 198,
+   "tokens": 1033,
+   "tok_s": 54.4,
+   "accept_len": 2.22,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 97,
+   "planned_n": 198,
+   "tokens": 28837,
+   "tok_s": 47.8,
+   "accept_len": 2.12,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 98,
+   "planned_n": 198,
+   "tokens": 30000,
+   "tok_s": 49.7,
+   "accept_len": 2.32,
+   "correct": false,
+   "truncated": true
+  },
+  {
+   "index": 99,
+   "planned_n": 198,
+   "tokens": 13156,
+   "tok_s": 49.4,
+   "accept_len": 2.32,
+   "correct": true,
+   "truncated": false
+  },
+  {
+   "index": 100,
+   "planned_n": 198,
+   "tokens": 5093,
+   "tok_s": 46.2,
+   "accept_len": 2.1,
+   "correct": true,
+   "truncated": false
+  }
+ ],
+ "subject_coverage": {
+  "labelling": "keyword heuristic - the frozen file carries no subject field. A noisy classifier can only dilute an ordering signal, so this result is a floor.",
+  "adjacent_same_subject_pairs": 106,
+  "expected_under_random_order": 48.1,
+  "permutation_p": "< 0.00005",
+  "shuffles": 20000,
+  "is_subject_ordered": true,
+  "subjects_covered": {
+   "organic chemistry": 38,
+   "unclassified": 22,
+   "biology/genetics": 16,
+   "astronomy/astrophysics": 14,
+   "particle/relativity": 7,
+   "quantum": 3
+  },
+  "subjects_remaining": {
+   "organic chemistry": 44,
+   "astronomy/astrophysics": 18,
+   "quantum": 18,
+   "unclassified": 11,
+   "particle/relativity": 7
+  },
+  "subjects_never_reached": [],
+  "overall_completion_pct": 50.5,
+  "per_subject_coverage": {
+   "quantum": {
+    "covered": 3,
+    "total": 21,
+    "pct": 14.3
+   },
+   "astronomy/astrophysics": {
+    "covered": 14,
+    "total": 32,
+    "pct": 43.8
+   },
+   "organic chemistry": {
+    "covered": 38,
+    "total": 82,
+    "pct": 46.3
+   },
+   "particle/relativity": {
+    "covered": 7,
+    "total": 14,
+    "pct": 50.0
+   },
+   "unclassified": {
+    "covered": 22,
+    "total": 33,
+    "pct": 66.7
+   },
+   "biology/genetics": {
+    "covered": 16,
+    "total": 16,
+    "pct": 100.0
+   }
+  },
+  "under_represented": [
+   "quantum"
+  ],
+  "checked": true,
+  "warning": "THIS RUN IS A PREFIX OF A SUBJECT-ORDERED FILE, NOT A RANDOM SAMPLE. 100 of 198 questions were answered, which is 50% overall, but the subjects are not covered at that rate: quantum 3 of 21 (14%). The Wilson intervals above describe sampling noise only. They cannot describe this imbalance, and they are too narrow to the extent that subject difficulty differs on this benchmark - which it does."
+ },
+ "conditions": {
+  "sampler": "vendor thinking profile: temperature 1.0, top_p 0.95, top_k 20, presence_penalty 0.0 (set explicitly - bench.py's default pairs the thinking temperature with the NON-thinking presence penalty of 1.5)",
+  "effort": "xhigh, via LLAMA_ARG_CHAT_TEMPLATE_KWARGS (the JSON could not survive PowerShell -> cmd -> argparse -> split())",
+  "max_tokens": 30000,
+  "ctx": 32768,
+  "model": "Qwen3.8-27B-UD-IQ4_XS",
+  "server_flags": "-ngl 99 -fa on -ctk q8_0 -ctv q8_0 --jinja --spec-type draft-mtp --spec-draft-n-max 4 --spec-draft-p-min 0.75",
+  "machine": "one RTX 3090, 350 W stock board cap, llama.cpp b10502-0adcc3bb5",
+  "seed": 42,
+  "stopped_early": "at 100 of 198 by decision, to free the machine for the test-retest baseline.",
+  "CORRECTION_to_the_stopping_justification": "An earlier version of this condition block justified stopping early on a chi-square of 4.30 on the ANSWER KEY between halves, 3 df, described as 'no detectable order effect'. That test asks only whether the correct letter A/B/C/D is evenly spread. It cannot see SUBJECT ordering, and subject ordering is what actually breaks a prefix. Measured 2026-08-27: the file is strongly subject-ordered - 106 adjacent same-subject pairs against 48.1 expected under random order, permutation p < 0.00005 over 20,000 shuffles. Both are true at once; only the second matters here.",
+  "what_this_detects": "A BROKEN harness. It does NOT validate one. The option order is the mirror's and is not the order that produced any published number; 89.2 is vendor self-reported with no independent third-party score for this model on this benchmark; and this rig serves 32,768 tokens of a 262,144-token-native model."
+ },
+ "published_reference": {
+  "value": 89.2,
+  "inside_wilson95": false,
+  "note": "a published figure this run can be compared against. It detects a BROKEN harness; it does not validate one - the option order is the mirror's, the published value is vendor self-reported, and this rig serves a fraction of the model's native context."
+ }
+}
