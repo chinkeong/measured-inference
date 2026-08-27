@@ -58,7 +58,14 @@ WIN_PAGE_B = 4096.0        # Windows page size, for pages/s -> bytes/s
 FULLWIN_IQ4XS_MIB = 23821.0    # UD-IQ4_XS @ -c 262144, drafter OFF, at depth
 FULLWIN_Q2KXL_MIB = 22859.0    # UD-Q2_K_XL @ -c 262144, drafter ON, at depth
 FULLWIN_Q2KXL_BPW = 2.912      # UD-Q2_K_XL
-DESKTOP_FENCE_MIB = 1308.0     # rule 14: 1,181 MiB desktop max + 127 MiB var
+DESKTOP_FENCE_MIB = 1796.0     # 1,669 MiB desktop worst case, measured
+                               # with NO server loaded, + 127 MiB of
+                               # load-to-load variation. CORRECTED
+                               # 2026-08-27 from 1308.0, which rested on
+                               # a 1,181 MiB desktop maximum an audit
+                               # showed was read off a board ALREADY
+                               # SPILLING - a desktop being evicted, not
+                               # one at rest.
 LADDER_TOP_BPW = 4.223         # UD-IQ4_XS, the file in this run
 LADDER_BOT_BPW = 1.835         # UD-IQ1_S, the rung that stops terminating
 LADDER_FLOOR_BPW = 2.481       # UD-IQ2_S, smallest rung whose code EXECUTES
@@ -316,7 +323,7 @@ def _vram(ctx, outdir, t0):
         "rather than with a scheduler. %.1f GiB of headroom is left at this "
         "window. The ladder argument is measured, not arithmetic: the same "
         "file at the full native 262,144-token window reached %s MiB - %s MiB "
-        "from the ceiling, inside the 1,308 MiB desktop reserve, with "
+        "from the ceiling, inside the %s MiB desktop reserve, with "
         "speculation off - while the 2.912 bits-per-weight file held the same "
         "window at %s MiB with speculation on. NOT MEASURED: per-process VRAM "
         "attribution, because nvidia-smi pmon reports '-' for every process "
@@ -327,7 +334,7 @@ def _vram(ctx, outdir, t0):
         "rig."
         % (_n(med), med / 1024.0, hi - lo, mins, drift_pct, head / 1024.0,
            _n(FULLWIN_IQ4XS_MIB), _n(BOARD_MIB - FULLWIN_IQ4XS_MIB),
-           _n(FULLWIN_Q2KXL_MIB)))
+           _n(DESKTOP_FENCE_MIB), _n(FULLWIN_Q2KXL_MIB)))
     return p, cap
 
 
