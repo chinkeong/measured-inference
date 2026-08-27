@@ -204,34 +204,65 @@ if __name__ == "__main__":
            for k in both if A_["by"][k].get("dur")]
     print("  model wall time: %s" % fmt_ratio(dur))
 
+    # ENERGY IS COMPARED ONLY WHERE BOTH ARMS HAVE IT.
+    #
+    # An arm whose telemetry started after the benchmark has power data for a
+    # SUBSET of its exercises. An earlier version of this block averaged each
+    # arm's energy over whatever it happened to have - 132 exercises for one
+    # arm against 222 for the other - and divided tokens over a THIRD set, all
+    # solved exercises. Three denominators in one table. It reported 1.515x
+    # where the paired figure is 1.319x: the direction survived, the magnitude
+    # did not. Every column below is computed over the same exercises.
+    energy_set = [k for k in common
+                  if "j" in A_["by"][k] and "j" in B_["by"][k]]
     print()
-    print("COST PER SOLVED EXERCISE  (the figure a user actually pays)")
-    rows = []
+    print("ENERGY AND TIME, paired on the %d exercises where BOTH arms have"
+          % len(energy_set))
+    print("power data (an arm's telemetry may start after its benchmark did)")
     for tag, arm in ((args.a, A_), (args.b, B_)):
-        soln = [arm["by"][k] for k in common if arm["by"][k]["passed"]]
-        withj = [e for e in soln if "j" in e]
-        n = len(soln)
-        row = {"arm": tag, "solved": n}
-        if n:
-            row["tokens_per_solved"] = sum(e["completion"] for e in soln) / n
-        if withj:
-            row["j_per_solved"] = sum(e["j"] for e in withj) / len(withj)
-            row["s_per_solved"] = sum(e["busy_s"] for e in withj) / len(withj)
-            row["n_with_energy"] = len(withj)
-        rows.append(row)
-        print("  %-16s solved %3d | %s | %s | %s"
-              % (tag, n,
-                 ("%7.0f tok" % row["tokens_per_solved"]) if n else "      -",
-                 ("%8.1f kJ" % (row["j_per_solved"] / 1000.0))
-                 if "j_per_solved" in row else "        -",
-                 ("%6.0f s GPU-busy" % row["s_per_solved"])
-                 if "s_per_solved" in row else "       -"))
-    if len(rows) == 2 and all("j_per_solved" in r for r in rows):
-        print("  energy per solved exercise, B vs A: %.3fx"
-              % (rows[1]["j_per_solved"] / rows[0]["j_per_solved"]))
-        print("  NOTE: energy here is board power only, and while the part is")
-        print("        pinned at its power cap this ratio largely restates the")
-        print("        time ratio rather than measuring efficiency separately.")
+        have = sum(1 for k in common if "j" in arm["by"][k])
+        print("  %-16s power data on %3d of %d paired exercises"
+              % (tag, have, len(common)))
+    rows = []
+    if energy_set:
+        for tag, arm in ((args.a, A_), (args.b, B_)):
+            es = [arm["by"][k] for k in energy_set]
+            row = {"arm": tag, "n_energy_paired": len(es),
+                   "kj_total": sum(e["j"] for e in es) / 1000.0,
+                   "s_total": sum(e["busy_s"] for e in es),
+                   "tokens_total": sum(e["completion"] for e in es)}
+            rows.append(row)
+            print("  %-16s %8.1f kJ | %7.0f s GPU-busy | %8d completion tok"
+                  % (tag, row["kj_total"], row["s_total"], row["tokens_total"]))
+        print("  energy ratio B/A on the SAME exercises: %.3fx"
+              % (rows[1]["kj_total"] / max(rows[0]["kj_total"], 1e-9)))
+        per = sorted(B_["by"][k]["j"] / A_["by"][k]["j"]
+                     for k in energy_set if A_["by"][k]["j"] > 0)
+        if per:
+            print("  per-exercise energy ratio: %s" % fmt_ratio(per))
+
+        # The both-solved subset is the cleanest statement, and usually the
+        # smallest - its size is printed because it bounds what can be claimed.
+        sb = [k for k in energy_set
+              if A_["by"][k]["passed"] and B_["by"][k]["passed"]]
+        if sb:
+            ja = sum(A_["by"][k]["j"] for k in sb) / len(sb)
+            jb = sum(B_["by"][k]["j"] for k in sb) / len(sb)
+            ta = sum(A_["by"][k]["completion"] for k in sb) / len(sb)
+            tb = sum(B_["by"][k]["completion"] for k in sb) / len(sb)
+            print("  restricted to the %d BOTH-SOLVED exercises in that set:"
+                  % len(sb))
+            print("    energy per solved  %.1f kJ vs %.1f kJ  -> %.3fx"
+                  % (ja / 1000.0, jb / 1000.0, jb / max(ja, 1e-9)))
+            print("    tokens per solved  %.0f vs %.0f  -> %.3fx"
+                  % (ta, tb, tb / max(ta, 1e-9)))
+            rows[0]["j_per_solved"], rows[1]["j_per_solved"] = ja, jb
+            rows[0]["n_both_solved"] = rows[1]["n_both_solved"] = len(sb)
+        print("  NOTE: board power only, and while the part is pinned at its")
+        print("        power cap this ratio largely restates the time ratio")
+        print("        rather than measuring efficiency separately.")
+    else:
+        print("  no exercise has power data in BOTH arms - energy not compared")
 
     print()
     print("BY LANGUAGE (paired)")

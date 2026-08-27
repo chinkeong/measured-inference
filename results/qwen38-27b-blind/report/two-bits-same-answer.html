@@ -186,9 +186,11 @@ footer b{color:var(--ink-2);font-weight:500}
   <p class="eyebrow">Measured Inference · Agentic arm pair · 2026-08-27</p>
   <h1>Two Bits, Same Answer</h1>
   <p class="standfirst">A 2-bit quantisation of Qwen3.8-27B solved the same number of
-  coding tasks as a 4-bit one — and spent <strong>half again the energy</strong> doing it.
-  Both arms ran the full 225-exercise aider polyglot benchmark on one RTX 3090, with
-  identical settings and complete power telemetry.</p>
+  coding tasks as a 4-bit one — and spent <strong>about a third more energy</strong> doing it.
+  Both arms ran the full 225-exercise aider polyglot benchmark on one RTX 3090 with
+  identical settings. Power telemetry covers all 225 exercises of the second arm and 132
+  of the first, whose sampler was started after its benchmark — every energy figure below
+  is paired over exercises both arms recorded.</p>
   <div class="conditions">
     <span><b>part</b> RTX 3090, 350 W cap</span>
     <span><b>runtime</b> llama.cpp b10502</span>
@@ -220,9 +222,9 @@ card and not. The question a buyer actually has is what that costs.</p>
     <div class="c">median over 66 exercises<br>BOTH arms solved · IQR 0.95–2.21</div>
   </div>
   <div class="fig">
-    <div class="v">1.52<small>×</small></div>
+    <div class="v">1.32<small>×</small></div>
     <div class="k">Energy per solved task</div>
-    <div class="c">23.2 kJ against 15.3 kJ<br>board power, busy samples only</div>
+    <div class="c">17.6 kJ against 13.4 kJ · paired on 36<br>exercises both solved WITH power data</div>
   </div>
   <div class="fig">
     <div class="v">1.20<small>×</small></div>
@@ -235,8 +237,16 @@ card and not. The question a buyer actually has is what that costs.</p>
 <p>The pass rates are indistinguishable. That is not the same as equal: with 59 discordant
 exercises the interval spans thirteen points, and a real difference anywhere inside it fits
 this data. What <em>is</em> resolved is the cost. The 2-bit file needs about a fifth more
-tokens to reach the same answer, takes about a fifth longer, and burns half again the
-energy per task it actually completes.</p>
+tokens to reach the same answer, takes about a fifth longer, and burns roughly a third
+more energy per task it actually completes.</p>
+
+<div class="note">
+<p><b>Per token, the smaller file is the more efficient one.</b> It decodes at 77 tok/s
+against 70, and costs <span class="m">6.66 J</span> per completion token against
+<span class="m">6.92</span> — about 4% better. It then needs 20% more tokens, which more
+than cancels the gain. Efficiency reverses depending on whether the denominator is a token
+or a finished task, and only the second one is what a user pays.</p>
+</div>
 </div>
 
 <div class="scroll">
@@ -254,7 +264,7 @@ energy per task it actually completes.</p>
     <tr><td>Seconds per case</td><td class="n win">53.1</td><td class="n lose">72.2</td><td class="n">1.36×</td></tr>
     <tr><td>Completion tokens, total</td><td class="n win">601,849</td><td class="n lose">849,576</td><td class="n">1.41×</td></tr>
     <tr><td>Tokens per solved exercise</td><td class="n win">2,102</td><td class="n lose">3,248</td><td class="n">1.55×</td></tr>
-    <tr><td>Energy per solved exercise</td><td class="n win">15.3 kJ</td><td class="n lose">23.2 kJ</td><td class="n">1.52×</td></tr>
+    <tr><td>Energy per solved exercise</td><td class="n win">13.4 kJ</td><td class="n lose">17.6 kJ</td><td class="n">1.32×</td></tr>
   </tbody>
 </table>
 </div>
@@ -359,6 +369,19 @@ these was measured, published, and then refuted by a better measurement — in e
 this campaign ran against its own work.</p>
 
 <div class="retraction">
+  <span class="tag">Corrected — energy compared across different exercises</span>
+  <p><s>The 2-bit file costs 1.52× the energy per solved task: 23.2 kJ against 15.3 kJ.</s></p>
+  <p><b>Paired properly: 1.32×.</b> The first arm's power sampler was started after its
+  benchmark, so it has telemetry for <span class="m">132</span> of 223 exercises while the
+  second has <span class="m">222</span>. The cost table averaged each arm over whatever it
+  happened to have — different exercises — and divided tokens over a third set again.
+  Recomputed over only the exercises where both arms have power, the ratio is
+  <span class="m">1.376×</span> on total energy, <span class="m">1.239×</span> as a
+  per-exercise median, and <span class="m">1.319×</span> per solved task. The direction
+  survived; the magnitude was overstated by about 15%.</p>
+</div>
+
+<div class="retraction">
   <span class="tag">Retracted — drafter depth</span>
   <p><s>Acceptance sits at 89% of the configured cap and stays 59% at the last permitted
   position, so the flag and not the draft head limits speculation; raising it should be
@@ -431,9 +454,9 @@ this campaign ran against its own work.</p>
 
 <div class="note">
 <p><b>The practical read.</b> If 4.4 GB of video memory is what stands between the model
-fitting and not fitting, the 2-bit file costs about a fifth more tokens and half again the
-energy per finished task, at a pass rate this sample cannot distinguish. If the 4-bit file
-already fits, there is no measured reason to move down.</p>
+fitting and not fitting, the 2-bit file costs about a fifth more tokens and roughly a third
+more energy per finished task, at a pass rate this sample cannot distinguish. If the 4-bit
+file already fits, there is no measured reason to move down.</p>
 </div>
 </div>
 
