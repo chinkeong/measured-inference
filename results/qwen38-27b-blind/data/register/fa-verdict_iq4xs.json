@@ -1,0 +1,172 @@
+{
+ "date": "2026-08-25 13:21",
+ "model": "Qwen3.8-27B-UD-IQ4_XS.gguf",
+ "ctx": 32768,
+ "npredict": 700,
+ "settled": 3,
+ "flags": "-ngl 99 --parallel 1 -ctk q8_0 -ctv q8_0 --spec-type draft-mtp --spec-draft-n-max 10 --spec-draft-p-min 0.5 --jinja --reasoning off",
+ "arms": [
+  {
+   "fa": "auto",
+   "depth": "shallow",
+   "ctx": 32768,
+   "mean_tps": 83.68,
+   "spread_pct": 9.9,
+   "prefill_tps": 35.4,
+   "prompt_n": 4,
+   "acceptance": 0.611,
+   "vram_mib": 22297,
+   "vram_total_mib": 23300,
+   "fa_log_lines": [],
+   "probes": [
+    {
+     "decode_tps": 86.78,
+     "prefill_tps": 35.4,
+     "prompt_n": 4,
+     "predicted_n": 700,
+     "acceptance": 0.613
+    },
+    {
+     "decode_tps": 85.74,
+     "prefill_tps": 17.0,
+     "prompt_n": 4,
+     "predicted_n": 700,
+     "acceptance": 0.603
+    },
+    {
+     "decode_tps": 78.53,
+     "prefill_tps": 36.9,
+     "prompt_n": 4,
+     "predicted_n": 700,
+     "acceptance": 0.618
+    }
+   ]
+  },
+  {
+   "fa": "on",
+   "depth": "shallow",
+   "ctx": 32768,
+   "mean_tps": 87.07,
+   "spread_pct": 2.2,
+   "prefill_tps": 11.6,
+   "prompt_n": 4,
+   "acceptance": 0.611,
+   "vram_mib": 23041,
+   "vram_total_mib": 24044,
+   "fa_log_lines": [],
+   "probes": [
+    {
+     "decode_tps": 88.24,
+     "prefill_tps": 11.6,
+     "prompt_n": 4,
+     "predicted_n": 700,
+     "acceptance": 0.613
+    },
+    {
+     "decode_tps": 86.65,
+     "prefill_tps": 14.8,
+     "prompt_n": 4,
+     "predicted_n": 700,
+     "acceptance": 0.603
+    },
+    {
+     "decode_tps": 86.32,
+     "prefill_tps": 16.3,
+     "prompt_n": 4,
+     "predicted_n": 700,
+     "acceptance": 0.618
+    }
+   ]
+  },
+  {
+   "fa": "off",
+   "depth": "shallow",
+   "failed": true,
+   "fa_log_lines": [
+    "0.00.799.931 E llama_init_from_model: quantized V cache requires flash_attn to be enabled",
+    "0.06.721.394 E llama_init_from_model: quantized V cache requires flash_attn to be enabled"
+   ]
+  },
+  {
+   "fa": "auto",
+   "depth": "deep",
+   "ctx": 32768,
+   "mean_tps": 73.99,
+   "spread_pct": 4.1,
+   "prefill_tps": 12.4,
+   "prompt_n": 4,
+   "acceptance": 0.571,
+   "vram_mib": 16511,
+   "vram_total_mib": 23954,
+   "fa_log_lines": [],
+   "probes": [
+    {
+     "decode_tps": 72.18,
+     "prefill_tps": 12.4,
+     "prompt_n": 4,
+     "predicted_n": 700,
+     "acceptance": 0.54
+    },
+    {
+     "decode_tps": 75.22,
+     "prefill_tps": 25.0,
+     "prompt_n": 4,
+     "predicted_n": 700,
+     "acceptance": 0.584
+    },
+    {
+     "decode_tps": 74.56,
+     "prefill_tps": 13.4,
+     "prompt_n": 4,
+     "predicted_n": 700,
+     "acceptance": 0.588
+    }
+   ]
+  },
+  {
+   "fa": "on",
+   "depth": "deep",
+   "ctx": 32768,
+   "mean_tps": 73.95,
+   "spread_pct": 4.9,
+   "prefill_tps": 13.1,
+   "prompt_n": 4,
+   "acceptance": 0.571,
+   "vram_mib": 16576,
+   "vram_total_mib": 23984,
+   "fa_log_lines": [],
+   "probes": [
+    {
+     "decode_tps": 71.63,
+     "prefill_tps": 13.1,
+     "prompt_n": 4,
+     "predicted_n": 700,
+     "acceptance": 0.54
+    },
+    {
+     "decode_tps": 74.97,
+     "prefill_tps": 12.6,
+     "prompt_n": 4,
+     "predicted_n": 700,
+     "acceptance": 0.584
+    },
+    {
+     "decode_tps": 75.25,
+     "prefill_tps": 13.5,
+     "prompt_n": 4,
+     "predicted_n": 700,
+     "acceptance": 0.588
+    }
+   ]
+  },
+  {
+   "fa": "off",
+   "depth": "deep",
+   "failed": true,
+   "fa_log_lines": [
+    "0.00.798.050 E llama_init_from_model: quantized V cache requires flash_attn to be enabled",
+    "0.06.151.570 E llama_init_from_model: quantized V cache requires flash_attn to be enabled"
+   ]
+  }
+ ]
+}

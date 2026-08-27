@@ -1,0 +1,190 @@
+{
+ "date": "2026-08-26 14:45",
+ "model": "Qwen3.8-27B-UD-Q2_K_XL.gguf",
+ "npredict": 700,
+ "note": "greedy; speculative decoding is lossless under greedy so identical output across drafters is the correctness check",
+ "rows": [
+  {
+   "content": "boilerplate",
+   "none": 45.63,
+   "ngram_mod": 60.31,
+   "draft_mtp": 107.67,
+   "ngram_speedup": 1.32,
+   "mtp_speedup": 2.36,
+   "repetition": 0.1699,
+   "identical_output_across_drafters": false
+  },
+  {
+   "content": "code",
+   "none": 45.4,
+   "ngram_mod": 49.74,
+   "draft_mtp": 82.18,
+   "ngram_speedup": 1.1,
+   "mtp_speedup": 1.81,
+   "repetition": 0.1242,
+   "identical_output_across_drafters": false
+  },
+  {
+   "content": "refactor",
+   "none": 45.24,
+   "ngram_mod": 66.96,
+   "draft_mtp": 107.32,
+   "ngram_speedup": 1.48,
+   "mtp_speedup": 2.37,
+   "repetition": 0.2667,
+   "identical_output_across_drafters": true
+  },
+  {
+   "content": "json",
+   "none": 45.28,
+   "ngram_mod": 59.88,
+   "draft_mtp": 108.01,
+   "ngram_speedup": 1.32,
+   "mtp_speedup": 2.39,
+   "repetition": 0.3609,
+   "identical_output_across_drafters": true
+  },
+  {
+   "content": "prose",
+   "none": 45.64,
+   "ngram_mod": 61.94,
+   "draft_mtp": 52.93,
+   "ngram_speedup": 1.36,
+   "mtp_speedup": 1.16,
+   "repetition": 0.0091,
+   "identical_output_across_drafters": false
+  },
+  {
+   "content": "translation",
+   "none": 45.7,
+   "ngram_mod": 251.25,
+   "draft_mtp": 65.03,
+   "ngram_speedup": 5.5,
+   "mtp_speedup": 1.42,
+   "repetition": 0.0,
+   "identical_output_across_drafters": true
+  }
+ ],
+ "raw": {
+  "boilerplate": {
+   "none": {
+    "tps": 45.63,
+    "predicted_n": 700,
+    "acceptance": null,
+    "repetition": 0.1699
+   },
+   "ngram-mod": {
+    "tps": 60.31,
+    "predicted_n": 700,
+    "acceptance": 1.0,
+    "repetition": 0.1699
+   },
+   "draft-mtp": {
+    "tps": 107.67,
+    "predicted_n": 700,
+    "acceptance": 0.998,
+    "repetition": 0.1659
+   }
+  },
+  "code": {
+   "none": {
+    "tps": 45.4,
+    "predicted_n": 700,
+    "acceptance": null,
+    "repetition": 0.1242
+   },
+   "ngram-mod": {
+    "tps": 49.74,
+    "predicted_n": 700,
+    "acceptance": 0.281,
+    "repetition": 0.1636
+   },
+   "draft-mtp": {
+    "tps": 82.18,
+    "predicted_n": 700,
+    "acceptance": 0.888,
+    "repetition": 0.1557
+   }
+  },
+  "refactor": {
+   "none": {
+    "tps": 45.24,
+    "predicted_n": 403,
+    "acceptance": null,
+    "repetition": 0.2667
+   },
+   "ngram-mod": {
+    "tps": 66.96,
+    "predicted_n": 403,
+    "acceptance": 0.288,
+    "repetition": 0.2667
+   },
+   "draft-mtp": {
+    "tps": 107.32,
+    "predicted_n": 403,
+    "acceptance": 1.0,
+    "repetition": 0.2667
+   }
+  },
+  "json": {
+   "none": {
+    "tps": 45.28,
+    "predicted_n": 700,
+    "acceptance": null,
+    "repetition": 0.3609
+   },
+   "ngram-mod": {
+    "tps": 59.88,
+    "predicted_n": 700,
+    "acceptance": 0.476,
+    "repetition": 0.3609
+   },
+   "draft-mtp": {
+    "tps": 108.01,
+    "predicted_n": 700,
+    "acceptance": 1.0,
+    "repetition": 0.3609
+   }
+  },
+  "prose": {
+   "none": {
+    "tps": 45.64,
+    "predicted_n": 659,
+    "acceptance": null,
+    "repetition": 0.0091
+   },
+   "ngram-mod": {
+    "tps": 61.94,
+    "predicted_n": 651,
+    "acceptance": 1.0,
+    "repetition": 0.0092
+   },
+   "draft-mtp": {
+    "tps": 52.93,
+    "predicted_n": 700,
+    "acceptance": 0.818,
+    "repetition": 0.023
+   }
+  },
+  "translation": {
+   "none": {
+    "tps": 45.7,
+    "predicted_n": 71,
+    "acceptance": null,
+    "repetition": 0.0
+   },
+   "ngram-mod": {
+    "tps": 251.25,
+    "predicted_n": 71,
+    "acceptance": 1.0,
+    "repetition": 0.0
+   },
+   "draft-mtp": {
+    "tps": 65.03,
+    "predicted_n": 71,
+    "acceptance": 0.865,
+    "repetition": 0.0
+   }
+  }
+ }
+}

@@ -1,0 +1,130 @@
+{
+ "date": "2026-08-26 01:34",
+ "baseline_mib": 1988.0,
+ "card_mib": 12288,
+ "desktop_mib": [
+  1179,
+  1669
+ ],
+ "bandwidth": {
+  "rtx3090": 936.0,
+  "rtx3060": 360.0
+ },
+ "rows": [
+  {
+   "config": "c32768 drafter off",
+   "file": "UD-Q2_K_XL",
+   "bpw": 2.912,
+   "loaded": true,
+   "alloc_mib": 10497,
+   "free_on_12gb": 1791,
+   "tps_3090": 45.17,
+   "tps_3060_derived": 17.4,
+   "probes": [
+    45.04,
+    45.22,
+    45.26
+   ]
+  },
+  {
+   "config": "c32768 drafter off",
+   "file": "QAT-Q2_0",
+   "bpw": 2.595,
+   "loaded": true,
+   "alloc_mib": 9437,
+   "free_on_12gb": 2851,
+   "tps_3090": 61.54,
+   "tps_3060_derived": 23.7,
+   "probes": [
+    61.48,
+    61.32,
+    61.83
+   ]
+  },
+  {
+   "config": "c32768 drafter off",
+   "file": "UD-IQ2_S",
+   "bpw": 2.481,
+   "loaded": true,
+   "alloc_mib": 9507,
+   "free_on_12gb": 2781,
+   "tps_3090": 47.49,
+   "tps_3060_derived": 18.3,
+   "probes": [
+    47.57,
+    47.33,
+    47.57
+   ]
+  },
+  {
+   "config": "c32768 drafter on",
+   "file": "UD-Q2_K_XL",
+   "bpw": 2.912,
+   "loaded": true,
+   "alloc_mib": 11701,
+   "free_on_12gb": 587,
+   "tps_3090": 95.12,
+   "tps_3060_derived": 36.6,
+   "probes": [
+    94.99,
+    94.75,
+    95.63
+   ]
+  },
+  {
+   "config": "c32768 drafter on",
+   "file": "QAT-Q2_0",
+   "loaded": false
+  },
+  {
+   "config": "c32768 drafter on",
+   "file": "UD-IQ2_S",
+   "loaded": false
+  },
+  {
+   "config": "c65536 drafter off",
+   "file": "UD-Q2_K_XL",
+   "bpw": 2.912,
+   "loaded": true,
+   "alloc_mib": 11741,
+   "free_on_12gb": 547,
+   "tps_3090": 45.6,
+   "tps_3060_derived": 17.5,
+   "probes": [
+    45.65,
+    45.55,
+    45.61
+   ]
+  },
+  {
+   "config": "c65536 drafter off",
+   "file": "QAT-Q2_0",
+   "bpw": 2.595,
+   "loaded": true,
+   "alloc_mib": 10681,
+   "free_on_12gb": 1607,
+   "tps_3090": 62.83,
+   "tps_3060_derived": 24.2,
+   "probes": [
+    62.85,
+    62.96,
+    62.68
+   ]
+  },
+  {
+   "config": "c65536 drafter off",
+   "file": "UD-IQ2_S",
+   "bpw": 2.481,
+   "loaded": true,
+   "alloc_mib": 10779,
+   "free_on_12gb": 1509,
+   "tps_3090": 47.04,
+   "tps_3060_derived": 18.1,
+   "probes": [
+    47.37,
+    46.4,
+    47.34
+   ]
+  }
+ ]
+}

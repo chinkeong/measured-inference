@@ -1,0 +1,109 @@
+{
+ "date": "2026-08-27 07:33",
+ "model": "Qwen3.8-27B-UD-IQ4_XS.gguf",
+ "note": "shipped recipe; only --spec-draft-n-max varies; greedy; quiet machine",
+ "rows": [
+  {
+   "nmax": 4,
+   "mean_tps": 74.13,
+   "probes": [
+    {
+     "decode_tps": 74.16461645183092,
+     "predicted_n": 400,
+     "prompt_n": 4,
+     "wall_s": 5.68
+    },
+    {
+     "decode_tps": 74.2744558418814,
+     "predicted_n": 400,
+     "prompt_n": 4,
+     "wall_s": 5.77
+    },
+    {
+     "decode_tps": 73.9631122417107,
+     "predicted_n": 400,
+     "prompt_n": 4,
+     "wall_s": 5.62
+    }
+   ],
+   "accept_rate": 0.8593,
+   "mean_accepted_len": 2.71,
+   "per_pos_rate": {
+    "0": 0.9882,
+    "1": 0.7308,
+    "2": 0.5533,
+    "3": 0.4379
+   }
+  },
+  {
+   "nmax": 6,
+   "mean_tps": 73.52,
+   "probes": [
+    {
+     "decode_tps": 74.22777994197955,
+     "predicted_n": 400,
+     "prompt_n": 4,
+     "wall_s": 5.62
+    },
+    {
+     "decode_tps": 73.29785031550225,
+     "predicted_n": 400,
+     "prompt_n": 4,
+     "wall_s": 5.76
+    },
+    {
+     "decode_tps": 73.0462998204599,
+     "predicted_n": 400,
+     "prompt_n": 4,
+     "wall_s": 5.64
+    }
+   ],
+   "accept_rate": 0.7997,
+   "mean_accepted_len": 3.253,
+   "per_pos_rate": {
+    "0": 0.9865,
+    "1": 0.7104,
+    "2": 0.4983,
+    "3": 0.4276,
+    "4": 0.3805,
+    "5": 0.2492
+   }
+  },
+  {
+   "nmax": 8,
+   "mean_tps": 75.59,
+   "probes": [
+    {
+     "decode_tps": 76.3501928846978,
+     "predicted_n": 400,
+     "prompt_n": 4,
+     "wall_s": 5.48
+    },
+    {
+     "decode_tps": 75.05000982797748,
+     "predicted_n": 400,
+     "prompt_n": 4,
+     "wall_s": 5.63
+    },
+    {
+     "decode_tps": 75.38363468523836,
+     "predicted_n": 400,
+     "prompt_n": 4,
+     "wall_s": 5.49
+    }
+   ],
+   "accept_rate": 0.7806,
+   "mean_accepted_len": 3.545,
+   "per_pos_rate": {
+    "0": 0.9891,
+    "1": 0.6982,
+    "2": 0.5091,
+    "3": 0.4,
+    "4": 0.3673,
+    "5": 0.2473,
+    "6": 0.2,
+    "7": 0.1345
+   }
+  }
+ ]
+}

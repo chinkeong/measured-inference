@@ -1,0 +1,8 @@
+==============================================================================
+det-UD-IQ1_S-probeA.txt  [CLEAN]
+  bytes=4506 words=350 unique_word_ratio=0.4143
+  --- last 600 chars ---
+  stsTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotal = 0;
+    let shortestPathCostsTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotal = 0;
+    let shortestPathCostsTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotal = 0;
+    let shortestPathCostsTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotal

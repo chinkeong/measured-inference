@@ -1,0 +1,98 @@
+{
+  "model_label": "Qwen3.8-27B-UD-Q3_K_XL",
+  "model_key": "C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-Q3_K_XL.gguf",
+  "speculative": false,
+  "scored": true,
+  "protocol": null,
+  "backend": {
+    "engine": "llama.cpp (llama-server)",
+    "server_bin": "E:\\AI\\llama.cpp\\llama-server.exe",
+    "version": "version: 0.1.2-dev (build 10502, commit 0adcc3bb5)",
+    "server_args": "-ctk q8_0 -ctv q8_0 --chat-template-kwargs {\"reasoning_effort\":\"low\"}",
+    "ctx": 32768
+  },
+  "machine": {
+    "host": "GAMINGPC",
+    "os": "Windows-10-10.0.26200-SP0",
+    "cpu": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+    "gpu": "NVIDIA GeForce RTX 3090, 596.36",
+    "llama_cpp": "version: 0.1.2-dev (build 10502, commit 0adcc3bb5)"
+  },
+  "suite_hash": "1cdf54f8eb9d3f8f",
+  "datasets": [
+    "GSM8K",
+    "HumanEval",
+    "MBPP"
+  ],
+  "results": {
+    "GSM8K": {
+      "n": 25,
+      "tokens": 323.92,
+      "tok_s": 42.10018275681271,
+      "ttft": 0.22677724000000005,
+      "accuracy": 0.96,
+      "score": 96.0,
+      "scorer": "exact match",
+      "graded_n": 25,
+      "truncated_n": 0
+    },
+    "HumanEval": {
+      "n": 25,
+      "tokens": 688.44,
+      "tok_s": 41.77159616558336,
+      "ttft": 0.2827992,
+      "accuracy": 1.0,
+      "score": 100.0,
+      "scorer": "execution pass@1",
+      "graded_n": 25,
+      "truncated_n": 0
+    },
+    "MBPP": {
+      "n": 25,
+      "tokens": 1194.32,
+      "tok_s": 41.64967804203058,
+      "ttft": 0.21625928000000005,
+      "accuracy": 0.92,
+      "score": 92.0,
+      "scorer": "execution pass@1",
+      "graded_n": 25,
+      "truncated_n": 0
+    }
+  },
+  "scorers": {
+    "GSM8K": "exact match",
+    "HumanEval": "execution pass@1",
+    "MBPP": "execution pass@1"
+  },
+  "unscored": {},
+  "composite": {
+    "mean": 96.0,
+    "included": [
+      "GSM8K",
+      "HumanEval",
+      "MBPP"
+    ],
+    "scores": {
+      "GSM8K": 96.0,
+      "HumanEval": 100.0,
+      "MBPP": 92.0
+    },
+    "excluded": {},
+    "label": "composite index over GSM8K, HumanEval, MBPP"
+  },
+  "judge": null,
+  "exec_scoring": true,
+  "settings": {
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "top_k": 1,
+    "presence_penalty": 0.0,
+    "samples": 25,
+    "max_tokens": 16384,
+    "seed": 42,
+    "max_prompt_tokens": 8192
+  },
+  "elapsed_s": 1365.9,
+  "date": "2026-08-24T18:31:12",
+  "transcripts": "Qwen3_8-27B-UD-Q3_K_XL_20260824_180826_transcripts.json"
+}

@@ -1,0 +1,164 @@
+{
+ "date": "2026-08-25 13:02",
+ "ctx": 32768,
+ "spec_n_max": 10,
+ "spec_p_min": 0.5,
+ "n_predict": 700,
+ "settled_probes": 3,
+ "regime": "reasoning_effort=low, temperature 0, top_k 1, cache_prompt off",
+ "prompt": "Write a single self-contained JavaScript file implementing an LRU cache class with get, put, a configurable capacity, an eviction callback, and an iterator that yields entries most-recently-used first. Include brief JSDoc on each public method. Code only, no explanation.",
+ "arms": [
+  {
+   "file": "UD-IQ4_XS",
+   "drafter": false,
+   "mean_tps": 42.8,
+   "spread_pct": 0.3,
+   "acceptance": null,
+   "warmup_tps": 43.08,
+   "probes": [
+    {
+     "decode_tps": 42.86,
+     "predicted_n": 700,
+     "prompt_n": 95,
+     "draft_n": null,
+     "draft_accepted": null,
+     "acceptance": null,
+     "think_chars": 2400
+    },
+    {
+     "decode_tps": 42.75,
+     "predicted_n": 700,
+     "prompt_n": 95,
+     "draft_n": null,
+     "draft_accepted": null,
+     "acceptance": null,
+     "think_chars": 2400
+    },
+    {
+     "decode_tps": 42.8,
+     "predicted_n": 700,
+     "prompt_n": 95,
+     "draft_n": null,
+     "draft_accepted": null,
+     "acceptance": null,
+     "think_chars": 2400
+    }
+   ],
+   "gib": 13.274
+  },
+  {
+   "file": "UD-IQ4_XS",
+   "drafter": true,
+   "mean_tps": 74.03,
+   "spread_pct": 3.1,
+   "acceptance": 0.523,
+   "warmup_tps": 73.38,
+   "probes": [
+    {
+     "decode_tps": 72.89,
+     "predicted_n": 700,
+     "prompt_n": 95,
+     "draft_n": 1077,
+     "draft_accepted": 545,
+     "acceptance": 0.506,
+     "think_chars": 2601
+    },
+    {
+     "decode_tps": 75.19,
+     "predicted_n": 700,
+     "prompt_n": 95,
+     "draft_n": 1026,
+     "draft_accepted": 548,
+     "acceptance": 0.534,
+     "think_chars": 2592
+    },
+    {
+     "decode_tps": 74.0,
+     "predicted_n": 700,
+     "prompt_n": 95,
+     "draft_n": 1032,
+     "draft_accepted": 545,
+     "acceptance": 0.528,
+     "think_chars": 2586
+    }
+   ],
+   "gib": 13.274
+  },
+  {
+   "file": "UD-Q2_K_XL",
+   "drafter": false,
+   "mean_tps": 45.74,
+   "spread_pct": 0.2,
+   "acceptance": null,
+   "warmup_tps": 45.95,
+   "probes": [
+    {
+     "decode_tps": 45.7,
+     "predicted_n": 700,
+     "prompt_n": 95,
+     "draft_n": null,
+     "draft_accepted": null,
+     "acceptance": null,
+     "think_chars": 2590
+    },
+    {
+     "decode_tps": 45.71,
+     "predicted_n": 700,
+     "prompt_n": 95,
+     "draft_n": null,
+     "draft_accepted": null,
+     "acceptance": null,
+     "think_chars": 2590
+    },
+    {
+     "decode_tps": 45.8,
+     "predicted_n": 700,
+     "prompt_n": 95,
+     "draft_n": null,
+     "draft_accepted": null,
+     "acceptance": null,
+     "think_chars": 2590
+    }
+   ],
+   "gib": 9.154
+  },
+  {
+   "file": "UD-Q2_K_XL",
+   "drafter": true,
+   "mean_tps": 79.48,
+   "spread_pct": 0.5,
+   "acceptance": 0.575,
+   "warmup_tps": 79.1,
+   "probes": [
+    {
+     "decode_tps": 79.44,
+     "predicted_n": 700,
+     "prompt_n": 95,
+     "draft_n": 969,
+     "draft_accepted": 557,
+     "acceptance": 0.575,
+     "think_chars": 2587
+    },
+    {
+     "decode_tps": 79.28,
+     "predicted_n": 700,
+     "prompt_n": 95,
+     "draft_n": 957,
+     "draft_accepted": 556,
+     "acceptance": 0.581,
+     "think_chars": 2587
+    },
+    {
+     "decode_tps": 79.71,
+     "predicted_n": 700,
+     "prompt_n": 95,
+     "draft_n": 978,
+     "draft_accepted": 557,
+     "acceptance": 0.57,
+     "think_chars": 2587
+    }
+   ],
+   "gib": 9.154
+  }
+ ]
+}

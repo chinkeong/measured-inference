@@ -1,0 +1,49 @@
+{
+ "date": "2026-08-26 14:37",
+ "rows": [
+  {
+   "file": "UD-IQ2_XXS",
+   "generations": 300,
+   "empty": 1,
+   "rate_pct": 0.33,
+   "rule_of_three_upper_pct": 1.0,
+   "cases": [
+    {
+     "suite": "MBPP",
+     "index": 21,
+     "seed": 47,
+     "tokens": 1,
+     "at_cap": false
+    }
+   ]
+  }
+ ],
+ "in_progress": {
+  "file": "UD-IQ1_M",
+  "empty": 3,
+  "total": 200,
+  "cases": [
+   {
+    "suite": "MBPP",
+    "index": 18,
+    "seed": 43,
+    "tokens": 1,
+    "at_cap": false
+   },
+   {
+    "suite": "MBPP",
+    "index": 18,
+    "seed": 44,
+    "tokens": 1,
+    "at_cap": false
+   },
+   {
+    "suite": "MBPP",
+    "index": 18,
+    "seed": 45,
+    "tokens": 1,
+    "at_cap": false
+   }
+  ]
+ }
+}

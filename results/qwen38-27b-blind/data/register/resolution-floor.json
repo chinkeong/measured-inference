@@ -1,0 +1,1228 @@
+{
+ "date": "2026-08-25 19:30",
+ "ctx": 32768,
+ "model": "Qwen3.8-27B-UD-IQ4_XS.gguf",
+ "prompt": "Write a single self-contained JavaScript module that implements a fixed-window rate limiter with a pluggable clock, a per-key limit, and an eviction sweep that runs at most once per window. Include JSDoc on every exported symbol, plus a short usage example. Code only.",
+ "runs": {
+  "short": {
+   "npredict": 700,
+   "stats": {
+    "n": 100,
+    "mean": 74.79,
+    "sd": 0.236,
+    "cv_pct": 0.32,
+    "min": 73.86,
+    "max": 75.96,
+    "p05": 74.51,
+    "p95": 75.12,
+    "range_pct": 2.8,
+    "drift_2nd_minus_1st": -0.09,
+    "drift_pct": -0.13
+   },
+   "probes": [
+    {
+     "t": 1787656105.47,
+     "decode_tps": 75.961,
+     "predicted_n": 700,
+     "acceptance": 0.898,
+     "sm_mhz": 1733,
+     "temp": 70.7,
+     "watt": 318.5
+    },
+    {
+     "t": 1787656114.88,
+     "decode_tps": 75.019,
+     "predicted_n": 700,
+     "acceptance": 0.899,
+     "sm_mhz": 1732,
+     "temp": 73.6,
+     "watt": 337.8
+    },
+    {
+     "t": 1787656124.37,
+     "decode_tps": 74.762,
+     "predicted_n": 700,
+     "acceptance": 0.9,
+     "sm_mhz": 1720,
+     "temp": 75.2,
+     "watt": 338.2
+    },
+    {
+     "t": 1787656133.93,
+     "decode_tps": 74.964,
+     "predicted_n": 700,
+     "acceptance": 0.875,
+     "sm_mhz": 1739,
+     "temp": 76.5,
+     "watt": 340.3
+    },
+    {
+     "t": 1787656143.38,
+     "decode_tps": 74.806,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1692,
+     "temp": 77.5,
+     "watt": 343.1
+    },
+    {
+     "t": 1787656152.83,
+     "decode_tps": 74.912,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1685,
+     "temp": 78.3,
+     "watt": 342.5
+    },
+    {
+     "t": 1787656162.26,
+     "decode_tps": 74.657,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1705,
+     "temp": 78.8,
+     "watt": 341.7
+    },
+    {
+     "t": 1787656171.72,
+     "decode_tps": 75.12,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1680,
+     "temp": 79.4,
+     "watt": 342.8
+    },
+    {
+     "t": 1787656181.13,
+     "decode_tps": 75.14,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1696,
+     "temp": 79.9,
+     "watt": 342.0
+    },
+    {
+     "t": 1787656190.55,
+     "decode_tps": 75.002,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1674,
+     "temp": 80.3,
+     "watt": 343.9
+    },
+    {
+     "t": 1787656199.97,
+     "decode_tps": 74.5,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1691,
+     "temp": 80.8,
+     "watt": 343.8
+    },
+    {
+     "t": 1787656209.46,
+     "decode_tps": 74.521,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1702,
+     "temp": 80.9,
+     "watt": 341.9
+    },
+    {
+     "t": 1787656218.95,
+     "decode_tps": 74.458,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1692,
+     "temp": 81.2,
+     "watt": 344.0
+    },
+    {
+     "t": 1787656228.44,
+     "decode_tps": 74.677,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1707,
+     "temp": 81.5,
+     "watt": 342.5
+    },
+    {
+     "t": 1787656237.9,
+     "decode_tps": 74.818,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1684,
+     "temp": 81.5,
+     "watt": 343.4
+    },
+    {
+     "t": 1787656247.37,
+     "decode_tps": 74.778,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1681,
+     "temp": 80.9,
+     "watt": 342.1
+    },
+    {
+     "t": 1787656256.83,
+     "decode_tps": 74.707,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1669,
+     "temp": 80.7,
+     "watt": 343.7
+    },
+    {
+     "t": 1787656266.29,
+     "decode_tps": 73.857,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1700,
+     "temp": 80.0,
+     "watt": 343.6
+    },
+    {
+     "t": 1787656275.87,
+     "decode_tps": 74.858,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1682,
+     "temp": 79.6,
+     "watt": 343.6
+    },
+    {
+     "t": 1787656285.31,
+     "decode_tps": 74.802,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1691,
+     "temp": 79.1,
+     "watt": 345.5
+    },
+    {
+     "t": 1787656294.76,
+     "decode_tps": 75.045,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1680,
+     "temp": 78.8,
+     "watt": 343.8
+    },
+    {
+     "t": 1787656304.17,
+     "decode_tps": 75.038,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1682,
+     "temp": 78.2,
+     "watt": 343.8
+    },
+    {
+     "t": 1787656313.61,
+     "decode_tps": 74.952,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1707,
+     "temp": 77.9,
+     "watt": 343.1
+    },
+    {
+     "t": 1787656323.06,
+     "decode_tps": 75.129,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1685,
+     "temp": 78.0,
+     "watt": 343.9
+    },
+    {
+     "t": 1787656332.48,
+     "decode_tps": 75.074,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1702,
+     "temp": 77.9,
+     "watt": 345.4
+    },
+    {
+     "t": 1787656341.91,
+     "decode_tps": 75.043,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1684,
+     "temp": 77.9,
+     "watt": 343.1
+    },
+    {
+     "t": 1787656351.32,
+     "decode_tps": 75.109,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1691,
+     "temp": 77.9,
+     "watt": 343.6
+    },
+    {
+     "t": 1787656360.73,
+     "decode_tps": 75.023,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1687,
+     "temp": 78.1,
+     "watt": 343.5
+    },
+    {
+     "t": 1787656370.15,
+     "decode_tps": 74.923,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1687,
+     "temp": 78.4,
+     "watt": 343.2
+    },
+    {
+     "t": 1787656379.59,
+     "decode_tps": 74.94,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1695,
+     "temp": 78.4,
+     "watt": 342.8
+    },
+    {
+     "t": 1787656389.02,
+     "decode_tps": 74.875,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1691,
+     "temp": 79.0,
+     "watt": 343.5
+    },
+    {
+     "t": 1787656398.46,
+     "decode_tps": 74.957,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1714,
+     "temp": 79.0,
+     "watt": 343.8
+    },
+    {
+     "t": 1787656407.89,
+     "decode_tps": 74.988,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1694,
+     "temp": 79.4,
+     "watt": 344.5
+    },
+    {
+     "t": 1787656417.31,
+     "decode_tps": 74.726,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1685,
+     "temp": 79.5,
+     "watt": 343.6
+    },
+    {
+     "t": 1787656426.77,
+     "decode_tps": 74.954,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1694,
+     "temp": 79.7,
+     "watt": 344.1
+    },
+    {
+     "t": 1787656436.2,
+     "decode_tps": 74.729,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1680,
+     "temp": 79.8,
+     "watt": 344.4
+    },
+    {
+     "t": 1787656445.68,
+     "decode_tps": 74.734,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1686,
+     "temp": 79.9,
+     "watt": 344.9
+    },
+    {
+     "t": 1787656455.14,
+     "decode_tps": 74.645,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1683,
+     "temp": 79.9,
+     "watt": 345.3
+    },
+    {
+     "t": 1787656464.61,
+     "decode_tps": 74.545,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1684,
+     "temp": 79.8,
+     "watt": 343.7
+    },
+    {
+     "t": 1787656474.11,
+     "decode_tps": 74.576,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1694,
+     "temp": 79.2,
+     "watt": 344.1
+    },
+    {
+     "t": 1787656483.58,
+     "decode_tps": 74.54,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1683,
+     "temp": 79.1,
+     "watt": 344.1
+    },
+    {
+     "t": 1787656493.06,
+     "decode_tps": 74.658,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1698,
+     "temp": 78.9,
+     "watt": 344.3
+    },
+    {
+     "t": 1787656502.53,
+     "decode_tps": 74.843,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1689,
+     "temp": 78.8,
+     "watt": 344.6
+    },
+    {
+     "t": 1787656511.97,
+     "decode_tps": 74.718,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1718,
+     "temp": 78.6,
+     "watt": 345.2
+    },
+    {
+     "t": 1787656521.43,
+     "decode_tps": 74.65,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1721,
+     "temp": 78.4,
+     "watt": 342.8
+    },
+    {
+     "t": 1787656530.9,
+     "decode_tps": 74.964,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1683,
+     "temp": 78.5,
+     "watt": 343.8
+    },
+    {
+     "t": 1787656540.33,
+     "decode_tps": 75.12,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1691,
+     "temp": 78.5,
+     "watt": 344.4
+    },
+    {
+     "t": 1787656549.74,
+     "decode_tps": 74.845,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1692,
+     "temp": 78.5,
+     "watt": 343.2
+    },
+    {
+     "t": 1787656559.19,
+     "decode_tps": 74.751,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1681,
+     "temp": 78.9,
+     "watt": 343.8
+    },
+    {
+     "t": 1787656568.65,
+     "decode_tps": 74.668,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1691,
+     "temp": 78.7,
+     "watt": 342.3
+    },
+    {
+     "t": 1787656578.14,
+     "decode_tps": 74.594,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1692,
+     "temp": 78.8,
+     "watt": 343.9
+    },
+    {
+     "t": 1787656587.63,
+     "decode_tps": 74.763,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1691,
+     "temp": 79.0,
+     "watt": 343.1
+    },
+    {
+     "t": 1787656597.1,
+     "decode_tps": 74.904,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1690,
+     "temp": 79.1,
+     "watt": 342.4
+    },
+    {
+     "t": 1787656606.54,
+     "decode_tps": 74.965,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1689,
+     "temp": 79.3,
+     "watt": 344.6
+    },
+    {
+     "t": 1787656615.97,
+     "decode_tps": 74.887,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1709,
+     "temp": 79.2,
+     "watt": 344.7
+    },
+    {
+     "t": 1787656625.4,
+     "decode_tps": 74.847,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1689,
+     "temp": 79.2,
+     "watt": 343.1
+    },
+    {
+     "t": 1787656634.84,
+     "decode_tps": 74.797,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1676,
+     "temp": 78.9,
+     "watt": 342.3
+    },
+    {
+     "t": 1787656644.3,
+     "decode_tps": 74.783,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1692,
+     "temp": 78.9,
+     "watt": 343.7
+    },
+    {
+     "t": 1787656653.77,
+     "decode_tps": 74.885,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1676,
+     "temp": 78.9,
+     "watt": 343.7
+    },
+    {
+     "t": 1787656663.21,
+     "decode_tps": 74.65,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1692,
+     "temp": 78.9,
+     "watt": 343.2
+    },
+    {
+     "t": 1787656672.7,
+     "decode_tps": 75.003,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1675,
+     "temp": 79.0,
+     "watt": 345.2
+    },
+    {
+     "t": 1787656682.12,
+     "decode_tps": 74.86,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1691,
+     "temp": 78.9,
+     "watt": 344.1
+    },
+    {
+     "t": 1787656691.57,
+     "decode_tps": 75.005,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1682,
+     "temp": 78.9,
+     "watt": 344.8
+    },
+    {
+     "t": 1787656701.01,
+     "decode_tps": 74.925,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1701,
+     "temp": 78.9,
+     "watt": 342.9
+    },
+    {
+     "t": 1787656710.46,
+     "decode_tps": 74.813,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1720,
+     "temp": 78.9,
+     "watt": 341.7
+    },
+    {
+     "t": 1787656719.93,
+     "decode_tps": 74.929,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1691,
+     "temp": 78.8,
+     "watt": 343.6
+    },
+    {
+     "t": 1787656729.38,
+     "decode_tps": 75.101,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1692,
+     "temp": 78.8,
+     "watt": 343.7
+    },
+    {
+     "t": 1787656738.8,
+     "decode_tps": 74.93,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1692,
+     "temp": 78.9,
+     "watt": 343.8
+    },
+    {
+     "t": 1787656748.24,
+     "decode_tps": 74.672,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1680,
+     "temp": 78.9,
+     "watt": 342.7
+    },
+    {
+     "t": 1787656757.72,
+     "decode_tps": 74.745,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1677,
+     "temp": 78.9,
+     "watt": 344.8
+    },
+    {
+     "t": 1787656767.18,
+     "decode_tps": 74.74,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1690,
+     "temp": 79.0,
+     "watt": 343.6
+    },
+    {
+     "t": 1787656776.65,
+     "decode_tps": 74.768,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1688,
+     "temp": 78.9,
+     "watt": 343.3
+    },
+    {
+     "t": 1787656786.13,
+     "decode_tps": 74.794,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1687,
+     "temp": 79.1,
+     "watt": 345.3
+    },
+    {
+     "t": 1787656795.58,
+     "decode_tps": 74.643,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1692,
+     "temp": 79.3,
+     "watt": 344.4
+    },
+    {
+     "t": 1787656805.05,
+     "decode_tps": 74.676,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1672,
+     "temp": 79.1,
+     "watt": 344.7
+    },
+    {
+     "t": 1787656814.53,
+     "decode_tps": 74.688,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1698,
+     "temp": 79.2,
+     "watt": 344.0
+    },
+    {
+     "t": 1787656823.99,
+     "decode_tps": 74.722,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1703,
+     "temp": 79.1,
+     "watt": 344.9
+    },
+    {
+     "t": 1787656833.47,
+     "decode_tps": 74.616,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1713,
+     "temp": 78.9,
+     "watt": 343.2
+    },
+    {
+     "t": 1787656842.94,
+     "decode_tps": 74.551,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1716,
+     "temp": 79.0,
+     "watt": 344.6
+    },
+    {
+     "t": 1787656852.44,
+     "decode_tps": 74.602,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1696,
+     "temp": 79.2,
+     "watt": 344.3
+    },
+    {
+     "t": 1787656861.91,
+     "decode_tps": 74.51,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1692,
+     "temp": 79.2,
+     "watt": 342.8
+    },
+    {
+     "t": 1787656871.41,
+     "decode_tps": 74.529,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1696,
+     "temp": 79.0,
+     "watt": 342.0
+    },
+    {
+     "t": 1787656880.92,
+     "decode_tps": 74.541,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1701,
+     "temp": 79.0,
+     "watt": 343.5
+    },
+    {
+     "t": 1787656890.42,
+     "decode_tps": 74.834,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1684,
+     "temp": 79.2,
+     "watt": 342.6
+    },
+    {
+     "t": 1787656899.86,
+     "decode_tps": 74.92,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1682,
+     "temp": 79.3,
+     "watt": 343.3
+    },
+    {
+     "t": 1787656909.31,
+     "decode_tps": 74.741,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1699,
+     "temp": 79.4,
+     "watt": 343.0
+    },
+    {
+     "t": 1787656918.77,
+     "decode_tps": 74.656,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1683,
+     "temp": 79.4,
+     "watt": 343.9
+    },
+    {
+     "t": 1787656928.23,
+     "decode_tps": 74.36,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1688,
+     "temp": 79.5,
+     "watt": 344.5
+    },
+    {
+     "t": 1787656937.74,
+     "decode_tps": 74.375,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1682,
+     "temp": 79.6,
+     "watt": 344.3
+    },
+    {
+     "t": 1787656947.25,
+     "decode_tps": 74.611,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1688,
+     "temp": 79.8,
+     "watt": 344.2
+    },
+    {
+     "t": 1787656956.72,
+     "decode_tps": 75.101,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1683,
+     "temp": 79.8,
+     "watt": 345.5
+    },
+    {
+     "t": 1787656966.13,
+     "decode_tps": 74.771,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1682,
+     "temp": 79.8,
+     "watt": 344.3
+    },
+    {
+     "t": 1787656975.58,
+     "decode_tps": 74.901,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1671,
+     "temp": 79.9,
+     "watt": 344.1
+    },
+    {
+     "t": 1787656985.02,
+     "decode_tps": 74.681,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1698,
+     "temp": 79.9,
+     "watt": 344.6
+    },
+    {
+     "t": 1787656994.48,
+     "decode_tps": 74.541,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1700,
+     "temp": 79.9,
+     "watt": 342.2
+    },
+    {
+     "t": 1787657003.99,
+     "decode_tps": 74.593,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1702,
+     "temp": 79.8,
+     "watt": 343.0
+    },
+    {
+     "t": 1787657013.48,
+     "decode_tps": 74.719,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1706,
+     "temp": 79.9,
+     "watt": 344.0
+    },
+    {
+     "t": 1787657022.94,
+     "decode_tps": 74.77,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1673,
+     "temp": 79.8,
+     "watt": 343.5
+    },
+    {
+     "t": 1787657032.4,
+     "decode_tps": 74.61,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1681,
+     "temp": 79.8,
+     "watt": 344.4
+    },
+    {
+     "t": 1787657041.87,
+     "decode_tps": 74.735,
+     "predicted_n": 700,
+     "acceptance": 0.878,
+     "sm_mhz": 1676,
+     "temp": 79.9,
+     "watt": 343.6
+    }
+   ],
+   "mde_pct": {
+    "3": 0.52,
+    "5": 0.4,
+    "10": 0.29,
+    "20": 0.2,
+    "40": 0.14
+   }
+  },
+  "long": {
+   "npredict": 3000,
+   "stats": {
+    "n": 30,
+    "mean": 78.05,
+    "sd": 0.987,
+    "cv_pct": 1.26,
+    "min": 76.97,
+    "max": 79.96,
+    "p05": 76.97,
+    "p95": 79.96,
+    "range_pct": 3.8,
+    "drift_2nd_minus_1st": 0.05,
+    "drift_pct": 0.06
+   },
+   "probes": [
+    {
+     "t": 1787657051.33,
+     "decode_tps": 79.173,
+     "predicted_n": 1212,
+     "acceptance": 0.887,
+     "sm_mhz": 1674,
+     "temp": 79.9,
+     "watt": 345.3
+    },
+    {
+     "t": 1787657066.73,
+     "decode_tps": 78.959,
+     "predicted_n": 1212,
+     "acceptance": 0.888,
+     "sm_mhz": 1669,
+     "temp": 80.0,
+     "watt": 344.0
+    },
+    {
+     "t": 1787657082.31,
+     "decode_tps": 77.648,
+     "predicted_n": 885,
+     "acceptance": 0.908,
+     "sm_mhz": 1680,
+     "temp": 80.0,
+     "watt": 344.4
+    },
+    {
+     "t": 1787657093.8,
+     "decode_tps": 77.501,
+     "predicted_n": 885,
+     "acceptance": 0.908,
+     "sm_mhz": 1696,
+     "temp": 79.9,
+     "watt": 342.3
+    },
+    {
+     "t": 1787657105.42,
+     "decode_tps": 77.69,
+     "predicted_n": 885,
+     "acceptance": 0.911,
+     "sm_mhz": 1697,
+     "temp": 79.9,
+     "watt": 344.2
+    },
+    {
+     "t": 1787657116.92,
+     "decode_tps": 77.676,
+     "predicted_n": 885,
+     "acceptance": 0.91,
+     "sm_mhz": 1696,
+     "temp": 79.9,
+     "watt": 344.3
+    },
+    {
+     "t": 1787657128.43,
+     "decode_tps": 79.957,
+     "predicted_n": 1073,
+     "acceptance": 0.9,
+     "sm_mhz": 1670,
+     "temp": 80.2,
+     "watt": 344.9
+    },
+    {
+     "t": 1787657141.94,
+     "decode_tps": 76.967,
+     "predicted_n": 885,
+     "acceptance": 0.909,
+     "sm_mhz": 1691,
+     "temp": 80.0,
+     "watt": 342.1
+    },
+    {
+     "t": 1787657153.63,
+     "decode_tps": 78.886,
+     "predicted_n": 1212,
+     "acceptance": 0.888,
+     "sm_mhz": 1670,
+     "temp": 80.3,
+     "watt": 346.3
+    },
+    {
+     "t": 1787657169.08,
+     "decode_tps": 77.083,
+     "predicted_n": 885,
+     "acceptance": 0.908,
+     "sm_mhz": 1680,
+     "temp": 80.1,
+     "watt": 344.7
+    },
+    {
+     "t": 1787657180.68,
+     "decode_tps": 77.185,
+     "predicted_n": 885,
+     "acceptance": 0.908,
+     "sm_mhz": 1679,
+     "temp": 80.4,
+     "watt": 344.8
+    },
+    {
+     "t": 1787657192.25,
+     "decode_tps": 77.469,
+     "predicted_n": 885,
+     "acceptance": 0.911,
+     "sm_mhz": 1681,
+     "temp": 80.2,
+     "watt": 344.3
+    },
+    {
+     "t": 1787657203.79,
+     "decode_tps": 77.569,
+     "predicted_n": 885,
+     "acceptance": 0.91,
+     "sm_mhz": 1679,
+     "temp": 80.3,
+     "watt": 344.5
+    },
+    {
+     "t": 1787657215.29,
+     "decode_tps": 79.693,
+     "predicted_n": 1073,
+     "acceptance": 0.9,
+     "sm_mhz": 1667,
+     "temp": 80.4,
+     "watt": 345.3
+    },
+    {
+     "t": 1787657228.87,
+     "decode_tps": 76.968,
+     "predicted_n": 885,
+     "acceptance": 0.909,
+     "sm_mhz": 1670,
+     "temp": 80.5,
+     "watt": 345.0
+    },
+    {
+     "t": 1787657240.46,
+     "decode_tps": 78.858,
+     "predicted_n": 1212,
+     "acceptance": 0.888,
+     "sm_mhz": 1683,
+     "temp": 80.3,
+     "watt": 344.9
+    },
+    {
+     "t": 1787657255.94,
+     "decode_tps": 77.38,
+     "predicted_n": 885,
+     "acceptance": 0.908,
+     "sm_mhz": 1679,
+     "temp": 80.3,
+     "watt": 343.7
+    },
+    {
+     "t": 1787657267.49,
+     "decode_tps": 77.498,
+     "predicted_n": 885,
+     "acceptance": 0.908,
+     "sm_mhz": 1691,
+     "temp": 80.5,
+     "watt": 344.9
+    },
+    {
+     "t": 1787657278.99,
+     "decode_tps": 77.398,
+     "predicted_n": 885,
+     "acceptance": 0.911,
+     "sm_mhz": 1690,
+     "temp": 80.7,
+     "watt": 344.4
+    },
+    {
+     "t": 1787657290.52,
+     "decode_tps": 77.498,
+     "predicted_n": 885,
+     "acceptance": 0.91,
+     "sm_mhz": 1698,
+     "temp": 80.6,
+     "watt": 343.6
+    },
+    {
+     "t": 1787657302.05,
+     "decode_tps": 79.769,
+     "predicted_n": 1073,
+     "acceptance": 0.9,
+     "sm_mhz": 1675,
+     "temp": 80.7,
+     "watt": 345.1
+    },
+    {
+     "t": 1787657315.59,
+     "decode_tps": 77.295,
+     "predicted_n": 885,
+     "acceptance": 0.909,
+     "sm_mhz": 1665,
+     "temp": 80.8,
+     "watt": 344.3
+    },
+    {
+     "t": 1787657327.13,
+     "decode_tps": 79.263,
+     "predicted_n": 1212,
+     "acceptance": 0.888,
+     "sm_mhz": 1680,
+     "temp": 80.6,
+     "watt": 345.4
+    },
+    {
+     "t": 1787657342.52,
+     "decode_tps": 77.405,
+     "predicted_n": 885,
+     "acceptance": 0.908,
+     "sm_mhz": 1696,
+     "temp": 80.6,
+     "watt": 344.6
+    },
+    {
+     "t": 1787657354.04,
+     "decode_tps": 77.385,
+     "predicted_n": 885,
+     "acceptance": 0.908,
+     "sm_mhz": 1690,
+     "temp": 80.7,
+     "watt": 345.2
+    },
+    {
+     "t": 1787657365.57,
+     "decode_tps": 77.617,
+     "predicted_n": 885,
+     "acceptance": 0.911,
+     "sm_mhz": 1680,
+     "temp": 80.9,
+     "watt": 344.5
+    },
+    {
+     "t": 1787657377.07,
+     "decode_tps": 77.677,
+     "predicted_n": 885,
+     "acceptance": 0.91,
+     "sm_mhz": 1674,
+     "temp": 80.8,
+     "watt": 344.5
+    },
+    {
+     "t": 1787657388.55,
+     "decode_tps": 79.96,
+     "predicted_n": 1073,
+     "acceptance": 0.9,
+     "sm_mhz": 1685,
+     "temp": 80.8,
+     "watt": 345.5
+    },
+    {
+     "t": 1787657402.06,
+     "decode_tps": 77.114,
+     "predicted_n": 885,
+     "acceptance": 0.909,
+     "sm_mhz": 1684,
+     "temp": 81.0,
+     "watt": 345.0
+    },
+    {
+     "t": 1787657413.64,
+     "decode_tps": 79.033,
+     "predicted_n": 1212,
+     "acceptance": 0.888,
+     "sm_mhz": 1670,
+     "temp": 80.9,
+     "watt": 346.4
+    }
+   ],
+   "mde_pct": {
+    "3": 2.06,
+    "5": 1.59,
+    "10": 1.13,
+    "20": 0.8,
+    "40": 0.56
+   }
+  }
+ }
+}

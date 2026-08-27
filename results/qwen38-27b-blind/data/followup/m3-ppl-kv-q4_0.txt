@@ -1,0 +1,5 @@
+﻿M3 START 2026-08-23 03:32:36
+M3 CMD llama-perplexity -m <UD-IQ4_XS> -f <wikitext-2-raw-test.raw> -ngl 99 -c 8192 -fa on --load-mode mmap -ctk q4_0 -ctv q4_0
+M3 WALL_S 266.3
+M3 RESULT 0.13.670.709 I perplexity: 7.83 seconds per pass - ETA 4.24.467.732 I Final estimate: PPL = 6.6413 +/- 0.04507
+M3 DONE 2026-08-23 03:37:02

@@ -1,0 +1,102 @@
+=== DECISIVE ARM qwen-iq2xxs ===
+model       : C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF\Qwen3.8-27B-UD-IQ2_XXS.gguf
+family      : qwen
+datasets    : GSM8K,HumanEval,MBPP (three-benchmark arm, NOT the rule-21 seven)
+suite       : E:\AI\measured-inference\scripts\bench\suites\rule21-n25.json
+server-args : -ctk q8_0 -ctv q8_0 --chat-template-kwargs {"reasoning_effort":"low"}
+cap         : 16384   window: -c 32768
+started     : 2026-08-24T11:25:24
+suite narrowed to ['GSM8K', 'HumanEval', 'MBPP'] by --datasets
+using suite E:\AI\measured-inference\scripts\bench\suites\rule21-n25.json (hash 1cdf54f8eb9d3f8f)
+context check: longest prompt ~262 tok (HumanEval) + max_tokens 16384 = ~16646 tok needed
+machine: GAMINGPC | NVIDIA GeForce RTX 3090, 596.36 | version: 0.1.2-dev (build 10502, commit 0adcc3bb5)
+starting llama-server for Qwen3.8-27B-UD-IQ2_XXS.gguf ...
+[Qwen3.8-27B-UD-IQ2_XXS] GSM8K: 25 prompts (exact match)
+    prompt 1/25: 201 tok, 50.0 tok/s, CORRECT
+    prompt 2/25: 362 tok, 50.0 tok/s, CORRECT
+    prompt 3/25: 131 tok, 49.8 tok/s, CORRECT
+    prompt 4/25: 263 tok, 49.7 tok/s, CORRECT
+    prompt 5/25: 468 tok, 49.5 tok/s, wrong
+    prompt 6/25: 223 tok, 49.4 tok/s, CORRECT
+    prompt 7/25: 472 tok, 49.4 tok/s, CORRECT
+    prompt 8/25: 550 tok, 49.4 tok/s, CORRECT
+    prompt 9/25: 325 tok, 49.3 tok/s, wrong
+    prompt 10/25: 318 tok, 49.3 tok/s, CORRECT
+    prompt 11/25: 358 tok, 49.3 tok/s, CORRECT
+    prompt 12/25: 510 tok, 49.2 tok/s, CORRECT
+    prompt 13/25: 374 tok, 49.2 tok/s, CORRECT
+    prompt 14/25: 170 tok, 49.1 tok/s, CORRECT
+    prompt 15/25: 343 tok, 49.2 tok/s, CORRECT
+    prompt 16/25: 212 tok, 48.9 tok/s, CORRECT
+    prompt 17/25: 662 tok, 49.1 tok/s, CORRECT
+    prompt 18/25: 259 tok, 49.1 tok/s, CORRECT
+    prompt 19/25: 222 tok, 49.2 tok/s, CORRECT
+    prompt 20/25: 298 tok, 49.2 tok/s, CORRECT
+    prompt 21/25: 299 tok, 49.3 tok/s, wrong
+    prompt 22/25: 340 tok, 49.3 tok/s, CORRECT
+    prompt 23/25: 341 tok, 49.3 tok/s, CORRECT
+    prompt 24/25: 274 tok, 49.3 tok/s, wrong
+    prompt 25/25: 202 tok, 49.2 tok/s, wrong
+    GSM8K: 80.0/100 (exact match, n=25, 0 truncated)
+[Qwen3.8-27B-UD-IQ2_XXS] HumanEval: 25 prompts (execution pass@1)
+    prompt 1/25: 505 tok, 49.4 tok/s, CORRECT
+    prompt 2/25: 671 tok, 49.1 tok/s, CORRECT
+    prompt 3/25: 695 tok, 49.0 tok/s, CORRECT
+    prompt 4/25: 411 tok, 49.0 tok/s, CORRECT
+    prompt 5/25: 375 tok, 49.0 tok/s, CORRECT
+    prompt 6/25: 2369 tok, 48.8 tok/s, wrong
+    prompt 7/25: 4620 tok, 48.6 tok/s, wrong
+    prompt 8/25: 136 tok, 49.3 tok/s, CORRECT
+    prompt 9/25: 248 tok, 49.3 tok/s, CORRECT
+    prompt 10/25: 3939 tok, 48.6 tok/s, wrong
+    prompt 11/25: 1121 tok, 49.2 tok/s, CORRECT
+    prompt 12/25: 581 tok, 49.2 tok/s, CORRECT
+    prompt 13/25: 714 tok, 49.1 tok/s, CORRECT
+    prompt 14/25: 478 tok, 49.2 tok/s, CORRECT
+    prompt 15/25: 751 tok, 49.2 tok/s, CORRECT
+    prompt 16/25: 581 tok, 49.2 tok/s, CORRECT
+    prompt 17/25: 817 tok, 49.2 tok/s, CORRECT
+    prompt 18/25: 871 tok, 49.2 tok/s, CORRECT
+    prompt 19/25: 1140 tok, 49.1 tok/s, CORRECT
+    prompt 20/25: 2233 tok, 48.8 tok/s, wrong
+    prompt 21/25: 595 tok, 49.3 tok/s, CORRECT
+    prompt 22/25: 760 tok, 49.1 tok/s, CORRECT
+    prompt 23/25: 670 tok, 49.1 tok/s, CORRECT
+    prompt 24/25: 442 tok, 49.1 tok/s, CORRECT
+    prompt 25/25: 418 tok, 49.0 tok/s, CORRECT
+    HumanEval: 84.0/100 (execution pass@1, n=25, 0 truncated)
+[Qwen3.8-27B-UD-IQ2_XXS] MBPP: 25 prompts (execution pass@1)
+    prompt 1/25: 16384 tok, 46.2 tok/s, wrong (truncated)
+    prompt 2/25: 3513 tok, 48.3 tok/s, wrong
+    prompt 3/25: 577 tok, 48.8 tok/s, CORRECT
+    prompt 4/25: 816 tok, 48.9 tok/s, wrong
+    prompt 5/25: 454 tok, 49.0 tok/s, CORRECT
+    prompt 6/25: 1329 tok, 48.9 tok/s, CORRECT
+    prompt 7/25: 80 tok, 49.1 tok/s, CORRECT
+    prompt 8/25: 170 tok, 49.2 tok/s, CORRECT
+    prompt 9/25: 253 tok, 49.2 tok/s, wrong
+    prompt 10/25: 903 tok, 49.1 tok/s, CORRECT
+    prompt 11/25: 374 tok, 49.1 tok/s, CORRECT
+    prompt 12/25: 1109 tok, 49.1 tok/s, CORRECT
+    prompt 13/25: 3837 tok, 48.4 tok/s, CORRECT
+    prompt 14/25: 256 tok, 49.0 tok/s, CORRECT
+    prompt 15/25: 834 tok, 49.1 tok/s, wrong
+    prompt 16/25: 1013 tok, 49.0 tok/s, wrong
+    prompt 17/25: 77 tok, 49.0 tok/s, CORRECT
+    prompt 18/25: 2468 tok, 48.5 tok/s, CORRECT
+    prompt 19/25: 7296 tok, 47.6 tok/s, wrong
+    prompt 20/25: 470 tok, 48.8 tok/s, CORRECT
+    prompt 21/25: 1724 tok, 48.7 tok/s, CORRECT
+    prompt 22/25: 729 tok, 48.9 tok/s, CORRECT
+    prompt 23/25: 355 tok, 48.8 tok/s, CORRECT
+    prompt 24/25: 440 tok, 48.8 tok/s, CORRECT
+    prompt 25/25: 474 tok, 48.8 tok/s, CORRECT
+    MBPP: 72.0/100 (execution pass@1, n=25, 1 truncated)
+[Qwen3.8-27B-UD-IQ2_XXS] Mean 78.7/100 - composite index over GSM8K, HumanEval, MBPP
+saved E:\AI\measured-inference\scripts\bench\results\Qwen3_8-27B-UD-IQ2_XXS_20260824_112529.json
+wrote E:\AI\measured-inference\scripts\bench\results\Qwen3_8-27B-UD-IQ2_XXS_20260824_112529.png
+wall_s=1705.0  (0.47 h)
+copied Qwen3_8-27B-UD-IQ2_XXS_20260824_112529.json
+copied Qwen3_8-27B-UD-IQ2_XXS_20260824_112529.png
+copied Qwen3_8-27B-UD-IQ2_XXS_20260824_112529_transcripts.json
+ARM qwen-iq2xxs DONE

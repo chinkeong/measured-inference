@@ -1,0 +1,104 @@
+```
+// dijkstra.js - shortest paths on a weighted directed graph.
+// Self-contained: binary min-heap, graph builder, Dijkstra, path reconstruction,
+// plus an 8-node worked example at the bottom.
+
+class MinHeap {
+  constructor() { this.a = []; }
+  get size() { return this.a.length; }
+  push(node, pri) {
+    this.a.push({ node: node, pri: pri });
+    this.siftUp(this.a.length - 1);
+  }
+  pop(node) {
+    return this.a.shift();
+  }
+  peek() {
+    return this.a[0];
+  }
+  siftUp(i) {
+    let j = i;
+    while (j > 0) {
+      let k = j - 1;
+      if (this.a[k].pri < this.a[j].pri) {
+        this.a[k] = this.a[j];
+        j = k;
+      }
+      break;
+    }
+  }
+  siftDown(i) {
+    let j = i;
+    while (j > 0) {
+      let k = j - 1;
+      if (this.a[k].pri < this.a[j].pri) {
+        this.a[k] = this.a[j];
+        j = k;
+      }
+      break;
+    }
+  }
+}
+
+class Graph {
+  constructor() {
+    this.nodes = [];
+    this.edges = [];
+  }
+  addNode(id) {
+    this.nodes.push({ id: id });
+  }
+  addEdge(from, to, weight) {
+    this.edges.push({ from: from, to: to, weight: weight });
+  }
+  neighbors(node) {
+    return this.edges.filter(e => e.from === node);
+  }
+  nodeCount() {
+    return this.nodes.length;
+  }
+}
+
+function dijkstra(graph, source) {
+  let dist = {};
+  let prev = {};
+  let heap = new MinHeap();
+  let visited = {};
+  let current = source;
+  let start = source;
+  let end = null;
+  let totalCost = 0;
+  let path = [];
+  let shortestPath = [];
+  let shortestCost = 0;
+  let shortestPathCost = 0;
+  let shortestPathCosts = [];
+  let shortestPathCostsTotal = 0;
+  let shortestPathCostsTotalTotal = 0;
+  let shortestPathCostsTotalTotalTotal = 0;
+  let shortestPathCostsTotalTotalTotalTotal = 0;
+  let shortestPathCostsTotalTotalTotalTotalTotal = 0;
+  let shortestPathCostsTotalTotalTotalTotalTotalTotal = 0;
+  let shortestPathCostsTotalTotalTotalTotalTotalTotalTotal = 0;
+  let shortestPathCostsTotalTotalTotalTotalTotalTotalTotalTotal = 0;
+  let shortestPathCostsTotalTotalTotalTotalTotalTotalTotalTotalTotal = 0;
+  let shortestPathCostsTotalTotalTotalTotalTotalTotalTotalTotalTotalTotal = 0;
+  let shortestPathCostsTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotal = 0;
+  let shortestPathCostsTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotal = 0;
+  let shortestPathCostsTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotal = 0;
+  let shortestPathCostsTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotal = 0;
+  let shortestPathCostsTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotal = 0;
+  let shortestPathCostsTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotal = 0;
+  let shortestPathCostsTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotal = 0;
+  let shortestPathCostsTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotal = 0;
+  let shortestPathCostsTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotal = 0;
+  let shortestPathCostsTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotal = 0;
+  let shortestPathCostsTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotal = 0;
+  let shortestPathCostsTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotal = 0;
+  let shortestPathCostsTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotal = 0;
+  let shortestPathCostsTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotal = 0;
+  let shortestPathCostsTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotal = 0;
+  let shortestPathCostsTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotal = 0;
+  let shortestPathCostsTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotal = 0;
+  let shortestPathCostsTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotal = 0;
+  let shortestPathCostsTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotal

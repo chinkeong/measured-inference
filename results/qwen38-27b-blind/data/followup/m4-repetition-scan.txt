@@ -1,0 +1,325 @@
+﻿==============================================================================
+Qwen3.8-27B-Q4_K_M - low.txt  [CLEAN]
+  bytes=80298 words=8733 unique_word_ratio=0.3149
+  --- last 600 chars ---
+  (f);
+    for(const p of puffers)drawPuffer(p);
+    for(const sh of seahorses)drawSeahorse(sh);
+    for(const t of turtles)drawTurtle(t);
+    for(const b of bubbles)drawBubble(b);
+    drawParticles();
+    const dn=getDN();
+    if(dn<0.4){
+      const nightAlpha=(0.4-dn)*0.8;
+      ctx.fillStyle=`rgba(2,5,15,${nightAlpha*0.3})`;
+      ctx.fillRect(0,0,W,H);
+    }
+  }
+  function loop(ts){
+    if(!lastTime)lastTime=ts;
+    let dt=(ts-lastTime)/1000;
+    lastTime=ts;
+    if(dt>0.05)dt=0.05;
+    T+=dt*CONFIG.speedMultiplier;
+    update(dt);
+    draw();
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+  </script>
+  </body>
+  </html>
+==============================================================================
+Qwen3.8-27B-Q4_K_M - low - pass2.txt  [CLEAN]
+  bytes=43532 words=6059 unique_word_ratio=0.2568
+  --- last 600 chars ---
+  chool.members) drawSchoolFish(m);
+      for (const f of tropicalFish) drawTropicalFish(f);
+      for (const f of angelfish) drawAngelfish(f);
+      drawTurtle(turtle);
+      for (const sh of seahorses) drawSeahorse(sh);
+  
+      // Upper layer
+      for (const j of jellyfish) drawJellyfish(j);
+  
+      drawBubbles();
+      drawNightGlow(nightFactor);
+  }
+  
+  function loop(now) {
+      const dt = Math.min((now - lastTime) / 1000, 0.05); // Cap delta to avoid spiral
+      lastTime = now;
+      time += dt;
+  
+      update(dt);
+      render();
+  
+      requestAnimationFrame(loop);
+  }
+  
+  requestAnimationFrame(loop);
+  </script>
+  </body>
+  </html>
+==============================================================================
+Qwen3.8-27B-Q4_K_M - medium.txt  [CLEAN]
+  bytes=52877 words=7796 unique_word_ratio=0.3153
+  --- last 600 chars ---
+      ctx.fillStyle = 'rgba(2,6,20,' + nightGlow * 0.28 + ')';
+      ctx.fillRect(0, 0, W, H);
+    }
+  }
+  
+  /* ============================================================
+     Main loop
+     ============================================================ */
+  let lastTime = performance.now();
+  function frame(now) {
+    let dt = (now - lastTime) / 1000;
+    lastTime = now;
+    if (dt > 0.05) dt = 0.05;              // clamp after tab-switch
+    dt *= CONFIG.speedMultiplier;
+    t += dt;
+    update(dt);
+    render();
+    requestAnimationFrame(frame);
+  }
+  
+  resize();
+  populate();
+  requestAnimationFrame(frame);
+  </script>
+  </body>
+  </html>
+==============================================================================
+Qwen3.8-27B-Q4_K_M - medium - pass2.txt  [CLEAN]
+  bytes=59828 words=8819 unique_word_ratio=0.2635
+  --- last 600 chars ---
+   c.obj;
+      if (c.kind === 'jelly') { o.update(sdt, t); o.draw(ctx, t, night); }
+      else { o.update(sdt, t); o.draw(ctx, t, night); }
+    }
+  
+    // gentle dark vignette at night
+    if (night > 0.01) {
+      ctx.fillStyle = 'rgba(2,6,18,' + (night * 0.12) + ')';
+      ctx.fillRect(0, 0, W, H);
+    }
+  
+    requestAnimationFrame(frame);
+  }
+  
+  /* ============================================================
+     Boot
+     ============================================================ */
+  window.addEventListener('resize', resize);
+  resize();
+  initMotes();
+  buildWorld();
+  requestAnimationFrame(frame);
+  </script>
+  </body>
+  </html>
+==============================================================================
+Qwen3.8-27B-Q4_K_M - xhigh.txt  [CLEAN]
+  bytes=184491 words=26429 unique_word_ratio=0.2985
+  --- last 600 chars ---
+  0, W, H);
+      ctx.globalAlpha = 1;
+    }
+    drawGlow();
+    drawSparkle();
+  }
+  
+  function frame(now){
+    let dt = (now - last) / 1000;
+    last = now;
+    if (dt > 0.05) dt = 0.05;
+    if (dt < 0) dt = 0;
+    const sdt = dt * CONFIG.SPEED;
+    time += sdt;
+    night = DAY_ON ? 0.5 - 0.5 * Math.cos(time * TAU / CONFIG.DAY_NIGHT_SECONDS) : 0;
+    update(sdt);
+    draw();
+    requestAnimationFrame(frame);
+  }
+  
+  /* ---------------- boot ---------------- */
+  setupCanvas();
+  init();
+  buildBackground();
+  buildFloor();
+  refreshLayout();
+  window.addEventListener('resize', onResize);
+  requestAnimationFrame(frame);
+  </script>
+  </body>
+  </html>
+==============================================================================
+Qwen3.8-27B-Q4_K_M - xhigh - pass2.txt  [LOOPING]
+  bytes=191148 words=23484 unique_word_ratio=0.3504
+  GLOBAL-REPEAT-16 count=3 at=[19483, 19515, 19547] | dx = f.x-x; dy = f.y-y; d = dx*dx + dy*dy; if(d < bd*bd){ bd =
+  GLOBAL-REPEAT-16 count=3 at=[19484, 19516, 19548] | = f.x-x; dy = f.y-y; d = dx*dx + dy*dy; if(d < bd*bd){ bd = Math.sqrt(d);
+  GLOBAL-REPEAT-16 count=3 at=[19485, 19517, 19549] | f.x-x; dy = f.y-y; d = dx*dx + dy*dy; if(d < bd*bd){ bd = Math.sqrt(d); best
+  GLOBAL-REPEAT-16 count=3 at=[19486, 19518, 19550] | dy = f.y-y; d = dx*dx + dy*dy; if(d < bd*bd){ bd = Math.sqrt(d); best =
+  GLOBAL-REPEAT-16 count=3 at=[19487, 19519, 19551] | = f.y-y; d = dx*dx + dy*dy; if(d < bd*bd){ bd = Math.sqrt(d); best = f.x;
+  GLOBAL-REPEAT-16 count=3 at=[19488, 19520, 19552] | f.y-y; d = dx*dx + dy*dy; if(d < bd*bd){ bd = Math.sqrt(d); best = f.x; }
+  --- last 600 chars ---
+  NFIG.SPEED_MULTIPLIER;
+    T += dt;
+  
+    if(CONFIG.DAY_NIGHT_SECONDS > 0)
+      S.night = 0.5 - 0.5*Math.cos((T / CONFIG.DAY_NIGHT_SECONDS) * TAU);
+    else
+      S.night = 0;
+  
+    S.bubAcc += dtR * 1000;
+    let guard = 0;
+    while(S.bubAcc >= CONFIG.BUBBLE_INTERVAL_MS && guard++ < 8){
+      S.bubAcc -= CONFIG.BUBBLE_INTERVAL_MS;
+      spawnBubble();
+    }
+  
+    update(dt);
+    render();
+    requestAnimationFrame(frame);
+  }
+  
+  /* ---- boot ---- */
+  glowSprite = makeGlow();
+  raySprite = makeRaySprite();
+  resize();
+  seedEntities();
+  window.addEventListener('resize', resize);
+  requestAnimationFrame(frame);
+  </script>
+  </body>
+  </html>
+==============================================================================
+effort-low.txt  [CLEAN]
+  bytes=41553 words=6394 unique_word_ratio=0.2551
+  --- last 600 chars ---
+  ab(c);
+    for (const j of jellies) drawJelly(j);
+  
+    drawBubbles();
+  
+    // Night overlay (subtle)
+    if (CONFIG.dayNightCycle > 0) {
+      const nightFactor = (0.5 - 0.5 * Math.cos(dayNightPhase));
+      if (nightFactor > 0.1) {
+        ctx.fillStyle = `rgba(0,0,20,${nightFactor * 0.15})`;
+        ctx.fillRect(0, 0, W, H);
+      }
+    }
+  }
+  
+  function loop(timestamp) {
+    if (!lastTime) lastTime = timestamp;
+    const dt = Math.min((timestamp - lastTime) / 1000, 0.05); // cap delta
+    lastTime = timestamp;
+    update(dt);
+    draw();
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+  </script>
+  </body>
+  </html>
+==============================================================================
+effort-medium.txt  [CLEAN]
+  bytes=61854 words=9494 unique_word_ratio=0.3118
+  --- last 600 chars ---
+  awAngelfish(a);
+    for (const m of school.members) drawSchoolMember(m);
+    for (const j of jellies) drawJelly(j);
+    for (const b of bubbles) drawBubble(b);
+  
+    // gentle vignette
+    const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.4, W / 2, H / 2, Math.max(W, H) * 0.75);
+    vg.addColorStop(0, "rgba(0,0,10,0)");
+    vg.addColorStop(1, "rgba(0,0,10," + (0.25 + 0.2 * night).toFixed(3) + ")");
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, W, H);
+  
+    requestAnimationFrame(frame);
+  }
+  
+  window.addEventListener("resize", resize);
+  resize();
+  requestAnimationFrame(frame);
+  </script>
+  </body>
+  </html>
+==============================================================================
+effort-xhigh.txt  [CLEAN]
+  bytes=170627 words=20318 unique_word_ratio=0.3949
+  --- last 600 chars ---
+   of jellies){ j.x = clamp(j.x, 10, W - 10); j.y = clamp(j.y, j.r + 25, H * 0.55); }
+    for (const c of crabs){ c.x = clamp(c.x, 26, Math.max(27, W - 26)); c.y = floorTop(c.x) - 8; }
+    for (const l of lobsters){ l.x = clamp(l.x, 70, Math.max(71, W - 70)); l.y = floorTop(l.x) - 10; }
+    for (let i = 0; i < starfish.length; i++){
+      const s = starfish[i];
+      if (s.onRock){ s.x = clamp(A.anx + 20, 26, W - 26); s.y = floorTop(A.anx) - 34; }
+      else { if (s.x === 0) s.x = 0.52 * W; s.x = clamp(s.x, 30, W - 30); s.y = floorTop(s.x) - 5; }
+    }
+    for (const c of clowns){
+      if (c.x === 0){ c.x = A.an
+==============================================================================
+effort-xhigh-120k.txt  [CLEAN]
+  bytes=156226 words=16065 unique_word_ratio=0.3885
+  --- last 600 chars ---
+  .rotate(-0.65+row*0.45);
+    ctx.fillStyle='#447f5f';
+    ctx.beginPath(); ctx.ellipse(-9,0,10,3.8,0,0,TAU); ctx.fill(); ctx.restore();
+    ctx.fillStyle='#447f5f';
+    ctx.beginPath(); ctx.arc(-24.5,2,2.6,0,TAU); ctx.fill();
+    ctx.restore();
+  }
+  
+  /* ============================== LOOP ============================== */
+  let last=performance.now();
+  function frame(now){
+    const dt=Math.min(0.05,(now-last)/1000)||0;
+    last=now;
+    time.rt+=dt;
+    update(dt*CONFIG.speedMultiplier);
+    render();
+    requestAnimationFrame(frame);
+  }
+  resize();
+  requestAnimationFrame(t=>{ last=t; frame(t); });
+  </script>
+  </body>
+  </html>
+
+================================================================================
+MANUAL ADJUDICATION (spot-read of every flagged region)
+================================================================================
+Qwen3.8-27B-Q4_K_M - xhigh - pass2.txt  [LOOPING] -> FALSE POSITIVE, verdict CLEAN
+  The detector flagged three 16-word blocks at word 19483/19515/19547 (exact
+  32-word spacing). Reading the region: it is the body of function nearFish(),
+  three sequential for-loops over three DIFFERENT arrays (S.trop, S.ang,
+  S.clowns) performing the same nearest-neighbour test. Deliberate, correct,
+  hand-unrolled code - not a decoding loop.
+
+effort-xhigh.txt  [CLEAN] but TRUNCATED
+  Not a repetition loop. It ends mid-token ("if (c.x === 0){ c.x = A.an") because
+  the generation hit finish_reason=length at predicted_n=65536 (phase7.txt:
+  think_chars=160919 answer_chars=8557 html_ok=False). Thinking sampled at 55 %,
+  80 % and 97 % of its length is monotonically productive - different subsystems
+  at each depth (lobster/blink anim -> layout+clamps -> jellyfish/turtle/bubble
+  update), zero re-tread. The rerun at a larger window (effort-xhigh-120k.txt)
+  finished with finish=stop, html_ok=True.
+
+Qwen3.8-27B-Q4_K_M - low.txt  duplicate thinking sentence x2
+  "OK, I'm going to write the complete code now." appears twice, ~separated.
+  Normal deliberation restart, not degeneracy.
+
+Qwen3.8-27B-Q4_K_M - xhigh - pass2.txt  7 duplicate thinking sentences, all x2
+  All are short JS snippets the model drafted, revised, then restated before
+  committing (frame loop, dt handling, bubble spawn multiplier). Each appears
+  exactly twice, far apart. Normal deliberation, not degeneracy.
+
+FINAL: 10 / 10 transcripts free of degenerate repetition loops.
+       1 / 10 (effort-xhigh.txt) is incomplete due to a token-budget cut.

@@ -1,0 +1,17 @@
+{
+ "date": "2026-08-25 15:39",
+ "ctx": 229376,
+ "board": 24576,
+ "model": "Qwen3.8-27B-UD-Q2_K_XL.gguf",
+ "spec": "n4p075",
+ "reserve": 1796,
+ "vram_load": 23060,
+ "vram_peak": 23529,
+ "slack_at_peak": 1047,
+ "clears": false,
+ "prompt_n": 191810,
+ "decode_tps": 23.495594289539074,
+ "answer": "Based on the table in the provided screenshot, the row labeled **SHARD-07** has ",
+ "truth": "207",
+ "samples": 654
+}

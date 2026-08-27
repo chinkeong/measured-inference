@@ -1,0 +1,8 @@
+[08-24 11:17:38] CHAIN START: trunc-probe -> qwen decisive arm -> ladder pass-2
+[08-24 11:17:38] step start: chain-trunc-probe
+[08-24 11:19:53] step done: chain-trunc-probe exit=
+[08-24 11:19:53] step start: chain-decisive-qwen
+[08-24 11:20:35] step done: chain-decisive-qwen exit=
+[08-24 11:20:35] step start: chain-ladder-pass2
+[08-24 15:46:28] step done: chain-ladder-pass2 exit=
+[08-24 15:46:28] CHAIN DONE

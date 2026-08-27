@@ -1,0 +1,5 @@
+SAMPLES n=1947 span=2026-08-23 00:54:46.429000..2026-08-23 01:27:33.604000
+NOTE gross GPU draw, idle NOT subtracted. Cold board idle with no server loaded measured 33.2 W at campaign start; the first samples of this log read ~58 W because the GPU was still cooling.
+ENERGY low     n=212 wall_s=215 mean_W=344.1 peak_W=349.8 Wh_per_answer=20.55 kWh_per_answer=0.020552 tokens=17321 Wh_per_1k_tok=1.187
+ENERGY medium  n=372 wall_s=376 mean_W=344.3 peak_W=349.6 Wh_per_answer=35.96 kWh_per_answer=0.035963 tokens=24973 Wh_per_1k_tok=1.440
+ENERGY xhigh   n=1264 wall_s=1278 mean_W=338.6 peak_W=349.4 Wh_per_answer=120.21 kWh_per_answer=0.120212 tokens=65536 Wh_per_1k_tok=1.834

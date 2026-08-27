@@ -1,0 +1,17 @@
+{
+ "ppl": 7.4996,
+ "minutes": 4.2,
+ "flags": [
+  "-f",
+  "E:\\AI\\measured-inference\\corpora\\wikitext-2-raw-test.raw",
+  "-ngl",
+  "99",
+  "-c",
+  "8192",
+  "-fa",
+  "on",
+  "--load-mode",
+  "mmap"
+ ],
+ "corpus_md5": "7c0137fc034ddbc56a296bce31b4f7fb"
+}

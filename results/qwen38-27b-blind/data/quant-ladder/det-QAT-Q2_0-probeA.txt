@@ -1,0 +1,132 @@
+push(node, pri) {
+    this.a.push([pri, node]);
+    this.siftUp(this.a.length - 1);
+  }
+  pop() {
+    if (this.a.length === 0) return null;
+    const top = this.a[0];
+    const last = this.a.pop();
+    if (this.a.length > 0) {
+      this.a[0] = last;
+      this.siftDown(0);
+    }
+    return top;
+  }
+  peek() {
+    return this.a.length > 0 ? this.a[0] : null;
+  }
+  siftUp(i) {
+    while (i > 0) {
+      const parent = Math.floor((i - 1) / 2);
+      if (this.a[i][0] < this.a[parent][0]) {
+        [this.a[i], this.a[parent]] = [this.a[parent], this.a[i]];
+        i = parent;
+      } else {
+        break;
+      }
+    }
+  }
+  siftDown(i) {
+    const n = this.a.length;
+    while (true) {
+      const left = 2 * i + 1;
+      const right = 2 * i + 2;
+      let smallest = i;
+      if (left < n && this.a[left][0] < this.a[smallest][0]) smallest = left;
+      if (right < n && this.a[right][0] < this.a[smallest][0]) smallest = right;
+      if (smallest === i) break;
+      [this.a[i], this.a[smallest]] = [this.a[smallest], this.a[i]];
+      i = smallest;
+    }
+  }
+}
+
+class Graph {
+  constructor() {
+    this.nodes = new Map();
+    this.edges = new Map();
+  }
+  addNode(name) {
+    if (!this.nodes.has(name)) {
+      this.nodes.set(name, { name, dist: Infinity, prev: null });
+      this.edges.set(name, []);
+    }
+  }
+  addEdge(from, to, weight) {
+    this.addNode(from);
+    this.addNode(to);
+    this.edges.get(from).push({ to, weight });
+  }
+  neighbors(node) {
+    return this.edges.get(node) || [];
+  }
+  nodeCount() {
+    return this.nodes.size;
+  }
+}
+
+function dijkstra(graph, source) {
+  const dist = new Map();
+  const prev = new Map();
+  const visited = new Set();
+  const heap = new MinHeap();
+
+  for (const node of graph.nodes.keys()) {
+    dist.set(node, Infinity);
+    prev.set(node, null);
+  }
+  dist.set(source, 0);
+  heap.push(source, 0);
+
+  while (heap.size > 0) {
+    const [d, u] = heap.pop();
+    if (visited.has(u)) continue;
+    visited.add(u);
+
+    for (const { to, weight } of graph.neighbors(u)) {
+      if (visited.has(to)) continue;
+      const alt = dist.get(u) + weight;
+      if (alt < dist.get(to)) {
+        dist.set(to, alt);
+        prev.set(to, u);
+        heap.push(to, alt);
+      }
+    }
+  }
+
+  return { dist, prev };
+}
+
+function reconstructPath(prev, target) {
+  const path = [];
+  let current = target;
+  while (current !== null) {
+    path.unshift(current);
+    current = prev.get(current);
+  }
+  return path;
+}
+
+function buildDemoGraph() {
+  const g = new Graph();
+  g.addEdge('A', 'B', 10);
+  g.addEdge('A', 'C', 15);
+  g.addEdge('B', 'C', 5);
+  g.addEdge('B', 'D', 20);
+  g.addEdge('C', 'D', 10);
+  g.addEdge('C', 'E', 15);
+  g.addEdge('D', 'E', 10);
+  g.addEdge('D', 'F', 15);
+  g.addEdge('E', 'F', 10);
+  g.addEdge('E', 'G', 20);
+  g.addEdge('F', 'G', 5);
+  g.addEdge('F', 'H', 10);
+  g.addEdge('G', 'H', 5);
+  return g;
+}
+
+const graph = buildDemoGraph();
+const { dist, prev } = dijkstra(graph, 'A');
+const path = reconstructPath(prev, 'H');
+console.log('Shortest path from A to H:', path.join(' -> '));
+console.log('Total cost:', dist.get('H'));

@@ -1,0 +1,11 @@
+﻿IDLE_W mean=34.6 peak=70.1 n=15 (no server loaded)
+  LOADED_IDLE_W R1-code-vision-163840 mean=30.7 peak=32.5 n=10
+RESULT R1-code-vision-163840 decode_tps=79.26 accept=0.5924 predicted_n=700 wall_s=9.48 board_mib=23565 srv_ded_mib=23316 srv_shr_mib=446 mean_W=277 peak_W=340 n_samples=10 kWh_per_answer=0.0007297 Wh_per_answer=0.7297 kWh_per_1k_tok=0.0010424
+  LOADED_IDLE_W R2-desktop-safe-131072 mean=30.8 peak=32.1 n=10
+RESULT R2-desktop-safe-131072 decode_tps=77.05 accept=0.5924 predicted_n=700 wall_s=9.66 board_mib=22150 srv_ded_mib=21908 srv_shr_mib=382 mean_W=278 peak_W=338.1 n_samples=10 kWh_per_answer=0.0007462 Wh_per_answer=0.7462 kWh_per_1k_tok=0.001066
+  LOADED_IDLE_W R3-textonly-196608 mean=31.1 peak=36.3 n=10
+RESULT R3-textonly-196608 decode_tps=80.02 accept=0.5924 predicted_n=700 wall_s=9.33 board_mib=23813 srv_ded_mib=23587 srv_shr_mib=510 mean_W=283 peak_W=336.2 n_samples=10 kWh_per_answer=0.0007331 Wh_per_answer=0.7331 kWh_per_1k_tok=0.0010473
+  LOADED_IDLE_W R4-prose-131072 mean=30.2 peak=30.8 n=10
+RESULT R4-prose-131072 decode_tps=72.44 accept=0.8991 predicted_n=700 wall_s=10.31 board_mib=21241 srv_ded_mib=21010 srv_shr_mib=382 mean_W=279 peak_W=336.5 n_samples=11 kWh_per_answer=0.0007987 Wh_per_answer=0.7987 kWh_per_1k_tok=0.001141
+  LOADED_IDLE_W R1b-code-vision-163840-n4 mean=30.6 peak=34.2 n=10
+RESULT R1b-code-vision-163840-n4 decode_tps=70.46 accept=0.8991 predicted_n=700 wall_s=10.6 board_mib=22641 srv_ded_mib=22418 srv_shr_mib=446 mean_W=286.7 peak_W=335.7 n_samples=11 kWh_per_answer=0.0008446 Wh_per_answer=0.8446 kWh_per_1k_tok=0.0012065

@@ -1,0 +1,89 @@
+{
+ "date": "2026-08-26 04:04",
+ "rows": [
+  {
+   "drafter": "none",
+   "prompt": "lru",
+   "loaded": true,
+   "tps": 46.06,
+   "predicted_n": 478,
+   "acceptance": null,
+   "finish": "stop",
+   "chars": 1855,
+   "text": "```python\n\"\"\"\nLRU Cache Module\n\"\"\"\n\nfrom collections import OrderedDict\n\n\nclass LRUCache:\n    \"\"\"\n    A Least Recently Used (LRU) cache with a fixed capacity.\n    Provides O(1) average time complexity for get and put operations.\n    \"\"\"\n\n    def __init__(self, capacity: int):\n        \"\"\"\n        Initialize the LRU cache with a given capacity.\n\n        Args:\n            capacity: The maximum number of items the cache can hold.\n        \"\"\"\n        self.capacity = capacity\n        self.cache = OrderedDict()\n\n    def get(self, key):\n        \"\"\"\n        Retrieve the value associated with the key.\n        If the key exists, move it to the end (most recently used) and return its value.\n        If the key does not exist, return None.\n\n        Args:\n            key: The key to look up.\n\n        Returns:\n            The value if the key exists, otherwise None.\n        \"\"\"\n        if key not in self.cache:\n            return None\n        self.cache.move_to_end(key)\n        return self.cache[key]\n\n    def put(self, key, value):\n        \"\"\"\n        Insert or update a key-value pair in the cache.\n        If the key already exists, update its value and move it to the end.\n        If the cache exceeds capacity, evict the least recently used item.\n\n        Args:\n            key: The key to insert or update.\n            value: The value to associate with the key.\n        \"\"\"\n        if key in self.cache:\n            self.cache.move_to_end(key)\n        self.cache[key] = value\n        if len(self.cache) > self.capacity:\n            self.cache.popitem(last=False)\n\n\n# Example calls\nif __name__ == \"__main__\":\n    cache = LRUCache(2)\n    cache.put(1, 1)\n    cache.put(2, 2)\n    print(cache.get(1))       # Output: 1\n    cache.put(3, 3)           # Evicts key 2\n    print(cache.get(2))       # Output: None\n    print(cache.get(3))       # Output: 3\n```",
+   "tokens": 229,
+   "distinct_trigram_ratio": 0.9515,
+   "longest_repeated_line_run": 0
+  },
+  {
+   "drafter": "none",
+   "prompt": "essay",
+   "loaded": true,
+   "tps": 45.7,
+   "predicted_n": 555,
+   "acceptance": null,
+   "finish": "stop",
+   "chars": 3049,
+   "text": "The fundamental bottleneck in single-stream text generation lies in the extreme disparity between the amount of data that must be moved and the amount of arithmetic performed during the inference phase. Unlike training, which involves large matrix multiplications that saturate the GPU\u2019s floating-point units, inference for a single token requires loading the entire set of model weights from high-bandwidth memory (HBM) into the compute cores just to perform a single matrix-vector multiplication. For a large language model, this means that for every single token generated, the GPU must read the full weight matrix from memory, perform a relatively simple dot product, and write the result back. The arithmetic intensity of this operation is extremely low, meaning the GPU\u2019s massive parallel compute capability sits largely idle while waiting for data to arrive.\n\nThis phenomenon is often described as being \"memory-bound\" rather than \"compute-bound.\" In a compute-bound scenario, the GPU\u2019s arithmetic logic units (ALUs) are the limiting factor, and increasing compute power yields linear performance gains. However, in single-stream inference, the latency is dominated by the time it takes to fetch weights from HBM. Even if a consumer GPU has significantly higher floating-point throughput than a previous generation, if the memory bandwidth has not increased proportionally, the speed of token generation will not improve. The GPU is effectively starved for data, spending the majority of its cycle waiting for memory transactions to complete rather than executing calculations.\n\nConsumer GPUs, such as those from NVIDIA\u2019s GeForce series, are architected with a specific focus on gaming and visual rendering, which prioritizes high clock speeds and large numbers of CUDA cores for parallel processing. While these cards offer impressive raw compute power, their memory bandwidth is often lower than that of professional data center GPUs (like the A100 or H100) relative to their compute capacity. For example, a high-end consumer card might have a compute-to-bandwidth ratio that is less favorable for LLM inference than a mid-range data center card. This architectural mismatch means that the consumer GPU\u2019s powerful compute engines are underutilized during the sequential, memory-heavy process of generating one token at a time.\n\nConsequently, the practical implication is that upgrading to a GPU with higher compute performance but similar memory bandwidth will yield negligible improvements in single-stream text generation speed. To accelerate inference for a single user, the industry relies on techniques that reduce the memory footprint or increase effective bandwidth, such as quantization (reducing the precision of weights from 16-bit to 4-bit) or using specialized memory architectures. These methods directly address the memory bandwidth constraint by reducing the volume of data that must be transferred per token, thereby allowing the GPU to generate tokens faster without requiring a proportional increase in raw compute power.",
+   "tokens": 451,
+   "distinct_trigram_ratio": 0.98,
+   "longest_repeated_line_run": 0
+  },
+  {
+   "drafter": "ngram-mod",
+   "prompt": "lru",
+   "loaded": true,
+   "tps": 180.01,
+   "predicted_n": 478,
+   "acceptance": 1.0,
+   "finish": "stop",
+   "chars": 1855,
+   "text": "```python\n\"\"\"\nLRU Cache Module\n\"\"\"\n\nfrom collections import OrderedDict\n\n\nclass LRUCache:\n    \"\"\"\n    A Least Recently Used (LRU) cache with a fixed capacity.\n    Provides O(1) average time complexity for get and put operations.\n    \"\"\"\n\n    def __init__(self, capacity: int):\n        \"\"\"\n        Initialize the LRU cache with a given capacity.\n\n        Args:\n            capacity: The maximum number of items the cache can hold.\n        \"\"\"\n        self.capacity = capacity\n        self.cache = OrderedDict()\n\n    def get(self, key):\n        \"\"\"\n        Retrieve the value associated with the key.\n        If the key exists, move it to the end (most recently used) and return its value.\n        If the key does not exist, return None.\n\n        Args:\n            key: The key to look up.\n\n        Returns:\n            The value if the key exists, otherwise None.\n        \"\"\"\n        if key not in self.cache:\n            return None\n        self.cache.move_to_end(key)\n        return self.cache[key]\n\n    def put(self, key, value):\n        \"\"\"\n        Insert or update a key-value pair in the cache.\n        If the key already exists, update its value and move it to the end.\n        If the cache exceeds capacity, evict the least recently used item.\n\n        Args:\n            key: The key to insert or update.\n            value: The value to associate with the key.\n        \"\"\"\n        if key in self.cache:\n            self.cache.move_to_end(key)\n        self.cache[key] = value\n        if len(self.cache) > self.capacity:\n            self.cache.popitem(last=False)\n\n\n# Example calls\nif __name__ == \"__main__\":\n    cache = LRUCache(2)\n    cache.put(1, 1)\n    cache.put(2, 2)\n    print(cache.get(1))       # Output: 1\n    cache.put(3, 3)           # Evicts key 2\n    print(cache.get(2))       # Output: None\n    print(cache.get(3))       # Output: 3\n```",
+   "tokens": 229,
+   "distinct_trigram_ratio": 0.9515,
+   "longest_repeated_line_run": 0
+  },
+  {
+   "drafter": "ngram-mod",
+   "prompt": "essay",
+   "loaded": true,
+   "tps": 66.89,
+   "predicted_n": 605,
+   "acceptance": 0.7,
+   "finish": "stop",
+   "chars": 3344,
+   "text": "The fundamental bottleneck in single-stream text generation lies in the extreme disparity between the amount of data that must be moved and the amount of arithmetic performed during the inference phase. Unlike training, which involves large matrix multiplications that saturate the GPU\u2019s floating-point units, inference for a single token requires loading the entire set of model weights from high-bandwidth memory (HBM) into the compute cores just to perform a single matrix-vector multiplication. For a large language model, this means that for every single token generated, the GPU must read the full weight matrix from memory, perform a relatively simple dot product, and write the result back. The arithmetic intensity of this operation is extremely low, meaning the GPU\u2019s massive parallel compute capability sits largely idle while waiting for data to arrive.\n\nThis phenomenon is often described as being \"memory-bound\" rather than \"compute-bound.\" In a compute-bound scenario, the GPU\u2019s arithmetic logic units (ALUs) are the limiting factor, and increasing compute power yields linear performance gains. However, in single-stream inference, the latency is dominated by the time it takes to fetch weights from HBM. Even if a consumer GPU like an NVIDIA RTX 4090 has significantly higher TFLOPS (trillion floating-point operations per second) than a data center card, its memory bandwidth is often comparable to or only slightly higher than that of older professional cards. Consequently, the extra compute power provides negligible benefit for single-token generation because the pipeline is clogged by the slow transfer of weights, not by a lack of mathematical capacity.\n\nThe distinction becomes even clearer when comparing consumer GPUs to specialized inference hardware or data center accelerators. Data center GPUs, such as the NVIDIA A100 or H100, are designed with significantly higher memory bandwidth (often 2TB/s or more) relative to their compute power, specifically to handle the memory-bound nature of inference. Consumer GPUs, optimized for gaming and general rendering, prioritize raw compute and rasterization performance over memory throughput. When running a large language model on a consumer card, the GPU spends the majority of its cycle time waiting for memory transactions to complete, resulting in low utilization of the CUDA cores. This inefficiency means that upgrading to a GPU with more compute cores but similar memory bandwidth will not speed up text generation, whereas a GPU with higher memory bandwidth will yield a direct, proportional improvement in tokens per second.\n\nFinally, the architectural design of modern GPUs exacerbates this limitation for single-stream workloads. While batching multiple requests can help amortize the cost of loading weights across several users, single-stream generation cannot leverage this parallelism. Each token generation is a sequential dependency, where the output of one step becomes the input for the next, preventing the GPU from hiding memory latency behind compute tasks. Therefore, the speed of text generation is effectively capped by the memory bandwidth ceiling, making it the primary determinant of performance for individual users running large language models on consumer hardware, regardless of the theoretical floating-point performance of the device.",
+   "tokens": 495,
+   "distinct_trigram_ratio": 0.9899,
+   "longest_repeated_line_run": 0
+  },
+  {
+   "drafter": "draft-mtp",
+   "prompt": "lru",
+   "loaded": true,
+   "tps": 82.45,
+   "predicted_n": 478,
+   "acceptance": 0.938,
+   "finish": "stop",
+   "chars": 1855,
+   "text": "```python\n\"\"\"\nLRU Cache Module\n\"\"\"\n\nfrom collections import OrderedDict\n\n\nclass LRUCache:\n    \"\"\"\n    A Least Recently Used (LRU) cache with a fixed capacity.\n    Provides O(1) average time complexity for get and put operations.\n    \"\"\"\n\n    def __init__(self, capacity: int):\n        \"\"\"\n        Initialize the LRU cache with a given capacity.\n\n        Args:\n            capacity: The maximum number of items the cache can hold.\n        \"\"\"\n        self.capacity = capacity\n        self.cache = OrderedDict()\n\n    def get(self, key):\n        \"\"\"\n        Retrieve the value associated with the key.\n        If the key exists, move it to the end (most recently used) and return its value.\n        If the key does not exist, return None.\n\n        Args:\n            key: The key to look up.\n\n        Returns:\n            The value if the key exists, otherwise None.\n        \"\"\"\n        if key not in self.cache:\n            return None\n        self.cache.move_to_end(key)\n        return self.cache[key]\n\n    def put(self, key, value):\n        \"\"\"\n        Insert or update a key-value pair in the cache.\n        If the key already exists, update its value and move it to the end.\n        If the cache exceeds capacity, evict the least recently used item.\n\n        Args:\n            key: The key to insert or update.\n            value: The value to associate with the key.\n        \"\"\"\n        if key in self.cache:\n            self.cache.move_to_end(key)\n        self.cache[key] = value\n        if len(self.cache) > self.capacity:\n            self.cache.popitem(last=False)\n\n\n# Example calls\nif __name__ == \"__main__\":\n    cache = LRUCache(2)\n    cache.put(1, 1)\n    cache.put(2, 2)\n    print(cache.get(1))       # Output: 1\n    cache.put(3, 3)           # Evicts key 2\n    print(cache.get(2))       # Output: None\n    print(cache.get(3))       # Output: 3\n```",
+   "tokens": 229,
+   "distinct_trigram_ratio": 0.9515,
+   "longest_repeated_line_run": 0
+  },
+  {
+   "drafter": "draft-mtp",
+   "prompt": "essay",
+   "loaded": true,
+   "tps": 51.12,
+   "predicted_n": 582,
+   "acceptance": 0.818,
+   "finish": "stop",
+   "chars": 3186,
+   "text": "The fundamental bottleneck in single-stream text generation lies in the extreme disparity between the amount of data that must be moved and the amount of arithmetic performed during the inference phase. Unlike training, which involves large matrix multiplications that saturate the GPU\u2019s floating-point units, inference for a single token requires loading the entire set of model weights from high-bandwidth memory (HBM) into the compute cores just to perform a single matrix-vector multiplication. For a large language model, this means that for every single token generated, the GPU must read the full weight matrix from memory, perform a relatively simple dot product, and write the result back. The arithmetic intensity of this operation is extremely low, meaning the GPU\u2019s massive parallel compute capability sits largely idle while waiting for data to arrive.\n\nThis phenomenon is often described as being \"memory-bound\" rather than \"compute-bound.\" In a compute-bound scenario, the GPU\u2019s arithmetic logic units (ALUs) are the limiting factor, and increasing compute power yields linear performance gains. However, in single-stream inference, the latency is dominated by the time it takes to fetch weights from HBM. Even if a consumer GPU has significantly higher floating-point throughput than a previous generation, if the memory bandwidth has not increased proportionally, the speed of token generation will not improve. The GPU is effectively starved for data, spending the majority of its cycle waiting for memory transactions to complete rather than executing calculations.\n\nConsumer GPUs, such as those from NVIDIA\u2019s GeForce series, are architected with a specific focus on gaming and visual rendering, which prioritizes high clock speeds and large numbers of CUDA cores for parallel processing. While these cards offer impressive raw compute power, their memory bandwidth is often lower than that of professional data center GPUs (like the A100 or H100) relative to their compute capacity. For example, a high-end consumer card might have a compute-to-bandwidth ratio that is less favorable for inference workloads compared to a data center card. This architectural mismatch means that the consumer GPU\u2019s powerful compute engines are underutilized during the sequential, memory-heavy process of generating one token at a time, leading to diminishing returns on compute performance.\n\nConsequently, the practical implication for users and developers is that upgrading to a GPU with higher compute performance but similar memory bandwidth will yield negligible improvements in single-stream text generation speed. To accelerate inference, one must focus on increasing memory bandwidth or reducing the amount of data that needs to be moved, such as through quantization (reducing the precision of weights from 16-bit to 8-bit or 4-bit) or using more efficient model architectures. This is why specialized inference engines and hardware designs for AI often prioritize memory bandwidth and data compression over raw floating-point performance, acknowledging that the speed of moving data, not the speed of calculating it, is the true constraint in single-stream text generation.",
+   "tokens": 472,
+   "distinct_trigram_ratio": 0.9809,
+   "longest_repeated_line_run": 0
+  }
+ ]
+}

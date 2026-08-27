@@ -1,0 +1,25 @@
+To find the total weight of the marbles Solomon has in the store, we need to calculate the total number of marbles first and then multiply by the weight of each marble.
+
+**Step 1: Determine the number of marbles Solomon bought from Johanna.**
+Solomon bought 20 marbles from Johanna.
+
+**Step 2: Determine the number of marbles already in the store.**
+The store already had 50 marbles.
+
+**Step 3: Calculate the number of marbles his father gave him.**
+His father gave him $\frac{2}{5}$ times as many marbles as he bought from Johanna.
+$\text{Father's marbles} = 20 \times \frac{2}{5}$
+$\text{Father's marbles} = \frac{40}{5} = 8$ marbles.
+
+**Step 4: Calculate the total number of marbles in the store.**
+Total marbles = (Marbles in store) + (Marbles from Johanna) + (Marbles from Father)
+$\text{Total marbles} = 50 + 20 + 8$
+$\text{Total marbles} = 78$ marbles.
+
+**Step 5: Calculate the total weight of the marbles.**
+Each marble weighs 2 kgs.
+$\text{Total weight} = \text{Total marbles} \times \text{Weight per marble}$
+$\text{Total weight} = 78 \times 2$
+$\text{Total weight} = 156$ kgs.
+
+#### 156 kgs

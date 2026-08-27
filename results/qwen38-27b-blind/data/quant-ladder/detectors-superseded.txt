@@ -1,0 +1,2 @@
+﻿# DETECT lines superseded by a later re-run. Kept because they were measured.
+DETECT UD-IQ4_XS | verdict=PASS | rep=CLEAN | D1_immediate=PASS(0) | D2_line=PASS(0) | D3_tailngram=PASS(0) | D4_globalrep=PASS(0) | json=PASS(exact) | fence=PASS(fences=2) | words=380 | uniq=0.4868 | finishA=stop | tokA=985 | tpsA=42.84 | thinkA=0 | load_s=6.1 | ts=2026-08-23T14:23:57   [v1 probe-A: shorter prompt, max_tokens 1500; superseded by the 2048-token probe]

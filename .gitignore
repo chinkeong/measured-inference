@@ -7,11 +7,36 @@ models/
 # self-downloaded runtimes (llama.cpp builds, OpenVINO, drivers)
 bin/
 
-# campaign working data: raw logs, corpora, screenshots, generated pages
-# (** so the pattern still matches if a slug ever contains a slash)
-results/**/data/
-results/**/work/
+# CAMPAIGN RESULTS. Ignore bulk BY EXTENSION, or by a directory that holds
+# ONLY bulk. Never ignore a directory of mixed content. results/**/data/ and
+# results/**/work/ were ignored wholesale here under the comment "campaign
+# working data"; they in fact hold the instruments (lib.ps1, judge.py, the six
+# rule21-*.py, power-integrate.py, make-ladder-png.py's inputs) and the primary
+# records (telemetry CSVs, power traces, per-arm JSON) that the published pages
+# cite by name. See methodology/METHODOLOGY.md, "An ignore rule is a claim
+# about re-creatability", and scripts/verify/instrument-guard.py, which fails
+# if this is ever swallowed again.
+
+# per-run server and harness transcripts - remade by re-running the harness
 *.log
+
+# opaque byte caches, not readings: llama-perplexity --kl-divergence-base
+# logit dumps (25 GB of the 25 GB under results/), model shards, arrays
+*.dat
+*.bin
+*.npy
+*.npz
+*.gguf
+*.safetensors
+
+# process debris
+*.pid
+*.pyc
+
+# NAMED SCRATCH. Putting a file here is the declaration that it is
+# re-creatable. Nothing a tracked file cites may live here.
+**/scratch/
+results/**/tmp/
 
 # benchmark datasets and per-run outputs (harness re-downloads them)
 scripts/bench/datasets/

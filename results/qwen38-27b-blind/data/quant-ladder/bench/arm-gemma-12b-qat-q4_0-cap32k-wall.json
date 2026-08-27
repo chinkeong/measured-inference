@@ -1,0 +1,16 @@
+{
+  "arm": "gemma-12b-qat-q4_0-cap32k",
+  "family": "gemma",
+  "model": "C:\\Users\\chink\\.lmstudio\\models\\lmstudio-community\\gemma-4-12B-it-QAT-GGUF\\gemma-4-12B-it-QAT-Q4_0.gguf",
+  "datasets": "GSM8K,HumanEval,MBPP",
+  "samples": 25,
+  "seed": 42,
+  "max_tokens": 32768,
+  "ctx": 65536,
+  "greedy": true,
+  "suite": "E:\\AI\\measured-inference\\results\\qwen38-27b-blind\\work\\rule21-n25-cap32768.json",
+  "server_args": "",
+  "wall_s": 9550.9,
+  "wall_h": 2.653,
+  "finished": "2026-08-23T22:50:09"
+}

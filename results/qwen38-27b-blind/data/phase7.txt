@@ -1,0 +1,3 @@
+﻿RESULT effort-low prompt_n=1689 predicted_n=17321 decode_tps=81.21 wall_s=215.01 finish=stop accept=0.9103 think_chars=4827 answer_chars=36680 html_ok=True t0=[2026/08/23 00:55:14] t1=[2026/08/23 00:58:49]
+RESULT effort-medium prompt_n=1659 predicted_n=24973 decode_tps=66.75 wall_s=375.72 finish=stop accept=0.8821 think_chars=20906 answer_chars=40838 html_ok=True t0=[2026/08/23 00:59:16] t1=[2026/08/23 01:05:32]
+RESULT effort-xhigh prompt_n=1701 predicted_n=65536 decode_tps=51.34 wall_s=1278.31 finish=length accept=0.8361 think_chars=160919 answer_chars=8557 html_ok=False t0=[2026/08/23 01:05:59] t1=[2026/08/23 01:27:17]

@@ -1,0 +1,5 @@
+﻿# gemma truncation probe - opened 2026-08-24T11:17:38
+PROBE raw-MBPP0 | finish=length | predicted_n=4096 | content_chars=9771 | think_chars=0 | open_think_tags=0 | close_think_tags=0 | eot_markers=0 | tps=80.71
+PROBE raw-GSM8K6 | finish=length | predicted_n=4096 | content_chars=12511 | think_chars=0 | open_think_tags=0 | close_think_tags=0 | eot_markers=0 | tps=80.71
+PROBE off-MBPP0 | finish=stop | predicted_n=355 | content_chars=873 | think_chars=0 | open_think_tags=0 | close_think_tags=0 | eot_markers=0 | tps=84.08
+PROBE off-GSM8K6 | finish=stop | predicted_n=331 | content_chars=1101 | think_chars=0 | open_think_tags=0 | close_think_tags=0 | eot_markers=0 | tps=84.12

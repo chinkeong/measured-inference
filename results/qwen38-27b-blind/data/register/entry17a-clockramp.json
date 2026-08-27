@@ -1,0 +1,62 @@
+﻿{
+    "entry":  "17a",
+    "question":  "Does the post-prefill clock state explain the deepest arm reading 58.05 t/s against a cooled 64.76?",
+    "published_arm":  58.05,
+    "published_cooled":  64.76,
+    "published_discarded_postprefill":  59.61,
+    "depth_target":  90854,
+    "flags":  "UD-IQ4_XS, -c 131072, n4/p0.75, q8_0 KV, --parallel 1",
+    "date":  "2026-08-25 12:42",
+    "probes":  [
+                   {
+                       "probe":  1,
+                       "prompt_n":  92487,
+                       "prefill_s":  112.7,
+                       "prefill_tps":  820.6,
+                       "decode_tps":  35.99,
+                       "predicted_n":  700,
+                       "draft_n":  395,
+                       "draft_acc":  0.876,
+                       "wall_s":  132.2,
+                       "cached":  false
+                   },
+                   {
+                       "probe":  2,
+                       "prompt_n":  4,
+                       "prefill_s":  0.4,
+                       "prefill_tps":  10.6,
+                       "decode_tps":  36.09,
+                       "predicted_n":  700,
+                       "draft_n":  400,
+                       "draft_acc":  0.868,
+                       "wall_s":  19.8,
+                       "cached":  true
+                   },
+                   {
+                       "probe":  3,
+                       "prompt_n":  4,
+                       "prefill_s":  0.4,
+                       "prefill_tps":  11.4,
+                       "decode_tps":  36.27,
+                       "predicted_n":  700,
+                       "draft_n":  401,
+                       "draft_acc":  0.868,
+                       "wall_s":  19.7,
+                       "cached":  true
+                   },
+                   {
+                       "probe":  4,
+                       "prompt_n":  4,
+                       "prefill_s":  0.3,
+                       "prefill_tps":  11.6,
+                       "decode_tps":  36.22,
+                       "predicted_n":  700,
+                       "draft_n":  400,
+                       "draft_acc":  0.868,
+                       "wall_s":  19.7,
+                       "cached":  true
+                   }
+               ],
+    "decode_after_prefill":  35.99,
+    "decode_cached":  36.19
+}

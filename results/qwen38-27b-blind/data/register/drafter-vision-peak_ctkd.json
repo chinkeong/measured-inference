@@ -1,0 +1,15 @@
+{
+ "date": "2026-08-25 14:58",
+ "ctx": 122880,
+ "board": 24576,
+ "reserve": 1308,
+ "vram_load": 22975,
+ "vram_peak": 23321,
+ "slack_at_peak": 1255,
+ "clears": false,
+ "prompt_n": 98632,
+ "decode_tps": 25.756600128783003,
+ "answer": "207",
+ "truth": "207",
+ "samples": 234
+}

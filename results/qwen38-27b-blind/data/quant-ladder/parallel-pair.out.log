@@ -1,0 +1,5 @@
+  [pp-par1] server healthy in 12.5s
+PAR par1 | parallel=1 | drafter=ON n10/p0.5 | aggregate_tps=82.98 | per_slot_tps=85.79 | reps=3 | acceptance=0.61848 | mean_draft_len=5.70
+  [pp-par2] server healthy in 8s
+PAR par2 | parallel=2 | drafter=ON n10/p0.5 | aggregate_tps=101.25 | per_slot_tps=55.41 | reps=3 | acceptance=0.61967 | mean_draft_len=5.61
+[08-25 01:26:15] PARALLEL-PAIR DONE

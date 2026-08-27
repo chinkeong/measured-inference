@@ -1,0 +1,30 @@
+```python
+def min_cost(cost, m, n):
+    """
+    Finds the minimum cost path to reach (m, n) from (0, 0) 
+    in a 2D grid where you can only move down or right.
+    """
+    # Create a DP table of the same size as the cost matrix
+    dp = [[0] * (n + 1) for _ in range(m + 1)]
+
+    # Initialize the starting point
+    dp[0][0] = cost[0][0]
+
+    # Initialize the first column (can only come from above)
+    for i in range(1, m + 1):
+        dp[i][0] = dp[i-1][0] + cost[i][0]
+
+    # Initialize the first row (can only come from the left)
+    for j in range(1, n + 1):
+        dp[0][j] = dp[0][j-1] + cost[0][j]
+
+    # Fill the rest of the DP table
+    for i in range(1, m + 1):
+        for j in range(1, n + 1):
+            dp[i][j] = cost[i][j] + min(dp[i-1][j], dp[i][j-1])
+
+    return dp[m][n]
+
+# Test case
+assert min_cost([[1, 2, 3], [4, 8, 2], [1, 5, 3]], 2, 2) == 8
+```

@@ -1,0 +1,46 @@
+=== ARM xhigh-alpaca-cap32k (reasoning_effort=xhigh) ===
+datasets    : ALPACA (narrowed)
+suite       : E:\AI\measured-inference\results\qwen38-27b-blind\work\rule21-n25-cap32768.json
+server-args : -ctk q8_0 -ctv q8_0 --chat-template-kwargs {"reasoning_effort":"xhigh"}
+started     : 2026-08-24T15:47:28
+METHODOLOGY rule 21: the standard benchmark protocol (n=25, greedy, seed 42, max_tokens 16384)
+suite narrowed to ['ALPACA'] by --datasets
+using suite E:\AI\measured-inference\results\qwen38-27b-blind\work\rule21-n25-cap32768.json (hash 1cdf54f8eb9d3f8f)
+context: -c 65536 (sized for the longest prompt + --max-tokens)
+context check: longest prompt ~65 tok (ALPACA) + max_tokens 32768 = ~32833 tok needed
+  ALPACA: unscored: no independent judge
+machine: GAMINGPC | NVIDIA GeForce RTX 3090, 596.36 | version: 0.1.2-dev (build 10502, commit 0adcc3bb5)
+starting llama-server for Qwen3.8-27B-UD-IQ4_XS.gguf ...
+[Qwen3.8-27B-UD-IQ4_XS] ALPACA: 25 prompts (unscored: no independent judge)
+    prompt 1/25: 90 tok, 42.9 tok/s
+    prompt 2/25: 949 tok, 42.8 tok/s
+    prompt 3/25: 385 tok, 42.7 tok/s
+    prompt 4/25: 300 tok, 42.7 tok/s
+    prompt 5/25: 299 tok, 42.6 tok/s
+    prompt 6/25: 265 tok, 42.6 tok/s
+    prompt 7/25: 55 tok, 42.4 tok/s
+    prompt 8/25: 2013 tok, 42.5 tok/s
+    prompt 9/25: 704 tok, 42.7 tok/s
+    prompt 10/25: 87 tok, 42.7 tok/s
+    prompt 11/25: 1196 tok, 42.7 tok/s
+    prompt 12/25: 312 tok, 42.8 tok/s
+    prompt 13/25: 233 tok, 42.7 tok/s
+    prompt 14/25: 422 tok, 42.6 tok/s
+    prompt 15/25: 239 tok, 42.7 tok/s
+    prompt 16/25: 173 tok, 42.8 tok/s
+    prompt 17/25: 3923 tok, 41.5 tok/s
+    prompt 18/25: 67 tok, 42.8 tok/s
+    prompt 19/25: 72 tok, 42.8 tok/s
+    prompt 20/25: 1196 tok, 42.7 tok/s
+    prompt 21/25: 424 tok, 42.6 tok/s
+    prompt 22/25: 32768 tok, 37.6 tok/s
+    prompt 23/25: 108 tok, 42.8 tok/s
+    prompt 24/25: 149 tok, 42.7 tok/s
+    prompt 25/25: 736 tok, 42.1 tok/s
+saved E:\AI\measured-inference\scripts\bench\results\Qwen3_8-27B-UD-IQ4_XS_20260824_154740.json
+wrote E:\AI\measured-inference\scripts\bench\results\Qwen3_8-27B-UD-IQ4_XS_20260824_154740.png
+wall_s=1236.2  (0.34 h)
+copied Qwen3_8-27B-UD-IQ4_XS_20260824_154740.json
+copied Qwen3_8-27B-UD-IQ4_XS_20260824_154740.png
+copied Qwen3_8-27B-UD-IQ4_XS_20260824_154740_transcripts.json
+ARM xhigh-alpaca-cap32k DONE

@@ -1,0 +1,49 @@
+{
+ "date": "2026-08-26 10:44",
+ "model": "Qwen3.8-27B-UD-IQ4_XS.gguf",
+ "rows": [
+  {
+   "mode": "none",
+   "loaded": true,
+   "load_seconds": 10.6,
+   "working_set_mib_after_load": 1038,
+   "private_bytes_mib_after_load": 16206,
+   "working_set_mib_after_probe": 1275,
+   "private_bytes_mib_after_probe": 16471,
+   "sys_free_before_mib": 21525,
+   "sys_free_after_mib": 20497,
+   "sys_ram_consumed_mib": 1028,
+   "vram_mib": 16169.0,
+   "tps": 43.02
+  },
+  {
+   "mode": "mmap",
+   "loaded": true,
+   "load_seconds": 6.5,
+   "working_set_mib_after_load": 13242,
+   "private_bytes_mib_after_load": 15708,
+   "working_set_mib_after_probe": 13480,
+   "private_bytes_mib_after_probe": 15973,
+   "sys_free_before_mib": 21820,
+   "sys_free_after_mib": 8590,
+   "sys_ram_consumed_mib": 13230,
+   "vram_mib": 16169.0,
+   "tps": 43.39
+  },
+  {
+   "mode": "auto",
+   "loaded": true,
+   "load_seconds": 6.5,
+   "working_set_mib_after_load": 13242,
+   "private_bytes_mib_after_load": 15710,
+   "working_set_mib_after_probe": 13480,
+   "private_bytes_mib_after_probe": 15975,
+   "sys_free_before_mib": 22140,
+   "sys_free_after_mib": 8600,
+   "sys_ram_consumed_mib": 13540,
+   "vram_mib": 16169.0,
+   "tps": 43.26
+  }
+ ],
+ "inherited_claim_mib": 15360
+}

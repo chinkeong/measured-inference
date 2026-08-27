@@ -1,0 +1,66 @@
+{
+ "date": "2026-08-25 14:32",
+ "ctx": 122880,
+ "target_fill": 110592,
+ "board_mib": 24576,
+ "desktop_reserve_mib": 1308,
+ "vision": true,
+ "arms": [
+  {
+   "arm": "A shipped  n4/p0.75",
+   "nmax": 4,
+   "ctx": 122880,
+   "vram_load": 21542,
+   "vram_depth": 21755,
+   "vram_peak": 21772,
+   "slack_depth": 2804,
+   "clears_reserve": true,
+   "filled_tokens": 112735,
+   "prefill_s": 149.0,
+   "mean_tps_at_depth": 53.33,
+   "acceptance": 0.894,
+   "probes": [
+    {
+     "decode_tps": 52.99,
+     "prompt_n": 4,
+     "prefill_s": 0.7,
+     "acceptance": 0.894
+    },
+    {
+     "decode_tps": 53.66,
+     "prompt_n": 4,
+     "prefill_s": 0.6,
+     "acceptance": 0.889
+    }
+   ]
+  },
+  {
+   "arm": "B wide     n10/p0.5",
+   "nmax": 10,
+   "ctx": 122880,
+   "vram_load": 22711,
+   "vram_depth": 22800,
+   "vram_peak": 22711,
+   "slack_depth": 1776,
+   "clears_reserve": true,
+   "filled_tokens": 112735,
+   "prefill_s": 152.9,
+   "mean_tps_at_depth": 62.47,
+   "acceptance": 0.629,
+   "probes": [
+    {
+     "decode_tps": 61.98,
+     "prompt_n": 4,
+     "prefill_s": 0.7,
+     "acceptance": 0.629
+    },
+    {
+     "decode_tps": 62.95,
+     "prompt_n": 4,
+     "prefill_s": 0.6,
+     "acceptance": 0.639
+    }
+   ]
+  }
+ ]
+}

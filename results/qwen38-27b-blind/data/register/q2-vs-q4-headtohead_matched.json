@@ -1,0 +1,173 @@
+{
+ "date": "2026-08-25 13:11",
+ "ctx": 32768,
+ "spec_n_max": 10,
+ "spec_p_min": 0.5,
+ "replicates": "results/qwen38-27b-blind/work/drafter-at-2bit.ps1",
+ "flags": "-ngl 99 -c 32768 -fa on --parallel 1 -ctk q8_0 -ctv q8_0 --jinja --reasoning off",
+ "prompt": "Write a single self-contained JavaScript module that implements a fixed-window\nrate limiter with a pluggable clock, a per-key limit, and an eviction sweep that\nruns at most once per window. Include JSDoc on every exported symbol and a short\nusage example at the end. Do not explain the code outside the module.",
+ "published": {
+  "UD-IQ4_XS|False": 42.34,
+  "UD-IQ4_XS|True": 86.91,
+  "UD-Q2_K_XL|False": 45.66,
+  "UD-Q2_K_XL|True": 77.01
+ },
+ "arms": [
+  {
+   "file": "UD-IQ4_XS",
+   "drafter": false,
+   "mean_tps": 42.91,
+   "spread_pct": 0.1,
+   "acceptance": null,
+   "draft_len": null,
+   "warmup_tps": 42.96,
+   "probes": [
+    {
+     "decode_tps": 42.91,
+     "predicted_n": 700,
+     "prompt_n": 4,
+     "draft_n": null,
+     "draft_accepted": null,
+     "acceptance": null,
+     "draft_len": null
+    },
+    {
+     "decode_tps": 42.93,
+     "predicted_n": 700,
+     "prompt_n": 4,
+     "draft_n": null,
+     "draft_accepted": null,
+     "acceptance": null,
+     "draft_len": null
+    },
+    {
+     "decode_tps": 42.89,
+     "predicted_n": 700,
+     "prompt_n": 4,
+     "draft_n": null,
+     "draft_accepted": null,
+     "acceptance": null,
+     "draft_len": null
+    }
+   ],
+   "gib": 13.274
+  },
+  {
+   "file": "UD-IQ4_XS",
+   "drafter": true,
+   "mean_tps": 86.58,
+   "spread_pct": 1.5,
+   "acceptance": 0.611,
+   "draft_len": 7.22,
+   "warmup_tps": 87.65,
+   "probes": [
+    {
+     "decode_tps": 87.12,
+     "predicted_n": 700,
+     "prompt_n": 4,
+     "draft_n": 935,
+     "draft_accepted": 573,
+     "acceptance": 0.613,
+     "draft_len": 7.36
+    },
+    {
+     "decode_tps": 85.79,
+     "predicted_n": 700,
+     "prompt_n": 4,
+     "draft_n": 945,
+     "draft_accepted": 570,
+     "acceptance": 0.603,
+     "draft_len": 7.27
+    },
+    {
+     "decode_tps": 86.83,
+     "predicted_n": 700,
+     "prompt_n": 4,
+     "draft_n": 920,
+     "draft_accepted": 569,
+     "acceptance": 0.618,
+     "draft_len": 7.02
+    }
+   ],
+   "gib": 13.274
+  },
+  {
+   "file": "UD-Q2_K_XL",
+   "drafter": false,
+   "mean_tps": 45.58,
+   "spread_pct": 0.4,
+   "acceptance": null,
+   "draft_len": null,
+   "warmup_tps": 45.74,
+   "probes": [
+    {
+     "decode_tps": 45.45,
+     "predicted_n": 700,
+     "prompt_n": 4,
+     "draft_n": null,
+     "draft_accepted": null,
+     "acceptance": null,
+     "draft_len": null
+    },
+    {
+     "decode_tps": 45.64,
+     "predicted_n": 700,
+     "prompt_n": 4,
+     "draft_n": null,
+     "draft_accepted": null,
+     "acceptance": null,
+     "draft_len": null
+    },
+    {
+     "decode_tps": 45.65,
+     "predicted_n": 700,
+     "prompt_n": 4,
+     "draft_n": null,
+     "draft_accepted": null,
+     "acceptance": null,
+     "draft_len": null
+    }
+   ],
+   "gib": 9.154
+  },
+  {
+   "file": "UD-Q2_K_XL",
+   "drafter": true,
+   "mean_tps": 76.97,
+   "spread_pct": 7.0,
+   "acceptance": 0.551,
+   "draft_len": 6.83,
+   "warmup_tps": 80.1,
+   "probes": [
+    {
+     "decode_tps": 80.19,
+     "predicted_n": 682,
+     "prompt_n": 4,
+     "draft_n": 1004,
+     "draft_accepted": 547,
+     "acceptance": 0.545,
+     "draft_len": 7.44
+    },
+    {
+     "decode_tps": 74.78,
+     "predicted_n": 700,
+     "prompt_n": 4,
+     "draft_n": 974,
+     "draft_accepted": 543,
+     "acceptance": 0.557,
+     "draft_len": 6.2
+    },
+    {
+     "decode_tps": 75.95,
+     "predicted_n": 700,
+     "prompt_n": 4,
+     "draft_n": 1005,
+     "draft_accepted": 553,
+     "acceptance": 0.55,
+     "draft_len": 6.84
+    }
+   ],
+   "gib": 9.154
+  }
+ ]
+}

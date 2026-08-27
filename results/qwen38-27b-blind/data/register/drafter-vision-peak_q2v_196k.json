@@ -1,0 +1,17 @@
+{
+ "date": "2026-08-25 15:29",
+ "ctx": 196608,
+ "board": 24576,
+ "model": "Qwen3.8-27B-UD-Q2_K_XL.gguf",
+ "spec": "n4p075",
+ "reserve": 1308,
+ "vram_load": 21407,
+ "vram_peak": 22014,
+ "slack_at_peak": 2562,
+ "clears": true,
+ "prompt_n": 163124,
+ "decode_tps": 12.869350355194072,
+ "answer": "207",
+ "truth": "207",
+ "samples": 508
+}

@@ -1,0 +1,17 @@
+﻿CONFIG m2d ctx=131072 spec=n4/p0.75 mmproj=off thinking=off board=20803 ded=19872 shr=382
+  PREFILLPROBE notes=20 depth_tok=1458 prefill_tps=949.6 prefill_s=1.54 decode_tps=86.23 accept=0.8925 gpu_after=73/1665/342.97/90
+  PROBE notes=20 k=1 decode_tps=86.75 accept=0.8925 gpu_before=54/210/26.62/2
+  PROBE notes=20 k=2 decode_tps=86.26 accept=0.8899 gpu_before=71/1680/340.83/92
+  PROBE notes=20 k=3 decode_tps=86.30 accept=0.8925 gpu_before=73/1635/343.64/95
+RESULT notes=20 depth_tok=1458 prefill_tps=949.6 median_tps=86.3 mean_tps=86.44 min_tps=86.26 max_tps=86.75 postprefill_tps=86.23
+  PREFILLPROBE notes=400 depth_tok=28388 prefill_tps=1115.5 prefill_s=25.45 decode_tps=79.79 accept=0.9266 gpu_after=81/1590/346.27/95
+  PROBE notes=400 k=1 decode_tps=80.65 accept=0.9266 gpu_before=58/210/28.48/3
+  PROBE notes=400 k=2 decode_tps=80.20 accept=0.9266 gpu_before=74/1695/343.21/96
+  PROBE notes=400 k=3 decode_tps=80.11 accept=0.9266 gpu_before=76/1725/343.61/89
+RESULT notes=400 depth_tok=28388 prefill_tps=1115.5 median_tps=80.2 mean_tps=80.32 min_tps=80.11 max_tps=80.65 postprefill_tps=79.79
+  PREFILLPROBE notes=1275 depth_tok=90854 prefill_tps=828.0 prefill_s=109.72 decode_tps=59.61 accept=0.9061 gpu_after=83/1395/299.51/95
+  PROBE notes=1275 k=1 decode_tps=64.82 accept=0.9242 gpu_before=60/210/29.38/2
+  PROBE notes=1275 k=2 decode_tps=64.76 accept=0.9242 gpu_before=76/1680/345.62/92
+  PROBE notes=1275 k=3 decode_tps=63.99 accept=0.9242 gpu_before=78/1650/346.84/93
+RESULT notes=1275 depth_tok=90854 prefill_tps=828.0 median_tps=64.76 mean_tps=64.52 min_tps=63.99 max_tps=64.82 postprefill_tps=59.61
+VRAM_AT_END board=20829 ded=19898 shr=426

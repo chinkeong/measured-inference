@@ -1,0 +1,18 @@
+{
+ "date": "2026-08-27 11:05",
+ "anchor": "UD-IQ4_XS",
+ "anchor_caveat": "agreement with the UD-IQ4_XS ANCHOR, not with FP16 - not comparable to anyone else's KLD table",
+ "blocks": 4,
+ "chunks_per_block": 50,
+ "flags": [
+  "-ngl",
+  "99",
+  "-c",
+  "512",
+  "-fa",
+  "on",
+  "--load-mode",
+  "mmap"
+ ],
+ "rows": []
+}

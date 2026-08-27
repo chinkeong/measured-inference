@@ -1,0 +1,31 @@
+{
+ "a": "iq4xs-agentic",
+ "b": "q2kxl-agentic",
+ "paired_n": 225,
+ "a_pass": 42.66666666666667,
+ "b_pass": 42.66666666666667,
+ "mcnemar_p": 1.0,
+ "a_only": 30,
+ "b_only": 30,
+ "token_ratio_median": 1.2024896265560165,
+ "cost": [
+  {
+   "arm": "iq4xs-agentic",
+   "n_energy_paired": 134,
+   "kj_total": 2488.2386416998525,
+   "s_total": 7416.313216686249,
+   "tokens_total": 359841,
+   "j_per_solved": 13357.914606330949,
+   "n_both_solved": 36
+  },
+  {
+   "arm": "q2kxl-agentic",
+   "n_energy_paired": 134,
+   "kj_total": 3480.332433867739,
+   "s_total": 10202.953741550446,
+   "tokens_total": 520398,
+   "j_per_solved": 17618.449171738073,
+   "n_both_solved": 36
+  }
+ ]
+}

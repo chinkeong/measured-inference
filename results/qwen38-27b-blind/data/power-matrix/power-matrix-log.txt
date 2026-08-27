@@ -1,0 +1,56 @@
+
+# ===== RUN 20260823-132140 pid=26632 =====
+# tier=in-band GPU board power (NVML); PSU/wall/PUE excluded and unmeasured
+# power_csv=E:\AI\measured-inference\results\qwen38-27b-blind\data\power\power-matrix-20260823-132140.csv idle_w=31 n_predict=700 repeat=3
+# protocol=1 discarded probe + 20 s cooldown (30 s deep) + 3 timed probes, --drop-first, cache_prompt=off
+# server=E:\AI\llama.cpp\llama-server.exe port=1235 load-mode=mmap ngl=99
+# elevated=False pl_ok=False pl_default_w=350
+# estimated wall for this run: 54.6 min
+RESULT A1-idle-noserver mode=window-idle n=1 mean_W=29.9 peak_W=32.1 J_dec_tok=n/a J_dec_tok_net=n/a J_prompt_tok=n/a tok_kWh=n/a tok_kWh_net=n/a EDP_Js=n/a dec_tps=n/a Wh_ans=0.4992 Wh_ans_net=-0.0175 J_gross=1797.2 pre_s=0 dec_s=0 prompt_n=0 pred_n=0 cov_pct=100 vram_board=1669 vram_shr=0 t0=2026-08-23T13:21:57.882 t1=2026-08-23T13:22:57.891 cfg="no server; NVML board idle"
+  LOAD A2-idle-loaded load_s=8.1 vram_board=16151 vram_ded=14480 vram_shr=132
+RESULT A2-idle-loaded mode=window-idle n=1 mean_W=34.1 peak_W=122.1 J_dec_tok=n/a J_dec_tok_net=n/a J_prompt_tok=n/a tok_kWh=n/a tok_kWh_net=n/a EDP_Js=n/a dec_tps=n/a Wh_ans=0.5679 Wh_ans_net=0.0512 J_gross=2044.6 pre_s=0 dec_s=0 prompt_n=0 pred_n=0 cov_pct=100 vram_board=16151 vram_shr=132 t0=2026-08-23T13:23:36.622 t1=2026-08-23T13:24:36.624 cfg="IQ4_XS c32768 spec=none kv=q8_0 par=1 think=off; idle 60 s"
+  LOAD B1-spec-none load_s=6 vram_board=16151 vram_ded=14480 vram_shr=132 gpu=62/390/133.74/0
+  WARN B1-spec-none SPILL shared=132 MiB - this arm is partly in system RAM
+RESULT B1-spec-none mode=phase-split n=3 mean_W=325.2 peak_W=347.8 J_dec_tok=8.104 J_dec_tok_net=7.375 J_prompt_tok=0.0993 tok_kWh=444218 tok_kWh_net=488125 EDP_Js=93380 dec_tps=42.53 Wh_ans=1.616 Wh_ans_net=1.462 J_gross=17453.1 pre_s=4.29 dec_s=49.38 prompt_n=4374 pred_n=2100 cov_pct=100 vram_board=16165 vram_shr=132 cfg="IQ4_XS c32768 spec=none kv=q8_0 par=1 think=off prompt=1.5k"
+  LOAD B2-spec-mtp-n4-p075 load_s=8.1 vram_board=17349 vram_ded=15678 vram_shr=190 gpu=60/255/83.23/4
+  WARN B2-spec-mtp-n4-p075 SPILL shared=190 MiB - this arm is partly in system RAM
+RESULT B2-spec-mtp-n4-p075 mode=phase-split n=3 mean_W=308.4 peak_W=347.1 J_dec_tok=3.743 J_dec_tok_net=3.403 J_prompt_tok=0.1441 tok_kWh=961846 tok_kWh_net=1057816 EDP_Js=20091 dec_tps=91.29 Wh_ans=0.7861 Wh_ans_net=0.7071 J_gross=8490 pre_s=4.53 dec_s=23 prompt_n=4374 pred_n=2100 cov_pct=100 vram_board=17376 vram_shr=234 cfg="IQ4_XS c32768 spec=n4/p0.75 kv=q8_0 par=1 think=off prompt=1.5k"
+  LOAD B3-spec-mtp-n10-p05 load_s=8 vram_board=18248 vram_ded=16576 vram_shr=190 gpu=59/270/83.69/9
+  WARN B3-spec-mtp-n10-p05 SPILL shared=190 MiB - this arm is partly in system RAM
+RESULT B3-spec-mtp-n10-p05 mode=phase-split n=3 mean_W=302.4 peak_W=348.9 J_dec_tok=3.21 J_dec_tok_net=2.918 J_prompt_tok=0.146 tok_kWh=1121380 tok_kWh_net=1233512 EDP_Js=14811 dec_tps=106.22 Wh_ans=0.6834 Wh_ans_net=0.6133 J_gross=7380.3 pre_s=4.64 dec_s=19.77 prompt_n=4374 pred_n=2100 cov_pct=100 vram_board=18278 vram_shr=240 cfg="IQ4_XS c32768 spec=n10/p0.5 kv=q8_0 par=1 think=off prompt=1.5k"
+  LOAD C1-quant-iq4xs load_s=6 vram_board=16152 vram_ded=14480 vram_shr=132 gpu=59/405/132.57/1
+  WARN C1-quant-iq4xs SPILL shared=132 MiB - this arm is partly in system RAM
+RESULT C1-quant-iq4xs mode=phase-split n=3 mean_W=327 peak_W=348.4 J_dec_tok=8.198 J_dec_tok_net=7.461 J_prompt_tok=0.112 tok_kWh=439154 tok_kWh_net=482531 EDP_Js=95495 dec_tps=42.07 Wh_ans=1.6393 Wh_ans_net=1.4839 J_gross=17704.8 pre_s=4.22 dec_s=49.92 prompt_n=4374 pred_n=2100 cov_pct=100 vram_board=16217 vram_shr=132 cfg="IQ4_XS c32768 spec=none kv=q8_0 par=1 think=off prompt=1.5k"
+  LOAD C2-quant-q4km load_s=13.2 vram_board=18567 vram_ded=16842 vram_shr=132 gpu=61/450/117.82/5
+  WARN C2-quant-q4km SPILL shared=132 MiB - this arm is partly in system RAM
+RESULT C2-quant-q4km mode=phase-split n=3 mean_W=326.9 peak_W=348.9 J_dec_tok=8.853 J_dec_tok_net=8.059 J_prompt_tok=0.1022 tok_kWh=406644 tok_kWh_net=446691 EDP_Js=111069 dec_tps=39.06 Wh_ans=1.7628 Wh_ans_net=1.5956 J_gross=19038.2 pre_s=4.48 dec_s=53.77 prompt_n=4374 pred_n=2100 cov_pct=100 vram_board=18573 vram_shr=132 cfg="Q4_K_M c32768 spec=none kv=q8_0 par=1 think=off prompt=1.5k"
+  LOAD C3-quant-nvfp4-high load_s=14.1 vram_board=19013 vram_ded=17292 vram_shr=132 gpu=58/285/39.85/7
+  WARN C3-quant-nvfp4-high SPILL shared=132 MiB - this arm is partly in system RAM
+RESULT C3-quant-nvfp4-high mode=phase-split n=3 mean_W=332 peak_W=348.6 J_dec_tok=9.293 J_dec_tok_net=8.461 J_prompt_tok=0.2144 tok_kWh=387392 tok_kWh_net=425462 EDP_Js=122145 dec_tps=37.28 Wh_ans=1.8938 Wh_ans_net=1.7169 J_gross=20452.8 pre_s=5.28 dec_s=56.33 prompt_n=4374 pred_n=2100 cov_pct=100 vram_board=19044 vram_shr=132 cfg="NVFP4-HIGH c32768 spec=none kv=q8_0 par=1 think=off prompt=1.5k"
+  LOAD D1-kv-f16 load_s=16.1 vram_board=17086 vram_ded=15354 vram_shr=132 gpu=58/285/70.88/3
+  WARN D1-kv-f16 SPILL shared=132 MiB - this arm is partly in system RAM
+RESULT D1-kv-f16 mode=phase-split n=3 mean_W=328.2 peak_W=348.2 J_dec_tok=8.284 J_dec_tok_net=7.54 J_prompt_tok=0.1397 tok_kWh=434594 tok_kWh_net=477471 EDP_Js=97401 dec_tps=41.67 Wh_ans=1.6673 Wh_ans_net=1.5098 J_gross=18006.6 pre_s=4.47 dec_s=50.39 prompt_n=4374 pred_n=2100 cov_pct=100 vram_board=17078 vram_shr=132 cfg="IQ4_XS c32768 spec=none kv=f16 par=1 think=off prompt=1.5k"
+  LOAD D2-kv-q8 load_s=10 vram_board=16176 vram_ded=14480 vram_shr=132 gpu=62/1725/125.72/1
+  WARN D2-kv-q8 SPILL shared=132 MiB - this arm is partly in system RAM
+RESULT D2-kv-q8 mode=phase-split n=3 mean_W=331 peak_W=348 J_dec_tok=8.341 J_dec_tok_net=7.592 J_prompt_tok=0.1556 tok_kWh=431599 tok_kWh_net=474156 EDP_Js=98703 dec_tps=41.41 Wh_ans=1.6849 Wh_ans_net=1.5271 J_gross=18196.8 pre_s=4.25 dec_s=50.71 prompt_n=4374 pred_n=2100 cov_pct=100 vram_board=16165 vram_shr=132 cfg="IQ4_XS c32768 spec=none kv=q8_0 par=1 think=off prompt=1.5k"
+  LOAD E1-think-on load_s=12.1 vram_board=17325 vram_ded=15678 vram_shr=190 gpu=60/255/83.41/4
+  WARN E1-think-on SPILL shared=190 MiB - this arm is partly in system RAM
+RESULT E1-think-on mode=phase-split n=3 mean_W=321.2 peak_W=346.6 J_dec_tok=6.066 J_dec_tok_net=5.512 J_prompt_tok=0.2052 tok_kWh=593511 tok_kWh_net=653066 EDP_Js=53040 dec_tps=56.04 Wh_ans=1.2648 Wh_ans_net=1.1428 J_gross=13660 pre_s=5.05 dec_s=37.47 prompt_n=4494 pred_n=2100 cov_pct=100 vram_board=17362 vram_shr=234 cfg="IQ4_XS c32768 spec=n4/p0.75 kv=q8_0 par=1 think=ON prompt=1.5k"
+  LOAD E2-think-off load_s=8 vram_board=17336 vram_ded=15678 vram_shr=190 gpu=60/210/79.08/3
+  WARN E2-think-off SPILL shared=190 MiB - this arm is partly in system RAM
+RESULT E2-think-off mode=phase-split n=3 mean_W=307.2 peak_W=346.2 J_dec_tok=3.744 J_dec_tok_net=3.404 J_prompt_tok=0.1411 tok_kWh=961565 tok_kWh_net=1057622 EDP_Js=20123 dec_tps=91.17 Wh_ans=0.7851 Wh_ans_net=0.7059 J_gross=8479.5 pre_s=4.57 dec_s=23.03 prompt_n=4374 pred_n=2100 cov_pct=100 vram_board=17105 vram_shr=234 cfg="IQ4_XS c32768 spec=n4/p0.75 kv=q8_0 par=1 think=off prompt=1.5k"
+  LOAD F1-depth-1k5 load_s=12.1 vram_board=21300 vram_ded=19872 vram_shr=382 gpu=59/345/83.99/3
+  WARN F1-depth-1k5 SPILL shared=382 MiB - this arm is partly in system RAM
+RESULT F1-depth-1k5 mode=phase-split n=3 mean_W=305.9 peak_W=346.1 J_dec_tok=3.919 J_dec_tok_net=3.557 J_prompt_tok=0.1637 tok_kWh=918509 tok_kWh_net=1012224 EDP_Js=22595 dec_tps=85.43 Wh_ans=0.8284 Wh_ans_net=0.7444 J_gross=8946.6 pre_s=4.66 dec_s=24.58 prompt_n=4374 pred_n=2100 cov_pct=100 vram_board=21332 vram_shr=426 cfg="IQ4_XS c131072 spec=n4/p0.75 kv=q8_0 par=1 think=off prompt=~1.5k"
+  LOAD F2-depth-28k load_s=8 vram_board=21323 vram_ded=19872 vram_shr=382 gpu=59/255/82.94/15
+  WARN F2-depth-28k SPILL shared=382 MiB - this arm is partly in system RAM
+RESULT F2-depth-28k mode=phase-split n=3 mean_W=332.7 peak_W=348.7 J_dec_tok=4.453 J_dec_tok_net=4.045 J_prompt_tok=0.3058 tok_kWh=808466 tok_kWh_net=890058 EDP_Js=28798 dec_tps=75.94 Wh_ans=3.2774 Wh_ans_net=2.972 J_gross=35395.8 pre_s=78.75 dec_s=27.65 prompt_n=85164 pred_n=2100 cov_pct=100 vram_board=21434 vram_shr=426 cfg="IQ4_XS c131072 spec=n4/p0.75 kv=q8_0 par=1 think=off prompt=~28k"
+  LOAD F3-depth-91k load_s=8 vram_board=21455 vram_ded=19872 vram_shr=382 gpu=62/255/84.20/4
+  WARN F3-depth-91k SPILL shared=382 MiB - this arm is partly in system RAM
+RESULT F3-depth-91k mode=phase-split n=3 mean_W=338.9 peak_W=349.9 J_dec_tok=5.598 J_dec_tok_net=5.064 J_prompt_tok=0.4209 tok_kWh=643042 tok_kWh_net=710849 EDP_Js=47370 dec_tps=58.05 Wh_ans=11.7105 Wh_ans_net=10.6393 J_gross=126472.9 pre_s=337.02 dec_s=36.18 prompt_n=272562 pred_n=2100 cov_pct=100 vram_board=21466 vram_shr=426 cfg="IQ4_XS c131072 spec=n4/p0.75 kv=q8_0 par=1 think=off prompt=~91k"
+  LOAD G1-parallel-1 load_s=6 vram_board=16050 vram_shr=132
+RESULT G1-parallel-1 mode=window-coarse n=1 mean_W=336.2 peak_W=348.5 J_dec_tok=8.585 J_dec_tok_net=7.794 J_prompt_tok=n/a tok_kWh=419317 tok_kWh_net=461913 EDP_Js=429759 dec_tps=39.16 Wh_ans=3.3388 Wh_ans_net=3.0309 J_gross=12019.6 pre_s=0 dec_s=35.75 prompt_n=2916 pred_n=1400 cov_pct=100 vram_board=16064 vram_shr=132 requests=2 start_skew_ms=17982 t0=2026-08-23T14:01:58.793 t1=2026-08-23T14:02:34.548 NOTE=coarse-window-includes-prefill cfg="IQ4_XS c32768 spec=none kv=q8_0 par=1 think=off prompt=1.5k; 2 seq requests, coarse window"
+  LOAD G2-parallel-2 load_s=6 vram_board=16184 vram_shr=116
+RESULT G2-parallel-2 mode=window-coarse n=1 mean_W=325.7 peak_W=347.3 J_dec_tok=5.189 J_dec_tok_net=4.696 J_prompt_tok=n/a tok_kWh=693720 tok_kWh_net=766682 EDP_Js=162035 dec_tps=62.77 Wh_ans=2.0181 Wh_ans_net=1.8261 J_gross=7265.2 pre_s=0 dec_s=22.3 prompt_n=2916 pred_n=1400 cov_pct=100 vram_board=16200 vram_shr=116 requests=2 start_skew_ms=0 t0=2026-08-23T14:04:05.099 t1=2026-08-23T14:04:27.402 NOTE=coarse-window-includes-prefill cfg="IQ4_XS c32768 spec=none kv=q8_0 par=2 think=off prompt=1.5k; 2 concurrent requests, coarse window"
+SKIPPED H1-plimit-250 reason=needs-admin note="GPU power cap is the one knob unmeasured on this machine; stock default limit 350 W" cmd="nvidia-smi -pl 250" restore="nvidia-smi -pl 350" probe_msg="shell is not elevated" cfg="B-winner config, board power cap 250 W"
+SKIPPED H2-plimit-300 reason=needs-admin note="GPU power cap is the one knob unmeasured on this machine; stock default limit 350 W" cmd="nvidia-smi -pl 300" restore="nvidia-smi -pl 350" probe_msg="shell is not elevated" cfg="B-winner config, board power cap 300 W"

@@ -1,0 +1,28 @@
+{
+ "date": "2026-08-26 02:05",
+ "published_total_mib": 11396,
+ "baseline_mib": 1665.0,
+ "rows": [
+  {
+   "variant": "published flags",
+   "loaded": true,
+   "peak_mib": 12162.0,
+   "baseline_mib": 1665.0,
+   "alloc_mib": 10497
+  },
+  {
+   "variant": "without --load-mode none",
+   "loaded": true,
+   "peak_mib": 12162.0,
+   "baseline_mib": 1665.0,
+   "alloc_mib": 10497
+  },
+  {
+   "variant": "f16 KV instead of q8_0",
+   "loaded": true,
+   "peak_mib": 13036.0,
+   "baseline_mib": 1665.0,
+   "alloc_mib": 11371
+  }
+ ]
+}

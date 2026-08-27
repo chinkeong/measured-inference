@@ -1,0 +1,11 @@
+﻿  PREFILLPROBE thinkON-n10-p0.5 depth_tok=90894 prefill_s=110.20 decode_tps=41.75 accept=0.6108
+  PROBE thinkON-n10-p0.5 k=1 decode_tps=38.67 accept=0.5335 predicted_n=300 think_chars=1360
+  PROBE thinkON-n10-p0.5 k=2 decode_tps=39.31 accept=0.6156 predicted_n=300 think_chars=1364
+  PROBE thinkON-n10-p0.5 k=3 decode_tps=38.33 accept=0.5125 predicted_n=300 think_chars=1360
+SUMMARY thinkON-n10-p0.5 depth_tok=90894 n=3 median_tps=38.67 mean_tps=38.77 min_tps=38.33 max_tps=39.31
+  LOG thinkON-n10-p0.5| 3.00.224.357 I slot print_timing: id  0 | task 393 | draft acceptance = 0.51253 (  184 accepted /   359 generated), mean len =  3.22
+  PREFILLPROBE thinkON-nospec depth_tok=90894 prefill_s=105.27 decode_tps=19.67 accept=n/a
+  PROBE thinkON-nospec k=1 decode_tps=27.15 accept=n/a predicted_n=300 think_chars=1356
+  PROBE thinkON-nospec k=2 decode_tps=27.01 accept=n/a predicted_n=300 think_chars=1356
+  PROBE thinkON-nospec k=3 decode_tps=26.97 accept=n/a predicted_n=300 think_chars=1356
+SUMMARY thinkON-nospec depth_tok=90894 n=3 median_tps=27.01 mean_tps=27.04 min_tps=26.97 max_tps=27.15

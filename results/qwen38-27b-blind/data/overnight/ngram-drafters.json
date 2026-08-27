@@ -1,0 +1,197 @@
+{
+ "date": "2026-08-26 02:13",
+ "rows": [
+  {
+   "file": "UD-Q2_K_XL",
+   "drafter": "none",
+   "loaded": true,
+   "tps": 45.71,
+   "peak_mib": 12162.0,
+   "acceptance": null,
+   "host": "QUIET",
+   "probes": [
+    45.9,
+    45.75,
+    45.49
+   ]
+  },
+  {
+   "file": "UD-Q2_K_XL",
+   "drafter": "ngram-mod (card's own)",
+   "loaded": true,
+   "tps": 353.23,
+   "peak_mib": 12200.0,
+   "acceptance": 1.0,
+   "host": "QUIET",
+   "probes": [
+    344.5,
+    358.22,
+    356.98
+   ]
+  },
+  {
+   "file": "UD-Q2_K_XL",
+   "drafter": "ngram-simple",
+   "loaded": true,
+   "tps": 44.99,
+   "peak_mib": 12162.0,
+   "acceptance": 0.0,
+   "host": "QUIET",
+   "probes": [
+    44.99,
+    44.92,
+    45.05
+   ]
+  },
+  {
+   "file": "UD-Q2_K_XL",
+   "drafter": "ngram-cache",
+   "loaded": true,
+   "tps": 41.95,
+   "peak_mib": 12164.0,
+   "acceptance": 0.148,
+   "host": "QUIET",
+   "probes": [
+    41.94,
+    42.01,
+    41.91
+   ]
+  },
+  {
+   "file": "UD-Q2_K_XL",
+   "drafter": "draft-mtp",
+   "loaded": true,
+   "tps": 82.6,
+   "peak_mib": 13372.0,
+   "acceptance": 0.943,
+   "host": "QUIET",
+   "probes": [
+    82.68,
+    82.47,
+    82.64
+   ]
+  },
+  {
+   "file": "QAT-Q2_0",
+   "drafter": "none",
+   "loaded": true,
+   "tps": 62.92,
+   "peak_mib": 11102.0,
+   "acceptance": null,
+   "host": "QUIET",
+   "probes": [
+    62.99,
+    62.9,
+    62.88
+   ]
+  },
+  {
+   "file": "QAT-Q2_0",
+   "drafter": "ngram-mod (card's own)",
+   "loaded": true,
+   "tps": 249.61,
+   "peak_mib": 11138.0,
+   "acceptance": 0.935,
+   "host": "QUIET",
+   "probes": [
+    216.09,
+    266.26,
+    266.48
+   ]
+  },
+  {
+   "file": "QAT-Q2_0",
+   "drafter": "ngram-simple",
+   "loaded": true,
+   "tps": 61.62,
+   "peak_mib": 11102.0,
+   "acceptance": 0.042,
+   "host": "QUIET",
+   "probes": [
+    61.7,
+    61.54,
+    61.61
+   ]
+  },
+  {
+   "file": "QAT-Q2_0",
+   "drafter": "ngram-cache",
+   "loaded": true,
+   "tps": 62.23,
+   "peak_mib": 11102.0,
+   "acceptance": 0.062,
+   "host": "QUIET",
+   "probes": [
+    62.24,
+    62.22,
+    62.22
+   ]
+  },
+  {
+   "file": "QAT-Q2_0",
+   "drafter": "draft-mtp",
+   "loaded": false
+  },
+  {
+   "file": "UD-IQ2_S",
+   "drafter": "none",
+   "loaded": true,
+   "tps": 48.05,
+   "peak_mib": 11178.0,
+   "acceptance": null,
+   "host": "QUIET",
+   "probes": [
+    48.22,
+    48.03,
+    47.9
+   ]
+  },
+  {
+   "file": "UD-IQ2_S",
+   "drafter": "ngram-mod (card's own)",
+   "loaded": true,
+   "tps": 266.08,
+   "peak_mib": 11216.0,
+   "acceptance": 0.909,
+   "host": "QUIET",
+   "probes": [
+    259.96,
+    268.82,
+    269.47
+   ]
+  },
+  {
+   "file": "UD-IQ2_S",
+   "drafter": "ngram-simple",
+   "loaded": true,
+   "tps": 46.87,
+   "peak_mib": 11178.0,
+   "acceptance": 0.042,
+   "host": "QUIET",
+   "probes": [
+    46.97,
+    46.86,
+    46.78
+   ]
+  },
+  {
+   "file": "UD-IQ2_S",
+   "drafter": "ngram-cache",
+   "loaded": true,
+   "tps": 46.05,
+   "peak_mib": 11178.0,
+   "acceptance": 0.0,
+   "host": "QUIET",
+   "probes": [
+    46.15,
+    46.09,
+    45.92
+   ]
+  },
+  {
+   "file": "UD-IQ2_S",
+   "drafter": "draft-mtp",
+   "loaded": false
+  }
+ ]
+}

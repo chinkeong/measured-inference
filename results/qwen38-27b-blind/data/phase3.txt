@@ -1,0 +1,24 @@
+﻿RESULT spec-none decode_tps=42.61 prefill_tps=343.8 prompt_n=83 predicted_n=700 wall_s=16.66 draft_n= draft_acc_n= accept=n/a finish=length
+RESULT mtp-n3-p0 decode_tps=81.97 prefill_tps=136.0 prompt_n=83 predicted_n=700 wall_s=9.15 draft_n=580 draft_acc_n=505 accept=0.8707 finish=length
+  LOG mtp-n3-p0| 0.10.190.913 I common_speculative_init_result: creating MTP draft context against the target model 'C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF\Qwen3.8-27B-UD-IQ4_XS.gguf'
+  LOG mtp-n3-p0| 0.21.182.019 I slot print_timing: id  0 | task 0 | draft acceptance = 0.87069 (  505 accepted /   580 generated), mean len =  3.60
+RESULT mtp-n4-p0.75 decode_tps=80.99 prefill_tps=292.5 prompt_n=83 predicted_n=700 wall_s=8.92 draft_n=565 draft_acc_n=508 accept=0.8991 finish=length
+  LOG mtp-n4-p0.75| 0.06.321.486 I common_speculative_init_result: creating MTP draft context against the target model 'C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF\Qwen3.8-27B-UD-IQ4_XS.gguf'
+  LOG mtp-n4-p0.75| 0.16.933.700 I slot print_timing: id  0 | task 0 | draft acceptance = 0.89912 (  508 accepted /   565 generated), mean len =  4.08
+RESULT mtp-n6-p0.5 decode_tps=80.18 prefill_tps=284.0 prompt_n=83 predicted_n=700 wall_s=9.01 draft_n=794 draft_acc_n=548 accept=0.6902 finish=length
+  LOG mtp-n6-p0.5| 0.06.286.122 I common_speculative_init_result: creating MTP draft context against the target model 'C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF\Qwen3.8-27B-UD-IQ4_XS.gguf'
+  LOG mtp-n6-p0.5| 0.17.017.395 I slot print_timing: id  0 | task 0 | draft acceptance = 0.69018 (  548 accepted /   794 generated), mean len =  4.81
+RESULT mtp-n10-p0 decode_tps=87.31 prefill_tps=285.3 prompt_n=83 predicted_n=700 wall_s=8.31 draft_n=1229 draft_acc_n=575 accept=0.4679 finish=length
+  LOG mtp-n10-p0| 0.06.293.608 I common_speculative_init_result: creating MTP draft context against the target model 'C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF\Qwen3.8-27B-UD-IQ4_XS.gguf'
+  LOG mtp-n10-p0| 0.16.336.156 I slot print_timing: id  0 | task 0 | draft acceptance = 0.46786 (  575 accepted /  1229 generated), mean len =  5.64
+RESULT mtp-n10-p0.5 decode_tps=87.39 prefill_tps=284.4 prompt_n=83 predicted_n=700 wall_s=8.3 draft_n=969 draft_acc_n=574 accept=0.5924 finish=length
+  LOG mtp-n10-p0.5| 0.06.464.789 I common_speculative_init_result: creating MTP draft context against the target model 'C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF\Qwen3.8-27B-UD-IQ4_XS.gguf'
+  LOG mtp-n10-p0.5| 0.16.311.739 I slot print_timing: id  0 | task 0 | draft acceptance = 0.59236 (  574 accepted /   969 generated), mean len =  5.86
+RESULT mtp-n10-p0.75 decode_tps=80.32 prefill_tps=286.6 prompt_n=83 predicted_n=700 wall_s=9 draft_n=744 draft_acc_n=538 accept=0.7231 finish=length
+  LOG mtp-n10-p0.75| 0.06.235.529 I common_speculative_init_result: creating MTP draft context against the target model 'C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF\Qwen3.8-27B-UD-IQ4_XS.gguf'
+  LOG mtp-n10-p0.75| 0.16.996.057 I slot print_timing: id  0 | task 0 | draft acceptance = 0.72312 (  538 accepted /   744 generated), mean len =  5.30
+RESULT mtp-n16-p0.5 decode_tps=80.32 prefill_tps=280.6 prompt_n=83 predicted_n=700 wall_s=9 draft_n=1233 draft_acc_n=581 accept=0.4712 finish=length
+  LOG mtp-n16-p0.5| 0.06.371.185 I common_speculative_init_result: creating MTP draft context against the target model 'C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF\Qwen3.8-27B-UD-IQ4_XS.gguf'
+  LOG mtp-n16-p0.5| 0.17.022.569 I slot print_timing: id  0 | task 0 | draft acceptance = 0.47121 (  581 accepted /  1233 generated), mean len =  6.28
+RESULT accept-novel decode_tps=89.06 prefill_tps=261.4 prompt_n=83 predicted_n=700 wall_s=8.17 draft_n=969 draft_acc_n=574 accept=0.5924 finish=length
+RESULT accept-verbatim decode_tps=59.26 prefill_tps=620.4 prompt_n=213 predicted_n=700 wall_s=12.26 draft_n=854 draft_acc_n=467 accept=0.5468 finish=length

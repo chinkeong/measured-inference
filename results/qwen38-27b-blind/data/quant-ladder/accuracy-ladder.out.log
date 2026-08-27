@@ -1,0 +1,30 @@
+  gate: OPEN - VRAM 1449 MiB
+[08-24 17:49:11] === ARM qwen-iq4xs-anchor (qwen, cap 16384) ===
+ARM qwen-iq4xs-anchor | model=Qwen3.8-27B-UD-IQ4_XS | cap=16384 | mean=97.30 | GSM8K=100.0(n=25,trunc=0) HumanEval=100.0(n=25,trunc=0) MBPP=92.0(n=25,trunc=0) | truncations=0 | wall_s=1141.5 | suite=1cdf54f8eb9d3f8f | ts=2026-08-24T18:08:15
+  gate: OPEN - VRAM 1447 MiB
+[08-24 18:08:15] === ARM qwen-q3kxl (qwen, cap 16384) ===
+ARM qwen-q3kxl | model=Qwen3.8-27B-UD-Q3_K_XL | cap=16384 | mean=96.00 | GSM8K=96.0(n=25,trunc=0) HumanEval=100.0(n=25,trunc=0) MBPP=92.0(n=25,trunc=0) | truncations=0 | wall_s=1378.7 | suite=1cdf54f8eb9d3f8f | ts=2026-08-24T18:31:17
+  gate: OPEN - VRAM 1420 MiB
+[08-24 18:31:17] === ARM qwen-iq3xxs (qwen, cap 16384) ===
+ARM qwen-iq3xxs | model=Qwen3.8-27B-UD-IQ3_XXS | cap=16384 | mean=93.30 | GSM8K=96.0(n=25,trunc=0) HumanEval=100.0(n=25,trunc=0) MBPP=84.0(n=25,trunc=0) | truncations=0 | wall_s=1182.3 | suite=1cdf54f8eb9d3f8f | ts=2026-08-24T18:51:02
+  gate: OPEN - VRAM 1420 MiB
+[08-24 18:51:02] === ARM qwen-q2kxl (qwen, cap 16384) ===
+ARM qwen-q2kxl | model=Qwen3.8-27B-UD-Q2_K_XL | cap=16384 | mean=96.00 | GSM8K=100.0(n=25,trunc=0) HumanEval=100.0(n=25,trunc=0) MBPP=88.0(n=25,trunc=0) | truncations=0 | wall_s=1172.4 | suite=1cdf54f8eb9d3f8f | ts=2026-08-24T19:10:38
+  gate: OPEN - VRAM 1420 MiB
+[08-24 19:10:38] === ARM qwen-iq2s (qwen, cap 16384) ===
+ARM qwen-iq2s | model=Qwen3.8-27B-UD-IQ2_S | cap=16384 | mean=90.70 | GSM8K=96.0(n=25,trunc=0) HumanEval=96.0(n=25,trunc=1) MBPP=80.0(n=25,trunc=0) | truncations=1 | wall_s=2166.3 | suite=1cdf54f8eb9d3f8f | ts=2026-08-24T19:46:47
+RULE7 qwen-iq2s | 1 truncation(s) at cap 16384 - raising the cap to 32768 and rerunning THIS ARM ONLY (greedy determinism leaves the others byte-identical)
+  gate: OPEN - VRAM 1422 MiB
+[08-24 19:46:47] === ARM qwen-iq2s-cap32k (qwen, cap 32768) ===
+ARM qwen-iq2s-cap32k | model=Qwen3.8-27B-UD-IQ2_S | cap=32768 | mean=90.70 | GSM8K=96.0(n=25,trunc=0) HumanEval=96.0(n=25,trunc=1) MBPP=80.0(n=25,trunc=0) | truncations=1 | wall_s=2549.8 | suite=1cdf54f8eb9d3f8f | ts=2026-08-24T20:29:20
+  gate: OPEN - VRAM 1426 MiB
+[08-24 20:29:20] === ARM qwen-iq1m (qwen, cap 16384) ===
+ARM qwen-iq1m | model=Qwen3.8-27B-UD-IQ1_M | cap=16384 | mean=85.30 | GSM8K=96.0(n=25,trunc=0) HumanEval=88.0(n=25,trunc=0) MBPP=72.0(n=25,trunc=0) | truncations=0 | wall_s=1766.2 | suite=1cdf54f8eb9d3f8f | ts=2026-08-24T20:58:49
+  gate: OPEN - VRAM 1426 MiB
+[08-24 20:58:49] === ARM qwen-iq1s (qwen, cap 16384) ===
+ARM qwen-iq1s | model=Qwen3.8-27B-UD-IQ1_S | cap=16384 | mean=34.70 | GSM8K=36.0(n=25,trunc=1) HumanEval=32.0(n=25,trunc=9) MBPP=36.0(n=25,trunc=10) | truncations=20 | wall_s=8965.8 | suite=1cdf54f8eb9d3f8f | ts=2026-08-24T23:28:18
+RULE7 qwen-iq1s | 20 truncation(s) at cap 16384 - raising the cap to 32768 and rerunning THIS ARM ONLY (greedy determinism leaves the others byte-identical)
+  gate: OPEN - VRAM 1457 MiB
+[08-24 23:28:18] === ARM qwen-iq1s-cap32k (qwen, cap 32768) ===
+ARM qwen-iq1s-cap32k | FAILED - no result json (see arm-qwen-iq1s-cap32k.console.err) | wall_s=5812.7
+[08-25 01:05:13] DECISIVE DONE

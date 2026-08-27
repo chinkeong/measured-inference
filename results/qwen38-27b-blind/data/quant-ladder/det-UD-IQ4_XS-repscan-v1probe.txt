@@ -1,0 +1,29 @@
+==============================================================================
+det-UD-IQ4_XS-probeA.txt  [CLEAN]
+  bytes=2838 words=380 unique_word_ratio=0.4868
+  --- last 600 chars ---
+  v.get(target) === null && target !== source) {
+      return null;
+    }
+    const path = [];
+    let cur = target;
+    while (cur !== null) {
+      path.unshift(cur);
+      if (cur === source) break;
+      cur = prev.get(cur);
+    }
+    if (path[0] !== source) return null;
+    return path;
+  }
+  
+  // Worked example
+  const g = new Graph();
+  g.addEdge('A', 'B', 4);
+  g.addEdge('A', 'C', 1);
+  g.addEdge('C', 'B', 2);
+  g.addEdge('B', 'D', 5);
+  g.addEdge('C', 'D', 8);
+  
+  const result = dijkstra(g, 'A');
+  console.log('Distances from A:', Object.fromEntries(result.dist));
+  console.log('Path A->D:', reconstructPath(result.prev, 'A', 'D'));

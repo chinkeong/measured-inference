@@ -1,0 +1,471 @@
+{
+ "date": "2026-08-25 20:56",
+ "n": 45,
+ "npredict": 700,
+ "idle_baseline_s": 0.0312,
+ "stats": {
+  "n": 45,
+  "mean": 72.69,
+  "sd": 2.913,
+  "cv_pct": 4.01,
+  "min": 64.86,
+  "max": 74.64,
+  "range_pct": 13.5
+ },
+ "r_tps_vs_cpu_probe": -0.924,
+ "r_tps_vs_sm_mhz": -0.726,
+ "r_tps_vs_temp": -0.44,
+ "rows": [
+  {
+   "i": 1,
+   "cpu_probe_s": 0.0308,
+   "cpu_ratio": 0.99,
+   "decode_tps": 73.11,
+   "acceptance": 0.899,
+   "sm_mhz": 1738,
+   "temp": 73.7,
+   "watt": 336.5
+  },
+  {
+   "i": 2,
+   "cpu_probe_s": 0.0306,
+   "cpu_ratio": 0.98,
+   "decode_tps": 72.49,
+   "acceptance": 0.9,
+   "sm_mhz": 1734,
+   "temp": 76.2,
+   "watt": 336.8
+  },
+  {
+   "i": 3,
+   "cpu_probe_s": 0.0319,
+   "cpu_ratio": 1.02,
+   "decode_tps": 72.53,
+   "acceptance": 0.875,
+   "sm_mhz": 1722,
+   "temp": 78.1,
+   "watt": 339.9
+  },
+  {
+   "i": 4,
+   "cpu_probe_s": 0.031,
+   "cpu_ratio": 0.99,
+   "decode_tps": 70.77,
+   "acceptance": 0.878,
+   "sm_mhz": 1726,
+   "temp": 79.4,
+   "watt": 339.3
+  },
+  {
+   "i": 5,
+   "cpu_probe_s": 0.1079,
+   "cpu_ratio": 3.46,
+   "decode_tps": 65.27,
+   "acceptance": 0.878,
+   "sm_mhz": 1732,
+   "temp": 79.8,
+   "watt": 327.4
+  },
+  {
+   "i": 6,
+   "cpu_probe_s": 0.0701,
+   "cpu_ratio": 2.25,
+   "decode_tps": 64.86,
+   "acceptance": 0.878,
+   "sm_mhz": 1716,
+   "temp": 80.7,
+   "watt": 327.6
+  },
+  {
+   "i": 7,
+   "cpu_probe_s": 0.0772,
+   "cpu_ratio": 2.47,
+   "decode_tps": 65.26,
+   "acceptance": 0.878,
+   "sm_mhz": 1750,
+   "temp": 81.0,
+   "watt": 325.8
+  },
+  {
+   "i": 8,
+   "cpu_probe_s": 0.0664,
+   "cpu_ratio": 2.13,
+   "decode_tps": 65.97,
+   "acceptance": 0.878,
+   "sm_mhz": 1725,
+   "temp": 82.0,
+   "watt": 329.4
+  },
+  {
+   "i": 9,
+   "cpu_probe_s": 0.0736,
+   "cpu_ratio": 2.36,
+   "decode_tps": 65.86,
+   "acceptance": 0.878,
+   "sm_mhz": 1732,
+   "temp": 82.1,
+   "watt": 328.5
+  },
+  {
+   "i": 10,
+   "cpu_probe_s": 0.08,
+   "cpu_ratio": 2.56,
+   "decode_tps": 66.27,
+   "acceptance": 0.878,
+   "sm_mhz": 1762,
+   "temp": 82.0,
+   "watt": 325.3
+  },
+  {
+   "i": 11,
+   "cpu_probe_s": 0.0317,
+   "cpu_ratio": 1.02,
+   "decode_tps": 73.49,
+   "acceptance": 0.878,
+   "sm_mhz": 1682,
+   "temp": 82.9,
+   "watt": 341.6
+  },
+  {
+   "i": 12,
+   "cpu_probe_s": 0.0306,
+   "cpu_ratio": 0.98,
+   "decode_tps": 73.53,
+   "acceptance": 0.878,
+   "sm_mhz": 1679,
+   "temp": 82.5,
+   "watt": 340.9
+  },
+  {
+   "i": 13,
+   "cpu_probe_s": 0.031,
+   "cpu_ratio": 0.99,
+   "decode_tps": 73.32,
+   "acceptance": 0.878,
+   "sm_mhz": 1687,
+   "temp": 81.5,
+   "watt": 340.9
+  },
+  {
+   "i": 14,
+   "cpu_probe_s": 0.0311,
+   "cpu_ratio": 1.0,
+   "decode_tps": 73.85,
+   "acceptance": 0.878,
+   "sm_mhz": 1678,
+   "temp": 80.6,
+   "watt": 343.4
+  },
+  {
+   "i": 15,
+   "cpu_probe_s": 0.0315,
+   "cpu_ratio": 1.01,
+   "decode_tps": 73.56,
+   "acceptance": 0.878,
+   "sm_mhz": 1707,
+   "temp": 79.8,
+   "watt": 342.3
+  },
+  {
+   "i": 16,
+   "cpu_probe_s": 0.0309,
+   "cpu_ratio": 0.99,
+   "decode_tps": 74.18,
+   "acceptance": 0.878,
+   "sm_mhz": 1686,
+   "temp": 79.6,
+   "watt": 343.8
+  },
+  {
+   "i": 17,
+   "cpu_probe_s": 0.0308,
+   "cpu_ratio": 0.99,
+   "decode_tps": 74.18,
+   "acceptance": 0.878,
+   "sm_mhz": 1688,
+   "temp": 79.2,
+   "watt": 340.6
+  },
+  {
+   "i": 18,
+   "cpu_probe_s": 0.0315,
+   "cpu_ratio": 1.01,
+   "decode_tps": 74.36,
+   "acceptance": 0.878,
+   "sm_mhz": 1692,
+   "temp": 78.8,
+   "watt": 343.6
+  },
+  {
+   "i": 19,
+   "cpu_probe_s": 0.0305,
+   "cpu_ratio": 0.98,
+   "decode_tps": 73.82,
+   "acceptance": 0.878,
+   "sm_mhz": 1692,
+   "temp": 78.8,
+   "watt": 343.6
+  },
+  {
+   "i": 20,
+   "cpu_probe_s": 0.0407,
+   "cpu_ratio": 1.3,
+   "decode_tps": 74.52,
+   "acceptance": 0.878,
+   "sm_mhz": 1684,
+   "temp": 78.9,
+   "watt": 343.8
+  },
+  {
+   "i": 21,
+   "cpu_probe_s": 0.0306,
+   "cpu_ratio": 0.98,
+   "decode_tps": 73.72,
+   "acceptance": 0.878,
+   "sm_mhz": 1698,
+   "temp": 78.8,
+   "watt": 342.4
+  },
+  {
+   "i": 22,
+   "cpu_probe_s": 0.0314,
+   "cpu_ratio": 1.01,
+   "decode_tps": 74.18,
+   "acceptance": 0.878,
+   "sm_mhz": 1701,
+   "temp": 78.6,
+   "watt": 342.4
+  },
+  {
+   "i": 23,
+   "cpu_probe_s": 0.0312,
+   "cpu_ratio": 1.0,
+   "decode_tps": 74.4,
+   "acceptance": 0.878,
+   "sm_mhz": 1701,
+   "temp": 78.4,
+   "watt": 342.3
+  },
+  {
+   "i": 24,
+   "cpu_probe_s": 0.0309,
+   "cpu_ratio": 0.99,
+   "decode_tps": 74.51,
+   "acceptance": 0.878,
+   "sm_mhz": 1692,
+   "temp": 78.4,
+   "watt": 343.0
+  },
+  {
+   "i": 25,
+   "cpu_probe_s": 0.0311,
+   "cpu_ratio": 1.0,
+   "decode_tps": 74.42,
+   "acceptance": 0.878,
+   "sm_mhz": 1694,
+   "temp": 78.1,
+   "watt": 342.6
+  },
+  {
+   "i": 26,
+   "cpu_probe_s": 0.0301,
+   "cpu_ratio": 0.96,
+   "decode_tps": 74.47,
+   "acceptance": 0.878,
+   "sm_mhz": 1695,
+   "temp": 78.1,
+   "watt": 341.5
+  },
+  {
+   "i": 27,
+   "cpu_probe_s": 0.0307,
+   "cpu_ratio": 0.98,
+   "decode_tps": 74.09,
+   "acceptance": 0.878,
+   "sm_mhz": 1714,
+   "temp": 78.3,
+   "watt": 343.5
+  },
+  {
+   "i": 28,
+   "cpu_probe_s": 0.0322,
+   "cpu_ratio": 1.03,
+   "decode_tps": 72.49,
+   "acceptance": 0.878,
+   "sm_mhz": 1693,
+   "temp": 78.1,
+   "watt": 340.2
+  },
+  {
+   "i": 29,
+   "cpu_probe_s": 0.0305,
+   "cpu_ratio": 0.98,
+   "decode_tps": 74.47,
+   "acceptance": 0.878,
+   "sm_mhz": 1704,
+   "temp": 77.9,
+   "watt": 342.7
+  },
+  {
+   "i": 30,
+   "cpu_probe_s": 0.0305,
+   "cpu_ratio": 0.98,
+   "decode_tps": 74.17,
+   "acceptance": 0.878,
+   "sm_mhz": 1699,
+   "temp": 78.1,
+   "watt": 340.7
+  },
+  {
+   "i": 31,
+   "cpu_probe_s": 0.0306,
+   "cpu_ratio": 0.98,
+   "decode_tps": 73.67,
+   "acceptance": 0.878,
+   "sm_mhz": 1694,
+   "temp": 78.1,
+   "watt": 341.3
+  },
+  {
+   "i": 32,
+   "cpu_probe_s": 0.0372,
+   "cpu_ratio": 1.19,
+   "decode_tps": 73.16,
+   "acceptance": 0.878,
+   "sm_mhz": 1708,
+   "temp": 78.3,
+   "watt": 338.8
+  },
+  {
+   "i": 33,
+   "cpu_probe_s": 0.031,
+   "cpu_ratio": 0.99,
+   "decode_tps": 74.64,
+   "acceptance": 0.878,
+   "sm_mhz": 1692,
+   "temp": 78.8,
+   "watt": 343.1
+  },
+  {
+   "i": 34,
+   "cpu_probe_s": 0.0307,
+   "cpu_ratio": 0.98,
+   "decode_tps": 74.41,
+   "acceptance": 0.878,
+   "sm_mhz": 1687,
+   "temp": 78.9,
+   "watt": 341.3
+  },
+  {
+   "i": 35,
+   "cpu_probe_s": 0.031,
+   "cpu_ratio": 0.99,
+   "decode_tps": 73.76,
+   "acceptance": 0.878,
+   "sm_mhz": 1717,
+   "temp": 79.1,
+   "watt": 342.0
+  },
+  {
+   "i": 36,
+   "cpu_probe_s": 0.0311,
+   "cpu_ratio": 1.0,
+   "decode_tps": 74.15,
+   "acceptance": 0.878,
+   "sm_mhz": 1697,
+   "temp": 79.4,
+   "watt": 342.8
+  },
+  {
+   "i": 37,
+   "cpu_probe_s": 0.0302,
+   "cpu_ratio": 0.97,
+   "decode_tps": 74.59,
+   "acceptance": 0.878,
+   "sm_mhz": 1683,
+   "temp": 79.6,
+   "watt": 342.6
+  },
+  {
+   "i": 38,
+   "cpu_probe_s": 0.0323,
+   "cpu_ratio": 1.04,
+   "decode_tps": 74.01,
+   "acceptance": 0.878,
+   "sm_mhz": 1690,
+   "temp": 79.7,
+   "watt": 340.6
+  },
+  {
+   "i": 39,
+   "cpu_probe_s": 0.031,
+   "cpu_ratio": 0.99,
+   "decode_tps": 73.41,
+   "acceptance": 0.878,
+   "sm_mhz": 1708,
+   "temp": 79.8,
+   "watt": 344.0
+  },
+  {
+   "i": 40,
+   "cpu_probe_s": 0.032,
+   "cpu_ratio": 1.03,
+   "decode_tps": 73.89,
+   "acceptance": 0.878,
+   "sm_mhz": 1705,
+   "temp": 79.5,
+   "watt": 341.3
+  },
+  {
+   "i": 41,
+   "cpu_probe_s": 0.032,
+   "cpu_ratio": 1.03,
+   "decode_tps": 74.34,
+   "acceptance": 0.878,
+   "sm_mhz": 1695,
+   "temp": 79.7,
+   "watt": 343.2
+  },
+  {
+   "i": 42,
+   "cpu_probe_s": 0.0312,
+   "cpu_ratio": 1.0,
+   "decode_tps": 74.36,
+   "acceptance": 0.878,
+   "sm_mhz": 1692,
+   "temp": 79.6,
+   "watt": 342.5
+  },
+  {
+   "i": 43,
+   "cpu_probe_s": 0.0313,
+   "cpu_ratio": 1.0,
+   "decode_tps": 73.74,
+   "acceptance": 0.878,
+   "sm_mhz": 1685,
+   "temp": 79.7,
+   "watt": 344.5
+  },
+  {
+   "i": 44,
+   "cpu_probe_s": 0.0317,
+   "cpu_ratio": 1.02,
+   "decode_tps": 73.42,
+   "acceptance": 0.878,
+   "sm_mhz": 1712,
+   "temp": 78.8,
+   "watt": 341.5
+  },
+  {
+   "i": 45,
+   "cpu_probe_s": 0.0312,
+   "cpu_ratio": 1.0,
+   "decode_tps": 73.3,
+   "acceptance": 0.878,
+   "sm_mhz": 1690,
+   "temp": 79.0,
+   "watt": 340.5
+  }
+ ],
+ "verdict": "confirmed: host contention tracks the excursion"
+}

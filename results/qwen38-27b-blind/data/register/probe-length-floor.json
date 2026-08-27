@@ -1,0 +1,1313 @@
+{
+ "date": "2026-08-25 20:26",
+ "config": "reference arm",
+ "ctx": 32768,
+ "lengths": {
+  "80": {
+   "stats": {
+    "n": 40,
+    "mean": 66.61,
+    "sd": 1.996,
+    "cv_pct": 3.0,
+    "min": 56.19,
+    "max": 67.97,
+    "range_pct": 17.7,
+    "mean_decode_seconds": 1.19,
+    "implied_wobble_seconds": 0.0356
+   },
+   "probes": [
+    {
+     "decode_tps": 67.973,
+     "predicted_n": 80,
+     "decode_seconds": 1.162,
+     "wall_seconds": 1.372,
+     "acceptance": 0.815,
+     "sm_mhz": 1785,
+     "temp": 76.0
+    },
+    {
+     "decode_tps": 67.522,
+     "predicted_n": 80,
+     "decode_seconds": 1.17,
+     "wall_seconds": 1.275,
+     "acceptance": 0.803,
+     "sm_mhz": 1675,
+     "temp": 80.0
+    },
+    {
+     "decode_tps": 67.331,
+     "predicted_n": 80,
+     "decode_seconds": 1.173,
+     "wall_seconds": 1.277,
+     "acceptance": 0.803,
+     "sm_mhz": 1655,
+     "temp": 82.7
+    },
+    {
+     "decode_tps": 67.432,
+     "predicted_n": 80,
+     "decode_seconds": 1.172,
+     "wall_seconds": 1.296,
+     "acceptance": 0.803,
+     "sm_mhz": 1680,
+     "temp": 82.7
+    },
+    {
+     "decode_tps": 67.003,
+     "predicted_n": 80,
+     "decode_seconds": 1.179,
+     "wall_seconds": 1.284,
+     "acceptance": 0.803,
+     "sm_mhz": 1688,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 66.998,
+     "predicted_n": 80,
+     "decode_seconds": 1.179,
+     "wall_seconds": 1.298,
+     "acceptance": 0.803,
+     "sm_mhz": 1665,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 67.283,
+     "predicted_n": 80,
+     "decode_seconds": 1.174,
+     "wall_seconds": 1.281,
+     "acceptance": 0.803,
+     "sm_mhz": 1688,
+     "temp": 80.5
+    },
+    {
+     "decode_tps": 67.004,
+     "predicted_n": 80,
+     "decode_seconds": 1.179,
+     "wall_seconds": 1.28,
+     "acceptance": 0.803,
+     "sm_mhz": 1672,
+     "temp": 80.5
+    },
+    {
+     "decode_tps": 67.259,
+     "predicted_n": 80,
+     "decode_seconds": 1.175,
+     "wall_seconds": 1.277,
+     "acceptance": 0.803,
+     "sm_mhz": 1672,
+     "temp": 80.0
+    },
+    {
+     "decode_tps": 67.397,
+     "predicted_n": 80,
+     "decode_seconds": 1.172,
+     "wall_seconds": 1.3,
+     "acceptance": 0.803,
+     "sm_mhz": 1688,
+     "temp": 80.5
+    },
+    {
+     "decode_tps": 66.998,
+     "predicted_n": 80,
+     "decode_seconds": 1.179,
+     "wall_seconds": 1.281,
+     "acceptance": 0.803,
+     "sm_mhz": 1670,
+     "temp": 80.3
+    },
+    {
+     "decode_tps": 67.153,
+     "predicted_n": 80,
+     "decode_seconds": 1.176,
+     "wall_seconds": 1.282,
+     "acceptance": 0.803,
+     "sm_mhz": 1685,
+     "temp": 80.3
+    },
+    {
+     "decode_tps": 66.849,
+     "predicted_n": 80,
+     "decode_seconds": 1.182,
+     "wall_seconds": 1.304,
+     "acceptance": 0.803,
+     "sm_mhz": 1665,
+     "temp": 80.5
+    },
+    {
+     "decode_tps": 66.354,
+     "predicted_n": 80,
+     "decode_seconds": 1.191,
+     "wall_seconds": 1.293,
+     "acceptance": 0.803,
+     "sm_mhz": 1725,
+     "temp": 80.0
+    },
+    {
+     "decode_tps": 66.604,
+     "predicted_n": 80,
+     "decode_seconds": 1.186,
+     "wall_seconds": 1.292,
+     "acceptance": 0.803,
+     "sm_mhz": 1718,
+     "temp": 80.5
+    },
+    {
+     "decode_tps": 66.609,
+     "predicted_n": 80,
+     "decode_seconds": 1.186,
+     "wall_seconds": 1.29,
+     "acceptance": 0.803,
+     "sm_mhz": 1792,
+     "temp": 80.0
+    },
+    {
+     "decode_tps": 66.822,
+     "predicted_n": 80,
+     "decode_seconds": 1.182,
+     "wall_seconds": 1.31,
+     "acceptance": 0.815,
+     "sm_mhz": 1672,
+     "temp": 79.5
+    },
+    {
+     "decode_tps": 66.69,
+     "predicted_n": 80,
+     "decode_seconds": 1.185,
+     "wall_seconds": 1.301,
+     "acceptance": 0.815,
+     "sm_mhz": 1695,
+     "temp": 80.7
+    },
+    {
+     "decode_tps": 67.2,
+     "predicted_n": 80,
+     "decode_seconds": 1.176,
+     "wall_seconds": 1.3,
+     "acceptance": 0.815,
+     "sm_mhz": 1665,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 66.839,
+     "predicted_n": 80,
+     "decode_seconds": 1.182,
+     "wall_seconds": 1.297,
+     "acceptance": 0.815,
+     "sm_mhz": 1665,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 66.377,
+     "predicted_n": 80,
+     "decode_seconds": 1.19,
+     "wall_seconds": 1.297,
+     "acceptance": 0.815,
+     "sm_mhz": 1792,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 66.784,
+     "predicted_n": 80,
+     "decode_seconds": 1.183,
+     "wall_seconds": 1.289,
+     "acceptance": 0.815,
+     "sm_mhz": 1650,
+     "temp": 80.0
+    },
+    {
+     "decode_tps": 67.636,
+     "predicted_n": 80,
+     "decode_seconds": 1.168,
+     "wall_seconds": 1.272,
+     "acceptance": 0.815,
+     "sm_mhz": 1672,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 67.476,
+     "predicted_n": 80,
+     "decode_seconds": 1.171,
+     "wall_seconds": 1.295,
+     "acceptance": 0.815,
+     "sm_mhz": 1690,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 67.561,
+     "predicted_n": 80,
+     "decode_seconds": 1.169,
+     "wall_seconds": 1.275,
+     "acceptance": 0.815,
+     "sm_mhz": 1695,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 67.405,
+     "predicted_n": 80,
+     "decode_seconds": 1.172,
+     "wall_seconds": 1.276,
+     "acceptance": 0.815,
+     "sm_mhz": 1660,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 67.089,
+     "predicted_n": 80,
+     "decode_seconds": 1.178,
+     "wall_seconds": 1.278,
+     "acceptance": 0.815,
+     "sm_mhz": 1650,
+     "temp": 80.5
+    },
+    {
+     "decode_tps": 66.9,
+     "predicted_n": 80,
+     "decode_seconds": 1.181,
+     "wall_seconds": 1.284,
+     "acceptance": 0.815,
+     "sm_mhz": 1642,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 67.427,
+     "predicted_n": 80,
+     "decode_seconds": 1.172,
+     "wall_seconds": 1.285,
+     "acceptance": 0.815,
+     "sm_mhz": 1760,
+     "temp": 80.3
+    },
+    {
+     "decode_tps": 67.228,
+     "predicted_n": 80,
+     "decode_seconds": 1.175,
+     "wall_seconds": 1.279,
+     "acceptance": 0.815,
+     "sm_mhz": 1710,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 67.647,
+     "predicted_n": 80,
+     "decode_seconds": 1.168,
+     "wall_seconds": 1.291,
+     "acceptance": 0.815,
+     "sm_mhz": 1665,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 67.643,
+     "predicted_n": 80,
+     "decode_seconds": 1.168,
+     "wall_seconds": 1.271,
+     "acceptance": 0.815,
+     "sm_mhz": 1718,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 66.856,
+     "predicted_n": 80,
+     "decode_seconds": 1.182,
+     "wall_seconds": 1.286,
+     "acceptance": 0.815,
+     "sm_mhz": 1762,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 66.109,
+     "predicted_n": 80,
+     "decode_seconds": 1.195,
+     "wall_seconds": 1.307,
+     "acceptance": 0.815,
+     "sm_mhz": 1685,
+     "temp": 80.7
+    },
+    {
+     "decode_tps": 56.193,
+     "predicted_n": 80,
+     "decode_seconds": 1.406,
+     "wall_seconds": 1.515,
+     "acceptance": 0.815,
+     "sm_mhz": 1710,
+     "temp": 80.0
+    },
+    {
+     "decode_tps": 60.903,
+     "predicted_n": 80,
+     "decode_seconds": 1.297,
+     "wall_seconds": 1.521,
+     "acceptance": 0.815,
+     "sm_mhz": 1755,
+     "temp": 80.0
+    },
+    {
+     "decode_tps": 66.611,
+     "predicted_n": 80,
+     "decode_seconds": 1.186,
+     "wall_seconds": 1.293,
+     "acceptance": 0.815,
+     "sm_mhz": 1695,
+     "temp": 79.5
+    },
+    {
+     "decode_tps": 66.524,
+     "predicted_n": 80,
+     "decode_seconds": 1.188,
+     "wall_seconds": 1.292,
+     "acceptance": 0.815,
+     "sm_mhz": 1672,
+     "temp": 79.5
+    },
+    {
+     "decode_tps": 66.228,
+     "predicted_n": 80,
+     "decode_seconds": 1.193,
+     "wall_seconds": 1.321,
+     "acceptance": 0.815,
+     "sm_mhz": 1688,
+     "temp": 80.5
+    },
+    {
+     "decode_tps": 66.379,
+     "predicted_n": 80,
+     "decode_seconds": 1.19,
+     "wall_seconds": 1.31,
+     "acceptance": 0.815,
+     "sm_mhz": 1718,
+     "temp": 80.5
+    }
+   ],
+   "mde_pct": {
+    "2": 6.0,
+    "3": 4.9,
+    "5": 3.79,
+    "10": 2.68
+   }
+  },
+  "200": {
+   "stats": {
+    "n": 40,
+    "mean": 68.62,
+    "sd": 1.538,
+    "cv_pct": 2.24,
+    "min": 60.5,
+    "max": 69.56,
+    "range_pct": 13.2,
+    "mean_decode_seconds": 2.9,
+    "implied_wobble_seconds": 0.065
+   },
+   "probes": [
+    {
+     "decode_tps": 69.562,
+     "predicted_n": 200,
+     "decode_seconds": 2.861,
+     "wall_seconds": 2.978,
+     "acceptance": 0.818,
+     "sm_mhz": 1707,
+     "temp": 77.4
+    },
+    {
+     "decode_tps": 69.28,
+     "predicted_n": 200,
+     "decode_seconds": 2.872,
+     "wall_seconds": 2.972,
+     "acceptance": 0.818,
+     "sm_mhz": 1683,
+     "temp": 81.2
+    },
+    {
+     "decode_tps": 69.083,
+     "predicted_n": 200,
+     "decode_seconds": 2.881,
+     "wall_seconds": 2.998,
+     "acceptance": 0.818,
+     "sm_mhz": 1689,
+     "temp": 83.0
+    },
+    {
+     "decode_tps": 69.359,
+     "predicted_n": 200,
+     "decode_seconds": 2.869,
+     "wall_seconds": 2.986,
+     "acceptance": 0.818,
+     "sm_mhz": 1665,
+     "temp": 82.8
+    },
+    {
+     "decode_tps": 69.0,
+     "predicted_n": 200,
+     "decode_seconds": 2.884,
+     "wall_seconds": 2.986,
+     "acceptance": 0.818,
+     "sm_mhz": 1688,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 69.302,
+     "predicted_n": 200,
+     "decode_seconds": 2.872,
+     "wall_seconds": 2.974,
+     "acceptance": 0.818,
+     "sm_mhz": 1730,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 69.126,
+     "predicted_n": 200,
+     "decode_seconds": 2.879,
+     "wall_seconds": 2.985,
+     "acceptance": 0.818,
+     "sm_mhz": 1685,
+     "temp": 80.2
+    },
+    {
+     "decode_tps": 69.294,
+     "predicted_n": 200,
+     "decode_seconds": 2.872,
+     "wall_seconds": 2.974,
+     "acceptance": 0.818,
+     "sm_mhz": 1665,
+     "temp": 80.2
+    },
+    {
+     "decode_tps": 69.149,
+     "predicted_n": 200,
+     "decode_seconds": 2.878,
+     "wall_seconds": 2.999,
+     "acceptance": 0.818,
+     "sm_mhz": 1647,
+     "temp": 80.6
+    },
+    {
+     "decode_tps": 69.057,
+     "predicted_n": 200,
+     "decode_seconds": 2.882,
+     "wall_seconds": 2.996,
+     "acceptance": 0.818,
+     "sm_mhz": 1647,
+     "temp": 80.8
+    },
+    {
+     "decode_tps": 68.967,
+     "predicted_n": 200,
+     "decode_seconds": 2.885,
+     "wall_seconds": 3.005,
+     "acceptance": 0.818,
+     "sm_mhz": 1665,
+     "temp": 80.4
+    },
+    {
+     "decode_tps": 68.71,
+     "predicted_n": 200,
+     "decode_seconds": 2.896,
+     "wall_seconds": 3.028,
+     "acceptance": 0.818,
+     "sm_mhz": 1668,
+     "temp": 80.4
+    },
+    {
+     "decode_tps": 68.913,
+     "predicted_n": 200,
+     "decode_seconds": 2.888,
+     "wall_seconds": 3.006,
+     "acceptance": 0.818,
+     "sm_mhz": 1686,
+     "temp": 80.2
+    },
+    {
+     "decode_tps": 69.126,
+     "predicted_n": 200,
+     "decode_seconds": 2.879,
+     "wall_seconds": 2.983,
+     "acceptance": 0.818,
+     "sm_mhz": 1670,
+     "temp": 80.5
+    },
+    {
+     "decode_tps": 68.807,
+     "predicted_n": 200,
+     "decode_seconds": 2.892,
+     "wall_seconds": 2.997,
+     "acceptance": 0.818,
+     "sm_mhz": 1705,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 68.9,
+     "predicted_n": 200,
+     "decode_seconds": 2.888,
+     "wall_seconds": 3.015,
+     "acceptance": 0.818,
+     "sm_mhz": 1712,
+     "temp": 80.7
+    },
+    {
+     "decode_tps": 68.839,
+     "predicted_n": 200,
+     "decode_seconds": 2.891,
+     "wall_seconds": 3.016,
+     "acceptance": 0.818,
+     "sm_mhz": 1702,
+     "temp": 80.3
+    },
+    {
+     "decode_tps": 68.593,
+     "predicted_n": 200,
+     "decode_seconds": 2.901,
+     "wall_seconds": 3.017,
+     "acceptance": 0.818,
+     "sm_mhz": 1689,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 68.969,
+     "predicted_n": 200,
+     "decode_seconds": 2.885,
+     "wall_seconds": 2.991,
+     "acceptance": 0.818,
+     "sm_mhz": 1692,
+     "temp": 80.8
+    },
+    {
+     "decode_tps": 69.359,
+     "predicted_n": 200,
+     "decode_seconds": 2.869,
+     "wall_seconds": 2.992,
+     "acceptance": 0.818,
+     "sm_mhz": 1632,
+     "temp": 80.8
+    },
+    {
+     "decode_tps": 68.594,
+     "predicted_n": 200,
+     "decode_seconds": 2.901,
+     "wall_seconds": 3.024,
+     "acceptance": 0.818,
+     "sm_mhz": 1708,
+     "temp": 80.8
+    },
+    {
+     "decode_tps": 68.93,
+     "predicted_n": 200,
+     "decode_seconds": 2.887,
+     "wall_seconds": 2.99,
+     "acceptance": 0.818,
+     "sm_mhz": 1701,
+     "temp": 80.8
+    },
+    {
+     "decode_tps": 69.117,
+     "predicted_n": 200,
+     "decode_seconds": 2.879,
+     "wall_seconds": 2.999,
+     "acceptance": 0.818,
+     "sm_mhz": 1698,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 69.437,
+     "predicted_n": 200,
+     "decode_seconds": 2.866,
+     "wall_seconds": 2.997,
+     "acceptance": 0.818,
+     "sm_mhz": 1695,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 69.305,
+     "predicted_n": 200,
+     "decode_seconds": 2.871,
+     "wall_seconds": 2.994,
+     "acceptance": 0.818,
+     "sm_mhz": 1680,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 69.404,
+     "predicted_n": 200,
+     "decode_seconds": 2.867,
+     "wall_seconds": 2.984,
+     "acceptance": 0.818,
+     "sm_mhz": 1668,
+     "temp": 80.8
+    },
+    {
+     "decode_tps": 69.281,
+     "predicted_n": 200,
+     "decode_seconds": 2.872,
+     "wall_seconds": 2.976,
+     "acceptance": 0.818,
+     "sm_mhz": 1698,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 68.79,
+     "predicted_n": 200,
+     "decode_seconds": 2.893,
+     "wall_seconds": 2.995,
+     "acceptance": 0.818,
+     "sm_mhz": 1682,
+     "temp": 80.8
+    },
+    {
+     "decode_tps": 69.012,
+     "predicted_n": 200,
+     "decode_seconds": 2.884,
+     "wall_seconds": 2.989,
+     "acceptance": 0.818,
+     "sm_mhz": 1695,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 69.129,
+     "predicted_n": 200,
+     "decode_seconds": 2.879,
+     "wall_seconds": 2.982,
+     "acceptance": 0.818,
+     "sm_mhz": 1700,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 69.062,
+     "predicted_n": 200,
+     "decode_seconds": 2.881,
+     "wall_seconds": 3.004,
+     "acceptance": 0.818,
+     "sm_mhz": 1674,
+     "temp": 80.8
+    },
+    {
+     "decode_tps": 68.883,
+     "predicted_n": 200,
+     "decode_seconds": 2.889,
+     "wall_seconds": 3.021,
+     "acceptance": 0.818,
+     "sm_mhz": 1683,
+     "temp": 81.2
+    },
+    {
+     "decode_tps": 68.57,
+     "predicted_n": 200,
+     "decode_seconds": 2.902,
+     "wall_seconds": 3.007,
+     "acceptance": 0.818,
+     "sm_mhz": 1688,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 68.656,
+     "predicted_n": 200,
+     "decode_seconds": 2.898,
+     "wall_seconds": 3.024,
+     "acceptance": 0.818,
+     "sm_mhz": 1674,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 60.498,
+     "predicted_n": 200,
+     "decode_seconds": 3.289,
+     "wall_seconds": 3.481,
+     "acceptance": 0.818,
+     "sm_mhz": 1765,
+     "temp": 80.2
+    },
+    {
+     "decode_tps": 67.815,
+     "predicted_n": 200,
+     "decode_seconds": 2.934,
+     "wall_seconds": 3.06,
+     "acceptance": 0.818,
+     "sm_mhz": 1725,
+     "temp": 80.7
+    },
+    {
+     "decode_tps": 68.283,
+     "predicted_n": 200,
+     "decode_seconds": 2.914,
+     "wall_seconds": 3.02,
+     "acceptance": 0.818,
+     "sm_mhz": 1730,
+     "temp": 80.8
+    },
+    {
+     "decode_tps": 67.667,
+     "predicted_n": 200,
+     "decode_seconds": 2.941,
+     "wall_seconds": 3.072,
+     "acceptance": 0.818,
+     "sm_mhz": 1710,
+     "temp": 80.7
+    },
+    {
+     "decode_tps": 64.601,
+     "predicted_n": 200,
+     "decode_seconds": 3.08,
+     "wall_seconds": 3.185,
+     "acceptance": 0.818,
+     "sm_mhz": 1770,
+     "temp": 80.8
+    },
+    {
+     "decode_tps": 68.563,
+     "predicted_n": 200,
+     "decode_seconds": 2.902,
+     "wall_seconds": 3.004,
+     "acceptance": 0.818,
+     "sm_mhz": 1692,
+     "temp": 80.8
+    }
+   ],
+   "mde_pct": {
+    "2": 4.48,
+    "3": 3.66,
+    "5": 2.83,
+    "10": 2.0
+   }
+  },
+  "700": {
+   "stats": {
+    "n": 40,
+    "mean": 73.08,
+    "sd": 1.873,
+    "cv_pct": 2.56,
+    "min": 67.26,
+    "max": 74.99,
+    "range_pct": 10.6,
+    "mean_decode_seconds": 9.57,
+    "implied_wobble_seconds": 0.245
+   },
+   "probes": [
+    {
+     "decode_tps": 74.049,
+     "predicted_n": 700,
+     "decode_seconds": 9.44,
+     "wall_seconds": 9.556,
+     "acceptance": 0.893,
+     "sm_mhz": 1706,
+     "temp": 78.9
+    },
+    {
+     "decode_tps": 73.773,
+     "predicted_n": 700,
+     "decode_seconds": 9.475,
+     "wall_seconds": 9.578,
+     "acceptance": 0.893,
+     "sm_mhz": 1673,
+     "temp": 81.9
+    },
+    {
+     "decode_tps": 73.751,
+     "predicted_n": 700,
+     "decode_seconds": 9.478,
+     "wall_seconds": 9.583,
+     "acceptance": 0.893,
+     "sm_mhz": 1672,
+     "temp": 83.2
+    },
+    {
+     "decode_tps": 73.763,
+     "predicted_n": 700,
+     "decode_seconds": 9.476,
+     "wall_seconds": 9.578,
+     "acceptance": 0.893,
+     "sm_mhz": 1665,
+     "temp": 82.1
+    },
+    {
+     "decode_tps": 73.536,
+     "predicted_n": 700,
+     "decode_seconds": 9.506,
+     "wall_seconds": 9.609,
+     "acceptance": 0.893,
+     "sm_mhz": 1679,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 73.951,
+     "predicted_n": 700,
+     "decode_seconds": 9.452,
+     "wall_seconds": 9.554,
+     "acceptance": 0.893,
+     "sm_mhz": 1708,
+     "temp": 80.9
+    },
+    {
+     "decode_tps": 73.672,
+     "predicted_n": 700,
+     "decode_seconds": 9.488,
+     "wall_seconds": 9.609,
+     "acceptance": 0.893,
+     "sm_mhz": 1698,
+     "temp": 80.4
+    },
+    {
+     "decode_tps": 73.689,
+     "predicted_n": 700,
+     "decode_seconds": 9.486,
+     "wall_seconds": 9.588,
+     "acceptance": 0.893,
+     "sm_mhz": 1693,
+     "temp": 80.6
+    },
+    {
+     "decode_tps": 73.606,
+     "predicted_n": 700,
+     "decode_seconds": 9.497,
+     "wall_seconds": 9.611,
+     "acceptance": 0.893,
+     "sm_mhz": 1708,
+     "temp": 80.3
+    },
+    {
+     "decode_tps": 73.8,
+     "predicted_n": 700,
+     "decode_seconds": 9.472,
+     "wall_seconds": 9.577,
+     "acceptance": 0.893,
+     "sm_mhz": 1693,
+     "temp": 80.3
+    },
+    {
+     "decode_tps": 73.685,
+     "predicted_n": 700,
+     "decode_seconds": 9.486,
+     "wall_seconds": 9.611,
+     "acceptance": 0.893,
+     "sm_mhz": 1698,
+     "temp": 80.3
+    },
+    {
+     "decode_tps": 73.503,
+     "predicted_n": 700,
+     "decode_seconds": 9.51,
+     "wall_seconds": 9.615,
+     "acceptance": 0.893,
+     "sm_mhz": 1690,
+     "temp": 80.6
+    },
+    {
+     "decode_tps": 73.366,
+     "predicted_n": 700,
+     "decode_seconds": 9.528,
+     "wall_seconds": 9.633,
+     "acceptance": 0.893,
+     "sm_mhz": 1698,
+     "temp": 80.6
+    },
+    {
+     "decode_tps": 73.338,
+     "predicted_n": 700,
+     "decode_seconds": 9.531,
+     "wall_seconds": 9.635,
+     "acceptance": 0.893,
+     "sm_mhz": 1683,
+     "temp": 80.7
+    },
+    {
+     "decode_tps": 73.134,
+     "predicted_n": 700,
+     "decode_seconds": 9.558,
+     "wall_seconds": 9.662,
+     "acceptance": 0.893,
+     "sm_mhz": 1691,
+     "temp": 80.8
+    },
+    {
+     "decode_tps": 73.324,
+     "predicted_n": 700,
+     "decode_seconds": 9.533,
+     "wall_seconds": 9.638,
+     "acceptance": 0.893,
+     "sm_mhz": 1685,
+     "temp": 80.8
+    },
+    {
+     "decode_tps": 74.09,
+     "predicted_n": 700,
+     "decode_seconds": 9.435,
+     "wall_seconds": 9.56,
+     "acceptance": 0.882,
+     "sm_mhz": 1688,
+     "temp": 80.8
+    },
+    {
+     "decode_tps": 73.23,
+     "predicted_n": 700,
+     "decode_seconds": 9.545,
+     "wall_seconds": 9.651,
+     "acceptance": 0.893,
+     "sm_mhz": 1672,
+     "temp": 80.9
+    },
+    {
+     "decode_tps": 74.33,
+     "predicted_n": 700,
+     "decode_seconds": 9.404,
+     "wall_seconds": 9.503,
+     "acceptance": 0.882,
+     "sm_mhz": 1675,
+     "temp": 80.9
+    },
+    {
+     "decode_tps": 73.352,
+     "predicted_n": 700,
+     "decode_seconds": 9.529,
+     "wall_seconds": 9.651,
+     "acceptance": 0.893,
+     "sm_mhz": 1692,
+     "temp": 80.8
+    },
+    {
+     "decode_tps": 73.99,
+     "predicted_n": 700,
+     "decode_seconds": 9.447,
+     "wall_seconds": 9.561,
+     "acceptance": 0.882,
+     "sm_mhz": 1680,
+     "temp": 80.9
+    },
+    {
+     "decode_tps": 73.555,
+     "predicted_n": 700,
+     "decode_seconds": 9.503,
+     "wall_seconds": 9.62,
+     "acceptance": 0.893,
+     "sm_mhz": 1687,
+     "temp": 80.9
+    },
+    {
+     "decode_tps": 74.99,
+     "predicted_n": 700,
+     "decode_seconds": 9.321,
+     "wall_seconds": 9.423,
+     "acceptance": 0.882,
+     "sm_mhz": 1669,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 73.893,
+     "predicted_n": 700,
+     "decode_seconds": 9.46,
+     "wall_seconds": 9.571,
+     "acceptance": 0.893,
+     "sm_mhz": 1688,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 74.495,
+     "predicted_n": 700,
+     "decode_seconds": 9.383,
+     "wall_seconds": 9.488,
+     "acceptance": 0.882,
+     "sm_mhz": 1677,
+     "temp": 80.9
+    },
+    {
+     "decode_tps": 73.773,
+     "predicted_n": 700,
+     "decode_seconds": 9.475,
+     "wall_seconds": 9.576,
+     "acceptance": 0.893,
+     "sm_mhz": 1687,
+     "temp": 81.1
+    },
+    {
+     "decode_tps": 74.633,
+     "predicted_n": 700,
+     "decode_seconds": 9.366,
+     "wall_seconds": 9.467,
+     "acceptance": 0.882,
+     "sm_mhz": 1670,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 74.069,
+     "predicted_n": 700,
+     "decode_seconds": 9.437,
+     "wall_seconds": 9.56,
+     "acceptance": 0.893,
+     "sm_mhz": 1684,
+     "temp": 80.8
+    },
+    {
+     "decode_tps": 74.684,
+     "predicted_n": 700,
+     "decode_seconds": 9.359,
+     "wall_seconds": 9.486,
+     "acceptance": 0.882,
+     "sm_mhz": 1676,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 73.933,
+     "predicted_n": 700,
+     "decode_seconds": 9.455,
+     "wall_seconds": 9.559,
+     "acceptance": 0.893,
+     "sm_mhz": 1699,
+     "temp": 80.9
+    },
+    {
+     "decode_tps": 74.706,
+     "predicted_n": 700,
+     "decode_seconds": 9.357,
+     "wall_seconds": 9.464,
+     "acceptance": 0.882,
+     "sm_mhz": 1661,
+     "temp": 81.1
+    },
+    {
+     "decode_tps": 71.388,
+     "predicted_n": 700,
+     "decode_seconds": 9.791,
+     "wall_seconds": 9.903,
+     "acceptance": 0.893,
+     "sm_mhz": 1695,
+     "temp": 80.9
+    },
+    {
+     "decode_tps": 73.985,
+     "predicted_n": 700,
+     "decode_seconds": 9.448,
+     "wall_seconds": 9.555,
+     "acceptance": 0.882,
+     "sm_mhz": 1682,
+     "temp": 81.1
+    },
+    {
+     "decode_tps": 72.803,
+     "predicted_n": 700,
+     "decode_seconds": 9.601,
+     "wall_seconds": 9.726,
+     "acceptance": 0.893,
+     "sm_mhz": 1690,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 67.26,
+     "predicted_n": 700,
+     "decode_seconds": 10.392,
+     "wall_seconds": 10.524,
+     "acceptance": 0.882,
+     "sm_mhz": 1702,
+     "temp": 80.8
+    },
+    {
+     "decode_tps": 67.796,
+     "predicted_n": 700,
+     "decode_seconds": 10.31,
+     "wall_seconds": 10.416,
+     "acceptance": 0.893,
+     "sm_mhz": 1723,
+     "temp": 80.7
+    },
+    {
+     "decode_tps": 69.349,
+     "predicted_n": 700,
+     "decode_seconds": 10.079,
+     "wall_seconds": 10.182,
+     "acceptance": 0.882,
+     "sm_mhz": 1694,
+     "temp": 80.9
+    },
+    {
+     "decode_tps": 68.108,
+     "predicted_n": 700,
+     "decode_seconds": 10.263,
+     "wall_seconds": 10.387,
+     "acceptance": 0.893,
+     "sm_mhz": 1693,
+     "temp": 80.7
+    },
+    {
+     "decode_tps": 70.45,
+     "predicted_n": 700,
+     "decode_seconds": 9.922,
+     "wall_seconds": 10.092,
+     "acceptance": 0.882,
+     "sm_mhz": 1697,
+     "temp": 80.8
+    },
+    {
+     "decode_tps": 72.587,
+     "predicted_n": 700,
+     "decode_seconds": 9.63,
+     "wall_seconds": 9.761,
+     "acceptance": 0.893,
+     "sm_mhz": 1674,
+     "temp": 81.0
+    }
+   ],
+   "mde_pct": {
+    "2": 5.12,
+    "3": 4.18,
+    "5": 3.24,
+    "10": 2.29
+   }
+  },
+  "3000": {
+   "stats": {
+    "n": 15,
+    "mean": 76.86,
+    "sd": 0.308,
+    "cv_pct": 0.4,
+    "min": 76.31,
+    "max": 77.35,
+    "range_pct": 1.4,
+    "mean_decode_seconds": 11.5,
+    "implied_wobble_seconds": 0.046
+   },
+   "probes": [
+    {
+     "decode_tps": 77.337,
+     "predicted_n": 885,
+     "decode_seconds": 11.431,
+     "wall_seconds": 11.645,
+     "acceptance": 0.913,
+     "sm_mhz": 1698,
+     "temp": 80.3
+    },
+    {
+     "decode_tps": 76.878,
+     "predicted_n": 885,
+     "decode_seconds": 11.499,
+     "wall_seconds": 11.6,
+     "acceptance": 0.913,
+     "sm_mhz": 1676,
+     "temp": 82.8
+    },
+    {
+     "decode_tps": 77.187,
+     "predicted_n": 885,
+     "decode_seconds": 11.453,
+     "wall_seconds": 11.555,
+     "acceptance": 0.913,
+     "sm_mhz": 1669,
+     "temp": 83.1
+    },
+    {
+     "decode_tps": 76.857,
+     "predicted_n": 885,
+     "decode_seconds": 11.502,
+     "wall_seconds": 11.631,
+     "acceptance": 0.913,
+     "sm_mhz": 1676,
+     "temp": 81.7
+    },
+    {
+     "decode_tps": 77.352,
+     "predicted_n": 885,
+     "decode_seconds": 11.428,
+     "wall_seconds": 11.556,
+     "acceptance": 0.913,
+     "sm_mhz": 1679,
+     "temp": 81.0
+    },
+    {
+     "decode_tps": 77.251,
+     "predicted_n": 885,
+     "decode_seconds": 11.443,
+     "wall_seconds": 11.549,
+     "acceptance": 0.913,
+     "sm_mhz": 1669,
+     "temp": 80.8
+    },
+    {
+     "decode_tps": 76.685,
+     "predicted_n": 885,
+     "decode_seconds": 11.528,
+     "wall_seconds": 11.634,
+     "acceptance": 0.913,
+     "sm_mhz": 1691,
+     "temp": 80.5
+    },
+    {
+     "decode_tps": 76.844,
+     "predicted_n": 885,
+     "decode_seconds": 11.504,
+     "wall_seconds": 11.625,
+     "acceptance": 0.913,
+     "sm_mhz": 1693,
+     "temp": 80.3
+    },
+    {
+     "decode_tps": 76.819,
+     "predicted_n": 885,
+     "decode_seconds": 11.508,
+     "wall_seconds": 11.607,
+     "acceptance": 0.913,
+     "sm_mhz": 1692,
+     "temp": 80.4
+    },
+    {
+     "decode_tps": 76.845,
+     "predicted_n": 885,
+     "decode_seconds": 11.504,
+     "wall_seconds": 11.607,
+     "acceptance": 0.913,
+     "sm_mhz": 1674,
+     "temp": 80.5
+    },
+    {
+     "decode_tps": 76.792,
+     "predicted_n": 885,
+     "decode_seconds": 11.512,
+     "wall_seconds": 11.627,
+     "acceptance": 0.913,
+     "sm_mhz": 1689,
+     "temp": 80.4
+    },
+    {
+     "decode_tps": 76.673,
+     "predicted_n": 885,
+     "decode_seconds": 11.529,
+     "wall_seconds": 11.635,
+     "acceptance": 0.913,
+     "sm_mhz": 1694,
+     "temp": 80.8
+    },
+    {
+     "decode_tps": 76.435,
+     "predicted_n": 885,
+     "decode_seconds": 11.565,
+     "wall_seconds": 11.68,
+     "acceptance": 0.913,
+     "sm_mhz": 1672,
+     "temp": 80.8
+    },
+    {
+     "decode_tps": 76.644,
+     "predicted_n": 885,
+     "decode_seconds": 11.534,
+     "wall_seconds": 11.661,
+     "acceptance": 0.913,
+     "sm_mhz": 1670,
+     "temp": 80.9
+    },
+    {
+     "decode_tps": 76.311,
+     "predicted_n": 885,
+     "decode_seconds": 11.584,
+     "wall_seconds": 11.707,
+     "acceptance": 0.913,
+     "sm_mhz": 1680,
+     "temp": 80.8
+    }
+   ],
+   "mde_pct": {
+    "2": 0.8,
+    "3": 0.65,
+    "5": 0.51,
+    "10": 0.36
+   }
+  }
+ },
+ "wobble_seconds": [
+  0.0356,
+  0.065,
+  0.245,
+  0.046
+ ],
+ "wobble_agreement_pct": 213.9
+}

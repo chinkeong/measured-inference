@@ -1,0 +1,3345 @@
+===== THINKING =====
+Design a single-file HTML animated aquarium. Canvas 2D, full-window, no external resources, CONFIG object, lots of creatures, smooth 60fps, no console errors.
+
+Architecture plan:
+
+- HTML skeleton: canvas fills window, resize handler, devicePixelRatio-aware (capped at 2 for performance).
+- CONFIG object at the top: counts, speeds, intervals, day/night cycle seconds.
+- Utilities: rand, randRange, clamp, lerp, TAU, pick.
+- Time: requestAnimationFrame with delta time, global time accumulator, speed multiplier scaling dt for creatures.
+
+Scene layer order (back to front):
+1. Water gradient background (vertical gradient, dark blue at top → teal at bottom). Precompute gradient per resize.
+2. Caustic light rays — slow moving light shafts from top. Draw as rotated semi-transparent trapezoids with gradient, 'lighter' or 'screen' composite, low alpha.
+3. Distant layer (depth of field): some background fish silhouettes, blurred/dim? Can add faint distant fish for depth. Keep subtle.
+4. Bubbles behind some creatures? Bubbles can be behind creatures but in front of background.
+5. Sea floor: sand with gentle undulation, pebbles, rocks.
+6. Background seaweed (darker, behind creatures), rocks, coral.
+7. Bottom-dwelling creatures: starfish, crabs, lobsters, shells.
+8. Mid-ground creatures: tropical fish, angelfish, schooling fish, turtle, seahorse (near anemone/seaweed).
+9. Jellyfish (upper half).
+10. Foreground anemone, foreground seaweed, foreground bubbles.
+11. Motes.
+12. Day/night overlay: darkness tint with alpha oscillation; night glow for jellyfish.
+
+Performance: avoid allocations inside loop. Use object pools for bubbles. Precompute arrays of pebbles, motes. Use ctx.save/restore sparingly; minimize shadowBlur (expensive) — use only for night glow, or use pre-rendered radial gradients offscreen. Pre-render the glow sprite (radial gradient offscreen canvas) and use drawImage — cheap.
+
+Caustics: 5-6 light shafts, each drawn as a path filled with a linear gradient. Create gradient per frame? Creating gradient every frame is an allocation, but it's OK-ish. Better: precompute an offscreen "shaft" sprite (vertical white gradient) and draw with transform (rotate/scale) and globalAlpha. That avoids per-frame gradient allocation. Use globalCompositeOperation 'screen' or 'overlay'. Precompute a soft light shaft canvas: tall gradient. Draw with rotation and slow horizontal drift.
+
+Sand: precompute path per resize into an offscreen canvas? The sand is static except for slight undulation... static is fine. Pre-render the sand + pebbles to an offscreen canvas at resize, and drawImage each frame. Also pre-render rocks and coral? Coral is static; anemone tentacles animate; seaweed animates. Pre-rendering static things to offscreen is a big performance win. But day/night brightness changes... apply darkness overlay over everything (screen-level), that's fine.
+
+Actually let's pre-render: sand floor, rocks, coral, shells, treasure chest, etc. — everything static to one offscreen "floor canvas". Anemone and seaweed animate separately.
+
+Creatures:
+
+Tropical fish: oval body with stripes, triangle tail, dorsal fin. Slight vertical drift (sin), tail swish (tail angle sin), direction reversal at edges. Color: orange/yellow/white bands.
+
+Angelfish: diamond/kite-shaped body, long dorsal and anal fin extensions (like a scissor tail), cool palette (blue/purple/silver), vertical stripes probably. Slower horizontal speed, pronounced sinusoidal vertical bob (larger amplitude, slower).
+
+Schooling fish: 12 tiny silhouettes (like silver sardines). Shared heading that rotates slowly via noise (random walk). Each member has an offset target (personal offset that changes over time) — position = schoolCenter + offset. School center moves in heading direction; heading rotates slowly; when school nears an edge, steer heading toward tank center (steering to avoid). Shimmer: each fish drawn as tiny elongated diamond, slightly different alpha.
+
+Jellyfish: 3. Bell path: top arc and wavy bottom edge. Pulse: scale factor = 1 + 0.25*sin(pulsePhase), pulse triggers upward impulse. Model: pulsePhase progresses; when phase crosses threshold, apply upward velocity; between pulses, gravity-like sinking + lateral drift (slow sin). Tentacles: 5-7 strands, each a curve (quadratic) trailing opposite to velocity with sway (sin offset per tentacle). Translucent: fill with rgba white/blue, additive-ish glow. At night, glow brighter via glow sprite.
+
+Crab: sand floor. State machine: paused (1-3s), scuttle (0.8-1.5s) to a side direction with steps (leg animation), reverse. Body: round, eyes on stalks (dots), 2 claws, legs as lines that scissor during scuttle. Claws open/close occasionally.
+
+Lobster: bigger, red-brown. Body: carapace, big claw on front, segmented tail (series of arcs) that bends slightly, antennae long curves that sway. Motion: slow crawl along bottom, occasionally stops and raises claws (raise claws up in a threatening pose for 2 seconds). Facing direction flips.
+
+Starfish: 5 arms, bumpy texture (dots along arms). Slow: arms flex subtly, occasionally slides by tiny amount. Sits on floor/rock. Ochre/rust.
+
+Seahorse: upright, curved body (S-shape), snout, curled tail (arc), dorsal fin flicker. Vertical bob, tail curl angle oscillates slowly. Positioned near anemone/seaweed (anchor point). Color: coral-ish or teal.
+
+Turtle: shell with scute pattern (central hexagon + surrounding polygons). Flippers: 4, front pair rotating in slow rowing motion (sin). Moves leisurely across scene with gentle arc: heading rotates slowly; vertical position wanders in middle band. Occasionally changes direction in gentle arcs — heading += slow noise, with clamped rate.
+
+Shells: conch spiral (spiral curve with fill), scallop fan (fan with ridges), cowrie (oval with slit + small bumps). Drawn in the static floor canvas with different tint/sizes.
+
+Coral: 2 clusters: branching coral (recursive branches) and brain coral (concentric wavy arcs). Pink/orange/red. Static, pre-rendered.
+
+Anemone: base rock + ~12 tentacles: each a quadratic curve from base, tip sways with sin(time + phase), plus global current sway. Pulsing slight. Colors: magenta/purple tip.
+
+Seaweed/kelp: 4-5 stalks: each a chain of segments, base fixed, sway: each segment rotates by sin(time*speed + i*phase) * amp, amp increases with height. Different greens, heights. Drawn as tapered stroke (line width taper) or filled ribbon. Use stroke with decreasing width per segment.
+
+Rocks: 3-5 rounded boulders, gray-blue, with highlight. Pre-rendered.
+
+Bubbles: pool, max count from CONFIG. Spawn interval from CONFIG (ms, scaled by speed? Speed multiplier affects creatures; bubble interval is spawn rate — scale dt used for spawning by speed multiplier too? Speed multiplier is "global, affects all creatures". Bubbles are arguably not creatures; but for consistency apply speed to creature motion dt and keep bubble spawn interval as real time per CONFIG. Actually simpler: have a global simTime that advances by dt*speed for creature movement, and spawn timer also uses dt*speed so it feels alive. Let's use a scaled dt for everything except day/night (real time) and caustics (real time is fine, or scaled). Let's do: creatures use scaledDt; caustics, water shimmer use real dt (ambient). Bubble spawning uses scaledDt too — good.
+
+Bubbles: rise with velocity ~ size-dependent, wobble: x += sin(y * k + phase) * amp. Draw: circle stroke + radial gradient? Per-bubble gradient allocation is bad. Precompute 3 sizes of bubble sprites (offscreen radial: transparent center, slightly brighter rim, specular dot) and scale-drawImage. Cheap.
+
+Motes: 60 tiny dots, drift slowly, wrap, alpha flickers subtly. Precompute array. Draw with fillRect or small arc — arc is fine for 60.
+
+Day/night: cycle seconds from CONFIG (0 to disable). t = (elapsedReal / period) % 1. Brightness = 0.5+0.5*cos(2π t) → dayFactor. Overlay: fill full rect with rgba(10,15,40, (1-dayFactor)*0.45) using 'source-over' or 'multiply'. Multiply is nicer: ctx.globalCompositeOperation='multiply', fill with lerped color between white and dark blue. Then night glow: when night, draw glow sprites (additive) behind jellyfish and some fish (angelfish? "certain fish") — draw a faint glow sprite behind jelly and turtle? Jelly + maybe school fish? Spec: "jellyfish and certain fish can glow faintly." Jelly + angelfish? Let's do jelly and seahorse. Keep subtle: alpha = nightFactor * 0.35.
+
+Also stars at surface? Could add faint surface glow variation. Keep.
+
+Extra surprises:
+- Clownfish in anemone: little orange clownfish hiding in anemone tentacles, peeking out. Nice touch. Anemone position known; clownfish orbits small around anemone, sometimes "disappears" (alpha fade when tentacle in front? Simpler: swim small circle around anemone head, and periodically hide — draw anemone in front of clownfish so clownfish goes behind). Draw clownfish in front of anemone so tentacles cover when inside.
+- Sunken treasure chest with coins on the floor: static pre-render, with a subtle gleam.
+- Fish avoid: tropical fish slightly flee from turtle? Simple: school fish reacts to edges (steer). Crab retreats when fish close? Might be overkill. Let's implement: crabs check distance to nearest fish (tropical/angel/turtle) within radius → trigger scuttle in reverse. Cheap.
+- Ripple at surface: at top, a few horizontal sin lines moving, subtle.
+- Depth of field: distant silhouettes of 2-3 fish swimming slowly in background, desaturated blue, slight blur via low alpha + pre-rendered? Just draw simple fish silhouettes with low alpha, smaller, behind mid-ground layer. Also a large slow "shadow" blob? Skip shadow.
+
+Keep total draw calls modest.
+
+Implementation details:
+
+Canvas setup:
+```js
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W=0,H=0,DPR=1;
+function resize(){ DPR = Math.min(window.devicePixelRatio||1, 2); W=window.innerWidth; H=window.innerHeight; canvas.width=W*DPR; canvas.height=H*DPR; canvas.style.width=W+'px'; canvas.style.height=H+'px'; ctx.setTransform(DPR,0,0,DPR,0,0); buildStatic(); layout(); }
+```
+No scrollbars: body margin 0, overflow hidden.
+
+Static floor offscreen canvas: sand strip (bottom ~ H*0.16 + undulation), pebbles, rocks, coral, shells, chest, anemone base rock, maybe a sunken ship's wheel. Seaweed drawn dynamically (animates) but its root is on sand.
+
+Positions: relative to W,H (fractions) so they re-layout on resize. Store decor in an array with fx (fraction of x), and compute pixel positions on layout(). Anemone position stored globally for seahorse anchoring: seahorse anchored near anemone x, y near anemone top + offset.
+
+Floor level function: floorY(x) = H - sandBase + undulation: sandTop = H*0.84; undulation = sin(x*0.01)*6 + sin(x*0.023+2)*4. Bottom-dwelling creatures use floorY at their x.
+
+Sand pre-render: fill from sandTop curve down to bottom with sand color (warm sand: #d9b380-ish? warm sand: gradient from #c9a06a to deeper #a5713f). Pebbles: 40 small ellipses, random gray/tan.
+
+Caustic shafts: 6 shafts; each with baseX fraction, width, rotation ~0.1-0.2 rad, speed, alpha 0.04-0.07. Pre-render shaft sprite: vertical gradient canvas 128x512 white → transparent, soft edges horizontally (use linear gradient horizontally with fade edges? simpler: 2 gradients — create sprite with radial? Let's make sprite: horizontal linear gradient transparent→white→transparent across width, and vertical alpha via second fill. Actually one sprite: vertical linear gradient from top (alpha .9) to bottom (0), with horizontal edges soft via two side gradients, or draw a rounded rectangle with blur? Use ctx.filter blur? Filter on offscreen once is fine. Simpler: sprite = vertical linear gradient, alpha 0→0.9→0 (brighter at top). Edge softness: draw with 'screen' comp with low alpha; hard edges on rotated rectangle look bad. Alternative: make sprite a soft vertical band: draw horizontal gradient (transparent→white→transparent) into sprite, then multiply by vertical fade using a second gradient with globalCompositeOperation 'destination-in'. That gives a soft vertical band fading down.
+
+Draw shaft each frame: save, translate(baseX + sin(t*speed)*40, 0), rotate(rot), scale(sx, sy), fillRect(-w/2, 0, w, H*1.2) using pattern? Use drawImage(sprite, -w/2, 0, w, len). Alpha via globalAlpha = a * (0.6+0.4 sin(...)). Composite 'screen'. Cheap: 6 drawImages.
+
+Also a surface light pool: soft radial at top center, subtle.
+
+Day/night multiply overlay: multiply composite with color lerp(white, night blue). Multiply makes scene darker — nice. Then draw a subtle blue 'screen' light at top at night? Keep simple.
+
+Glow sprite: radial gradient white center → transparent, 256px. Draw with 'lighter' at night behind jelly, at nightAlpha.
+
+Fish drawing: use ctx transforms, draw each in local coordinates facing +x, flip when dir=-1 via scale(dir,1).
+
+Tropical fish (like a tang/damsel):
+```
+Body: ellipse rx=22 ry=13; tail: triangle fan behind with swish angle; stripes: 3 vertical bands clipped to body (use ellipse clip); dorsal fin small arc on top; small eye dot.
+```
+Clip per fish per frame: fine.
+
+Actually stripes are easier: draw body, then bands as rounded rects clipped by ellipse path. Use ctx.clip().
+
+Angelfish:
+Body: kite/diamond: path from nose (26,0) to (0,-24) top, back to (-14,0), to (0,24), close. Dorsal fin: extension line from top going up (0,-24) to (2,-46), thin; same for anal fin going down. Actual angelfish (Pomacanthus) have long dorsal/anal extensions. Draw: body diamond, long thin fins as curves (quadratic) from top-back to a point. Vertical stripes: 2-3. Cool palette: gradient from #6ea8dc to #9b7fd4? Let's use solid color: body #7fb2e5 with stripes #35507a and silver edges. Bob: y = baseY + sin(t*ω)*amp (amp ~ 26, slow ω ~0.7). Horizontal speed ~ 18 px/s (slow).
+
+Tropical speed ~ 55 px/s, drift: baseY wanders via slow sin + occasional target changes (use a sin with random phase per fish + tiny random walk on baseY with clamping).
+
+School: center C, heading θ. θ += (noise) → use θ += sin(t*0.3 + seed)*0.002 per frame? Better: θTarget changes every few seconds; θ lerps to it. Or continuous: θ += dt * turnRate, turnRate = smoothed random (Ornstein-Uhlenbeck): tr += (-tr*0.3 + (rand-0.5)*2)*dt. Plus edge avoidance: if center near margin (150px), add steer toward center: compute desired direction to center, blend θ toward it with strength based on proximity.
+
+Members: offset o_i that wanders: o_i += (target_i - o_i)*k*dt; target_i re-randomizes every 1-3s to a point within radius 30-60. Draw fish at C + o_i, rotated to θ, small speed oscillation. Body: tiny ellipse 6x2.5 with tail flick. Color: silver-blue #b9d4e8, slight variation in alpha.
+
+Also each member drawn with a slight individual rotation jitter.
+
+Turtle:
+Size ~ body length 70. Shell: oval rx 34 ry 24, scutes: central hex + 6-7 around (draw hex path with lines, stroke with dark, fill with slightly lighter). Head: circle in front, eye. Flippers: 2 front (rowing: rotation = sin(t*1.2)*0.5 with phase), 2 back smaller (phase offset). Position: x drifts with velocity 25 px/s, heading in range ±0.5 rad mostly horizontal (swim slightly up/down in arcs): angle = sin(t*0.15)*0.45; x += cos(angle)*speed*dt; y += sin(angle)*speed*dt*0.6. Gentle arc: use a second sin with different frequency for vertical: y = midY + sin(t*0.21)*40 + sin(t*0.047)*30. x traverses; when hits edge, flip dir, continue with dir. That gives graceful movement. Flip sprite horizontally via scale.
+
+Seahorse: draw with curves: body path: start at head (small circle) with snout (rounded rectangle forward), curved body: quadratic from head down to belly curve (out to -x? body curves like C), tail: series of arcs curling inward; curl angle = sin(t*0.4)*0.3. Dorsal fin: small flicker at belly (fast tiny sin). Bob: y = anchor + sin(t*0.9)*6; slight x sway. Colors: #e8a13c? Seagrass color: maybe #d98f5f or teal #4fa3a5. Let's do warm coral #e0955c with lighter belly, spots.
+
+Crab: body ellipse rx 16 ry 10, legs: 3 per side lines with scissor (angle offset sin(t*20)*0.2 while scuttle), claws: 2 arms with pincer circle + notch. Eyes: 2 stalks with dots. Color: #c86a3f? Red-orange #cf5b3a or purple? Let's go with coral red.
+
+Lobster: length ~ 90. Carapace: rounded rect/oval in front, big claw arms: 2 curved arms ending in big pincers (ellipse + notch). Tail: 6 segments: each a small arc shrinking, drawn back, slight bend sin. Antennae: 2 long curves from head, swaying. Legs small. Color: #b5542c / #a04425. Raise claws state: rotate claw arms up, hold 2.5s.
+
+Starfish: 5 arms: path with rounded lobes: for i in 5: angle = i*72° + rot; arm tip distance r1, sides r0.5. Use quadratic curves. Bumps: dots along each arm. Colors: ochre #c98a3e with darker spots. Motion: rot += 0.0004*dt... very slow; slight position crawl: every 20s move 2px? Keep "extremely slowly" — arms flex (breathing scale 1±0.02) and occasional tiny slide. Sits on a rock: position on a pre-placed rock.
+
+Anemone: base: small mound. 12-16 tentacles: each: base angle spread -80..80°, length 30-48, curve: quadratic from base (0,0) to tip (cos a * L, -sin...), tip offset by sin(t*1.1 + i*0.7)*6 + current. Stroke with round cap, width taper 4→1 (use 2 strokes or variable width: draw as quadratic with lineWidth 4 and smaller tip circle). Tip: small brighter dot. Colors: #b06ad0, tip #e08af0, or pink #d96aa8.
+
+Clownfish: body small ellipse 14x8 orange #f2762e, 3 white bands, tail. Orbit: pos = anemoneTop + (cos(t*0.7)*26, sin(t*0.9)*10) — loiter; hide phase: every ~8s, alpha→0 for 2s (inside). Draw in front of anemone.
+
+Shells pre-rendered:
+- Conch: spiral: draw with arcs shrinking; fill with #d98d66, stroke with spiral line.
+- Scallop: fan: wedge with radial ridges, #e6c98f.
+- Cowrie: smooth oval with slit, #e8d3b0.
+- Also a small spiral snail (optional) and a ship's wheel (treasure theme): circle with 8 spokes — sunken wheel + chest + coins. Nice.
+
+Chest: brown box, dark planks, metal bands, half-open lid with glowing coins? Coins: gold ovals. Subtle sparkle: animate a small sparkle on coins — needs dynamic. Instead: draw a sparkle (a 4-point star) with alpha oscillation in the dynamic pass — small cost. Let's do it.
+
+Motes: 50, each {x,y,r(0.5-1.6),vx(-3..3),vy(-5..-1),phase}; wrap; draw as circles with alpha 0.15+0.1 sin. Color pale cyan.
+
+Surface ripple: at y≈4..14: 2 sin lines, alpha 0.05, moving. Or a band gradient. Keep 3 subtle lines.
+
+Bubbles:
+Pool of max N (CONFIG.maxBubbles e.g. 60). spawnTimer; interval CONFIG.bubbleInterval ms (e.g. 450). Each bubble: x random (with clusters near vents? just random x, plus 3 fixed vent spots for streams), y start floorY+rand, r 2-6, wobble phase, wobbleAmp 4-10, speed 20-45 px/s (slower for larger). Update: y -= speed*dt*speedMul? Bubbles: use scaled dt for motion and spawn — consistent with speed multiplier.
+
+Bubble sprite: offscreen 64x64: radial gradient: center rgba(255,255,255,0.05), mid 0.55: 0.08, rim 0.78: rgba(255,255,255,0.35), then a specular dot at 30%,28% small white circle. Draw scaled to 2.2*r.
+
+Also bubble vent from a rock (stream) — the fixed spots give that.
+
+Now the CONFIG:
+
+```js
+const CONFIG = {
+  fishTropical: 4,
+  fishAngel: 3,
+  schoolSize: 12,
+  jellyfish: 3,
+  crabs: 2,
+  lobsters: 1,
+  starfish: 2,
+  seahorses: 2, // at least 1 — do 1? or 2 for richness. Keep 1 for perf? Seahorse is cheap; 2 near decor on opposite sides? Let's do 1 per requirement but 2 for richness. Let's do 2: one near anemone, one near seaweed.
+  turtle: 1,
+  clownfish: true,
+  speedMultiplier: 1,
+  bubbleIntervalMs: 420,
+  maxBubbles: 70,
+  dayNightSeconds: 60, // 0 to disable
+  motes: 46,
+  seaweedStalks: 5,
+  causticShafts: 6,
+  pixelRatioCap: 2,
+};
+```
+
+Day/night: default 60 seconds is nice to see change.
+
+Code structure:
+
+```
+<!DOCTYPE html><html><head><meta charset><meta viewport><title>...</title><style>html,body{margin:0;height:100%;overflow:hidden;background:#04121f}canvas{display:block}</style></head><body><canvas id="c"></canvas><script> ... </script></body></html>
+```
+
+Title: "Deep Aquarium" or similar.
+
+Now the main script, careful with allocations: use plain objects; per-frame allocations minimal (gradients avoided per frame; shadows avoided). Use ctx.save/restore around transforms (fine, cheap).
+
+Order of code:
+1. CONFIG
+2. canvas/ctx, resize
+3. utils (rand, randRange, TAU, clamp, lerp, pick)
+4. sprite pre-render (bubble, glow, shaft, sparkle)
+5. static scene builder (offscreen canvas for floor) — build after W,H known: buildFloor()
+6. state arrays for entities (rebuild on resize? or just reposition fractionally: simpler to re-init positions on resize with fractions)
+7. update(dt) & draw()
+8. loop with rAF, dt clamp (max 0.05), simTime.
+
+Let's define layout: floorTop = H*0.82. Sand undulation amplitude 8.
+
+Static floor canvas content (draw once on resize):
+- Sand: path: moveTo(0, H), lineTo(0, floorTop+und(0)), curve across with steps 24px: x+=24 → lineTo(x, floorTop + und(x)), lineTo(W,H) close. Fill with gradient (createLinearGradient y floorTop→H): #d2a469 → #8f6238? Warm sand. Add darker top-edge line? Add subtle: second pass with noise: 200 random small darker dots (precomputed once, seeded? random is fine per resize).
+- Pebbles: 26: random x, y in sand, small ellipse, gray/tan.
+- Rocks: 4: positions fx: .12, .38, .68, .9 (varying), size 24-46. Rounded: arc-based blob: draw with bezier or a few overlapping circles; color #5a6b78 / #49586a gradient, highlight arc on top lighter.
+- Corals: cluster A (branching) at fx .22, cluster B (brain) at fx .55, maybe another small branching at fx .78. Colors: branch #e0603f/#f08c4e; brain #d9714f with ridge stroke #a34534.
+- Shells: conch at fx .30 (size 26), scallop at fx .47 (22), cowrie at fx .62 (14), tiny spiral at fx .85 (10).
+- Ship's wheel at fx .13 (tilted, half-buried): circle radius 20, spokes, dark wood #6b4a2f with rust.
+- Chest at fx .72: 34x22 box, lid open 20°, coins inside.
+- Anemone base rock at fx .40 (anemone root) — but anemone is dynamic; base mound static: small sand bump + rock ring? Let's draw anemone fully dynamic (base + tentacles) so tentacles wave from a fixed base; base is static in floor canvas (mound + rock ring).
+- Seaweed roots: nothing (dynamic stalks start at floor).
+
+Wait: starfish should be placed on a rock — dynamic creature; position: place on top of rock A: store rock position; starfish at rock position y = rock top. Compute from same fx/size in both places.
+
+Decor positions stored in decor object computed on layout(): {anemoneX, rockA:{x,y,r}, ...}.
+
+Dynamic layer draws per frame (order):
+1. Background gradient (precomputed on resize: bgGradient = ctx.createLinearGradient(0,0,0,H), colors: top #041a2e? deep blue top → teal near bottom: top: #052033, mid #0a3550, bottom (at sand) #0f5e6b... let's pick: 0: #041e33, .55: #083a55, 1: #0d5f6e. Day/night handled by overlay.)
+2. Caustic shafts (screen).
+3. Surface light band: gradient rect top 0..80: rgba(150,220,235,0.10)→0. Precomputed gradient.
+4. Motes (behind creatures? mid). Motes can be drawn behind creatures (some in front for depth: split 2 groups).
+5. Distant silhouettes (3, alpha .18, small, slow, blue-grey #3a5a72).
+6. Bubbles (behind mid creatures) — half of them? Draw all bubbles here, in front of mid creatures; some bubbles in front later? Simpler: all bubbles here (behind creatures) + few foreground? Draw all bubbles behind creatures except a few front. Split pool: 70% behind, 30% front.
+7. Floor canvas (sand/rocks/coral/shells/chest/wheel).
+8. Back seaweed stalks (2, darker) — behind creatures but on floor; draw right after floor.
+9. Bottom-dwelling: starfish (on rock), crab, lobster, (shells already static).
+10. Mid creatures: turtle, tropical, angel, school, seahorse, clownfish, anemone (clownfish in front of anemone so it hides behind tentacles).
+11. Front seaweed (3).
+12. Front bubbles.
+13. Motes front half.
+14. Day/night overlay + glow + sparkles (chest coins, jelly night glow before overlay? Glow should be after darkness so it shows: draw glow after overlay with 'lighter').
+15. Vignette: subtle radial dark corners — precomputed radial gradient (createRadialGradient once per resize) drawn with alpha .35. Actually vignette with multiply? Simpler: precomputed radial transparent→rgba(0,10,20,.4) normal comp, drawn once per frame (drawImage of pre-rendered vignette canvas or fillRect with gradient). Pre-render vignette offscreen on resize, drawImage per frame — 1 call.
+
+Day/night overlay: multiply comp with fillStyle = rgb lerp: day (255,255,255), night (120,140,200)? Multiply by bluish dark: (90,110,170). factor = nightAmount (0..0.55). Compute nightAmount = (1 - dayFactor) * 0.85, dayFactor = 0.5+0.5*cos(2π * realTime/period). Also at night, reduce caustic alpha (multiply).
+
+Also stars at surface at night? Skip.
+
+Now the "no console errors" and perf: careful about all code paths. Let's write code carefully.
+
+Let me write entity update/draw functions.
+
+Global state:
+```js
+let W,H,DPR, floorTop;
+const state = { t:0, realT:0, dayF:1, night:0, spawnAcc:0 };
+```
+
+Entity containers:
+```js
+let tropicals=[], angels=[], school={}, jellies=[], crabs=[], lobsters=[], stars=[], seahorses=[], turtle={}, clown={}, anemone={x:0,y:0,seed:0}, seaweeds=[], motesB=[], motesF=[], bubbles=[], vents=[], shafts=[], distant=[];
+```
+
+Initialize on resize: call buildScene() that re-creates everything with new W,H. That's acceptable (resize is rare).
+
+Helpers:
+```js
+const TAU = Math.PI*2;
+const rand=(a,b)=>a+Math.random()*(b-a);
+const irand=(a,b)=>Math.floor(rand(a,b+1));
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const lerp=(a,b,t)=>a+(b-a)*t;
+const pick=arr=>arr[(Math.random()*arr.length)|0];
+```
+
+floorY(x) = floorTop + Math.sin(x*0.012)*5 + Math.sin(x*0.028+1.7)*3.5;
+
+Floor top baseline: floorTop = H*0.82.
+
+Sprite pre-render:
+
+```js
+function makeSprite(w,h,fn){const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');fn(g,w,h);return c;}
+```
+
+bubbleSprite = makeSprite(64,64,(g)=>{
+ g.beginPath(); g.arc(32,32,26,0,TAU);
+ const rg = g.createRadialGradient(32,32,4,32,32,26);
+ rg.addColorStop(0,'rgba(255,255,255,0.02)');
+ rg.addColorStop(0.72,'rgba(210,240,255,0.10)');
+ rg.addColorStop(0.92,'rgba(230,250,255,0.45)');
+ rg.addColorStop(1,'rgba(255,255,255,0.08)');
+ g.fillStyle=rg; g.fill();
+ // specular
+ g.beginPath(); g.arc(23,21,5,0,TAU); g.fillStyle='rgba(255,255,255,0.55)'; g.fill();
+ // bottom inner light
+ g.beginPath(); g.arc(38,42,3,0,TAU); g.fillStyle='rgba(255,255,255,0.25)'; g.fill();
+});
+
+glowSprite = makeSprite(128,128,g=>{const rg=g.createRadialGradient(64,64,0,64,64,64);rg.addColorStop(0,'rgba(160,220,255,0.9)');rg.addColorStop(0.4,'rgba(120,180,255,0.35)');rg.addColorStop(1,'rgba(120,180,255,0)');g.fillStyle=rg;g.fillRect(0,0,128,128);});
+
+shaftSprite = makeSprite(160,512,(g,w,h)=>{
+ // horizontal soft band
+ let lg=g.createLinearGradient(0,0,w,0);lg.addColorStop(0,'rgba(255,255,255,0)');lg.addColorStop(0.5,'rgba(255,255,255,1)');lg.addColorStop(1,'rgba(255,255,255,0)');
+ g.fillStyle=lg;g.fillRect(0,0,w,h);
+ // vertical fade (destination-in)
+ let vg=g.createLinearGradient(0,0,0,h);vg.addColorStop(0,'rgba(255,255,255,0.9)');vg.addColorStop(0.7,'rgba(255,255,255,0.25)');vg.addColorStop(1,'rgba(255,255,255,0)');
+ g.globalCompositeOperation='destination-in';g.fillStyle=vg;g.fillRect(0,0,w,h);
+});
+
+sparkle: 4-point star path in a 32 canvas, white.
+
+vignette: offscreen W,H with radial: transparent center → rgba(2,10,24,0.5) at edge. Rebuild on resize.
+
+Background gradient also rebuild on resize: bgGrad = ctx.createLinearGradient(0,0,0,H) stops: 0 '#04182b', 0.5 '#07344e', 0.85 '#0b5468', 1 '#0e6472'.
+
+Hmm "darker deep blue top → lighter teal-blue near bottom" — yes, that.
+
+Surface light: surfGrad linear 0→H*0.18: rgba(140,220,235,.14)→0.
+
+Now entities.
+
+Tropical fish:
+```js
+function spawnTropical(){ return { x:rand(0,W), y:rand(H*0.25,H*0.7), dir:Math.random()<0.5?-1:1, sp:rand(46,64), by:0, phase:rand(0,TAU), bobAmp:rand(6,14), bobW:rand(0.5,0.9), hue: pick([[...]]) , size:rand(0.85,1.2), turnT:rand(2,6) }; }
+```
+Update: x += dir*sp*dt; if x > W+30 → dir=-1... Actually "reverses at edge": if (dir>0 && x>W-40) dir=-1; if(dir<0&&x<40)dir=1. baseY wanders: turnT-=dt; if turnT<0 { targetY=rand(H*0.22,H*0.68); turnT=rand(3,7);} by += (targetY-by)*min(1,dt*0.5). y = by + sin(t*bobW+phase)*bobAmp. Also tail animation: tail = sin(t*8+phase).
+
+Draw (facing dir):
+```js
+ctx.save();ctx.translate(x,y);ctx.scale(dir*s, s);
+tail: ctx.beginPath(); ctx.moveTo(-14,0); ctx.lineTo(-26, -8+tail*3); ctx.lineTo(-24,0); ctx.lineTo(-26,8+tail*3); ctx.closePath(); fill with darker.
+body: ellipse 0,0 16,10 fill main (orange #f28a2e or variant palette).
+stripes: save, clip body ellipse, 3 vertical bands at x=-6,2,10 width 4, color #fff7e6 / #ffd23f, restore.
+dorsal: small triangle on top: (-4,-9) to (2,-16) to (6,-8).
+eye: circle at (9,-3) r2 white + pupil.
+```
+Palette variants:
+A: body #f2852e, band #ffe08a, tail #d96a20
+B: body #f6a83c, band #fff, tail #e08a2a
+C: body #f4d03f, band #fff, tail #d9b02a? Keep warm.
+
+Angelfish:
+```js
+{x, y, baseY, dir, sp:rand(16,24), phase:rand(0,TAU), bobAmp:rand(22,34), bobW:rand(0.5,0.7), s:rand(0.9,1.25), variant}
+```
+y = baseY + sin(t*bobW + phase)*bobAmp. x moves dir*sp*dt, reverse at edges (with margin 60). baseY fixed per fish (random H*0.25..0.6).
+
+Draw:
+```js
+scale(dir*s, s)
+// long dorsal fin: curve from (2,-16) to (14,-44) to (-8,-18)
+path: moveTo(4,-12) quadraticCurveTo(16,-40, -2,-44)? Let me design: body diamond: nose (24,0), top (2,-20), tail top (-12,-10), tail (-16,0), tail bottom (-12,10), bottom (2,20). Dorsal extension: line from top (2,-20) going up-left to (-4,-46), thin fin: draw as quadratic: moveTo(6,-14) → quadTo(10,-38, -4,-46) → quadTo(4,-34, -6,-16) close? Simplify: draw fin as thin triangle (2,-16),(−2,−48),(−10,−14). Anal: (−2,16),(−6,48),(−10,14).
+Stripes: 2 vertical-ish bands across diamond: clip to body path, bands at x 8 and -2 with angle.
+Colors: body gradient? Use solid: #7fb0e0 body, stripes #2e4f86, silver edge: stroke body with #d8e8f5 thin. Dorsal/anal fin fill #9db8e8 semi.
+```
+
+School:
+```js
+school = { cx, cy, heading, turn:0, members:[{ox,oy,tx,ty,ret:0, ph}], }
+```
+Update:
+```js
+turn += ((Math.random()-0.5)*0.6 - turn*0.4)*dt; // OU-ish
+heading += turn*dt;
+// edge steering:
+const m=160; let steer=0;
+if(cx<m) steer += (m-cx)/m; if(cx>W-m) steer -= (cx-(W-m))/m; same for y with smaller margin (H*0.3..H*0.75 band):
+desired = atan2(cyH - cy, cxT - cx); blend: heading = heading + (angleDiff(desired,heading))*strength*dt
+cx += cos(heading)*46*dt; cy += sin(heading)*30*dt;
+members: ret-=dt; if ret<0 {tx=rand(-55,55); ty=rand(-40,40); ret=rand(1,2.5);} ox += (tx-ox)*dt*2; ...
+```
+Draw each member: pos = cx+ox, cy+oy, angle = heading + jitter (sin(t*3+ph)*0.15). Tiny fish: ellipse 5.5x2.2, tail flick: draw as path: moveTo(6,0) quadTo(2, -2.4, -4, 0)... simpler: ellipse + tiny triangle tail with offset sin(t*10+ph)*1.5.
+Colors: #b8d8ea, alpha 0.9; slight per-member alpha.
+
+angleDiff helper: ((b-a+π*3)%TAU)-π.
+
+Jelly:
+```js
+jelly = { x, y, vx:0, vy:0, r:rand(20,34), phase:rand(0,TAU), pulseT:rand(0,1), tent:[{len, ph, off}], hue }
+```
+Behavior: pulseT += dt / pulsePeriod(≈1.6s); when >=1: pulseT=0; vy -= rand(28,40) (upward impulse); vx += rand(-8,8). Damping: vx *= (1 - dt*0.6); vy += 14*dt (sinking); clamp vy to [-60, 26]. Lateral drift: vx += sin(t*0.5+phase)*2*dt.
+Position clamps: y > H*0.55 (lower half) → push up gently: if y > H*0.55 then vy -= (y-H*0.55)*0.05? Better: "jellyfish occupy upper half" — clamp y to [H*0.08, H*0.52] softly: if y > H*0.52: vy -= (y - H*0.52)*2*dt; if y < H*0.06: vy += (H*0.06-y)*2*dt. x wraps with margin: if x < -60 x=W+60 etc.
+
+Pulse scale: p = pulseT; bellScale = 1 + 0.22 * Math.pow(Math.max(0, Math.sin(p*Math.PI)),2)? To make it visibly contract-then-relax: use s = 1 + 0.25*(1 - p) * (p<0.5? ...) hmm. Simpler: bell "squash" = 0.2*sin(p*TAU) but impulse at p=0. Let's do: when pulseT<0.25, bell is contracting (scaleY 1→0.8, scaleX 1→1.15) then relaxes. Compute k = pulseT<0.3 ? 1-pulseT/0.3 : 0; squash = k. scaleX = 1+0.18*squash, scaleY = 1-0.22*squash. Reads as a pulse.
+
+Draw: save, translate(x,y). Bell path: top: ellipse-ish: begin at (-r, 0) to (r,0), with control (r*0.9, -r*1.5)? Use: moveTo(-r,0); bezierCurveTo(-r, -r*1.5, r, -r*1.5, r, 0) for dome; then wavy bottom: 4 scallops: for i: small quadratic back from (r,0) to (-r,0): step x from r to -r, each quad dips with control y +6 (scallops outward). Fill with gradient: radial (0,-r*0.6): rgba(255,255,255,0.5) → rgba(180,120,255,0.28)? Use per-jelly hue: base color hsla. Use: fillStyle = `rgba(${r_},${g_},${b_},0.30)` plus inner glow ellipse. Stroke rim rgba(255,255,255,0.35).
+Inner: 4 small oral arm blobs under bell (short thick strokes).
+Tentacles: 6: for each: baseX spread -0.7r..0.7r, baseY 0; tip trail opposite to velocity: tx = -vx*0.15 + sway, ty = r*1.6 + ... draw quadratic from (bx, 4) to (bx + sway, len) with control (bx + sway*0.5, len*0.5). Sway = sin(t*1.4 + ph)*6. lineWidth 1.5, strokeStyle rgba(...,0.35).
+Night glow: after overlay, if night>0.05: drawImage(glowSprite) at (x, y - r*0.4) size r*4, alpha night*0.5, comp 'lighter'. Also a faint glow for seahorse and school? Jelly only + turtle maybe? Spec: "jellyfish and certain fish can glow faintly." Jelly + clownfish? Clown isn't glowing. Let's do jelly + angelfish (cool color, faint). OK.
+
+Crab:
+```js
+crab = {x, dir:1, state:'wait', t:rand(0,2), speed: rand(30,50), ph:rand(0,TAU), s:rand(0.8,1.15), y:0}
+```
+Update: t -= dt; if wait: if t<=0 → state 'walk', t=rand(0.7,1.4), dir *= (Math.random()<0.6?-1:1) (often reverse). If walk: x += dir*speed*dt* (scuttle: add step jitter: * (1+0.3*sin(t*30)) ) ; if t<=0 → state 'wait', t=rand(1.2,3).
+Crab retreats when fish close: for each tropical/angel/turtle: dx = x-cx, if |dy| < 60 && |dx| < 90 → dir = -sign(dx), state='walk', t=max(t,0.8).
+y = floorY(x) - 6*s.
+x clamps [30, W-30] (bounce: if out, flip dir).
+Leg animation: legPhase += dt * (state=='walk' ? 22 : 0).
+
+Draw: translate, scale(dir,1)*s:
+Body: ellipse (0,-6) rx 14 ry 9 fill #cf5b3a; slightly darker bottom.
+Legs: 3 per side: lines from (-6,-2) going down-outward with scissor: angle base -0.3,0,0.3 + sin(legPhase + i)*0.25 (while walking). Stroke width 2.5, darker color.
+Claws: arm from (10,-8) to (17,-12) → pincer: circle r4.5 + notch (arc cut with background? draw notch with small triangle of darker). Simplify: pincer = two small ellipses forming pincer: circle r4.5, with a darker wedge from the side. Eye: stalk: line (6,-14)→(7,-19), dot r2.5 dark, white glint.
+
+Lobster:
+```js
+lob = { x, dir:1, sp:14, state:'walk'|'pause'|'show', t, phase, s:1 }
+```
+Update: t-=dt; walk: x+=dir*sp*dt; pause: if t<0 → t=rand(2,4); show (claw raise): t<0 → walk t=rand(2,3). Sequence: walk (2-4s) → pause (1-2s) → show (2.5s) → walk...
+x clamps [60, W-60], flip dir.
+y=floorY(x).
+raise = state=='show' ? 1 : 0, smooth: lerp lob.raise toward target at rate 3/s.
+
+Draw (facing dir): translate(x,y), scale(dir*s, s):
+- Tail: 6 segments: start from back x=-18, going to -66: each seg: draw an arc/ellipse rx 7-i, ry 5-i*0.5, with slight y wiggle sin(t*2+i)*1.5 + bend on raise. Draw back to front (front segments overlap). Tail fan at end: small triangle.
+- Carapace: ellipse (0,-8) rx 20 ry 10 fill #b5542c; head: circle (18,-8) r7; antennae: 2 curves from (22,-10) with quad to (48,-16 + sin(t*1.3)*4), (50,-8+...), thin.
+- Legs: 4 small per side under body.
+- Claws: arm: from (12,-12) curving to claw position: clawY = lerp(-14, -34, raise); claw: big pincer: ellipse rx7 ry5 rotated + notch.
+- Eyes: small dot on head.
+
+Starfish:
+```js
+star = {x, y, rot:rand(0,TAU), ph, s, onRock:boolean}
+```
+Motion: rot += 0.02*dt*dir? Extremely slow: rot += 0.004*dt*dir; position: occasional slide: slideT -=dt; if <0 { target x offset ±2px; slideT=rand(15,25)}; x lerps.
+Draw: 5 arms: for i: a = rot + i*TAU/5; arm: path: moveTo center; quadratic to tip (cos a * R, sin a * R*0.9) with width via 2 quads: draw each arm as a rounded lobe: use path: for each arm, 2 points on each side at mid (perpendicular offset), and tip. Simpler approach: draw with a loop: for each arm: begin path, moveTo(p1) (side at 0.5R), quad to tip, quad to p2, quad to inner point, close; fill. R=16*s. Bumps: 5 dots per arm, radius 1, darker. Colors: #c98a3e with dots #a5642a, or rust #b96a3c.
+
+Seahorse:
+```js
+seahorse = { ax (anchor x), y0, dir, ph, s, hue }
+```
+Position: x = ax + dir*10 + sin(t*0.6+ph)*4; y = y0 + sin(t*0.9+ph)*7.
+Draw: facing dir: body: path: head circle (4,-26) r5.5; snout: rounded rect (8,-26)→(16,-24) thin; body: curve from head down: quadratic to belly (2,-8) outward, then down to (0,8) narrowing; belly bulge: use bezier: moveTo(2,-22) bezierCurveTo(10,-12, 8,2, 2,10) ... then tail: from (2,10): 3 shrinking arcs curling inward (toward -x? tail curls around: draw as series of arcs: 4 circles at decreasing r along spiral path: spiral center (−6, 16 + curl*4): radius 6,4.5,3.2,2.1; curl = 0.5+0.5*sin(t*0.5+ph) — spiral radius shrinks slightly with curl (tighter curl). Simpler: draw tail as spiral path: start from body bottom, arcs: ctx.arc with decreasing radius and rotating centers. Let's do: tail: begin path moveTo(1,10); then 3 quad segments:
+```
+let tx=1, ty=10, a=Math.PI/2 (down-left dir?)
+```
+Let's just do: use an arc spiral: center shifts. Honestly, the simplest and convincing: draw a spiral polyline: points p_k = C + (r0 - k*dr) * (cos θk, sin θk), θk = k*2.1, C=(−3,15), r0=7, dr=1.2, k=0..7; stroke with decreasing lineWidth? A single stroke width 4 with round caps, then a second stroke width 4 in body color? Actually seahorse tail: same color as body, tapering — draw as stroke with width 4.5, then overlay thinner? Just stroke with width 4 round cap: reads as curl. Curl variation: r0 varies with curl (7±1), and C y varies ±2 → gentle curl/un-curl.
+- Coronet: small bump on head.
+- Dorsal fin: at (8,-6): small fan that flickers: triangle with fast sin(t*14)*0.4 rotation, alpha 0.8.
+- Eye dot.
+- Colors: body #e0955c, belly stripe #f2c48d, tail same, spots darker.
+
+Seahorse anchor: near anemone: ax = anemoneX + 46, y0 = anemoneTopY - 40. Second seahorse near left seaweed.
+
+Turtle:
+```js
+turtle = { x: W*0.5, y: H*0.42, dir:1, sp: 24, t:0, ph:rand(0,TAU), s:1.15 }
+```
+Update: angle = sin(realT*0.13 + ph)*0.5; x += dir * cos(angle)*sp*dt; y += sin(angle)*sp*dt*0.7 + sin(t*0.21+ph)*0.15... let's keep y driven: y = yBase + sin(t*0.17+ph)*H*0.09; yBase fixed at H*0.42. x += dir*sp*cos(angle)*dt; if x>W-70 dir=-1; if x<70 dir=1. Flip is abrupt but "occasionally changes direction in gentle arcs" — flip on edges is fine (they are edges). Add slight banking: rotation = angle*0.6*dir... draw with rotation = angle * dir? For a top-down-ish side view: turtle drawn in side profile; rotation = sin(angle)*... Let's draw turtle in side profile, slightly rotated by sin(angle)*0.35 (tilting). Rowing: front flipper angle = sin(t*1.6)*0.55; back = sin(t*1.6+2.6)*0.35.
+
+Draw: translate(x,y), rotate(tilt), scale(dir*s, s):
+- Back flipper (draw first): rotated ellipse at (-14, 6).
+- Shell: oval rx 26 ry 17 fill #3f7d5a? Sea turtle shell: greenish #4e8a6a with scutes: central hexagon (r 9) + 6 around (r 8), stroke #2c5a44 lw2, fill #58966f. Rim: stroke shell with darker lw 3.
+- Head: circle (24,-2) r 7.5 fill #4e8a6a; eye (27,-3) r1.5 dark; tiny smile? Skip.
+- Front flipper: at (12,10): ellipse rx 12 ry 4.5 rotated (0.5 + sin*0.55) — rowing: angle = -0.2 + sin(t*1.6)*0.6.
+- Front second flipper (behind shell, phase offset, slightly darker).
+- Tail nub.
+
+Clownfish:
+```js
+clown = { ph, hideT:0, cycle: 0 }
+```
+Update: cycle += dt; hide pattern: period 9s: h = (cycle % 9); hidden = h < 2.2 → alphaTarget 0 else 1; alpha lerps toward target at rate 2.
+Position: orbit around anemone head: cx = anemoneX + cos(t*0.55+ph)*30, cy = anemoneTopY - 14 + sin(t*0.8+ph)*9. Facing: sign of d/dt of x = -sin(...)*30 → dir = cos(t*0.55+ph)*(-sin? ) just compute: vx = -sin(t*0.55+ph)*30*0.55 → dir = vx>0?1:-1.
+Draw like small tropical: orange with 3 white bands, alpha.
+
+Anemone: base at (anX, floorY(anX)): 14 tentacles, each: len rand 26-44, baseAng spread -1.9..-1.2? Tentacles point up: angle from -2.6..-0.5 rad. Tip: base + dir*len + sway: swayX = sin(t*1.2 + i*0.8)*7 + global current sin(t*0.4)*4; also pulse: len_i = len*(1+0.08*sin(t*2+i)). Draw: quadratic from base (spread x, -4) to (tipX, tipY) with control at (midX, midY-6). Stroke with gradient? Per-tentacle per-frame gradient = allocation — avoid: solid color #c06ad8, lineWidth 3.5 round cap, then tip circle r2 #f0a0ff. 14 tentacles × 2 draws fine.
+Base mound: static floor canvas: small mound #7a5a6a + ring.
+
+Seaweed: 5 stalks: each: {x, h, hue: green (95-140), w, seg: 9, ph, spd}. Update none (time-based in draw). Draw: from base (x, floorY(x)+2) going up: segment length h/seg; each point: offset = sin(t*spd + ph + i*0.55) * (2 + i*1.6). Compute cumulative: px_i = x + off_i, py_i = baseY - i*segLen. Draw as a path through points with quadratic smoothing, stroke with lineWidth taper — Canvas stroke single width; draw twice: full path width 5, then top half width 2.5 lighter? Simpler: stroke each segment individually with width = 5 - i*0.45. 9 segments × 5 stalks = 45 strokes fine. Colors: hsl(hue, 55%, 32%) back ones darker, front ones lighter 40%.
+Also kelp with blade? Keep simple stalks (grass-like) + one kelp ribbon? Keep stalks.
+
+Motes: 2 arrays (back 30, front 20): {x,y,r,sp,drift,ph}; update: y -= sp*dt (slow rise) or random drift: x += sin(t*0.3+ph)*4*dt; y += vy*dt (vy -2..-6); wrap: if y<-10 → y=H+10, x=rand. Draw: alpha = 0.10+0.08*sin(t+ph); fillStyle 'rgba(200,230,240,α)' — per-mote alpha string allocation per frame... 50 allocations/frame is actually fine but let's minimize: group: set fillStyle once with 3 alpha tiers? Motes vary; simplest: use globalAlpha per mote (no string alloc): set ctx.fillStyle once ('rgb(205,235,245)'), then per-mote globalAlpha. globalAlpha setting is cheap.
+
+Distant silhouettes: 3: {x,y,sp,dir,s,ph}; slow 10-16 px/s, sin small y; draw simple fish shape fill 'rgba(40,70,95,0.5)'? With alpha 0.35 and blur? No blur; small size 0.6. Draw before floor (behind mid creatures) but after shafts. Actually behind sand? Sand is on the bottom; silhouettes swim in mid area above sand; draw after bubbles? Order: bg, shafts, surface, motesBack, distant, bubblesBack, floor, backSeaweed, bottom-dwelling, mid-creatures, anemone+clown (clown in front of anemone), frontSeaweed, bubblesFront, motesFront, overlay, glow, sparkle, vignette.
+
+Bubble spawn: vents: 3 fixed x fractions (0.18, 0.5, 0.82) + random. spawnAcc += dt*speed; if spawnAcc > interval && activeCount < max: spawn at vent (random pick, 60% vent else random x). Bubble: {x, y: floorY(x)-rand(0,10), r: rand(1.8,5.5), vy: rand(22,40) - r*2, ph: rand(0,TAU), amp: rand(3,9), front: Math.random()<0.28, x0}.
+Update: y -= vy*dt; x = x0 + sin(y*0.02 + ph)*amp; (wobble with y so as it rises it oscillates). if y < -12 → recycle (dead). Count active.
+Draw: drawImage(bubbleSprite, x-r*1.6, y-r*1.6, r*3.2, r*3.2), alpha 0.8.
+
+Day/night:
+```js
+if(CONFIG.dayNightSeconds>0){ const c = (state.realT / CONFIG.dayNightSeconds) % 1; state.dayF = 0.5+0.5*Math.cos(c*TAU); } else state.dayF=1;
+state.night = (1-state.dayF);
+```
+realT advances by raw dt (not speed-scaled). Start at c=0 → day.
+
+Overlay: if dayNight enabled:
+```js
+const n = state.night;
+ctx.globalCompositeOperation='multiply';
+ctx.fillStyle = `rgb(${lerp(255, 88, n*0.8)|0}, ${lerp(255,105, n*0.8)|0}, ${lerp(255,175, n*0.8)|0})`;
+```
+Hmm at day n=0 → white (no-op). At night n=1: multiply by (88,105,175) → darker blue.
+Also reduce caustic alpha: shaftAlpha *= lerp(1,0.45, n).
+Glow pass (comp 'lighter'): jelly: alpha n*0.45, size r*4.6; angelfish: n*0.2, size 60.
+Also stars at surface at night? Skip.
+
+Sparkle at chest: chest position saved; sparkle draw: alpha = max(0, sin(t*0.9))^6 * 0.9 → 4-point star via lines or drawImage(sparkleSprite).
+
+Chest is static (in floor canvas) but sparkle dynamic: save chestX, chestY.
+
+Vignette: rebuild on resize: radial from center (W/2,H*0.45) inner r min*0.55, outer max*0.95: rgba(0,0,0,0) → rgba(2,8,18,0.42). drawImage per frame.
+
+Now performance: per-frame operations: ~6 shaft drawImage, ~50 mote arcs (fill each with own arc? use ctx.arc+fill per mote — 50 fill calls fine), 1 floor canvas drawImage, 25 seaweed strokes, ~30 creature draws with a few paths each, 60 bubbles drawImage, overlay 2 fills, vignette 1 drawImage. Total ~300-400 draw ops — fine at 60fps.
+
+Delta time: dt = min(0.05, (now-last)/1000); simDt = dt * CONFIG.speedMultiplier; state.t += simDt.
+
+Let's write the angleDiff:
+```js
+const angDiff=(a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
+```
+
+School steering:
+```js
+function updSchool(s, dt){
+  s.turn += ((Math.random()-0.5)*1.2 - s.turn*0.5)*dt;
+  s.heading += s.turn*dt;
+  const mx=170, top=H*0.18, bot=H*0.72;
+  let sx=0, sy=0;
+  if(s.cx<mx) sx=(mx-s.cx)/mx; else if(s.cx>W-mx) sx=-((s.cx-(W-mx))/mx);
+  if(s.cy<top+60) sy=(top+60-s.cy)/60*0.6; else if(s.cy>bot) sy=-((s.cy-bot)/60)*0.6;
+  if(sx||sy){ const des=Math.atan2(sy,sx); s.heading += angDiff(des,s.heading)*Math.min(1,dt*2.2)*Math.min(1,Math.max(Math.abs(sx),Math.abs(sy))); }
+  s.cx += Math.cos(s.heading)*44*dt;
+  s.cy += Math.sin(s.heading)*26*dt;
+  for(const m of s.members){ m.ret-=dt; if(m.ret<=0){ m.tx=rand(-58,58); m.ty=rand(-42,42); m.ret=rand(0.8,2.4);} m.ox += (m.tx-m.ox)*Math.min(1,dt*2.5); m.oy += (m.ty-m.oy)*Math.min(1,dt*2.5); }
+}
+```
+
+Fish avoidance (crab): loop through tropicals+angels+turtle: check.
+
+Edge handling all: ensure x in [−40, W+40] etc. with bounces/wraps.
+
+Distribute: initialize with spread positions: divide width into slots.
+
+Now let's write static floor builder:
+
+```js
+function buildFloor(){
+ floorCv = makeCanvas(W*DPR?...)
+```
+For crispness, offscreen at device pixels: size W*DPR, H*DPR, and use scale(DPR) on its ctx; draw with CSS pixel coords; then drawImage(floorCv, 0,0, W, H) into main ctx (which has DPR transform) → correct.
+
+Actually drawImage(floorCv, 0,0, W, H) into ctx with DPR transform: draws floorCv (W*DPR px wide) scaled to W CSS px → W*DPR device px → 1:1.
+
+makeCanvas(w,h): canvas with w*DPR,h*DPR, ctx scaled.
+
+Floor content (CSS coords):
+```js
+const g = fctx;
+// sand
+g.beginPath(); g.moveTo(0,H);
+for(let x=0;x<=W;x+=16){ g.lineTo(x, floorTop + und(x)); }
+g.lineTo(W,H); g.closePath();
+const sg=g.createLinearGradient(0,floorTop-10,0,H);
+sg.addColorStop(0,'#d8ac72'); sg.addColorStop(0.35,'#c0925c'); sg.addColorStop(1,'#7d5836');
+g.fillStyle=sg; g.fill();
+// top edge highlight
+g.strokeStyle='rgba(255,235,190,0.25)'; g.lineWidth=2; g.beginPath(); for(...){lineTo(x, floorTop+und(x)-1)} stroke;
+// sand speckle
+for(i<260): x rand, y floorTop+und+rand(2, (H-floorTop)*0.8): dot rgba(90,60,30,0.25) r rand(0.6,1.6); some lighter rgba(255,240,200,0.18)
+// pebbles 22: ellipse, fill pick(['#8d7b64','#6f7a84','#a08a6a','#77828c']), tiny highlight.
+```
+
+Rocks: function drawRock(g,x,y,r): blob: 7 points around with radius r*(0.75+rand*0.5), smoothed with quadratic through midpoints; fill gradient (top lighter). Store rock list for starfish placement.
+
+Coral branching: function drawBranchCoral(g,x,y,s,color): recursive: branch(x,y,ang,len,depth): if depth==0 return; tip = x+cos(ang)*len, y+sin(ang)*len; draw line from (x,y) to tip with width depth*1.6; then 2-3 child branches: ang ± rand(0.4,0.9), len*0.72, depth-1. Start with 3 roots at ang -PI/2 ± 0.5. Colors: base #e0603f, tips: draw circle at leaf tips #ff9d5c.
+
+Brain coral: dome: arc path (semi-ellipse rx 30 s, ry 20 s) fill #d97a52; ridge: 4-5 wavy lines across dome: for k: path of sin curves, stroke #a54a33 lw 1.5, clipped to dome.
+
+Shells:
+Conch (x,y,s): spiral: draw with arc shrinking: r=s, center shifting: use path: start from outer circle... simplest: draw 3 nested arcs: circles with decreasing radius offset; fill #d98d66; stroke spiral line #8a4a32: path: for t=0..3.5*TAU*? with angle steps: r = s*exp(-0.18*a); px = x + cos(a)*r... draw polyline. Plus a lip: small triangle on bottom.
+Scallop (x,y,s): fan: path: moveTo(x,y); arc(x,y, s, -PI, 0)? Fan shape: from point (x,y), arc from angle PI..2PI (upper half) with radius s: then close → half-disc; ridges: 7 lines from (x,y) to arc; scallop edge: small bumps: skip bumps, add stroke. Fill #e6c98f, stroke #b08d55, ridges #c9a86e. Rotate slightly.
+Cowrie (x,y,s): oval rx s ry s*0.62 fill #ecd8b4; slit: dark line on underside: stroke; small circles along bottom: 3 dots.
+Small spiral (x,y,s): circles with decreasing radius spiral, fill #c98f9a? Pinkish.
+
+Ship's wheel (x,y,s): tilted: save, translate, rotate(0.35), 6 spokes (lines through center), rim: circle stroke lw 4 #6b4a2f; handle knobs: 6 circles outside rim; hub circle. Rust color #5d432c, stroke.
+Half-buried: draw then cover bottom with sand? Draw wheel before sand? No — wheel is on top of sand. Draw a sand mound on top of lower half: after wheel, small sand-colored mound path on lower half.
+
+Chest (x,y): body 36x20 rect (x-18,y-20): fill #7a5230, plank lines #5d3c22, metal bands #4a4a52 (vertical 2 + lid edge), lid: rect above rotated -0.5 open: fill #6b4626 with band; coins: 5 ovals #e8b84a in the opening + 3 on sand in front. Save sparkle position at (x+6, y-16).
+
+Starfish anchor: rock at fx 0.38? Let's place rocks:
+rockList = [ {fx:.10, r:30}, {fx:.34, r:22}, {fx:.60, r:34}, {fx:.88, r:26} ].
+Coral A (branching) at fx .22 (behind rock .10? offset), coral B (brain) at fx .52, coral C small branching at fx .76.
+Shells: conch fx .30, scallop fx .46, cowrie fx .64, spiral fx .80.
+Wheel fx .13? near rock .10 — wheel at fx .07? Let's do: wheel fx .06, chest fx .68? chest near cowrie... chest fx .71, shells .64 nearby fine. Anemone fx .42 (on sand, between shells). Starfish 1 on rock .60, starfish 2 on rock .10? Crabs at .25 and .78, lobster at .5.
+Seaweed: fx .04 (h .30), .18 (h .22), .37 (h .36), .70 (h .26), .93 (h .33) — heights as fraction of H. Back: .18, .37? Split: back [0.04,0.55? ] hmm 2 back: .18, .70; 3 front: .04, .37, .93.
+
+Seahorse 1: near anemone fx .42 → ax = W*0.42 + 40, y0 = floorY - 70? anemone top ≈ floorY-40; seahorse hovers near: y0 = floorY(W*.42) - 78. Seahorse 2 near seaweed .37: ax = W*.37 - 34, y0 = floorY - 55.
+
+Ensure creatures don't overlap too much: fine.
+
+Jelly y range: [H*0.07, H*0.5].
+
+Now day/night and "certain fish glow faintly" — angelfish and jellies get glow.
+
+Now let's write code fully. Careful: no undefined vars, all functions defined before use in runtime order (function declarations hoisted anyway).
+
+Also: `resize` → `layout()` re-init: re-init entities with W,H (positions). Also rebuild floor, bgGrad, vignette, surfaceGrad.
+
+Bubble pool: array of fixed max size with active flag? Simpler: array of active bubbles; recycle: if bubble reaches top → remove via swap-pop. Allocations minor. Keep pool to avoid GC: keep array, swap with last, length--. Spawn pushes object (allocated at spawn — fine, ≤1 per 420ms).
+
+Motes wrap.
+
+Text: none. Title: "Deep Blue — Animated Aquarium".
+
+Add a small HUD? No — decorative page; maybe a subtle title fade at top? Requirement: desktop decoration; a small caption bottom-left "deep blue aquarium" that fades out after 6s? Keep minimal: no text overlay, cleaner. Actually a subtle small title top-left with low opacity, CSS, fading to 0 after 8s — nice touch. Let's add: <div id="t">Deep Blue</div>, CSS fade-out animation. Non-interactive. OK.
+
+Handle prefers-reduced-motion? Not required; skip.
+
+Now, let me write the code carefully, mentally compiling.
+
+Potential pitfalls:
+- ctx.ellipse availability: fine in modern.
+- 'multiply' and 'lighter' composites: fine.
+- Ensure globalAlpha reset to 1 after use.
+- Ensure globalCompositeOperation reset to 'source-over'.
+
+Let me draft the full file.
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deep Blue — Living Aquarium</title>
+<style>
+  html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#04182b;}
+  canvas{display:block;position:fixed;inset:0;}
+  #t{position:fixed;left:18px;top:14px;font:600 13px/1.4 system-ui,sans-serif;letter-spacing:.35em;text-transform:uppercase;color:#bfe4ee;opacity:.85;pointer-events:none;animation:fade 9s ease forwards;}
+  @keyframes fade{0%,55%{opacity:.85}100%{opacity:0}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="t">deep&nbsp;blue</div>
+<script>
+"use strict";
+/* ============ CONFIG ============ */
+const CONFIG = {
+  tropicalFish: 4,
+  angelfish: 3,
+  schoolSize: 12,
+  jellyfish: 3,
+  crabs: 2,
+  lobsters: 1,
+  starfish: 2,
+  seahorses: 2,
+  turtles: 1,
+  clownfish: true,
+  speedMultiplier: 1,
+  bubbleIntervalMs: 420,
+  maxBubbles: 70,
+  dayNightSeconds: 75,   // 0 to disable
+  motes: 52,
+  causticShafts: 6,
+  seaweedStalks: 5,
+  pixelRatioCap: 2,
+};
+```
+
+Then rest. Let's write each draw function concretely.
+
+I'll write it all in one pass now, keeping it consistent.
+
+```js
+const TAU = Math.PI*2;
+const rand=(a,b)=>a+Math.random()*(b-a);
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const lerp=(a,b,t)=>a+(b-a)*t;
+const pick=a=>a[(Math.random()*a.length)|0];
+const angDiff=(a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
+
+const canvas=document.getElementById('c');
+const ctx=canvas.getContext('2d');
+let W=0,H=0,DPR=1,floorTop=0;
+const und=x=>Math.sin(x*0.012)*5+Math.sin(x*0.028+1.7)*3.5;
+const floorY=x=>floorTop+und(x);
+
+function makeLayer(w,h){const c=document.createElement('canvas');c.width=Math.max(1,w*DPR|0);c.height=Math.max(1,h*DPR|0);const g=c.getContext('2d');g.scale(DPR,DPR);return [c,g];}
+```
+
+Sprites (created once):
+
+```js
+function makeSprite(w,h,fn){const c=document.createElement('canvas');c.width=w;c.height=h;fn(c.getContext('2d'),w,h);return c;}
+const bubbleSpr = makeSprite(64,64,g=>{ ... });
+const glowSpr = makeSprite(128,128,g=>{...});
+const shaftSpr = makeSprite(160,512,g=>{...});
+const sparkleSpr = makeSprite(32,32,g=>{ g.strokeStyle='#fff';g.lineWidth=1.6; g.lineCap='round'; g.beginPath(); g.moveTo(16,3);g.lineTo(16,29); g.moveTo(3,16);g.lineTo(29,16); g.moveTo(7.5,7.5); g.lineTo(24.5,24.5); g.moveTo(24.5,7.5);g.lineTo(7.5,24.5); g.stroke(); });
+```
+Sparkle with 4 diagonal lines may look busy; use main cross + short diagonals: ok.
+
+State and scene:
+
+```js
+let bgGrad, surfGrad, vigCv, floorCv;
+let tropicals=[],angels=[],jellies=[],crabs=[],lobsters=[],starfishArr=[],seahorses=[],turtles=[],distant=[],shafts=[],motesB=[],motesF=[],bubbles=[],seaweeds=[];
+let school=null, clown=null, anemone={x:0,y:0,ph:0}, chestPos={x:0,y:0}, vents=[];
+const time={t:0,rt:0,dayF:1,night:0,spawn:0};
+```
+
+Resize:
+
+```js
+function resize(){
+  DPR=Math.min(window.devicePixelRatio||1, CONFIG.pixelRatioCap);
+  W=window.innerWidth; H=window.innerHeight;
+  canvas.width=W*DPR|0; canvas.height=H*DPR|0;
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  floorTop=H*0.82;
+  bgGrad=ctx.createLinearGradient(0,0,0,H);
+  bgGrad.addColorStop(0,'#031525');
+  bgGrad.addColorStop(0.45,'#06304a');
+  bgGrad.addColorStop(0.8,'#0a4f63');
+  bgGrad.addColorStop(1,'#0d606e');
+  surfGrad=ctx.createLinearGradient(0,0,0,H*0.16);
+  surfGrad.addColorStop(0,'rgba(150,225,240,0.16)');
+  surfGrad.addColorStop(1,'rgba(150,225,240,0)');
+  // vignette
+  const [vc,vg]=makeLayer(W,H);
+  const rg=vg.createRadialGradient(W/2,H*0.42,Math.min(W,H)*0.42, W/2,H*0.5, Math.hypot(W,H)*0.62);
+  rg.addColorStop(0,'rgba(2,8,18,0)'); rg.addColorStop(1,'rgba(2,8,18,0.5)');
+  vg.fillStyle=rg; vg.fillRect(0,0,W,H); vigCv=vc;
+  buildScene();
+}
+window.addEventListener('resize',resize);
+```
+
+buildScene(): build floor layer and all entities.
+
+```js
+function buildScene(){
+  buildFloor();
+  // shafts
+  shafts=[];
+  for(let i=0;i<CONFIG.causticShafts;i++) shafts.push({fx:(i+0.5)/CONFIG.causticShafts + rand(-0.05,0.05), w:rand(60,150), rot:rand(-0.22,0.1), spd:rand(0.05,0.12), ph:rand(0,TAU), a:rand(0.05,0.10)});
+  // motes
+  motesB=[];motesF=[];
+  const half=CONFIG.motes>>1;
+  for(let i=0;i<half;i++) motesB.push(mkMote(0.08));
+  for(let i=0;i<CONFIG.motes-half;i++) motesF.push(mkMote(0.16));
+  // distant silhouettes
+  distant=[];
+  for(let i=0;i<3;i++) distant.push({x:rand(0,W),y:rand(H*0.25,H*0.6),sp:rand(9,16)*(Math.random()<0.5?-1:1),s:rand(0.5,0.7),ph:rand(0,TAU)});
+  // bubbles reset
+  bubbles.length=0; time.spawn=0;
+  vents=[0.18,0.5,0.82].map(f=>f*W);
+  // creatures...
+  tropicals=[]; for(i<CONFIG.tropicalFish) tropicals.push(mkTropical(i));
+  ...
+}
+```
+
+mkTropical(i): x = W*(i+0.5)/n + rand(-40,40), dir alternates.
+
+Floor builder with decor:
+
+```js
+function buildFloor(){
+  const [fc,g]=makeLayer(W,H); floorCv=fc;
+  // --- sand
+  const sg=g.createLinearGradient(0,floorTop-12,0,H);
+  sg.addColorStop(0,'#dcb077'); sg.addColorStop(0.4,'#c0925c'); sg.addColorStop(1,'#7c5735');
+  g.fillStyle=sg; g.beginPath(); g.moveTo(-4,H+4); g.lineTo(-4,floorY(0));
+  for(let x=0;x<=W+16;x+=16) g.lineTo(x,floorY(x));
+  g.lineTo(W+4,H+4); g.closePath(); g.fill();
+  g.strokeStyle='rgba(255,236,196,0.28)'; g.lineWidth=2;
+  g.beginPath(); g.moveTo(0,floorY(0)-1);
+  for(let x=16;x<=W;x+=16) g.lineTo(x,floorY(x)-1); g.stroke();
+  // speckle
+  for(let i=0;i<240;i++){const x=rand(0,W), y=floorY(x)+rand(3,H-floorY(x)-2);
+    g.fillStyle=Math.random()<0.5?'rgba(88,58,30,0.22)':'rgba(255,238,200,0.14)';
+    g.beginPath(); g.arc(x,y,rand(0.5,1.6),0,TAU); g.fill();}
+  // pebbles
+  const pcols=['#8d7b64','#6f7a84','#a08a6a','#77828c','#8a6f57'];
+  for(let i=0;i<24;i++){const x=rand(0,W), r=rand(2.5,6.5), y=floorY(x)+r*0.4+rand(0,10);
+    g.fillStyle=pick(pcols); g.beginPath(); g.ellipse(x,y,r,r*0.72,rand(-0.4,0.4),0,TAU); g.fill();
+    g.fillStyle='rgba(255,255,255,0.15)'; g.beginPath(); g.ellipse(x-r*0.3,y-r*0.3,r*0.35,r*0.22,0,0,TAU); g.fill();}
+  // rocks
+  const rocks=[[0.10,30],[0.34,21],[0.60,33],[0.88,25]];
+  rocks.forEach((r,i)=>{ const x=r[0]*W, y=floorY(x)+r[1]*0.35; drawRock(g,x,y,r[1], i%2? 0:1); });
+  // corals
+  drawBranchCoral(g, W*0.225, floorY(W*0.225)+4, 30, ['#e0603f','#ff9d5c']);
+  drawBrainCoral(g, W*0.52, floorY(W*0.52)+8, 34);
+  drawBranchCoral(g, W*0.76, floorY(W*0.76)+4, 20, ['#d94f6c','#ff8fae']);
+  // shells
+  drawConch(g, W*0.30, floorY(W*0.30)+6, 13);
+  drawScallop(g, W*0.465, floorY(W*0.465)+5, 13);
+  drawCowrie(g, W*0.64, floorY(W*0.64)+4, 9);
+  drawSpiral(g, W*0.80, floorY(W*0.80)+4, 7);
+  // ship's wheel
+  drawWheel(g, W*0.055, floorY(W*0.055)+2, 19);
+  // chest
+  drawChest(g, W*0.71, floorY(W*0.71)); chestPos={x:W*0.71,y:floorY(W*0.71)-14};
+  // anemone base
+  anemone.x=W*0.42; anemone.y=floorY(anemone.x); anemone.ph=rand(0,TAU);
+  drawAnemoneBase(g, anemone.x, anemone.y);
+}
+```
+
+drawRock:
+```js
+function drawRock(g,x,y,r,alt){
+  const pts=[]; const n=8;
+  for(let i=0;i<n;i++){const a=i/n*TAU; const rr=r*(0.72+Math.random()*0.55); pts.push([x+Math.cos(a)*rr*1.25, y+Math.sin(a)*rr*0.8 - r*0.25]);}
+  g.beginPath();
+  for(let i=0;i<n;i++){const p=pts[i],q=pts[(i+1)%n]; const mx=(p[0]+q[0])/2,my=(p[1]+q[1])/2; if(i===0) g.moveTo(mx,my); g.quadraticCurveTo(p[0],p[1], (q[0]+pts[(i+1)%n===...
+```
+Simpler: standard closed smooth: moveTo(midpoint of pts[n-1],pts[0]), for each i: quadraticCurveTo(pts[i], midpoint(pts[i],pts[i+1])).
+```js
+function drawRock(g,x,y,r,alt){
+  const n=8, pts=[];
+  for(let i=0;i<n;i++){const a=i/n*TAU; const rr=r*rand(0.7,1.25);
+    pts.push([x+Math.cos(a)*rr*1.3, y+Math.sin(a)*rr*0.75-r*0.3]);}
+  g.beginPath();
+  let mx=(pts[n-1][0]+pts[0][0])/2, my=(pts[n-1][1]+pts[0][1])/2;
+  g.moveTo(mx,my);
+  for(let i=0;i<n;i++){const p=pts[i], q=pts[(i+1)%n];
+    g.quadraticCurveTo(p[0],p[1],(p[0]+q[0])/2,(p[1]+q[1])/2);}
+  g.closePath();
+  const rg=g.createLinearGradient(x,y-r,x,y+r);
+  rg.addColorStop(0, alt?'#5d7186':'#54677a'); rg.addColorStop(1,'#33414f');
+  g.fillStyle=rg; g.fill();
+  g.strokeStyle='rgba(190,220,235,0.18)'; g.lineWidth=1.5; g.stroke();
+  // algae dots
+  g.fillStyle='rgba(70,140,110,0.35)';
+  for(let i=0;i<6;i++){g.beginPath();g.arc(x+rand(-r*0.7,r*0.7), y+rand(-r*0.3,r*0.5), rand(1,2.5),0,TAU); g.fill();}
+}
+```
+
+drawBranchCoral:
+```js
+function drawBranchCoral(g,x,y,s,cols){
+  g.lineCap='round';
+  const branch=(bx,by,ang,len,d)=>{
+    if(d===0) return;
+    const tx=bx+Math.cos(ang)*len, ty=by+Math.sin(ang)*len;
+    g.strokeStyle=d>2?cols[0]:cols[1]; g.lineWidth=d*1.9;
+    g.beginPath(); g.moveTo(bx,by); g.lineTo(tx,ty); g.stroke();
+    const k=2+(d>3?1:0);
+    for(let i=0;i<k;i++) branch(tx,ty, ang+rand(-0.85,0.85), len*rand(0.6,0.75), d-1);
+  };
+  for(let i=0;i<3;i++) branch(x+rand(-6,6),y,-Math.PI/2+rand(-0.5,0.5), s*rand(0.8,1.1), 3+(i===1?1:0));
+}
+```
+Wait, recursion depth: d=4, len s*0.9: leaves small. Branching 2-3 → 3*3*3*3 ≈ 81 strokes max, one-time. Fine. lineWidth d*1.9 → d=4: 7.6, d=1: 1.9.
+
+drawBrainCoral:
+```js
+function drawBrainCoral(g,x,y,s){
+  g.save();
+  g.beginPath(); g.ellipse(x,y, s*1.25, s*0.78, 0, Math.PI, 0);
+  g.closePath();
+  const rg=g.createLinearGradient(x,y-s,x,y);
+  rg.addColorStop(0,'#e2946a'); rg.addColorStop(1,'#b05a3e');
+  g.fillStyle=rg; g.fill();
+  g.clip();
+  g.strokeStyle='rgba(120,45,30,0.55)'; g.lineWidth=2;
+  for(let i=0;i<6;i++){ const yy=y-s*0.72+i*s*0.27;
+    g.beginPath();
+    for(let xx=x-s*1.25; xx<=x+s*1.25; xx+=4){ const w=yy+Math.sin(xx*0.16+i*2.1)*3.2; if(xx===x-s*1.25)g.moveTo(xx,w); else g.lineTo(xx,w);} g.stroke(); }
+  g.restore();
+}
+```
+ellipse from PI to 0 draws top half? ellipse(x,y,rx,ry,rot, PI, 0) — angles: PI is left, 0 is right, going CCW from PI to 0 goes through 3PI/2? Canvas angles increase clockwise (y down). Start PI (left), end 0 (right), CCW flag false → increasing angle: PI → 3PI/2 (top, since y down, 3PI/2 = (0,-1) top) → 2PI (right). Yes, top half. Good.
+
+drawConch:
+```js
+function drawConch(g,x,y,s){
+  g.save(); g.translate(x,y); g.rotate(0.15);
+  g.fillStyle='#d98d66';
+  g.beginPath(); g.arc(0,-s*0.15,s,0,TAU); g.fill();
+  // spiral
+  g.strokeStyle='#8a4a32'; g.lineWidth=1.6;
+  g.beginPath();
+  let a=0, r=s*0.95;
+  g.moveTo(r,0);
+  for(a=0;a<TAU*2.6;a+=0.25){ r=s*0.95*Math.exp(-0.16*a);
+    const px=Math.cos(a)*r, py=-s*0.15+Math.sin(a)*r; g.lineTo(px,py);}
+  g.stroke();
+  // lip
+  g.fillStyle='#c97a52';
+  g.beginPath(); g.moveTo(s*0.55,s*0.6); g.lineTo(s*1.15,s*0.9); g.lineTo(s*0.35,s*1.0); g.closePath(); g.fill();
+  g.restore();
+}
+```
+
+drawScallop:
+```js
+function drawScallop(g,x,y,s){
+  g.save(); g.translate(x,y); g.rotate(-0.12);
+  g.fillStyle='#e6c98f';
+  g.beginPath(); g.moveTo(0,0); g.arc(0,0,s,Math.PI,TAU); g.closePath(); g.fill();
+  g.strokeStyle='#b08d55'; g.lineWidth=1.5; g.stroke();
+  g.strokeStyle='rgba(176,141,85,0.8)'; g.lineWidth=1.2;
+  for(let i=1;i<8;i++){ const a=Math.PI+i*(Math.PI/8);
+    g.beginPath(); g.moveTo(0,0); g.lineTo(Math.cos(a)*s*0.92, Math.sin(a)*s*0.92); g.stroke(); }
+  // hinge notch
+  g.fillStyle='#a5854f'; g.beginPath(); g.ellipse(0,-s*0.98, s*0.16, s*0.1, 0,0,TAU); g.fill();
+  g.restore();
+}
+```
+Wait, arc(0,0,s,PI,TAU): PI (left) to 2PI (right) going through 3PI/2 top → top half fan, good; hinge is at top? Scallop hinge should be at the base (point at bottom where ridges meet = 0,0 at bottom, fan opens up). Yes, with fan pointing up with 0,0 at the bottom, it sits on the sand. Hinge notch at top center is wrong — put at (0, 0)? Hinge is where the two valves meet: at bottom point. Skip the notch; fine.
+
+Actually rotate a bit so it leans on the rock. Fine.
+
+drawCowrie:
+```js
+function drawCowrie(g,x,y,s){
+  g.save(); g.translate(x,y); g.rotate(0.3);
+  g.fillStyle='#ecd8b4';
+  g.beginPath(); g.ellipse(0,0,s,s*0.6,0,0,TAU); g.fill();
+  g.fillStyle='rgba(255,255,255,0.35)';
+  g.beginPath(); g.ellipse(-s*0.25,-s*0.25,s*0.5,s*0.28,0,0,TAU); g.fill();
+  g.strokeStyle='#a58a63'; g.lineWidth=1.4;
+  g.beginPath(); g.moveTo(-s*0.8,s*0.35); g.quadraticCurveTo(0,s*0.7,s*0.85,s*0.28); g.stroke();
+  g.fillStyle='#a58a63';
+  for(let i=0;i<3;i++){g.beginPath();g.arc(-s*0.35+i*s*0.4, s*0.52, s*0.09,0,TAU);g.fill();}
+  g.restore();
+}
+```
+
+drawSpiral (small snail):
+```js
+function drawSpiral(g,x,y,s){
+  g.save(); g.translate(x,y);
+  g.fillStyle='#c98f9a';
+  g.beginPath();
+  let r=s, a=0;
+  for(a=0;a<4.5*Math.PI;a+=0.3){ const rr=s*Math.exp(-0.18*a); const px=Math.cos(a)*rr, py=Math.sin(a)*rr*0.9; if(a===0)g.moveTo(px,py); else g.lineTo(px,py);}
+  g.fill();
+```
+fill of a spiral polyline: fills in a weird shape (a spiral path fill connects endpoints) — actually fill of a spiral path creates a solid-ish blob? Filling a spiral polyline: the fill algorithm fills the closed path (auto-close from last to first), producing a shape like a pie slice with spiral edge... not great. Better: draw shell as a circle with spiral stroke:
+```js
+function drawSpiral(g,x,y,s){
+  g.save(); g.translate(x,y); g.rotate(0.4);
+  g.fillStyle='#c98f9a';
+  g.beginPath(); g.arc(0,0,s,0,TAU); g.fill();
+  g.strokeStyle='rgba(140,70,85,0.8)'; g.lineWidth=1.2;
+  g.beginPath();
+  for(let a=0;a<4*Math.PI;a+=0.3){ const rr=s*0.92*Math.exp(-0.15*a);
+    const px=Math.cos(a)*rr, py=Math.sin(a)*rr;
+    a===0?g.moveTo(px,py):g.lineTo(px,py); }
+  g.stroke(); g.restore();
+}
+```
+
+drawWheel:
+```js
+function drawWheel(g,x,y,s){
+  g.save(); g.translate(x,y); g.rotate(0.45);
+  g.strokeStyle='#5d432c'; g.lineWidth=5; g.lineCap='round';
+  g.beginPath(); g.arc(0,0,s,0,TAU); g.stroke();
+  g.lineWidth=3.5;
+  for(let i=0;i<6;i++){const a=i*TAU/6;
+    g.beginPath(); g.moveTo(Math.cos(a)*s*0.5,Math.sin(a)*s*0.5); g.lineTo(Math.cos(a)*(s+7),Math.sin(a)*(s+7)); g.stroke();
+    g.fillStyle='#6b4a2f'; g.beginPath(); g.arc(Math.cos(a)*(s+10),Math.sin(a)*(s+10),3,0,TAU); g.fill(); }
+  g.fillStyle='#6b4a2f'; g.beginPath(); g.arc(0,0,s*0.42,0,TAU); g.fill();
+  g.strokeStyle='rgba(0,0,0,0.25)'; g.lineWidth=2; g.beginPath(); g.arc(0,0,s*0.42,0,TAU); g.stroke();
+  g.restore();
+  // sand mound on top of lower half
+  g.fillStyle='#c99d63';
+  g.beginPath(); g.ellipse(x+6,y+8,s*1.6,s*0.7,0.2,0,TAU); g.fill();
+}
+```
+
+drawChest:
+```js
+function drawChest(g,x,y){
+  g.save(); g.translate(x,y);
+  // coins behind
+  // lid (open, leaning back-left)
+  g.save(); g.translate(-17,-20); g.rotate(-0.85);
+  g.fillStyle='#6b4626'; g.fillRect(0,0,36,9);
+  g.fillStyle='#4a4a52'; g.fillRect(15,0,5,9);
+  g.restore();
+  // box
+  g.fillStyle='#7a5230'; g.fillRect(-18,-20,36,20);
+  g.fillStyle='#5d3c22'; g.fillRect(-18,-14,36,2.5);
+  g.fillStyle='#4a4a52'; g.fillRect(-18,-20,4,20); g.fillRect(14,-20,4,20);
+  g.fillStyle='#8a9aa8'; g.beginPath(); g.arc(0,-11,3,0,TAU); g.fill();
+  // coins
+  g.fillStyle='#e8b84a';
+  [[-8,-22],[0,-24],[7,-21],[-3,-19],[4,-18]].forEach(c=>{g.beginPath();g.ellipse(c[0],c[1],3.4,2.6,rand(-0.4,0.4),0,TAU);g.fill();});
+  g.fillStyle='#d9a83e';
+  [[-24,1],[-29,-2],[24,0],[29,2]].forEach(c=>{g.beginPath();g.ellipse(c[0],c[1],3.2,2.4,0,0,TAU);g.fill();});
+  g.restore();
+}
+```
+Coins at y-22 etc are above the box top (-20) → inside the open lid area. OK.
+
+drawAnemoneBase:
+```js
+function drawAnemoneBase(g,x,y){
+  g.fillStyle='#6d5566';
+  g.beginPath(); g.ellipse(x,y+3,20,9,0,0,TAU); g.fill();
+  g.fillStyle='#7d6478';
+  g.beginPath(); g.ellipse(x,y,16,7,0,0,TAU); g.fill();
+}
+```
+
+Entity factories:
+
+```js
+function mkTropical(i,n){
+  const p=[['#f2852e','#ffe08a','#d96a20'],['#f6a83c','#fff6e0','#e08a2a'],['#efcf4a','#fff','#cfa92e']];
+  return {x:W*(i+0.5)/n+rand(-30,30), by:rand(H*0.24,H*0.66), ty:0, dir:i%2?1:-1,
+    sp:rand(44,62), ph:rand(0,TAU), bobA:rand(5,12), bobW:rand(0.5,0.9),
+    s:rand(0.85,1.2), col:pick(p), turnT:rand(0,3), tail:0, y:0};
+}
+function mkAngel(i,n){
+  return {x:W*(i+0.5)/n+rand(-40,40), by:rand(H*0.22,H*0.58), dir:i%2?-1:1,
+    sp:rand(15,22), ph:rand(0,TAU), bobA:rand(22,34), bobW:rand(0.45,0.65),
+    s:rand(0.95,1.3), y:0, fin:0};
+}
+function mkJelly(i,n){
+  return {x:W*(i+0.5)/n+rand(-50,50), y:rand(H*0.1,H*0.45), vx:rand(-6,6), vy:0,
+    r:rand(19,32), ph:rand(0,TAU), pulse:rand(0,1), hue:pick([[255,190,230],[170,210,255],[200,180,255],[160,240,220]]),
+    tent: Array.from({length:7},(_,k)=>({o:rand(-0.7,0.7), l:rand(0.9,1.7), p:rand(0,TAU)}))};
+}
+function mkCrab(i){
+  return {x:W*(0.25+0.5*i)+rand(-30,30), dir:i?-1:1, st:0, t:rand(0.5,2), sp:rand(26,42),
+    lp:rand(0,TAU), s:rand(0.8,1.15), y:0, cd:0};
+}
+function mkLobster(){
+  return {x:W*0.52, dir:1, st:'walk', t:rand(2,3), raise:0, ph:rand(0,TAU), y:0};
+}
+function mkStar(i){
+  const rocks=[[0.10,30],[0.60,33]];
+  const r=rocks[i%2];
+  return {x:r[0]*W+rand(-8,8), y:floorY(r[0]*W)-r[1]*0.55, rot:rand(0,TAU), ph:rand(0,TAU), s:rand(0.8,1.05), col:i? '#b96a3c':'#c98a3e', colD:i?'#8a4526':'#9a5f28'};
+}
+```
+Hmm starfish y: rock center at y=floorY+r*0.35, top at y - r*0.55-ish. Rock drawn with center (x, floorY(x)+r*0.35) and top of rock ≈ centerY - r*0.75*? Top of blob ≈ cy - r*0.75 - ... anyway place starfish at floorY + r*0.35 - r*0.55 = floorY - r*0.2. Let's do: y = floorY(fx*W) - r[1]*0.25. Sits on top of rock. Good: y=floorY(x0)-r*0.2.
+
+```js
+function mkSeahorse(i){
+  const spots=[[0.42, 44, -92],[0.368,-38,-66]];
+  const a=anemone...
+```
+Seahorse 1 near anemone (fx 0.42, x offset +44, y floorY-92); seahorse 2 near seaweed .37 offset -38, y floorY-66.
+```js
+function mkSeahorse(i){
+  const a=[[0.425,46,-96],[0.367,-40,-70]][i];
+  const ax=W*a[0];
+  return {ax, dir:i?-1:1, y0:floorY(ax)+a[2], ph:rand(0,TAU), s:rand(0.9,1.1), col:i?'#4fa8a0':'#e0955c', colD:i?'#2f7f78':'#b06a38', x:0,y:0};
+}
+```
+Seahorse 2 at fx 0.367, near seaweed .37 and anemone .42 — both clustered in middle. Move seahorse 2 to near left seaweed .055? wheel is .055... seaweed at .04 and .18. Put seahorse 2 at fx 0.155 (between wheel and rock .10?) rock .10 r30 is x≈0.10W; seahorse .16 is fine near seaweed .18.
+
+```js
+const a=[[0.425,46,-96],[0.155,-24,-70]][i];
+```
+
+Turtle:
+```js
+function mkTurtle(){ return {x:rand(W*0.2,W*0.8), yBase:H*0.4, dir:1, ph:rand(0,TAU), s:rand(1.0,1.2), y:0, tilt:0}; }
+```
+
+School:
+```js
+function mkSchool(){
+  return {cx:W*rand(0.3,0.7), cy:H*rand(0.3,0.55), heading:rand(0,TAU), turn:0,
+    members:Array.from({length:CONFIG.schoolSize},()=>({ox:rand(-40,40),oy:rand(-30,30),tx:0,ty:0,ret:rand(0,1),ph:rand(0,TAU),a:rand(0.7,1)}))};
+}
+```
+
+Clown:
+```js
+function mkClown(){ return {ph:rand(0,TAU), cyc:rand(0,9), al:1, x:0,y:0,dir:1}; }
+```
+
+Now updates:
+
+```js
+function update(dt, sdt){
+  // sdt = scaled dt
+  time.t+=sdt; const t=time.t;
+  // day/night
+  if(CONFIG.dayNightSeconds>0){ const c=(time.rt/CONFIG.dayNightSeconds)%1; time.dayF=0.5+0.5*Math.cos(c*TAU); }
+  else time.dayF=1;
+  time.night=1-time.dayF;
+  // tropicals
+  for(const f of tropicals){
+    f.turnT-=sdt;
+    if(f.turnT<=0){ f.ty=rand(H*0.22,H*0.68); f.turnT=rand(3,7); }
+    f.by+=(f.ty-f.by)*Math.min(1,sdt*0.6);
+    f.x+=f.dir*f.sp*sdt;
+    if(f.dir>0&&f.x>W-36) f.dir=-1; else if(f.dir<0&&f.x<36) f.dir=1;
+    f.y=f.by+Math.sin(t*f.bobW+f.ph)*f.bobA;
+    f.tail=Math.sin(t*7+f.ph);
+  }
+  // angels
+  for(const f of angels){
+    f.x+=f.dir*f.sp*sdt;
+    if(f.dir>0&&f.x>W-60) f.dir=-1; else if(f.dir<0&&f.x<60) f.dir=1;
+    f.y=f.by+Math.sin(t*f.bobW+f.ph)*f.bobA;
+    f.fin=Math.sin(t*2.2+f.ph);
+  }
+  // school
+  updateSchool(school,sdt);
+  // jellies
+  for(const j of jellies){
+    j.pulse+=sdt/1.7;
+    if(j.pulse>=1){ j.pulse=0; j.vy-=rand(30,44); j.vx+=rand(-10,10); }
+    j.vy+=13*sdt;
+    j.vx*=Math.max(0,1-0.5*sdt);
+    j.vx+=Math.sin(t*0.4+j.ph)*1.5*sdt;
+    const top=H*0.06, bot=H*0.5;
+    if(j.y>bot) j.vy-=(j.y-bot)*1.6*sdt;
+    if(j.y<top) j.vy+=(top-j.y)*1.6*sdt;
+    j.vx=clamp(j.vx,-30,30); j.vy=clamp(j.vy,-60,30);
+    j.x+=j.vx*sdt; j.y+=j.vy*sdt;
+    if(j.x<-70) j.x=W+70; else if(j.x>W+70) j.x=-70;
+    j.y=clamp(j.y,-30,H*0.62);
+  }
+  // crabs
+  for(const c of crabs){
+    c.t-=sdt;
+    if(c.st===0){ if(c.t<=0){ c.st=1; c.t=rand(0.7,1.5); c.dir*=(Math.random()<0.6?-1:1); } }
+    else {
+      c.x+=c.dir*c.sp*(1+0.35*Math.sin(c.lp))*sdt;
+      if(c.t<=0){ c.st=0; c.t=rand(1.2,3); }
+    }
+    c.lp+=sdt*(c.st?26:2);
+    c.cd-=sdt;
+    if(c.cd<=0){
+      c.cd=0.5;
+      // flee from nearby fish
+      let flee=0;
+      const check=(x,y)=>{const dx=c.x-x, dy=c.y-y; if(Math.abs(dy)<70&&Math.abs(dx)<95) return dx; return 0;};
+      for(const f of tropicals){const d=check(f.x,f.y); if(d) {flee=d;break;}}
+      if(!flee) for(const f of angels){const d=check(f.x,f.y); if(d){flee=d;break;}}
+      if(!flee){const d=check(turtles[0].x,turtles[0].y); if(d) flee=d;}
+      if(flee){ c.dir=flee>0?1:-1; c.st=1; c.t=Math.max(c.t,0.9); }
+    }
+    c.x=clamp(c.x,26,W-26);
+    if(c.x<=26||c.x>=W-26) c.dir*=-1;
+    c.y=floorY(c.x)-7*c.s;
+  }
+  // lobster
+  const L=lobsters[0];
+  L.t-=sdt;
+  const target=L.st==='walk'?0:1;
+  ...
+```
+Lobster states: walk/pause/show.
+```js
+  L.t-=sdt;
+  if(L.st==='walk'){ L.x+=L.dir*15*sdt; if(L.t<=0){L.st='pause'; L.t=rand(1,2);} }
+  else if(L.st==='pause'){ if(L.t<=0){L.st='show'; L.t=rand(2.2,3);} }
+  else if(L.t<=0){ L.st='walk'; L.t=rand(2.5,4); }
+  L.raise+= ((L.st==='show'?1:0)-L.raise)*Math.min(1,sdt*3);
+  if(L.x<70){L.dir=1;} if(L.x>W-70){L.dir=-1;}
+  L.y=floorY(L.x);
+  // starfish
+  for(const s of starfishArr){ s.rot+=0.006*sdt*(s.ph>Math.PI?1:-1); s.ph+=sdt*0.3; }
+  // seahorses
+  for(const s of seahorses){ s.x=s.ax+Math.sin(t*0.6+s.ph)*4; s.y=s.y0+Math.sin(t*0.9+s.ph)*7; }
+  // turtles
+  for(const T of turtles){
+    const a=Math.sin(t*0.13+T.ph)*0.5;
+    T.x+=T.dir*Math.cos(a)*26*sdt;
+    if(T.x>W-80)T.dir=-1; else if(T.x<80)T.dir=1;
+    T.y=T.yBase+Math.sin(t*0.17+T.ph+1.3)*H*0.085;
+    T.tilt=a*0.5;
+  }
+  // clown
+  if(clown){
+    const c=clown; c.cyc+=sdt;
+    const hid=(c.cyc%9)<2.4;
+    c.al+=((hid?0:1)-c.al)*Math.min(1,sdt*2.5);
+    c.x=anemone.x+Math.cos(t*0.55+c.ph)*30;
+    c.y=anemone.y-34+Math.sin(t*0.85+c.ph)*10;
+    c.dir=(-Math.sin(t*0.55+c.ph))>0?1:-1;
+  }
+  // seaweeds update none (stateless)
+  // motes
+  const motesAll=motesB.concat? // avoid concat alloc: iterate both arrays
+```
+Avoid concat: helper function updMotes(arr).
+```js
+  updMotes(motesB,sdt); updMotes(motesF,sdt);
+  // bubbles
+  time.spawn+=sdt*1000;
+  const iv=CONFIG.bubbleIntervalMs;
+  while(time.spawn>=iv){ time.spawn-=iv; if(bubbles.length<CONFIG.maxBubbles) spawnBubble(); }
+  for(let i=bubbles.length-1;i>=0;i--){ const b=bubbles[i];
+    b.y-=b.vy*sdt;
+    b.x=b.x0+Math.sin(b.y*0.02+b.ph)*b.amp;
+    if(b.y<-14){ bubbles[i]=bubbles[bubbles.length-1]; bubbles.pop(); }
+  }
+  // distant
+  for(const d of distant){ d.x+=d.sp*sdt; if(d.x<-40)d.x=W+40; else if(d.x>W+40)d.x=-40; d.y+=Math.sin(t*0.3+d.ph)*3*sdt; }
+}
+function updMotes(arr,dt){ for(const m of arr){ m.y+=m.vy*dt; m.x+=Math.sin(time.t*0.3+m.ph)*6*dt; if(m.y<-8){m.y=H+8;m.x=rand(0,W);} if(m.x<-8)m.x=W+8; else if(m.x>W+8)m.x=-8; } }
+function spawnBubble(){
+  const vent=Math.random()<0.65?pick(vents):rand(20,W-20);
+  const r=rand(1.8,5.5);
+  bubbles.push({x0:vent+rand(-6,6), x:vent, y:floorY(vent)-rand(0,14), r, vy:rand(20,38)+r*1.6, ph:rand(0,TAU), amp:rand(2.5,8), front:Math.random()<0.25});
+}
+```
+Wait, vy bigger for larger bubbles? Usually smaller rise slower; larger faster. vy = rand(16,30) + r*2.5. ok.
+
+updateSchool per above.
+
+Draw functions. Order in render():
+
+```js
+function render(){
+  const t=time.t, n=time.night;
+  ctx.globalCompositeOperation='source-over'; ctx.globalAlpha=1;
+  ctx.fillStyle=bgGrad; ctx.fillRect(0,0,W,H);
+  // caustics
+  ctx.globalCompositeOperation='screen';
+  const ca=lerp(1,0.4,n);
+  for(const s of shafts){
+    const x=s.fx*W+Math.sin(time.rt*s.spd+s.ph)*46;
+    const a=s.a*(0.7+0.3*Math.sin(time.rt*0.4+s.ph*2))*ca;
+    ctx.save(); ctx.translate(x,-20); ctx.rotate(s.rot);
+    ctx.globalAlpha=a;
+    ctx.drawImage(shaftSpr,-s.w/2,0,s.w,H*1.15);
+    ctx.restore();
+  }
+  ctx.globalCompositeOperation='source-over';
+  ctx.globalAlpha=1;
+  // surface band
+  ctx.fillStyle=surfGrad; ctx.fillRect(0,0,W,H*0.16);
+  // surface ripple lines
+  ctx.strokeStyle='rgba(190,235,245,0.10)'; ctx.lineWidth=1.5;
+  for(let i=0;i<3;i++){
+    ctx.beginPath();
+    const yy=5+i*6;
+    for(let x=0;x<=W;x+=24){ const yy2=yy+Math.sin(x*0.02+time.rt*(0.6+i*0.2)+i*2)*1.8; x===0?ctx.moveTo(x,yy2):ctx.lineTo(x,yy2);}
+    ctx.stroke();
+  }
+  drawMotes(motesB,0.5);
+  drawDistant();
+  drawBubbles(false);
+  // floor
+  ctx.drawImage(floorCv,0,0,W,H);
+  drawSeaweed(false);
+  // bottom-dwellers
+  for(const s of starfishArr) drawStar(s);
+  for(const c of crabs) drawCrab(c);
+  for(const L of lobsters) drawLobster(L);
+  // mid
+  for(const T of turtles) drawTurtle(T);
+  for(const f of tropicals) drawTropical(f);
+  for(const f of angels) drawAngel(f);
+  drawSchool();
+  if(clown) drawClown(clown);
+  drawAnemone();
+  for(const s of seahorses) drawSeahorse(s);
+  drawSeaweed(true);
+  drawBubbles(true);
+  drawMotes(motesF,1);
+  // day/night
+  if(CONFIG.dayNightSeconds>0 && n>0.01){
+    ctx.globalCompositeOperation='multiply';
+    const k=n*0.78;
+    ctx.fillStyle='rgb('+(lerp(255,92,k)|0)+','+(lerp(255,110,k)|0)+','+(lerp(255,178,k)|0)+')';
+    ctx.fillRect(0,0,W,H);
+    // night glow
+    ctx.globalCompositeOperation='lighter';
+    for(const j of jellies){ const s=j.r*4.8; ctx.globalAlpha=n*0.4; ctx.drawImage(glowSpr, j.x-s/2, j.y-j.r*0.5-s/2, s, s); }
+    for(const f of angels){ const s=70*f.s; ctx.globalAlpha=n*0.16; ctx.drawImage(glowSpr, f.x-s/2, f.y-s/2, s, s); }
+    ctx.globalAlpha=1;
+  }
+  ctx.globalCompositeOperation='source-over';
+  // chest sparkle
+  const sp=Math.pow(Math.max(0,Math.sin(t*0.8)),8);
+  if(sp>0.05){ ctx.globalAlpha=sp; ctx.drawImage(sparkleSpr,chestPos.x-10,chestPos.y-10,20,20); ctx.globalAlpha=1; }
+  // vignette
+  ctx.drawImage(vigCv,0,0,W,H);
+}
+```
+
+Wait, drawing glow for jelly with 'lighter' after multiply — glow uses glowSpr with light-blue; alpha n*0.4 at night. But night n max 1: at full dark, jelly glows — nice.
+
+Note: multiply overlay will darken glow drawn before it; so glow drawn after — yes.
+
+Vignette after everything: darkens edges including glows — acceptable, or draw before overlay. Vignette last is fine.
+
+drawBubbles(front):
+```js
+function drawBubbles(front){
+  for(const b of bubbles){ if(b.front!==front) continue;
+    const d=b.r*3.4;
+    ctx.globalAlpha=0.85;
+    ctx.drawImage(bubbleSpr, b.x-d/2, b.y-d/2, d, d);
+  }
+  ctx.globalAlpha=1;
+}
+```
+
+drawMotes(arr,k):
+```js
+function drawMotes(arr,k){
+  ctx.fillStyle='#cfe9f2';
+  for(const m of arr){
+    ctx.globalAlpha=(0.07+0.06*Math.sin(time.t*0.8+m.ph))*k+ (k>1?0.06:0);
+    ctx.beginPath(); ctx.arc(m.x,m.y,m.r,0,TAU); ctx.fill();
+  }
+  ctx.globalAlpha=1;
+}
+```
+Simplify: alpha = (0.06+0.05*sin)*k.
+
+mkMote: {x:rand(0,W),y:rand(0,H),r:rand(0.6,1.8),vy:rand(-6,-2),ph:rand(0,TAU)}.
+
+drawDistant:
+```js
+function drawDistant(){
+  ctx.fillStyle='rgba(46,84,110,0.55)';
+  for(const d of distant){
+    ctx.save(); ctx.translate(d.x,d.y); ctx.scale(d.sp>0?1:-1,1); ctx.scale(d.s,d.s);
+    ctx.beginPath();
+    ctx.ellipse(0,0,11,5.5,0,0,TAU);
+    ctx.moveTo(-9,0); ctx.lineTo(-16,-5); ctx.lineTo(-16,5); ctx.closePath();
+    ctx.fill(); ctx.restore();
+  }
+}
+```
+
+drawSeaweed(front):
+```js
+function drawSeaweed(front){
+  for(const s of seaweeds){ if(s.front!==front) continue;
+    const baseX=s.x, baseY=floorY(s.x)+3;
+    const nSeg=s.seg, segLen=s.h/nSeg;
+    let px=baseX, py=baseY;
+    ctx.strokeStyle=s.col; ctx.lineCap='round';
+    for(let i=0;i<nSeg;i++){
+      const sway=Math.sin(time.t*s.spd+s.ph+i*0.55)*(2+i*1.5)* (front?1:0.8);
+      const nx=baseX+sway, ny=py-segLen;
+      ctx.lineWidth=Math.max(1.2, s.w - i*0.55);
+      ctx.beginPath(); ctx.moveTo(px,py); ctx.quadraticCurveTo(px,py-segLen*0.5,nx,ny); ctx.stroke();
+      px=nx; py=ny;
+    }
+    // tip bulb for kelp
+  }
+}
+```
+Seaweed init:
+```js
+const weedDefs=[[0.04,0.34,125,false],[0.185,0.24,100,true],[0.368,0.40,130,false],[0.705,0.27,112,true],[0.93,0.36,92,false]];
+seaweeds = weedDefs.slice(0,CONFIG.seaweedStalks).map(d=>({x:d[0]*W, h:d[1]*H, hue:d[2], front:d[3], seg:9, ph:rand(0,TAU), spd:rand(0.7,1.15), w:rand(5,7), col:'hsl('+d[2]+',52%,'+(d[3]?30:24)+'%)'}));
+```
+h is fraction of H: 0.34H etc. seg = 9.
+
+Hmm seaweed .368 overlaps with anemone .42 and seahorse — fine, layered.
+
+drawAnemone:
+```js
+function drawAnemone(){
+  const t=time.t, bx=anemone.x, by=anemone.y;
+  const cur=Math.sin(t*0.5+anemone.ph)*5;
+  for(let i=0;i<14;i++){
+    const k=i/13;
+    const spread=-1.15+k*2.3;         // -1.15..1.15 (x offset factor)
+    const bxo=(k-0.5)*30;
+    const len=rand? no — need deterministic: store tentacle params in anemone on build.
+  }
+}
+```
+Better: precompute anemone.tents at build: 14 entries {ox, len, ph}. ox spread -15..15, len 26..46, ph rand. Draw:
+```js
+function drawAnemone(){
+  const t=time.t, cur=Math.sin(t*0.5+anemone.ph)*5;
+  ctx.lineCap='round';
+  for(let i=0;i<anemone.tents.length;i++){
+    const tn=anemone.tents[i];
+    const sway=Math.sin(t*1.2+tn.ph)*7+cur;
+    const len=tn.len*(1+0.07*Math.sin(t*1.9+tn.ph));
+    const x0=anemone.x+tn.ox, y0=anemone.y-4;
+    const tx=x0+sway, ty=y0-len;
+    const cx=x0+sway*0.4, cy=y0-len*0.45;
+    ctx.strokeStyle='#a85fc4'; ctx.lineWidth=3.2;
+    ctx.beginPath(); ctx.moveTo(x0,y0); ctx.quadraticCurveTo(cx,cy,tx,ty); ctx.stroke();
+    ctx.fillStyle='#e79df0';
+    ctx.beginPath(); ctx.arc(tx,ty,1.8,0,TAU); ctx.fill();
+  }
+}
+```
+Tentacles alternate color: i%2 ? '#a85fc4' : '#8a4fb0'.
+
+Init anemone.tents in buildScene.
+
+drawClown:
+```js
+function drawClown(c){
+  if(c.al<0.02) return;
+  ctx.save(); ctx.translate(c.x,c.y); ctx.scale(c.dir,1); ctx.globalAlpha=c.al;
+  ctx.fillStyle='#f2762e';
+  ctx.beginPath(); ctx.ellipse(0,0,9,5.5,0,0,TAU); ctx.fill();
+  // tail
+  ctx.beginPath(); ctx.moveTo(-7,0); ctx.lineTo(-13,-4.5); ctx.lineTo(-13,4.5); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.92)';
+  for(const bx of [-3.5,1.5,5.5]){ ctx.save(); ctx.beginPath(); ctx.ellipse(0,0,9,5.5,0,0,TAU); ctx.clip(); ctx.fillRect(bx-1.2,-6,2.6,12); ctx.restore(); }
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(5.5,-1.6,1.6,0,TAU); ctx.fill();
+  ctx.fillStyle='#1c1c24'; ctx.beginPath(); ctx.arc(5.9,-1.6,0.8,0,TAU); ctx.fill();
+  ctx.restore(); ctx.globalAlpha=1;
+}
+```
+Clip per band — 3 clips; fine.
+
+drawTropical:
+```js
+function drawTropical(f){
+  const s=f.s, dir=f.dir;
+  ctx.save(); ctx.translate(f.x,f.y); ctx.scale(dir*s,s);
+  const [body,band,tail]=f.col;
+  // tail
+  ctx.fillStyle=tail;
+  ctx.beginPath(); ctx.moveTo(-12,0);
+  ctx.lineTo(-23,-8+f.tail*3.5); ctx.lineTo(-20.5,0); ctx.lineTo(-23,8+f.tail*3.5);
+  ctx.closePath(); ctx.fill();
+  // dorsal
+  ctx.fillStyle=tail;
+  ctx.beginPath(); ctx.moveTo(-6,-8); ctx.quadraticCurveTo(2,-16,8,-7.5); ctx.closePath(); ctx.fill();
+  // body
+  ctx.fillStyle=body;
+  ctx.beginPath(); ctx.ellipse(0,0,15,9.5,0,0,TAU); ctx.fill();
+  // bands
+  ctx.save(); ctx.clip();
+  ctx.fillStyle=band;
+  ctx.fillRect(-8,-10,3.4,20); ctx.fillRect(-1.5,-10,3,20); ctx.fillRect(5,-10,3.4,20);
+  ctx.restore();
+  // eye
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(8.5,-2.4,2.1,0,TAU); ctx.fill();
+  ctx.fillStyle='#14213c'; ctx.beginPath(); ctx.arc(9,-2.4,1.05,0,TAU); ctx.fill();
+  ctx.restore();
+}
+```
+Note: clip after body path — ctx.clip() uses current path; but we set beginPath for ellipse then fill then save/clip — path persists? Path remains after fill (until beginPath). So after fill, ctx.save(); ctx.clip() — current path is still ellipse — yes works. But we drew tail before with separate beginPath. Sequence OK.
+
+Actually careful: ctx.save() then ctx.clip() — clip adds to clip stack; restore removes. Fine.
+
+drawAngel:
+```js
+function drawAngel(f){
+  const s=f.s;
+  ctx.save(); ctx.translate(f.x,f.y); ctx.scale(f.dir*s,s);
+  const finA=0.5+f.fin*0.25;
+  // long dorsal and anal fins
+  ctx.fillStyle='rgba(140,170,220,0.55)';
+  ctx.beginPath(); ctx.moveTo(3,-13); ctx.quadraticCurveTo(10+finA*4,-34, -3-f.in?
+```
+Let me define: dorsal fin: from body top (4,-14), control (12,-32) to tip (-2,-44); back down via control (2,-28) to (-4,-12). Add wave: tip x = -2 + f.fin*3.
+```js
+  ctx.beginPath();
+  ctx.moveTo(4,-13);
+  ctx.quadraticCurveTo(11,-30, -2+f.fin*3,-45);
+  ctx.quadraticCurveTo(0,-28, -5,-11);
+  ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(3,13);
+  ctx.quadraticCurveTo(10,30, -3+f.fin*2.5,45);
+  ctx.quadraticCurveTo(0,28, -5,11);
+  ctx.closePath(); ctx.fill();
+  // body diamond
+  const bodyP=()=>{ ctx.beginPath(); ctx.moveTo(24,0); ctx.quadraticCurveTo(12,-15,-2,-19); ctx.quadraticCurveTo(-13,-11,-16,0); ctx.quadraticCurveTo(-13,11,-2,19); ctx.quadraticCurveTo(12,15,24,0); ctx.closePath(); };
+  ctx.fillStyle='#7fb2e5'; bodyP(); ctx.fill();
+  ctx.save(); bodyP(); ctx.clip();
+  ctx.fillStyle='rgba(46,79,134,0.85)';
+  ctx.fillRect(6,-22,4,44); ctx.fillRect(-4,-22,3.4,44);
+  ctx.fillStyle='rgba(230,244,255,0.5)';
+  ctx.fillRect(13,-22,2.5,44);
+  ctx.restore();
+  // silver edge
+  ctx.strokeStyle='rgba(226,240,252,0.8)'; ctx.lineWidth=1.2; bodyP(); ctx.stroke();
+  // eye
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(14,-3,2.2,0,TAU); ctx.fill();
+  ctx.fillStyle='#101c30'; ctx.beginPath(); ctx.arc(14.5,-3,1.1,0,TAU); ctx.fill();
+  ctx.restore();
+}
+```
+bodyP is an arrow that recreates path each call — fine (function call, no real alloc concern).
+
+drawSchool:
+```js
+function drawSchool(){
+  const s=school;
+  for(const m of s.members){
+    const x=s.cx+m.ox, y=s.cy+m.oy;
+    const a=s.heading+Math.sin(time.t*2.6+m.ph)*0.16;
+    ctx.save(); ctx.translate(x,y); ctx.rotate(a);
+    ctx.fillStyle='rgba(188,216,236,'+(0.75+0.25*m.a)+')';
+```
+String alloc per frame per member — 12/frame is ok but avoid: use globalAlpha:
+```js
+    ctx.globalAlpha=0.7+0.3*m.a;
+    ctx.fillStyle='#bcd8ea';
+    const tw=Math.sin(time.t*9+m.ph)*1.4;
+    ctx.beginPath(); ctx.ellipse(0,0,5.5,2.3,0,0,TAU); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-4,0); ctx.lineTo(-8.5,-2.2+tw); ctx.lineTo(-8.5,2.2+tw); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  ctx.globalAlpha=1;
+}
+```
+
+drawCrab:
+```js
+function drawCrab(c){
+  ctx.save(); ctx.translate(c.x,c.y); ctx.scale(c.dir*c.s,c.s);
+  // legs
+  ctx.strokeStyle='#a34327'; ctx.lineWidth=2.2; ctx.lineCap='round';
+  for(let i=0;i<3;i++){
+    const sw=Math.sin(c.lp+i*1.9)*0.28;
+    // back legs
+    ctx.beginPath(); ctx.moveTo(-6+i*2,-3); ctx.lineTo(-12-i*3+ (c.st? 2*Math.sin(c.lp+i*1.9):0), 6+i*1.5); ctx.stroke();
+  }
+  // body
+  ctx.fillStyle='#cf5b3a';
+  ctx.beginPath(); ctx.ellipse(0,-5,13.5,8.5,0,0,TAU); ctx.fill();
+  ctx.fillStyle='rgba(255,220,190,0.25)';
+  ctx.beginPath(); ctx.ellipse(-2,-8,8,4,0,0,TAU); ctx.fill();
+  // claws
+  const co=Math.sin(c.lp*0.7)*1.5;
+  ctx.strokeStyle='#cf5b3a'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(9,-8); ctx.quadraticCurveTo(15,-12,18,-14-co); ctx.stroke();
+  ctx.fillStyle='#d96a42';
+  ctx.beginPath(); ctx.ellipse(21,-15-co,4.6,3.6,0.5,0,TAU); ctx.fill();
+  ctx.strokeStyle='#8a3a20'; ctx.lineWidth=1.4;
+  ctx.beginPath(); ctx.moveTo(18.5,-15-co); ctx.lineTo(23.5,-13.5-co); ctx.stroke();
+  // eye stalks
+  ctx.strokeStyle='#a34327'; ctx.lineWidth=1.6;
+  ctx.beginPath(); ctx.moveTo(5,-12); ctx.lineTo(7,-17); ctx.moveTo(9,-12); ctx.lineTo(11,-16.5); ctx.stroke();
+  ctx.fillStyle='#241a14';
+  ctx.beginPath(); ctx.arc(7.2,-17.5,2,0,TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(11.2,-17,2,0,TAU); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.8)';
+  ctx.beginPath(); ctx.arc(7.8,-18.1,0.6,0,TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(11.8,-17.6,0.6,0,TAU); ctx.fill();
+  ctx.restore();
+}
+```
+Legs: I wrote sloppy back legs; simplify: 3 legs per side, only visible side (front) + hint of back. Keep 3 legs:
+```js
+  for(let i=0;i<3;i++){
+    const sw=(c.st===1?1:0.25)*Math.sin(c.lp+i*2.1)*2.5;
+    ctx.beginPath(); ctx.moveTo(-7+i*1.5,-2+i); ctx.quadraticCurveTo(-11-i*2.5, 3+i, -13-i*3+sw, 8+i*1.6); ctx.stroke();
+  }
+  // front legs on +x side
+  for(let i=0;i<3;i++){
+    const sw=(c.st===1?1:0.25)*Math.sin(c.lp+1+i*2.1)*2.5;
+    ctx.beginPath(); ctx.moveTo(3+i*2,-2+i); ctx.quadraticCurveTo(8+i*2.5,3+i, 11+i*3+sw, 8+i*1.6); ctx.stroke();
+  }
+```
+Crab body at y -5, legs reach y 8-11 → ground at y0 (translated to c.y which is floor-7s). OK, legs reach below body onto floor. Fine.
+
+drawLobster:
+```js
+function drawLobster(L){
+  const t=time.t;
+  ctx.save(); ctx.translate(L.x,L.y); ctx.scale(L.dir,1);
+  // tail segments (back to front)
+  for(let i=5;i>=0;i--){
+    const segX=-16-i*8.5, segY=-7+Math.sin(t*1.6+i*0.9)*1.3;
+    const rx=6.5-i*0.55, ry=5-i*0.45;
+    ctx.fillStyle=i%2?'#b5542c':'#a34823';
+    ctx.beginPath(); ctx.ellipse(segX,segY,rx,ry,0,0,TAU); ctx.fill();
+    // tail fan at far end
+    if(i===5){ ctx.beginPath(); ctx.moveTo(segX-rx+2,segY); ctx.lineTo(segX-rx-6,segY-4); ctx.lineTo(segX-rx-5,segY+4); ctx.closePath(); ctx.fill(); }
+  }
+  // legs
+  ctx.strokeStyle='#8f3c1e'; ctx.lineWidth=1.8; ctx.lineCap='round';
+  for(let i=0;i<4;i++){ ctx.beginPath(); ctx.moveTo(-8+i*5,-3); ctx.lineTo(-10+i*5,4+Math.sin(t*3+i)*1.2); ctx.stroke(); }
+  // carapace
+  ctx.fillStyle='#b5542c';
+  ctx.beginPath(); ctx.ellipse(2,-8,19,9,0,0,TAU); ctx.fill();
+  ctx.fillStyle='rgba(255,200,160,0.18)';
+  ctx.beginPath(); ctx.ellipse(3,-11,12,4,0,0,TAU); ctx.fill();
+  // head
+  ctx.fillStyle='#a34823';
+  ctx.beginPath(); ctx.arc(20,-8,6.5,0,TAU); ctx.fill();
+  // eye
+  ctx.fillStyle='#241511'; ctx.beginPath(); ctx.arc(22.5,-10,1.4,0,TAU); ctx.fill();
+  // antennae
+  ctx.strokeStyle='rgba(220,150,110,0.7)'; ctx.lineWidth=1.2;
+  ctx.beginPath(); ctx.moveTo(24,-10); ctx.quadraticCurveTo(38,-18, 50,-13+Math.sin(t*1.3+L.ph)*4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(24,-10); ctx.quadraticCurveTo(40,-8, 54,-4+Math.sin(t*1.1+L.ph+2)*4); ctx.stroke();
+  // claws
+  const rL=L.raise;
+  // back claw
+  ctx.strokeStyle='#a34823'; ctx.lineWidth=3.4;
+  ctx.beginPath(); ctx.moveTo(10,-12); ctx.quadraticCurveTo(15,-16, 17,-18-9*rL); ctx.stroke();
+  ctx.fillStyle='#b5542c';
+  ctx.save(); ctx.translate(19,-19.5-9*rL); ctx.rotate(0.5-0.9*rL);
+  ctx.beginPath(); ctx.ellipse(3,0,6.4,4.4,0,0,TAU); ctx.fill();
+  ctx.strokeStyle='#6e2c12'; ctx.lineWidth=1.6;
+  ctx.beginPath(); ctx.moveTo(-0.5,-2.5); ctx.lineTo(7,-1); ctx.stroke();
+  ctx.restore();
+  // front claw (bigger)
+  ctx.strokeStyle='#b5542c'; ctx.lineWidth=4;
+  ctx.beginPath(); ctx.moveTo(12,-10); ctx.quadraticCurveTo(18,-14, 20,-16-11*rL); ctx.stroke();
+  ctx.fillStyle='#c05a2f';
+  ctx.save(); ctx.translate(22,-17.5-11*rL); ctx.rotate(0.4-1.0*rL);
+  ctx.beginPath(); ctx.ellipse(3.5,0,7.4,5,0,0,TAU); ctx.fill();
+  ctx.strokeStyle='#6e2c12'; ctx.lineWidth=1.8;
+  ctx.beginPath(); ctx.moveTo(-0.5,-3); ctx.lineTo(8,-0.5); ctx.stroke();
+  ctx.restore();
+  ctx.restore();
+}
+```
+Lobster length: tail from -16 to -16-5*8.5-6 ≈ -64 → total ~88 with claws. Good, bigger than crab.
+
+drawStar:
+```js
+function drawStar(s){
+  const t=time.t;
+  const br=1+0.03*Math.sin(t*0.7+s.ph);
+  ctx.save(); ctx.translate(s.x,s.y); ctx.rotate(s.rot); ctx.scale(s.s*br,s.s*br*0.9);
+  const R=15;
+  ctx.fillStyle=s.col;
+  for(let i=0;i<5;i++){
+    const a=i*TAU/5;
+    ctx.save(); ctx.rotate(a);
+    ctx.beginPath();
+    ctx.moveTo(0,-3);
+    ctx.quadraticCurveTo(6,-6, 8.5,-11);
+    ctx.quadraticCurveTo(10,-13, 8,-15.5);
+    ctx.quadraticCurveTo(4,-13, 3.5,-8);
+    ctx.quadraticCurveTo(2,-4, 0,-3);
+    ctx.closePath(); ctx.fill();
+    // dots
+    ctx.fillStyle=s.colD;
+    for(let d2=0;d2<4;d2++){ ctx.beginPath(); ctx.arc(4.5- d2*1.2, -7-d2*2.2, 0.8,0,TAU); ctx.fill(); }
+    ctx.fillStyle=s.col;
+    ctx.restore();
+  }
+  ctx.fillStyle=s.colD;
+  ctx.beginPath(); ctx.arc(0,0,3.4,0,TAU); ctx.fill();
+  ctx.restore();
+}
+```
+Arm shape: starts at center (0,-3), bulges out to tip (8,-15.5) — arm length ~16, 5 arms rotated — looks star-like. OK.
+
+drawSeahorse:
+```js
+function drawSeahorse(s){
+  const t=time.t;
+  const curl=0.5+0.5*Math.sin(t*0.45+s.ph);
+  ctx.save(); ctx.translate(s.x,s.y); ctx.scale(s.dir*s.s,s.s);
+  // tail spiral
+  ctx.strokeStyle=s.col; ctx.lineWidth=3.6; ctx.lineCap='round';
+  ctx.beginPath();
+  let cx0=-2-curl*2, cy0=16+curl*2;
+  let a0=Math.PI/2;
+  let r=6.5-curl*1.2;
+  let px=cx0+Math.cos(a0)*r, py=cy0+Math.sin(a0)*r;
+  ctx.moveTo(1.5,11);
+  for(let k=0;k<6.5;k++){
+    a0+=0.95; r*=0.82;
+    px=cx0+Math.cos(a0)*r; py=cy0+Math.sin(a0)*r;
+    ctx.lineTo(px,py);
+  }
+  ctx.stroke();
+  // body
+  ctx.fillStyle=s.col;
+  ctx.beginPath();
+  ctx.moveTo(3,-21);
+  ctx.bezierCurveTo(9,-14, 9.5,-4, 4.5,7);
+  ctx.quadraticCurveTo(3,10, 1.5,11);
+  ctx.quadraticCurveTo(-3,9, -3,4);
+  ctx.bezierCurveTo(-2,-5, -1.5,-14, 0.5,-19);
+  ctx.closePath(); ctx.fill();
+  // belly highlight
+  ctx.strokeStyle=s.colD; ctx.lineWidth=1.2;
+  for(let i=0;i<4;i++){ const yy=-16+i*5.2; ctx.beginPath(); ctx.moveTo(-2.6,yy); ctx.lineTo(6.5-i*1.2,yy); ctx.stroke(); }
+  // head
+  ctx.fillStyle=s.col;
+  ctx.beginPath(); ctx.arc(3.5,-24,5,0,TAU); ctx.fill();
+  // snout
+  ctx.strokeStyle=s.col; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(7,-24.5); ctx.lineTo(13.5,-23.5); ctx.stroke();
+  // coronet
+  ctx.fillStyle=s.col;
+  ctx.beginPath(); ctx.arc(2,-29,1.8,0,TAU); ctx.fill();
+  // eye
+  ctx.fillStyle='#20140c'; ctx.beginPath(); ctx.arc(5,-24.5,1.2,0,TAU); ctx.fill();
+  // dorsal fin
+  ctx.save(); ctx.translate(8.5,-8); ctx.rotate(Math.sin(t*13+s.ph)*0.35);
+  ctx.fillStyle='rgba(255,255,255,0.5)';
+  ctx.beginPath(); ctx.moveTo(0,-2); ctx.quadraticCurveTo(5,0,0,2.4); ctx.closePath(); ctx.fill();
+  ctx.restore();
+  ctx.restore();
+}
+```
+Body: from head (3,-21) curving right and down to (4.5,7) belly, then down to (1.5,11) bottom, back up on left side to (0.5,-19) neck, close. Should read as a seahorse-ish curve. OK.
+
+drawTurtle:
+```js
+function drawTurtle(T){
+  const t=time.t;
+  ctx.save(); ctx.translate(T.x,T.y); ctx.rotate(T.tilt*T.dir); ctx.scale(T.dir*T.s,T.s);
+  const row=Math.sin(t*1.5+T.ph);
+  // far front flipper
+  ctx.save(); ctx.translate(10,9); ctx.rotate(0.55+row*0.55);
+  ctx.fillStyle='#3c7357'; ctx.beginPath(); ctx.ellipse(10,0,12,4.2,0,0,TAU); ctx.fill(); ctx.restore();
+  // far back flipper
+  ctx.save(); ctx.translate(-16,8); ctx.rotate(-0.7-row*0.4);
+  ctx.fillStyle='#3c7357'; ctx.beginPath(); ctx.ellipse(-9,0,10,3.6,0,0,TAU); ctx.fill(); ctx.restore();
+  // shell
+  ctx.fillStyle='#4e8a68';
+  ctx.beginPath(); ctx.ellipse(0,0,25,15.5,0,0,TAU); ctx.fill();
+  ctx.strokeStyle='#2d5942'; ctx.lineWidth=2.5; ctx.stroke();
+  // scutes
+  ctx.strokeStyle='rgba(35,74,53,0.85)'; ctx.lineWidth=1.6;
+  hex(0,-1,8.5); // central
+  for(let i=0;i<6;i++){ const a=i*TAU/6+0.26; hex(Math.cos(a)*13.5, Math.sin(a)*8.8, 7.2); }
+  function hex(x,y,r){ ctx.save(); ctx.translate(x,y); ctx.rotate(a? ... }
+```
+Hmm, hex needs angle param; write a helper that draws a hex path with rotation 0:
+```js
+function hexPath(g,x,y,r){ g.beginPath(); for(let i=0;i<6;i++){ const a=i*TAU/6+Math.PI/6; const px=x+Math.cos(a)*r, py=y+Math.sin(a)*r; i?g.lineTo(px,py):g.moveTo(px,py);} g.closePath(); }
+```
+Call hexPath(ctx,x,y,r); ctx.stroke(); 7 strokes. Good — define hexPath globally.
+
+  // head
+```js
+  ctx.fillStyle='#4e8a68';
+  ctx.beginPath(); ctx.arc(26,-3,7,0,TAU); ctx.fill();
+  ctx.fillStyle='#20140c'; ctx.beginPath(); ctx.arc(28.5,-4.5,1.4,0,TAU); ctx.fill();
+  // near front flipper
+  ctx.save(); ctx.translate(11,10); ctx.rotate(0.5-row*0.6);
+  ctx.fillStyle='#447f5f'; ctx.beginPath(); ctx.ellipse(10,0,12.5,4.6,0,0,TAU); ctx.fill(); ctx.restore();
+  // near back flipper
+  ctx.save(); ctx.translate(-17,9); ctx.rotate(-0.65+row*0.45);
+  ctx.fillStyle='#447f5f'; ctx.beginPath(); ctx.ellipse(-9,0,10,3.8,0,0,TAU); ctx.fill(); ctx.restore();
+  // tail
+  ctx.fillStyle='#447f5f'; ctx.beginPath(); ctx.arc(-24.5,2,2.6,0,TAU); ctx.fill();
+  ctx.restore();
+```
+Flippers rowing: near front rotates 0.5-row*0.6, far front 0.55+row*0.55 (opposite phase). Good.
+
+Main loop:
+```js
+let last=performance.now();
+function frame(now){
+  const dt=Math.min(0.05,(now-last)/1000)||0; last=now;
+  time.rt+=dt;
+  const sdt=dt*CONFIG.speedMultiplier;
+  update(sdt,dt);
+  render();
+  requestAnimationFrame(frame);
+}
+resize();
+requestAnimationFrame(t=>{last=t; frame(t);});
+```
+Simpler: after resize, last=performance.now(); requestAnimationFrame(frame).
+
+updateSchool:
+```js
+function updateSchool(s,dt){
+  s.turn+=((Math.random()-0.5)*1.4-s.turn*0.5)*dt;
+  s.heading+=s.turn*dt;
+  const mx=170, top=H*0.2, bot=H*0.74;
+  let sx=0,sy=0;
+  if(s.cx<mx) sx=(mx-s.cx)/mx; else if(s.cx>W-mx) sx=-((s.cx-(W-mx))/mx);
+  if(s.cy<top+70) sy=((top+70)-s.cy)/70*0.7; else if(s.cy>bot) sy=-((s.cy-bot)/70)*0.7;
+  if(sx||sy){
+    const des=Math.atan2(sy,sx);
+    const k=Math.min(1,Math.max(Math.abs(sx),Math.abs(sy)));
+    s.heading+=angDiff(des,s.heading)*Math.min(1,dt*2.5)*k;
+  }
+  s.cx+=Math.cos(s.heading)*46*dt;
+  s.cy+=Math.sin(s.heading)*26*dt;
+  s.cx=clamp(s.cx,120,W-120); s.cy=clamp(s.cy,top,bot);
+  for(const m of s.members){
+    m.ret-=dt;
+    if(m.ret<=0){ m.tx=rand(-58,58); m.ty=rand(-42,42); m.ret=rand(0.8,2.4); }
+    m.ox+=(m.tx-m.ox)*Math.min(1,dt*2.5);
+    m.oy+=(m.ty-m.oy)*Math.min(1,dt*2.5);
+  }
+}
+```
+
+buildScene creatures:
+```js
+  tropicals=[]; for(let i=0;i<CONFIG.tropicalFish;i++) tropicals.push(mkTropical(i,CONFIG.tropicalFish));
+  angels=[]; for(let i=0;i<CONFIG.angelfish;i++) angels.push(mkAngel(i,CONFIG.angelfish));
+  school=mkSchool();
+  jellies=[]; for(let i=0;i<CONFIG.jellyfish;i++) jellies.push(mkJelly(i,CONFIG.jellyfish));
+  crabs=[]; for(let i=0;i<CONFIG.crabs;i++) crabs.push(mkCrab(i));
+  lobsters=[]; for(let i=0;i<CONFIG.lobsters;i++) lobsters.push(mkLobster());
+  starfishArr=[]; for(let i=0;i<CONFIG.starfish;i++) starfishArr.push(mkStar(i));
+  seahorses=[]; for(let i=0;i<CONFIG.seahorses;i++) seahorses.push(mkSeahorse(i));
+  turtles=[]; for(let i=0;i<CONFIG.turtles;i++) turtles.push(mkTurtle());
+  clown=CONFIG.clownfish?mkClown():null;
+  anemone.tents=Array.from({length:14},(_,i)=>({ox:(i/13-0.5)*30, len:rand(26,46), ph:rand(0,TAU)}));
+  seaweeds=weedDefs.slice(0,Math.min(5,CONFIG.seaweedStalks)).map(d=>({x:d[0]*W,h:d[1]*H,front:d[3],seg:9,ph:rand(0,TAU),spd:rand(0.7,1.15),w:rand(5,7),col:'hsl('+d[2]+',52%,'+(d[3]?31:24)+'%)'}));
+```
+CONFIG.seaweedStalks=5 with 5 defs; slice fine.
+
+Wait: weedDefs is defined as a global const — define near CONFIG.
+
+Crab flee check uses turtles[0] — turtles always 1. Guard: if(turtles.length).
+
+mkCrab position: W*(0.25+0.5*i): i=0 → .25, i=1 → .75.
+
+Starfish on rock: rocks at .10 and .60. y=floorY - r*0.2.
+
+Starfish rot dir: store dr: rand(±). Use s.dr.
+
+Now recheck "at least 3 different shells": conch, scallop, cowrie, spiral → 4. ✓
+
+"Rocks: a few rounded stones": 4 rocks. ✓
+
+Verify: turtle yBase H*0.4, ±H*0.085 → [0.315, 0.485]H middle band ✓.
+
+Jelly: upper half ✓. Seahorse near decor ✓. Bottom dwellers on floor ✓.
+
+Bubble max and interval in CONFIG ✓.
+
+Now potential issues:
+
+1. `ctx.scale(dir*s, s)` where dir=-1 flips x — text none, fine.
+2. In drawTropical, `f.col` is array; destructuring per frame — allocation (destructure doesn't allocate, just creates refs to existing array elements — fine, no new array).
+3. `hexPath` global function.
+4. In buildFloor, `anemone` object defined earlier (global let) — yes.
+5. `chestPos` global.
+6. In update, `turtles[0]` might exist (CONFIG.turtles=1) but guard just in case.
+7. In updateSchool, s might be null? Always created.
+8. drawAnemone uses anemone.tents — created in buildScene before first render. resize→buildScene→frame. Good.
+9. `spawnBubble` uses floorY — W defined.
+10. Ripples loop `for(let x=0;x<=W;x+=24)` with `x===0?moveTo:lineTo` — fine.
+11. Vignette makeLayer uses DPR — fine.
+
+12. `time.spawn` while loop: if speedMultiplier is 0 → sdt=0, no spawn, fine.
+
+13. Multiply overlay: 'rgb(...)' string constructed each frame — 1 alloc, fine.
+
+14. globalAlpha reset: I set in many places; ensure end of render has alpha 1 and comp 'source-over'. Final drawImage vignette with alpha 1. Next frame starts with setting comp/alpha at top of render. Good.
+
+15. Jelly tentacles draw: inside jelly draw, after bell:
+```js
+function drawJelly(j){
+  const t=time.t;
+  const k=j.pulse<0.3? 1-j.pulse/0.3 : 0;
+  const sx=1+0.16*k, sy=1-0.2*k;
+  ctx.save(); ctx.translate(j.x,j.y);
+  // tentacles (behind bell)
+  const [cr,cg,cb]=j.hue;
+  ctx.strokeStyle='rgba('+cr+','+cg+','+cb+',0.4)';
+  ctx.lineWidth=1.4; ctx.lineCap='round';
+  for(const tn of j.tent){
+    const bx=tn.o*j.r*0.7;
+    const len=j.r*tn.l;
+    const sway=Math.sin(t*1.3+tn.p)*6 - j.vx*0.25;
+    const dx=-j.vx*0.12, dy=Math.max(0,j.vy)*0.06;
+    ctx.beginPath();
+    ctx.moveTo(bx,2);
+    ctx.quadraticCurveTo(bx+sway*0.5+dx*0.5, len*0.55, bx+sway+dx, len+dy*4);
+    ctx.stroke();
+  }
+  // oral arms (short, thick)
+  ctx.lineWidth=3;
+  ctx.strokeStyle='rgba('+cr+','+cg+','+cb+',0.35)';
+  for(let i=0;i<4;i++){
+    const bx=(i-1.5)*6;
+    ctx.beginPath(); ctx.moveTo(bx,2);
+    ctx.quadraticCurveTo(bx+Math.sin(t*1.6+i)*3, 8, bx+Math.sin(t*1.6+i+1)*4, j.r*0.55);
+    ctx.stroke();
+  }
+  // bell
+  ctx.scale(sx,sy);
+  const r=j.r;
+  ctx.beginPath();
+  ctx.moveTo(-r,2);
+  ctx.bezierCurveTo(-r*1.02,-r*1.45, r*1.02,-r*1.45, r,2);
+  // wavy bottom
+  const n=4;
+  for(let i=0;i<n;i++){
+    const x1=r-((i+0.5)*(2*r/n)), x0=r-((i+1)*(2*r/n));
+    ctx.quadraticCurveTo(x1, 8, x0, 2);
+  }
+  ctx.closePath();
+  const rg=ctx.createRadialGradient(0,-r*0.55,r*0.15,0,-r*0.35,r*1.5);
+  rg.addColorStop(0,'rgba(255,255,255,0.55)');
+  rg.addColorStop(0.5,'rgba('+cr+','+cg+','+cb+',0.35)');
+  rg.addColorStop(1,'rgba('+cr+','+cg+','+cb+',0.12)');
+  ctx.fillStyle=rg; ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.4)'; ctx.lineWidth=1.2; ctx.stroke();
+  // inner core
+  ctx.fillStyle='rgba(255,255,255,0.35)';
+  ctx.beginPath(); ctx.ellipse(0,-r*0.45,r*0.28,r*0.4,0,0,TAU); ctx.fill();
+  ctx.restore();
+}
+```
+Per-jelly per-frame gradient — 3/frame, acceptable (gradient creation is moderately cheap; 3 is fine).
+
+Tentacle color strings constructed per frame ×(7+4)×3 jellies = 33 string constructions... tolerable but let's precompute per-jelly rgba strings on build: j.tc = 'rgba(r,g,b,0.4)', j.toc = 'rgba(...,0.35)'. Better.
+
+16. Jelly y clamp: after velocity, clamp j.y to [-30, H*0.62].
+
+17. Bubbles drawn with drawImage of sprite scaled — sprite is 64px, scaling to ~20px, fine.
+
+18. `distant` drawn before floor — their y range H*0.25..0.6 above sand; ok.
+
+19. Motes back drawn before distant? Order in render: bg, shafts, surface, ripples, motesB, distant, bubbles, floor... Motes behind bubbles fine.
+
+20. No scrollbars: canvas fixed inset 0; body overflow hidden. #t fixed too.
+
+21. Fonts: system-ui stack, no external. ✓
+
+22. No console errors: ensure no `a` reference before defined, no undefined property access. In drawTurtle I referenced hexPath defined before render call — function declarations hoisted. In drawTurtle I had leftover `function hex(...)` — remove; only use hexPath.
+
+23. In crab update, `c.st` is 0/1 number; initial st:0.
+
+24. mkCrab: dir initial ±.
+
+25. Lobster `L.st` initial 'walk'.
+
+26. Seahorse 1 x is anemone.x + 46 → near anemone; y floorY-96. Anemone tentacle tops ≈ floorY-4-46-...≈floorY-52. Seahorse at -96 is above — "near decor" ok.
+
+Actually seahorse y0 = floorY(ax) - 96, and ax = W*0.425 — close to anemone x W*0.42. Overlaps with anemone area; seahorse drawn after anemone in render (order: clown, anemone, seahorse) → seahorse in front of tentacles; slightly hovering above anemone — fine.
+
+27. Clown drawn in front of anemone → hides behind tentacles ✓.
+
+28. Verify drawSchool heading wrap — heading is unbounded, fine.
+
+29. Performance: drawTropical uses clip — fine.
+
+30. `resize` before first frame: resize() sets everything, then rAF.
+
+31. `performance.now` initial value of `last`: set `let last=performance.now();` then rAF(frame) — first dt small. OK.
+
+32. CONFIG.crabs=2 → "at least 1" ✓. Lobsters 1 ✓. Starfish 2 ✓. Seahorses 2 ✓. Turtle 1 ✓.
+
+33. `und` function used in buildFloor before floorTop set? resize sets floorTop before buildScene ✓.
+
+34. In `makeLayer`, `w*DPR|0` precedence: (w*DPR)|0 ✓.
+
+35. Vignette: createRadialGradient radii must be non-negative and finite; min(W,H)*0.42>0 ✓.
+
+36. `shaftSpr` drawImage with rotation — shafts drawn from y=-20 with length H*1.15 — covers screen ✓.
+
+37. Screen comp for shafts + surfGrad normal.
+
+38. Night: shafts also dimmed (ca) ✓.
+
+39. Multiply overlay only when enabled.
+
+40. Glow for angelfish and jelly: after multiply ✓.
+
+41. One more: `time.dayF` initial 1.
+
+42. Bubble wobble: b.x recomputed from x0 each frame (stateless) ✓.
+
+43. Bubble spawn x0 near vent ± 6; x0 could be slightly <0? vent 0.18W ≥ 0; rand(-6,6) could go negative → clamp x0: clamp(vent+rand(-6,6), 4, W-4).
+
+44. In drawBubbles, set globalAlpha 0.85 per bubble — set once outside loop.
+
+45. Seaweed quadratic per segment — 45 strokes with beginPath ✓.
+
+46. Anemone 14×2 draws ✓.
+
+47. Chest sparkle: chestPos defined in buildFloor before use in render ✓.
+
+48. Wheel is fx 0.055 and rock is 0.10 — close; wheel radius 19+knobs → 0.055W is ~ (0.055W-0.10W) = 0.045W = 51px at 1140 apart. OK.
+
+49. Scallop at 0.465, cowrie at 0.64, chest at 0.71 — cowrie (r 9) and chest (18) are ~0.07W ≈ 75px apart fine.
+
+50. Starfish 2 on rock .60 and chest .71, coral .76 — crowded right middle but ok.
+
+51. Seaweed .705 h 0.27H near chest — layered in front (front? d[3]=true means back). Back seaweed drawn in front of bottom-dwellers → behind lobster path ✓.
+
+52. Turtle rowing flipper at (10,9) with rotation — shell ry 15.5 so flipper root at y9 inside shell bottom edge, ellipse extending x+10 → out beyond shell (25). Good.
+
+53. School size from CONFIG.schoolSize=12 ≥8 ✓.
+
+54. Tropical fish: "at least 2 per species": 4 tropical, 3 angel, 12 school ✓.
+
+55. Speed multiplier affects: sdt used for all creature updates, school, bubbles, motes, jelly ✓. Caustics and ripples use time.rt (real) — ambient, fine.
+
+56. dayNight: time.rt based ✓ (real seconds).
+
+Edge: CONFIG.dayNightSeconds=75 — 37.5s day, 37.5s night. Good for demo.
+
+Now, "no scrollbars": html,body height 100% + overflow hidden.
+
+Let me write the final HTML, ensuring all braces balanced. Let me write it out completely and carefully.
+
+Also one more check: `drawJelly` — bell bezier: from (-r,2) to (r,2) with control (-r*1.02,-r*1.45),(r*1.02,-r*1.45): dome height ~ r*1.09 (bezier max ≈ 3/4 * control height = 1.09r). OK, bell is taller than wide — jelly look.
+
+Wavy bottom: from (r,2) to (-r,2) with 4 scallops dipping to y≈8 (control y 8). Path closes at start point (-r,2) → closePath line to (-r,2) which is same as start ✓.
+
+Oral arms drawn before bell (below bell top area, at y 2..0.55r — partially hidden by translucent bell ✓ nice.
+
+Tentacles also drawn before bell: they start at y=2 (below bell rim) — visible below ✓.
+
+Jelly pulse scale applied via ctx.scale after tentacle draws — tentacles unscaled, bell scales — acceptable (bell pulses, tentacles trail).
+
+Also add slight rotation of jelly with vx: rotate(vx*0.02)? skip.
+
+Glow position: j.y - r*0.5 center.
+
+Also add faint always-on glow on jelly? "luminescent" — small glow even in day: alpha 0.10 + n*0.35. Do in glow pass regardless (comp lighter, low alpha in day) — nice bioluminescent feel. Draw in separate lighter pass: alpha = 0.08 + n*0.38.
+
+But that pass is currently inside `if(dayNight enabled && n>0.01)`. Move glow to its own always-on block:
+```js
+ctx.globalCompositeOperation='lighter';
+const jg=0.07+time.night*0.4;
+for(const j of jellies){...}
+if(CONFIG.dayNightSeconds>0){ const ag=time.night*0.16; for(const f of angels){ if(ag>0.01){...} } }
+```
+Fine.
+
+Let me finalize numbers and write.
+
+One concern: `ctx.ellipse` with negative radius? In drawStar arms, all radii positive ✓. In lobster tail: rx=6.5-5*0.55=3.75 ✓ ry=5-5*0.45=2.75 ✓.
+
+In drawLobster, loop i=5..0: segment positions segX=-16-5*8.5=-58.5 etc. Tail fan at i===5 drawn.
+
+Legs at -8+i*5 → -8,-3,2,7 below body (carapace ellipse centered (2,-8) rx19 → x -17..21) ✓.
+
+Antennae start (24,-10) past head (20,-8 r6.5) ✓.
+
+Claw arms from (10/12,-10/-12) forward.
+
+OK. Let's also add subtle "shadow on floor" for mid creatures? Skip — perf and complexity.
+
+Recheck update() uses `t` variable: time.t+=sdt at start; but I reference time.t directly in draw functions. In update, I set `const t=time.t` after increment.
+
+Also in update, crab uses c.y for flee check — c.y set at end of previous frame ✓ (initially 0 — set on first frame update before use? c.y=floorY at end of update; first update: c.y is from factory... let me set in factory: y:0; flee check uses |dy|<70 with y=0 → dy = c.y - f.y = -f.y; f.y ~ 0.4H → |dy| big → no false flee. OK, but let me initialize y in factory: mkCrab: y:0 and immediately compute: after pushing, compute y: `const c=mkCrab(i); c.y=floorY(c.x)-7*c.s; crabs.push(c);` Let's do that for cleanliness.
+
+Starfish factory uses floorY ✓ (floorTop set).
+
+Seahorse factory uses floorY(ax) ✓.
+
+mkTurtle: y computed in update ✓.
+
+Now let me write the final file. Also ensure `"use strict"` no unused variables errors (strict doesn't error on unused). No console errors: avoid typos.
+
+Also add `window.addEventListener('resize', resize)`.
+
+DPR transform: setTransform(DPR,0,0,DPR,0,0) — after canvas.width reset (which resets state) ✓.
+
+Floor layer: makeLayer scales its ctx by DPR; drawn with drawImage(floorCv, 0,0,W,H) — floorCv is W*DPR px wide → displayed at W css px → device W*DPR px ✓ 1:1.
+
+Same for vignette ✓.
+
+Sprites are fixed px (not DPR-scaled) — bubble sprite 64px scaled down to ~10-20 px → soft, fine. Glow is soft ✓. Shaft 160 wide scaled to 60-150 ✓.
+
+Title div: fine.
+
+Final check of the CONFIG list requirements: fish count per species (tropicalFish, angelfish, schoolSize) ✓, speedMultiplier ✓, bubbleIntervalMs ✓, jellyfish ✓, crabs ✓, maxBubbles ✓, dayNightSeconds ✓.
+
+OK let me write it all out. I'll be meticulous.
+
+Also verify `angDiff(des,s.heading)` sign: angDiff(a,b)=atan2(sin(a-b),cos(a-b)) → returns a-b wrapped. We want to move heading toward des: heading += angDiff(des,heading)*k ✓.
+
+School steering: when cx < mx (near left), sx>0, des=atan2(sy,sx) ~ 0 (rightward) ✓ pushes right.
+
+Clown dir: x = cos(t*0.55+ph) → vx = -sin(...)*0.55*30 → dir = -sin>0 ? 1 : -1 → c.dir = -Math.sin(t*0.55+c.ph)>0 ? 1 : -1. Let me write: `c.dir = Math.sin(t*0.55+c.ph) < 0 ? 1 : -1;`
+
+In drawClown, tail on -x side, head on +x, matches dir ✓.
+
+Tropical fish tail on -x, nose on +x ✓ (eye at +8.5).
+
+Angel nose at +24 ✓.
+
+Turtle head at +26 ✓.
+
+Lobster head/claws at +x ✓ tail -x ✓.
+
+Crab: claws at +x (18..21), eyes at +x — facing dir ✓.
+
+Now — write it out.
+
+Actually one more detail: the "multiply" composite with rgb string — at n small (k small), color near white → negligible. Good.
+
+Night overlay will also darken sand etc. ✓.
+
+Let me write drawMotes:
+```js
+function drawMotes(arr,k){
+  ctx.fillStyle='#cfe9f2';
+  const t=time.t;
+  for(let i=0;i<arr.length;i++){
+    const m=arr[i];
+    ctx.globalAlpha=(0.06+0.05*Math.sin(t*0.8+m.ph))*k;
+    ctx.beginPath(); ctx.arc(m.x,m.y,m.r,0,TAU); ctx.fill();
+  }
+  ctx.globalAlpha=1;
+}
+```
+
+MkMote: `{x:rand(0,W), y:rand(0,H), r:rand(0.6,1.7), vy:rand(-7,-2), ph:rand(0,TAU)}`.
+
+In render, call drawMotes(motesB,0.5) and drawMotes(motesF,1).
+
+Also recheck that `buildFloor` references drawWheel etc — defined as function declarations before buildFloor is called (order at runtime: all function declarations hoisted to top of script — since we use function declarations for everything, safe).
+
+Global const: CONFIG, weedDefs, sprites. Sprites created at parse time via makeSprite — makeSprite is a function declaration, hoisted ✓.
+
+Order in file:
+1. CONFIG
+2. weedDefs
+3. utils (const arrow functions — not hoisted but used inside functions called later; but `rand` used in makeSprite calls which are executed at parse time! `bubbleSpr = makeSprite(...)` — the makeSprite body itself doesn't call rand (only draw functions). Sprite creation: bubble (no rand), glow (none), shaft (none), sparkle (none) ✓.
+But `const canvas=...` and `DPR` — used in makeLayer; sprites don't use it ✓.
+
+But global `let W,H,DPR` default 0/1 — resize sets before buildScene ✓.
+
+4. canvas/ctx, resize handler
+5. sprites
+6. state arrays
+7. all function declarations
+8. boot: resize(); requestAnimationFrame.
+
+resize called at boot; uses buildScene→buildFloor→drawRock etc (declared, hoisted) ✓.
+
+OK, writing the final answer now. I'll keep code clean with section comments. Also make sure no stray references (like `f.in` typo — removed).
+
+In drawAngel: `ctx.quadraticCurveTo(11,-30, -2+f.fin*3,-45)` — fin wave ✓.
+
+Turtle tilt: T.tilt = a*0.5; rotate(T.tilt*T.dir) — when dir=-1 and scale flips, rotation sign: rotate before scale: ctx.rotate then ctx.scale(-1,1) — rotation in flipped space is mirrored; fine visually.
+
+Also turtle row phase: row=sin(t*1.5+T.ph).
+
+One more creature consideration — turtle and school may overlap; fine.
+
+Ensure lobster doesn't overlap with starfish on rock .60: lobster starts .52, starfish at .60 top of rock. Lobster swims over it (lobster drawn after starfish → lobster on top). Acceptable.
+
+Crabs at .25 and .75 — near rock .34 and shell .64/.71; visually fine.
+
+I think I'm ready. Let me write the code.
+
+Let me count seaweed colors: hues 125,100,130,112,92 ✓ varied greens.
+
+Front/back: [0.04 front, 0.185 back, 0.368 front, 0.705 back, 0.93 front] ✓ 3 front, 2 back.
+
+Anemone tents 14.
+
+Final: ensure `update` signature is update(sdt) only (dt for rt is handled in frame). I pass sdt; internal time.t+=sdt. Day/night uses time.rt (updated in frame).
+
+Let me write it all out.
+
+Bubble count check: spawn interval 420ms, average life: rise from ~0.82H to 0 at speed ~30-50 px/s → ~ (0.8*900)/40 ≈ 18s → steady state ≈ 18000/420 ≈ 43 < 70 ✓.
+
+OK, writing the final output. Just output the HTML file, no extra text.
+
+Also: `<html lang="en">`, meta charset.
+
+Small thing: `#t` title uses system font — allowed (no external font).
+
+Let me write out the lobster draw with raise rotation values — check rotation values: front claw rotate(0.4-1.0*rL): at rL=0: 0.4 (pincer facing down-forward); at rL=1: -0.6 (raised). Claw ellipse centered at (3.5,0) rotated — with translate up by 11*rL. Looks raised ✓.
+
+Also lobster antenna sway uses L.ph ✓.
+
+Edge: `ctx.save()`/restore pairs in lobster claw ✓.
+
+OK let's produce the final file.
+
+
+===== ANSWER =====
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deep Blue — Living Aquarium</title>
+<style>
+  html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#04182b;}
+  canvas{display:block;position:fixed;inset:0;}
+  #t{position:fixed;left:20px;top:16px;font:600 12px/1.4 system-ui,sans-serif;
+     letter-spacing:.42em;text-transform:uppercase;color:#bfe4ee;pointer-events:none;
+     animation:tfade 10s ease forwards;}
+  @keyframes tfade{0%,55%{opacity:.85}100%{opacity:0}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="t">deep&nbsp;blue</div>
+<script>
+"use strict";
+
+/* ============================== CONFIG ============================== */
+const CONFIG = {
+  tropicalFish: 4,          // warm-striped gliders
+  angelfish: 3,             // cool kite-shaped bobs
+  schoolSize: 12,           // tiny schooling silhouettes
+  jellyfish: 3,
+  crabs: 2,
+  lobsters: 1,
+  starfish: 2,
+  seahorses: 2,
+  turtles: 1,
+  clownfish: true,          // hides inside the anemone
+  speedMultiplier: 1,       // global time scale for all creatures
+  bubbleIntervalMs: 420,    // spawn cadence
+  maxBubbles: 70,
+  dayNightSeconds: 75,      // 0 disables the cycle
+  motes: 52,
+  causticShafts: 6,
+  seaweedStalks: 5,
+  pixelRatioCap: 2,
+};
+const weedDefs = [
+  [0.040, 0.34, 125, false],
+  [0.185, 0.24, 100, true],
+  [0.368, 0.40, 130, false],
+  [0.705, 0.27, 112, true],
+  [0.930, 0.36,  92, false],
+];
+
+/* ============================== UTILS ============================== */
+const TAU = Math.PI * 2;
+const rand  = (a,b)=>a+Math.random()*(b-a);
+const clamp = (v,a,b)=>v<a?a:v>b?b:v;
+const lerp  = (a,b,t)=>a+(b-a)*t;
+const pick  = a=>a[(Math.random()*a.length)|0];
+const angDiff = (a,b)=>Math.atan2(Math.sin(a-b), Math.cos(a-b));
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W=0, H=0, DPR=1, floorTop=0;
+const und    = x => Math.sin(x*0.012)*5 + Math.sin(x*0.028+1.7)*3.5;
+const floorY = x => floorTop + und(x);
+
+function makeLayer(w,h){
+  const c=document.createElement('canvas');
+  c.width=Math.max(1,(w*DPR)|0); c.height=Math.max(1,(h*DPR)|0);
+  const g=c.getContext('2d'); g.scale(DPR,DPR);
+  return [c,g];
+}
+function makeSprite(w,h,fn){
+  const c=document.createElement('canvas'); c.width=w; c.height=h;
+  fn(c.getContext('2d'),w,h); return c;
+}
+
+/* ========================= PRE-RENDERED SPRITES ========================= */
+const bubbleSpr = makeSprite(64,64,g=>{
+  g.beginPath(); g.arc(32,32,26,0,TAU);
+  const rg=g.createRadialGradient(32,32,4,32,32,26);
+  rg.addColorStop(0,'rgba(255,255,255,0.03)');
+  rg.addColorStop(0.7,'rgba(205,240,255,0.10)');
+  rg.addColorStop(0.92,'rgba(235,250,255,0.45)');
+  rg.addColorStop(1,'rgba(255,255,255,0.06)');
+  g.fillStyle=rg; g.fill();
+  g.fillStyle='rgba(255,255,255,0.55)';
+  g.beginPath(); g.arc(23,21,4.5,0,TAU); g.fill();
+  g.fillStyle='rgba(255,255,255,0.22)';
+  g.beginPath(); g.arc(39,43,2.6,0,TAU); g.fill();
+});
+const glowSpr = makeSprite(128,128,g=>{
+  const rg=g.createRadialGradient(64,64,0,64,64,64);
+  rg.addColorStop(0,'rgba(170,225,255,0.85)');
+  rg.addColorStop(0.45,'rgba(120,180,255,0.30)');
+  rg.addColorStop(1,'rgba(120,180,255,0)');
+  g.fillStyle=rg; g.fillRect(0,0,128,128);
+});
+const shaftSpr = makeSprite(160,512,g=>{
+  let lg=g.createLinearGradient(0,0,160,0);
+  lg.addColorStop(0,'rgba(255,255,255,0)');
+  lg.addColorStop(0.5,'rgba(255,255,255,1)');
+  lg.addColorStop(1,'rgba(255,255,255,0)');
+  g.fillStyle=lg; g.fillRect(0,0,160,512);
+  g.globalCompositeOperation='destination-in';
+  let vg=g.createLinearGradient(0,0,0,512);
+  vg.addColorStop(0,'rgba(255,255,255,0.9)');
+  vg.addColorStop(0.65,'rgba(255,255,255,0.28)');
+  vg.addColorStop(1,'rgba(255,255,255,0)');
+  g.fillStyle=vg; g.fillRect(0,0,160,512);
+});
+const sparkleSpr = makeSprite(32,32,g=>{
+  g.strokeStyle='#fff'; g.lineWidth=1.6; g.lineCap='round';
+  g.beginPath();
+  g.moveTo(16,4); g.lineTo(16,28);
+  g.moveTo(4,16); g.lineTo(28,16);
+  g.moveTo(9,9); g.lineTo(23,23);
+  g.moveTo(23,9); g.lineTo(9,23);
+  g.stroke();
+});
+
+/* ============================== STATE ============================== */
+let bgGrad, surfGrad, vigCv, floorCv;
+let tropicals=[], angels=[], jellies=[], crabs=[], lobsters=[], starfishArr=[],
+    seahorses=[], turtles=[], distant=[], shafts=[], motesB=[], motesF=[],
+    bubbles=[], seaweeds=[];
+let school=null, clown=null, chestPos={x:0,y:0}, vents=[];
+const anemone = {x:0, y:0, ph:0, tents:[]};
+const time = {t:0, rt:0, dayF:1, night:0, spawn:0};
+
+/* ============================== RESIZE ============================== */
+function resize(){
+  DPR = Math.min(window.devicePixelRatio||1, CONFIG.pixelRatioCap);
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width  = (W*DPR)|0;
+  canvas.height = (H*DPR)|0;
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  floorTop = H*0.82;
+
+  bgGrad = ctx.createLinearGradient(0,0,0,H);
+  bgGrad.addColorStop(0,'#031525');
+  bgGrad.addColorStop(0.45,'#06304a');
+  bgGrad.addColorStop(0.8,'#0a4f63');
+  bgGrad.addColorStop(1,'#0d606e');
+  surfGrad = ctx.createLinearGradient(0,0,0,H*0.16);
+  surfGrad.addColorStop(0,'rgba(150,225,240,0.16)');
+  surfGrad.addColorStop(1,'rgba(150,225,240,0)');
+
+  const [vc,vg] = makeLayer(W,H);
+  const rg = vg.createRadialGradient(W/2,H*0.42,Math.min(W,H)*0.42, W/2,H*0.5, Math.hypot(W,H)*0.62);
+  rg.addColorStop(0,'rgba(2,8,18,0)');
+  rg.addColorStop(1,'rgba(2,8,18,0.5)');
+  vg.fillStyle=rg; vg.fillRect(0,0,W,H);
+  vigCv = vc;
+
+  buildScene();
+}
+window.addEventListener('resize', resize);
+
+/* ============================== SCENE BUILD ============================== */
+function buildScene(){
+  buildFloor();
+  shafts=[];
+  for(let i=0;i<CONFIG.causticShafts;i++)
+    shafts.push({fx:(i+0.5)/CONFIG.causticShafts+rand(-0.05,0.05), w:rand(60,150),
+                 rot:rand(-0.22,0.1), spd:rand(0.05,0.12), ph:rand(0,TAU), a:rand(0.05,0.10)});
+  motesB=[]; motesF=[];
+  const half=CONFIG.motes>>1;
+  for(let i=0;i<half;i++) motesB.push(mkMote());
+  for(let i=0;i<CONFIG.motes-half;i++) motesF.push(mkMote());
+  distant=[];
+  for(let i=0;i<3;i++) distant.push({x:rand(0,W), y:rand(H*0.25,H*0.6),
+    sp:rand(9,16)*(Math.random()<0.5?-1:1), s:rand(0.5,0.7), ph:rand(0,TAU)});
+  bubbles.length=0; time.spawn=0;
+  vents=[0.18,0.5,0.82].map(f=>f*W);
+
+  tropicals=[]; for(let i=0;i<CONFIG.tropicalFish;i++) tropicals.push(mkTropical(i,CONFIG.tropicalFish));
+  angels=[];    for(let i=0;i<CONFIG.angelfish;i++)    angels.push(mkAngel(i,CONFIG.angelfish));
+  school = mkSchool();
+  jellies=[];   for(let i=0;i<CONFIG.jellyfish;i++)    jellies.push(mkJelly(i,CONFIG.jellyfish));
+  crabs=[];     for(let i=0;i<CONFIG.crabs;i++){ const c=mkCrab(i); c.y=floorY(c.x)-7*c.s; crabs.push(c); }
+  lobsters=[];  for(let i=0;i<CONFIG.lobsters;i++)     lobsters.push(mkLobster());
+  starfishArr=[]; for(let i=0;i<CONFIG.starfish;i++)   starfishArr.push(mkStar(i));
+  seahorses=[]; for(let i=0;i<CONFIG.seahorses;i++)    seahorses.push(mkSeahorse(i));
+  turtles=[];   for(let i=0;i<CONFIG.turtles;i++)      turtles.push(mkTurtle());
+  clown = CONFIG.clownfish ? mkClown() : null;
+  anemone.tents = Array.from({length:14},(_,i)=>({ox:(i/13-0.5)*30, len:rand(26,46), ph:rand(0,TAU)}));
+  seaweeds = weedDefs.slice(0,Math.min(weedDefs.length,CONFIG.seaweedStalks)).map(d=>({
+    x:d[0]*W, h:d[1]*H, front:d[3], seg:9, ph:rand(0,TAU), spd:rand(0.7,1.15),
+    w:rand(5,7), col:'hsl('+d[2]+',52%,'+(d[3]?31:24)+'%)'}));
+}
+
+function mkMote(){ return {x:rand(0,W), y:rand(0,H), r:rand(0.6,1.7), vy:rand(-7,-2), ph:rand(0,TAU)}; }
+function mkTropical(i,n){
+  const p=[['#f2852e','#ffe08a','#d96a20'],['#f6a83c','#fff6e0','#e08a2a'],['#efcf4a','#ffffff','#cfa92e']];
+  return {x:W*(i+0.5)/n+rand(-30,30), by:rand(H*0.24,H*0.66), ty:0, dir:i%2?1:-1,
+    sp:rand(44,62), ph:rand(0,TAU), bobA:rand(5,12), bobW:rand(0.5,0.9),
+    s:rand(0.85,1.2), col:pick(p), turnT:rand(0,3), tail:0, y:0};
+}
+function mkAngel(i,n){
+  return {x:W*(i+0.5)/n+rand(-40,40), by:rand(H*0.22,H*0.58), dir:i%2?-1:1,
+    sp:rand(15,22), ph:rand(0,TAU), bobA:rand(22,34), bobW:rand(0.45,0.65), s:rand(0.95,1.3), y:0, fin:0};
+}
+function mkJelly(i,n){
+  const h=pick([[255,190,230],[170,210,255],[200,180,255],[160,240,220]]);
+  return {x:W*(i+0.5)/n+rand(-50,50), y:rand(H*0.1,H*0.45), vx:rand(-6,6), vy:0,
+    r:rand(19,32), ph:rand(0,TAU), pulse:rand(0,1), hue:h,
+    tc:'rgba('+h[0]+','+h[1]+','+h[2]+',0.42)',
+    toc:'rgba('+h[0]+','+h[1]+','+h[2]+',0.34)',
+    tent:Array.from({length:7},()=>({o:rand(-0.7,0.7), l:rand(0.9,1.7), p:rand(0,TAU)}))};
+}
+function mkCrab(i){
+  return {x:W*(0.25+0.5*i)+rand(-30,30), dir:i?-1:1, st:0, t:rand(0.5,2), sp:rand(26,42),
+    lp:rand(0,TAU), s:rand(0.8,1.15), y:0, cd:rand(0,0.5)};
+}
+function mkLobster(){ return {x:W*0.52, dir:1, st:'walk', t:rand(2,3), raise:0, ph:rand(0,TAU), y:floorY(W*0.52)}; }
+function mkStar(i){
+  const r=[[0.10,30],[0.60,33]][i%2];
+  return {x:r[0]*W+rand(-8,8), y:floorY(r[0]*W)-r[1]*0.2, rot:rand(0,TAU), ph:rand(0,TAU),
+    dr:Math.random()<0.5?1:-1, s:rand(0.8,1.05),
+    col:i?'#b96a3c':'#c98a3e', colD:i?'#8a4526':'#9a5f28'};
+}
+function mkSeahorse(i){
+  const a=[[0.425,46,-96],[0.155,-24,-70]][i];
+  const ax=W*a[0];
+  return {ax:ax, dir:i?-1:1, y0:floorY(ax)+a[2], ph:rand(0,TAU), s:rand(0.9,1.1),
+    col:i?'#4fa8a0':'#e0955c', colD:i?'#2f7f78':'#b06a38', x:0, y:0};
+}
+function mkTurtle(){ return {x:rand(W*0.2,W*0.8), yBase:H*0.4, dir:1, ph:rand(0,TAU), s:rand(1.0,1.2), y:H*0.4, tilt:0}; }
+function mkSchool(){
+  return {cx:W*rand(0.3,0.7), cy:H*rand(0.3,0.55), heading:rand(0,TAU), turn:0,
+    members:Array.from({length:CONFIG.schoolSize},()=>({ox:rand(-40,40), oy:rand(-30,30),
+      tx:0, ty:0, ret:rand(0,1), ph:rand(0,TAU), a:rand(0.7,1)}))};
+}
+function mkClown(){ return {ph:rand(0,TAU), cyc:rand(0,9), al:1, x:0, y:0, dir:1}; }
+
+/* ============================ STATIC FLOOR ============================ */
+function buildFloor(){
+  const [fc,g] = makeLayer(W,H); floorCv = fc;
+
+  const sg = g.createLinearGradient(0,floorTop-12,0,H);
+  sg.addColorStop(0,'#dcb077'); sg.addColorStop(0.4,'#c0925c'); sg.addColorStop(1,'#7c5735');
+  g.fillStyle=sg;
+  g.beginPath(); g.moveTo(-4,H+4); g.lineTo(-4,floorY(0));
+  for(let x=0;x<=W+16;x+=16) g.lineTo(x,floorY(x));
+  g.lineTo(W+4,H+4); g.closePath(); g.fill();
+  g.strokeStyle='rgba(255,236,196,0.28)'; g.lineWidth=2;
+  g.beginPath(); g.moveTo(0,floorY(0)-1);
+  for(let x=16;x<=W;x+=16) g.lineTo(x,floorY(x)-1);
+  g.stroke();
+  for(let i=0;i<240;i++){
+    const x=rand(0,W), y=floorY(x)+rand(3,Math.max(4,H-floorY(x)-2));
+    g.fillStyle = Math.random()<0.5 ? 'rgba(88,58,30,0.22)' : 'rgba(255,238,200,0.14)';
+    g.beginPath(); g.arc(x,y,rand(0.5,1.6),0,TAU); g.fill();
+  }
+  const pcols=['#8d7b64','#6f7a84','#a08a6a','#77828c','#8a6f57'];
+  for(let i=0;i<24;i++){
+    const x=rand(0,W), r=rand(2.5,6.5), y=floorY(x)+r*0.4+rand(0,10);
+    g.fillStyle=pick(pcols);
+    g.beginPath(); g.ellipse(x,y,r,r*0.72,rand(-0.4,0.4),0,TAU); g.fill();
+    g.fillStyle='rgba(255,255,255,0.15)';
+    g.beginPath(); g.ellipse(x-r*0.3,y-r*0.3,r*0.35,r*0.22,0,0,TAU); g.fill();
+  }
+  [[0.10,30],[0.34,21],[0.60,33],[0.88,25]].forEach((r,i)=>{
+    const x=r[0]*W;
+    drawRock(g,x,floorY(x)+r[1]*0.35,r[1],i%2);
+  });
+  drawBranchCoral(g, W*0.225, floorY(W*0.225)+4, 30, ['#e0603f','#ff9d5c']);
+  drawBrainCoral(g, W*0.52, floorY(W*0.52)+8, 32);
+  drawBranchCoral(g, W*0.76, floorY(W*0.76)+4, 20, ['#d94f6c','#ff8fae']);
+  drawConch(g,   W*0.30,  floorY(W*0.30)+6, 13);
+  drawScallop(g, W*0.465, floorY(W*0.465)+5, 13);
+  drawCowrie(g,  W*0.64,  floorY(W*0.64)+4, 9);
+  drawSpiral(g,  W*0.80,  floorY(W*0.80)+4, 7);
+  drawWheel(g, W*0.055, floorY(W*0.055)+2, 19);
+  drawChest(g, W*0.71, floorY(W*0.71));
+  chestPos={x:W*0.71, y:floorY(W*0.71)-16};
+  anemone.x=W*0.42; anemone.y=floorY(anemone.x); anemone.ph=rand(0,TAU);
+  drawAnemoneBase(g, anemone.x, anemone.y);
+}
+
+function drawRock(g,x,y,r,alt){
+  const n=8, pts=[];
+  for(let i=0;i<n;i++){
+    const a=i/n*TAU, rr=r*rand(0.7,1.25);
+    pts.push([x+Math.cos(a)*rr*1.3, y+Math.sin(a)*rr*0.75-r*0.3]);
+  }
+  g.beginPath();
+  g.moveTo((pts[n-1][0]+pts[0][0])/2,(pts[n-1][1]+pts[0][1])/2);
+  for(let i=0;i<n;i++){
+    const p=pts[i], q=pts[(i+1)%n];
+    g.quadraticCurveTo(p[0],p[1],(p[0]+q[0])/2,(p[1]+q[1])/2);
+  }
+  g.closePath();
+  const rg=g.createLinearGradient(x,y-r,x,y+r);
+  rg.addColorStop(0, alt?'#5d7186':'#54677a');
+  rg.addColorStop(1,'#33414f');
+  g.fillStyle=rg; g.fill();
+  g.strokeStyle='rgba(190,220,235,0.18)'; g.lineWidth=1.5; g.stroke();
+  g.fillStyle='rgba(70,140,110,0.35)';
+  for(let i=0;i<6;i++){
+    g.beginPath();
+    g.arc(x+rand(-r*0.7,r*0.7), y+rand(-r*0.3,r*0.5), rand(1,2.5), 0, TAU);
+    g.fill();
+  }
+}
+function drawBranchCoral(g,x,y,s,cols){
+  g.lineCap='round';
+  const branch=(bx,by,ang,len,d)=>{
+    if(d===0) return;
+    const tx=bx+Math.cos(ang)*len, ty=by+Math.sin(ang)*len;
+    g.strokeStyle = d>2 ? cols[0] : cols[1];
+    g.lineWidth = d*1.9;
+    g.beginPath(); g.moveTo(bx,by); g.lineTo(tx,ty); g.stroke();
+    const k = d>3 ? 3 : 2;
+    for(let i=0;i<k;i++) branch(tx,ty, ang+rand(-0.85,0.85), len*rand(0.6,0.75), d-1);
+  };
+  for(let i=0;i<3;i++) branch(x+rand(-6,6), y, -Math.PI/2+rand(-0.5,0.5), s*rand(0.8,1.1), i===1?4:3);
+}
+function drawBrainCoral(g,x,y,s){
+  g.save();
+  g.beginPath(); g.ellipse(x,y,s*1.25,s*0.78,0,Math.PI,TAU); g.closePath();
+  const rg=g.createLinearGradient(x,y-s,x,y);
+  rg.addColorStop(0,'#e2946a'); rg.addColorStop(1,'#b05a3e');
+  g.fillStyle=rg; g.fill(); g.clip();
+  g.strokeStyle='rgba(120,45,30,0.55)'; g.lineWidth=2;
+  for(let i=0;i<6;i++){
+    const yy=y-s*0.72+i*s*0.27;
+    g.beginPath();
+    for(let xx=x-s*1.25; xx<=x+s*1.25; xx+=4){
+      const w=yy+Math.sin(xx*0.16+i*2.1)*3.2;
+      if(xx===x-s*1.25) g.moveTo(xx,w); else g.lineTo(xx,w);
+    }
+    g.stroke();
+  }
+  g.restore();
+}
+function drawConch(g,x,y,s){
+  g.save(); g.translate(x,y); g.rotate(0.15);
+  g.fillStyle='#d98d66';
+  g.beginPath(); g.arc(0,-s*0.15,s,0,TAU); g.fill();
+  g.strokeStyle='#8a4a32'; g.lineWidth=1.6;
+  g.beginPath();
+  for(let a=0;a<TAU*2.6;a+=0.25){
+    const r=s*0.95*Math.exp(-0.16*a);
+    const px=Math.cos(a)*r, py=-s*0.15+Math.sin(a)*r;
+    if(a===0) g.moveTo(px,py); else g.lineTo(px,py);
+  }
+  g.stroke();
+  g.fillStyle='#c97a52';
+  g.beginPath(); g.moveTo(s*0.55,s*0.6); g.lineTo(s*1.15,s*0.9); g.lineTo(s*0.35,s*1.0); g.closePath(); g.fill();
+  g.restore();
+}
+function drawScallop(g,x,y,s){
+  g.save(); g.translate(x,y); g.rotate(-0.12);
+  g.fillStyle='#e6c98f';
+  g.beginPath(); g.moveTo(0,0); g.arc(0,0,s,Math.PI,TAU); g.closePath(); g.fill();
+  g.strokeStyle='#b08d55'; g.lineWidth=1.5; g.stroke();
+  g.strokeStyle='rgba(176,141,85,0.8)'; g.lineWidth=1.2;
+  for(let i=1;i<8;i++){
+    const a=Math.PI+i*(Math.PI/8);
+    g.beginPath(); g.moveTo(0,0);
+    g.lineTo(Math.cos(a)*s*0.92, Math.sin(a)*s*0.92); g.stroke();
+  }
+  g.restore();
+}
+function drawCowrie(g,x,y,s){
+  g.save(); g.translate(x,y); g.rotate(0.3);
+  g.fillStyle='#ecd8b4';
+  g.beginPath(); g.ellipse(0,0,s,s*0.6,0,0,TAU); g.fill();
+  g.fillStyle='rgba(255,255,255,0.35)';
+  g.beginPath(); g.ellipse(-s*0.25,-s*0.25,s*0.5,s*0.28,0,0,TAU); g.fill();
+  g.strokeStyle='#a58a63'; g.lineWidth=1.4;
+  g.beginPath(); g.moveTo(-s*0.8,s*0.35); g.quadraticCurveTo(0,s*0.7,s*0.85,s*0.28); g.stroke();
+  g.fillStyle='#a58a63';
+  for(let i=0;i<3;i++){ g.beginPath(); g.arc(-s*0.35+i*s*0.4,s*0.52,s*0.09,0,TAU); g.fill(); }
+  g.restore();
+}
+function drawSpiral(g,x,y,s){
+  g.save(); g.translate(x,y); g.rotate(0.4);
+  g.fillStyle='#c98f9a';
+  g.beginPath(); g.arc(0,0,s,0,TAU); g.fill();
+  g.strokeStyle='rgba(140,70,85,0.8)'; g.lineWidth=1.2;
+  g.beginPath();
+  for(let a=0;a<4*Math.PI;a+=0.3){
+    const rr=s*0.92*Math.exp(-0.15*a);
+    const px=Math.cos(a)*rr, py=Math.sin(a)*rr;
+    if(a===0) g.moveTo(px,py); else g.lineTo(px,py);
+  }
+  g.stroke(); g.restore();
+}
+function drawWheel(g,x,y,s){
+  g.save(); g.translate(x,y); g.rotate(0.45);
+  g.lineCap='round';
+  g.strokeStyle='#5d432c'; g.lineWidth=5;
+  g.beginPath(); g.arc(0,0,s,0,TAU); g.stroke();
+  g.lineWidth=3.5;
+  for(let i=0;i<6;i++){
+    const a=i*TAU/6;
+    g.beginPath();
+    g.moveTo(Math.cos(a)*s*0.5, Math.sin(a)*s*0.5);
+    g.lineTo(Math.cos(a)*(s+7), Math.sin(a)*(s+7));
+    g.stroke();
+    g.fillStyle='#6b4a2f';
+    g.beginPath(); g.arc(Math.cos(a)*(s+10), Math.sin(a)*(s+10), 3, 0, TAU); g.fill();
+  }
+  g.fillStyle='#6b4a2f';
+  g.beginPath(); g.arc(0,0,s*0.42,0,TAU); g.fill();
+  g.strokeStyle='rgba(0,0,0,0.25)'; g.lineWidth=2;
+  g.beginPath(); g.arc(0,0,s*0.42,0,TAU); g.stroke();
+  g.restore();
+  g.fillStyle='#c99d63';
+  g.beginPath(); g.ellipse(x+6,y+8,s*1.6,s*0.7,0.2,0,TAU); g.fill();
+}
+function drawChest(g,x,y){
+  g.save(); g.translate(x,y);
+  g.save(); g.translate(-17,-20); g.rotate(-0.85);
+  g.fillStyle='#6b4626'; g.fillRect(0,0,36,9);
+  g.fillStyle='#4a4a52'; g.fillRect(15,0,5,9);
+  g.restore();
+  g.fillStyle='#7a5230'; g.fillRect(-18,-20,36,20);
+  g.fillStyle='#5d3c22'; g.fillRect(-18,-14,36,2.5);
+  g.fillStyle='#4a4a52'; g.fillRect(-18,-20,4,20); g.fillRect(14,-20,4,20);
+  g.fillStyle='#8a9aa8'; g.beginPath(); g.arc(0,-11,3,0,TAU); g.fill();
+  g.fillStyle='#e8b84a';
+  [[-8,-22],[0,-24],[7,-21],[-3,-19],[4,-18]].forEach(c=>{
+    g.beginPath(); g.ellipse(c[0],c[1],3.4,2.6,rand(-0.4,0.4),0,TAU); g.fill();
+  });
+  g.fillStyle='#d9a83e';
+  [[-24,1],[-29,-2],[24,0],[29,2]].forEach(c=>{
+    g.beginPath(); g.ellipse(c[0],c[1],3.2,2.4,0,0,TAU); g.fill();
+  });
+  g.restore();
+}
+function drawAnemoneBase(g,x,y){
+  g.fillStyle='#6d5566';
+  g.beginPath(); g.ellipse(x,y+3,20,9,0,0,TAU); g.fill();
+  g.fillStyle='#7d6478';
+  g.beginPath(); g.ellipse(x,y,16,7,0,0,TAU); g.fill();
+}
+
+/* ============================== UPDATE ============================== */
+function update(sdt){
+  time.t += sdt;
+  const t = time.t;
+
+  if(CONFIG.dayNightSeconds>0){
+    const c=(time.rt/CONFIG.dayNightSeconds)%1;
+    time.dayF = 0.5+0.5*Math.cos(c*TAU);
+  } else time.dayF=1;
+  time.night = 1-time.dayF;
+
+  for(const f of tropicals){
+    f.turnT-=sdt;
+    if(f.turnT<=0){ f.ty=rand(H*0.22,H*0.68); f.turnT=rand(3,7); }
+    f.by += (f.ty-f.by)*Math.min(1,sdt*0.6);
+    f.x += f.dir*f.sp*sdt;
+    if(f.dir>0 && f.x>W-36) f.dir=-1;
+    else if(f.dir<0 && f.x<36) f.dir=1;
+    f.y = f.by + Math.sin(t*f.bobW+f.ph)*f.bobA;
+    f.tail = Math.sin(t*7+f.ph);
+  }
+  for(const f of angels){
+    f.x += f.dir*f.sp*sdt;
+    if(f.dir>0 && f.x>W-60) f.dir=-1;
+    else if(f.dir<0 && f.x<60) f.dir=1;
+    f.y = f.by + Math.sin(t*f.bobW+f.ph)*f.bobA;
+    f.fin = Math.sin(t*2.2+f.ph);
+  }
+  if(school) updateSchool(school,sdt);
+
+  for(const j of jellies){
+    j.pulse += sdt/1.7;
+    if(j.pulse>=1){ j.pulse=0; j.vy-=rand(30,44); j.vx+=rand(-10,10); }
+    j.vy += 13*sdt;
+    j.vx *= Math.max(0,1-0.5*sdt);
+    j.vx += Math.sin(t*0.4+j.ph)*1.5*sdt;
+    const top=H*0.06, bot=H*0.5;
+    if(j.y>bot) j.vy -= (j.y-bot)*1.6*sdt;
+    if(j.y<top) j.vy += (top-j.y)*1.6*sdt;
+    j.vx=clamp(j.vx,-30,30); j.vy=clamp(j.vy,-60,30);
+    j.x+=j.vx*sdt; j.y+=j.vy*sdt;
+    if(j.x<-70) j.x=W+70; else if(j.x>W+70) j.x=-70;
+    j.y=clamp(j.y,-30,H*0.62);
+  }
+
+  for(const c of crabs){
+    c.t-=sdt;
+    if(c.st===0){
+      if(c.t<=0){ c.st=1; c.t=rand(0.7,1.5); if(Math.random()<0.6) c.dir*=-1; }
+    } else {
+      c.x += c.dir*c.sp*(1+0.35*Math.sin(c.lp))*sdt;
+      if(c.t<=0){ c.st=0; c.t=rand(1.2,3); }
+    }
+    c.lp += sdt*(c.st?26:2);
+    c.cd -= sdt;
+    if(c.cd<=0){
+      c.cd=0.5;
+      const check=(x,y)=>{
+        const dx=c.x-x, dy=c.y-y;
+        return (Math.abs(dy)<70 && Math.abs(dx)<95) ? dx : 0;
+      };
+      let flee=0;
+      for(const f of tropicals){ flee=check(f.x,f.y); if(flee) break; }
+      if(!flee) for(const f of angels){ flee=check(f.x,f.y); if(flee) break; }
+      if(!flee && turtles.length){ flee=check(turtles[0].x,turtles[0].y); }
+      if(flee){ c.dir=flee>0?1:-1; c.st=1; c.t=Math.max(c.t,0.9); }
+    }
+    c.x=clamp(c.x,26,W-26);
+    if(c.x<=26||c.x>=W-26) c.dir*=-1;
+    c.y=floorY(c.x)-7*c.s;
+  }
+
+  if(lobsters.length){
+    const L=lobsters[0];
+    L.t-=sdt;
+    if(L.st==='walk'){
+      L.x+=L.dir*15*sdt;
+      if(L.t<=0){ L.st='pause'; L.t=rand(1,2); }
+    } else if(L.st==='pause'){
+      if(L.t<=0){ L.st='show'; L.t=rand(2.2,3); }
+    } else if(L.t<=0){ L.st='walk'; L.t=rand(2.5,4); }
+    L.raise += ((L.st==='show'?1:0)-L.raise)*Math.min(1,sdt*3);
+    if(L.x<70) L.dir=1;
+    if(L.x>W-70) L.dir=-1;
+    L.y=floorY(L.x);
+  }
+
+  for(const s of starfishArr){
+    s.rot += 0.006*sdt*s.dr;
+    s.ph  += sdt*0.3;
+  }
+  for(const s of seahorses){
+    s.x = s.ax + Math.sin(t*0.6+s.ph)*4;
+    s.y = s.y0 + Math.sin(t*0.9+s.ph)*7;
+  }
+  for(const T of turtles){
+    const a=Math.sin(t*0.13+T.ph)*0.5;
+    T.x += T.dir*Math.cos(a)*26*sdt;
+    if(T.x>W-80) T.dir=-1; else if(T.x<80) T.dir=1;
+    T.y = T.yBase + Math.sin(t*0.17+T.ph+1.3)*H*0.085;
+    T.tilt = a*0.5;
+  }
+  if(clown){
+    const c=clown;
+    c.cyc += sdt;
+    const hid=(c.cyc%9)<2.4;
+    c.al += ((hid?0:1)-c.al)*Math.min(1,sdt*2.5);
+    c.x = anemone.x + Math.cos(t*0.55+c.ph)*30;
+    c.y = anemone.y - 34 + Math.sin(t*0.85+c.ph)*10;
+    c.dir = Math.sin(t*0.55+c.ph) < 0 ? 1 : -1;
+  }
+
+  updMotes(motesB,sdt); updMotes(motesF,sdt);
+
+  time.spawn += sdt*1000;
+  const iv=CONFIG.bubbleIntervalMs;
+  while(time.spawn>=iv){
+    time.spawn-=iv;
+    if(bubbles.length<CONFIG.maxBubbles) spawnBubble();
+  }
+  for(let i=bubbles.length-1;i>=0;i--){
+    const b=bubbles[i];
+    b.y -= b.vy*sdt;
+    b.x = b.x0 + Math.sin(b.y*0.02+b.ph)*b.amp;
+    if(b.y<-14){ bubbles[i]=bubbles[bubbles.length-1]; bubbles.pop(); }
+  }
+  for(const d of distant){
+    d.x += d.sp*sdt;
+    if(d.x<-40) d.x=W+40; else if(d.x>W+40) d.x=-40;
+    d.y += Math.sin(t*0.3+d.ph)*3*sdt;
+  }
+}
+
+function updMotes(arr,dt){
+  for(const m of arr){
+    m.y += m.vy*dt;
+    m.x += Math.sin(time.t*0.3+m.ph)*6*dt;
+    if(m.y<-8){ m.y=H+8; m.x=rand(0,W); }
+    if(m.x<-8) m.x=W+8; else if(m.x>W+8) m.x=-8;
+  }
+}
+function spawnBubble(){
+  const vent = Math.random()<0.65 ? pick(vents) : rand(20,W-20);
+  const x0 = clamp(vent+rand(-6,6), 4, W-4);
+  const r = rand(1.8,5.5);
+  bubbles.push({x0:x0, x:x0, y:floorY(vent)-rand(0,14), r:r,
+    vy:rand(16,30)+r*2.5, ph:rand(0,TAU), amp:rand(2.5,8),
+    front:Math.random()<0.25});
+}
+function updateSchool(s,dt){
+  s.turn += ((Math.random()-0.5)*1.4 - s.turn*0.5)*dt;
+  s.heading += s.turn*dt;
+  const mx=170, top=H*0.2, bot=H*0.74;
+  let sx=0, sy=0;
+  if(s.cx<mx) sx=(mx-s.cx)/mx; else if(s.cx>W-mx) sx=-((s.cx-(W-mx))/mx);
+  if(s.cy<top+70) sy=((top+70)-s.cy)/70*0.7; else if(s.cy>bot) sy=-((s.cy-bot)/70)*0.7;
+  if(sx||sy){
+    const des=Math.atan2(sy,sx);
+    const k=Math.min(1,Math.max(Math.abs(sx),Math.abs(sy)));
+    s.heading += angDiff(des,s.heading)*Math.min(1,dt*2.5)*k;
+  }
+  s.cx += Math.cos(s.heading)*46*dt;
+  s.cy += Math.sin(s.heading)*26*dt;
+  s.cx = clamp(s.cx,120,W-120);
+  s.cy = clamp(s.cy,top,bot);
+  for(const m of s.members){
+    m.ret-=dt;
+    if(m.ret<=0){ m.tx=rand(-58,58); m.ty=rand(-42,42); m.ret=rand(0.8,2.4); }
+    m.ox += (m.tx-m.ox)*Math.min(1,dt*2.5);
+    m.oy += (m.ty-m.oy)*Math.min(1,dt*2.5);
+  }
+}
+
+/* ============================== RENDER ============================== */
+function render(){
+  const t=time.t, n=time.night;
+  ctx.globalCompositeOperation='source-over';
+  ctx.globalAlpha=1;
+  ctx.fillStyle=bgGrad; ctx.fillRect(0,0,W,H);
+
+  // caustic shafts
+  ctx.globalCompositeOperation='screen';
+  const ca=lerp(1,0.4,n);
+  for(const s of shafts){
+    const x=s.fx*W+Math.sin(time.rt*s.spd*6+s.ph)*46;
+    const a=s.a*(0.7+0.3*Math.sin(time.rt*0.4+s.ph*2))*ca;
+    ctx.save(); ctx.translate(x,-20); ctx.rotate(s.rot);
+    ctx.globalAlpha=a;
+    ctx.drawImage(shaftSpr,-s.w/2,0,s.w,H*1.15);
+    ctx.restore();
+  }
+  ctx.globalCompositeOperation='source-over';
+  ctx.globalAlpha=1;
+
+  ctx.fillStyle=surfGrad; ctx.fillRect(0,0,W,H*0.16);
+  ctx.strokeStyle='rgba(190,235,245,0.10)'; ctx.lineWidth=1.5;
+  for(let i=0;i<3;i++){
+    ctx.beginPath();
+    const yy=5+i*6;
+    for(let x=0;x<=W;x+=24){
+      const yy2=yy+Math.sin(x*0.02+time.rt*(0.6+i*0.2)+i*2)*1.8;
+      if(x===0) ctx.moveTo(x,yy2); else ctx.lineTo(x,yy2);
+    }
+    ctx.stroke();
+  }
+
+  drawMotes(motesB,0.5);
+  drawDistant();
+  drawBubbles(false);
+  ctx.drawImage(floorCv,0,0,W,H);
+  drawSeaweed(false);
+
+  for(const s of starfishArr) drawStar(s);
+  for(const c of crabs) drawCrab(c);
+  for(const L of lobsters) drawLobster(L);
+
+  for(const T of turtles) drawTurtle(T);
+  for(const f of tropicals) drawTropical(f);
+  for(const f of angels) drawAngel(f);
+  if(school) drawSchool();
+  if(clown) drawClown(clown);
+  drawAnemone();
+  for(const s of seahorses) drawSeahorse(s);
+
+  drawSeaweed(true);
+  drawBubbles(true);
+  drawMotes(motesF,1);
+
+  // day/night darkening
+  if(CONFIG.dayNightSeconds>0 && n>0.01){
+    ctx.globalCompositeOperation='multiply';
+    const k=n*0.78;
+    ctx.fillStyle='rgb('+(lerp(255,92,k)|0)+','+(lerp(255,110,k)|0)+','+(lerp(255,178,k)|0)+')';
+    ctx.fillRect(0,0,W,H);
+  }
+  // bioluminescent glow (jellyfish always faint; stronger at night; angels at night)
+  ctx.globalCompositeOperation='lighter';
+  const jg=0.07+n*0.4;
+  for(const j of jellies){
+    const s=j.r*4.8;
+    ctx.globalAlpha=jg;
+    ctx.drawImage(glowSpr,j.x-s/2,j.y-j.r*0.5-s/2,s,s);
+  }
+  const ag=n*0.16;
+  if(ag>0.01){
+    for(const f of angels){
+      const s=70*f.s;
+      ctx.globalAlpha=ag;
+      ctx.drawImage(glowSpr,f.x-s/2,f.y-s/2,s,s);
+    }
+  }
+  ctx.globalAlpha=1;
+  ctx.globalCompositeOperation='source-over';
+
+  // coin glint on the treasure chest
+  const sp=Math.pow(Math.max(0,Math.sin(t*0.8)),8);
+  if(sp>0.05){
+    ctx.globalAlpha=sp;
+    ctx.drawImage(sparkleSpr,chestPos.x-10,chestPos.y-10,20,20);
+    ctx.globalAlpha=1;
+  }
+  ctx.drawImage(vigCv,0,0,W,H);
+}
+
+function drawMotes(arr,k){
+  ctx.fillStyle='#cfe9f2';
+  const t=time.t;
+  for(let i=0;i<arr.length;i++){
+    const m=arr[i];
+    ctx.globalAlpha=(0.06+0.05*Math.sin(t*0.8+m.ph))*k;
+    ctx.beginPath(); ctx.arc(m.x,m.y,m.r,0,TAU); ctx.fill();
+  }
+  ctx.globalAlpha=1;
+}
+function drawDistant(){
+  ctx.fillStyle='rgba(46,84,110,0.55)';
+  for(const d of distant){
+    ctx.save();
+    ctx.translate(d.x,d.y);
+    ctx.scale(d.sp>0?1:-1,1);
+    ctx.scale(d.s,d.s);
+    ctx.beginPath();
+    ctx.ellipse(0,0,11,5.5,0,0,TAU);
+    ctx.moveTo(-9,0); ctx.lineTo(-16,-5); ctx.lineTo(-16,5); ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+}
+function drawBubbles(front){
+  ctx.globalAlpha=0.85;
+  for(const b of bubbles){
+    if(b.front!==front) continue;
+    const d=b.r*3.4;
+    ctx.drawImage(bubbleSpr,b.x-d/2,b.y-d/2,d,d);
+  }
+  ctx.globalAlpha=1;
+}
+function drawSeaweed(front){
+  const t=time.t;
+  ctx.lineCap='round';
+  for(const s of seaweeds){
+    if(s.front!==front) continue;
+    const baseX=s.x, baseY=floorY(s.x)+3;
+    const segLen=s.h/s.seg;
+    let px=baseX, py=baseY;
+    ctx.strokeStyle=s.col;
+    for(let i=0;i<s.seg;i++){
+      const sway=Math.sin(t*s.spd+s.ph+i*0.55)*(2+i*1.5)*(front?1:0.8);
+      const nx=baseX+sway, ny=py-segLen;
+      ctx.lineWidth=Math.max(1.2, s.w-i*0.55);
+      ctx.beginPath();
+      ctx.moveTo(px,py);
+      ctx.quadraticCurveTo(px,py-segLen*0.5,nx,ny);
+      ctx.stroke();
+      px=nx; py=ny;
+    }
+  }
+}
+function drawAnemone(){
+  const t=time.t, cur=Math.sin(t*0.5+anemone.ph)*5;
+  ctx.lineCap='round';
+  const tn=anemone.tents;
+  for(let i=0;i<tn.length;i++){
+    const e=tn[i];
+    const sway=Math.sin(t*1.2+e.ph)*7+cur;
+    const len=e.len*(1+0.07*Math.sin(t*1.9+e.ph));
+    const x0=anemone.x+e.ox, y0=anemone.y-4;
+    const tx=x0+sway, ty=y0-len;
+    ctx.strokeStyle=i%2?'#a85fc4':'#8a4fb0';
+    ctx.lineWidth=3.2;
+    ctx.beginPath();
+    ctx.moveTo(x0,y0);
+    ctx.quadraticCurveTo(x0+sway*0.4, y0-len*0.45, tx, ty);
+    ctx.stroke();
+    ctx.fillStyle='#e79df0';
+    ctx.beginPath(); ctx.arc(tx,ty,1.8,0,TAU); ctx.fill();
+  }
+}
+function drawClown(c){
+  if(c.al<0.02) return;
+  ctx.save();
+  ctx.translate(c.x,c.y);
+  ctx.scale(c.dir,1);
+  ctx.globalAlpha=c.al;
+  ctx.fillStyle='#f2762e';
+  ctx.beginPath(); ctx.ellipse(0,0,9,5.5,0,0,TAU); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-7,0); ctx.lineTo(-13,-4.5); ctx.lineTo(-13,4.5); ctx.closePath(); ctx.fill();
+  ctx.save();
+  ctx.beginPath(); ctx.ellipse(0,0,9,5.5,0,0,TAU); ctx.clip();
+  ctx.fillStyle='rgba(255,255,255,0.92)';
+  ctx.fillRect(-4.7,-6,2.6,12);
+  ctx.fillRect(0.3,-6,2.6,12);
+  ctx.fillRect(4.3,-6,2.6,12);
+  ctx.restore();
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(5.5,-1.6,1.6,0,TAU); ctx.fill();
+  ctx.fillStyle='#1c1c24'; ctx.beginPath(); ctx.arc(5.9,-1.6,0.8,0,TAU); ctx.fill();
+  ctx.restore();
+  ctx.globalAlpha=1;
+}
+function drawTropical(f){
+  const s=f.s;
+  ctx.save();
+  ctx.translate(f.x,f.y);
+  ctx.scale(f.dir*s,s);
+  const body=f.col[0], band=f.col[1], tail=f.col[2];
+  ctx.fillStyle=tail;
+  ctx.beginPath();
+  ctx.moveTo(-12,0);
+  ctx.lineTo(-23,-8+f.tail*3.5);
+  ctx.lineTo(-20.5,0);
+  ctx.lineTo(-23,8+f.tail*3.5);
+  ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(-6,-8); ctx.quadraticCurveTo(2,-16,8,-7.5);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle=body;
+  ctx.beginPath(); ctx.ellipse(0,0,15,9.5,0,0,TAU); ctx.fill();
+  ctx.save(); ctx.clip();
+  ctx.fillStyle=band;
+  ctx.fillRect(-8,-10,3.4,20);
+  ctx.fillRect(-1.5,-10,3,20);
+  ctx.fillRect(5,-10,3.4,20);
+  ctx.restore();
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(8.5,-2.4,2.1,0,TAU); ctx.fill();
+  ctx.fillStyle='#14213c'; ctx.beginPath(); ctx.arc(9,-2.4,1.05,0,TAU); ctx.fill();
+  ctx.restore();
+}
+function bodyP(){
+  ctx.beginPath();
+  ctx.moveTo(24,0);
+  ctx.quadraticCurveTo(12,-15,-2,-19);
+  ctx.quadraticCurveTo(-13,-11,-16,0);
+  ctx.quadraticCurveTo(-13,11,-2,19);
+  ctx.quadraticCurveTo(12,15,24,0);
+  ctx.closePath();
+}
+function drawAngel(f){
+  ctx.save();
+  ctx.translate(f.x,f.y);
+  ctx.scale(f.dir*f.s,f.s);
+  ctx.fillStyle='rgba(140,170,220,0.55)';
+  ctx.beginPath();
+  ctx.moveTo(4,-13);
+  ctx.quadraticCurveTo(11,-30,-2+f.fin*3,-45);
+  ctx.quadraticCurveTo(0,-28,-5,-11);
+  ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(3,13);
+  ctx.quadraticCurveTo(10,30,-3+f.fin*2.5,45);
+  ctx.quadraticCurveTo(0,28,-5,11);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#7fb2e5'; bodyP(); ctx.fill();
+  ctx.save(); bodyP(); ctx.clip();
+  ctx.fillStyle='rgba(46,79,134,0.85)';
+  ctx.fillRect(6,-22,4,44);
+  ctx.fillRect(-4,-22,3.4,44);
+  ctx.fillStyle='rgba(230,244,255,0.5)';
+  ctx.fillRect(13,-22,2.5,44);
+  ctx.restore();
+  ctx.strokeStyle='rgba(226,240,252,0.8)'; ctx.lineWidth=1.2; bodyP(); ctx.stroke();
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(14,-3,2.2,0,TAU); ctx.fill();
+  ctx.fillStyle='#101c30'; ctx.beginPath(); ctx.arc(14.5,-3,1.1,0,TAU); ctx.fill();
+  ctx.restore();
+}
+function drawSchool(){
+  const s=school, t=time.t;
+  ctx.fillStyle='#bcd8ea';
+  for(const m of s.members){
+    const x=s.cx+m.ox, y=s.cy+m.oy;
+    const a=s.heading+Math.sin(t*2.6+m.ph)*0.16;
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.rotate(a);
+    ctx.globalAlpha=0.7+0.3*m.a;
+    const tw=Math.sin(t*9+m.ph)*1.4;
+    ctx.beginPath(); ctx.ellipse(0,0,5.5,2.3,0,0,TAU); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-4,0); ctx.lineTo(-8.5,-2.2+tw); ctx.lineTo(-8.5,2.2+tw);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  ctx.globalAlpha=1;
+}
+function drawJelly(j){
+  const t=time.t;
+  const k=j.pulse<0.3 ? 1-j.pulse/0.3 : 0;
+  ctx.save();
+  ctx.translate(j.x,j.y);
+  ctx.strokeStyle=j.tc;
+  ctx.lineWidth=1.4; ctx.lineCap='round';
+  for(const tn of j.tent){
+    const bx=tn.o*j.r*0.7;
+    const len=j.r*tn.l;
+    const sway=Math.sin(t*1.3+tn.p)*6-j.vx*0.25;
+    const dx=-j.vx*0.12, dy=Math.max(0,j.vy)*0.06;
+    ctx.beginPath();
+    ctx.moveTo(bx,2);
+    ctx.quadraticCurveTo(bx+sway*0.5+dx*0.5, len*0.55, bx+sway+dx, len+dy*4);
+    ctx.stroke();
+  }
+  ctx.lineWidth=3;
+  ctx.strokeStyle=j.toc;
+  for(let i=0;i<4;i++){
+    const bx=(i-1.5)*6;
+    ctx.beginPath();
+    ctx.moveTo(bx,2);
+    ctx.quadraticCurveTo(bx+Math.sin(t*1.6+i)*3, 8, bx+Math.sin(t*1.6+i+1)*4, j.r*0.55);
+    ctx.stroke();
+  }
+  ctx.scale(1+0.16*k, 1-0.2*k);
+  const r=j.r;
+  ctx.beginPath();
+  ctx.moveTo(-r,2);
+  ctx.bezierCurveTo(-r*1.02,-r*1.45, r*1.02,-r*1.45, r,2);
+  for(let i=0;i<4;i++){
+    const x1=r-((i+0.5)*(r/2)), x0=r-((i+1)*(r/2));
+    ctx.quadraticCurveTo(x1,8,x0,2);
+  }
+  ctx.closePath();
+  const rg=ctx.createRadialGradient(0,-r*0.55,r*0.15, 0,-r*0.35, r*1.5);
+  rg.addColorStop(0,'rgba(255,255,255,0.55)');
+  rg.addColorStop(0.5,j.toc);
+  rg.addColorStop(1,'rgba(255,255,255,0.05)');
+  ctx.fillStyle=rg; ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.4)'; ctx.lineWidth=1.2; ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,0.35)';
+  ctx.beginPath(); ctx.ellipse(0,-r*0.45,r*0.28,r*0.4,0,0,TAU); ctx.fill();
+  ctx.restore();
+}
+function drawCrab(c){
+  ctx.save();
+  ctx.translate(c.x,c.y);
+  ctx.scale(c.dir*c.s,c.s);
+  const wamp=c.st===1?1:0.25;
+  ctx.strokeStyle='#a34327'; ctx.lineWidth=2.2; ctx.lineCap='round';
+  for(let i=0;i<3;i++){
+    const sw=wamp*Math.sin(c.lp+i*2.1)*2.5;
+    ctx.beginPath();
+    ctx.moveTo(-7+i*1.5,-2+i);
+    ctx.quadraticCurveTo(-11-i*2.5, 3+i, -13-i*3+sw, 8+i*1.6);
+    ctx.stroke();
+  }
+  for(let i=0;i<3;i++){
+    const sw=wamp*Math.sin(c.lp+1+i*2.1)*2.5;
+    ctx.beginPath();
+    ctx.moveTo(3+i*2,-2+i);
+    ctx.quadraticCurveTo(8+i*2.5, 3+i, 11+i*3+sw, 8+i*1.6);
+    ctx.stroke();
+  }
+  ctx.fillStyle='#cf5b3a';
+  ctx.beginPath(); ctx.ellipse(0,-5,13.5,8.5,0,0,TAU); ctx.fill();
+  ctx.fillStyle='rgba(255,220,190,0.25)';
+  ctx.beginPath(); ctx.ellipse(-2,-8,8,4,0,0,TAU); ctx.fill();
+  const co=Math.sin(c.lp*0.7)*1.5;
+  ctx.strokeStyle='#cf5b3a'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(9,-8); ctx.quadraticCurveTo(15,-12,18,-14-co); ctx.stroke();
+  ctx.fillStyle='#d96a42';
+  ctx.beginPath(); ctx.ellipse(21,-15-co,4.6,3.6,0.5,0,TAU); ctx.fill();
+  ctx.strokeStyle='#8a3a20'; ctx.lineWidth=1.4;
+  ctx.beginPath(); ctx.moveTo(18.5,-15-co); ctx.lineTo(23.5,-13.5-co); ctx.stroke();
+  ctx.strokeStyle='#a34327'; ctx.lineWidth=1.6;
+  ctx.beginPath();
+  ctx.moveTo(5,-12); ctx.lineTo(7,-17);
+  ctx.moveTo(9,-12); ctx.lineTo(11,-16.5);
+  ctx.stroke();
+  ctx.fillStyle='#241a14';
+  ctx.beginPath(); ctx.arc(7.2,-17.5,2,0,TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(11.2,-17,2,0,TAU); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.8)';
+  ctx.beginPath(); ctx.arc(7.8,-18.1,0.6,0,TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(11.8,-17.6,0.6,0,TAU); ctx.fill();
+  ctx.restore();
+}
+function drawLobster(L){
+  const t=time.t;
+  ctx.save();
+  ctx.translate(L.x,L.y);
+  ctx.scale(L.dir,1);
+  for(let i=5;i>=0;i--){
+    const segX=-16-i*8.5, segY=-7+Math.sin(t*1.6+i*0.9)*1.3;
+    const rx=6.5-i*0.55, ry=5-i*0.45;
+    ctx.fillStyle=i%2?'#b5542c':'#a34823';
+    ctx.beginPath(); ctx.ellipse(segX,segY,rx,ry,0,0,TAU); ctx.fill();
+    if(i===5){
+      ctx.beginPath();
+      ctx.moveTo(segX-rx+2,segY);
+      ctx.lineTo(segX-rx-6,segY-4);
+      ctx.lineTo(segX-rx-5,segY+4);
+      ctx.closePath(); ctx.fill();
+    }
+  }
+  ctx.strokeStyle='#8f3c1e'; ctx.lineWidth=1.8; ctx.lineCap='round';
+  for(let i=0;i<4;i++){
+    ctx.beginPath();
+    ctx.moveTo(-8+i*5,-3);
+    ctx.lineTo(-10+i*5,4+Math.sin(t*3+i)*1.2);
+    ctx.stroke();
+  }
+  ctx.fillStyle='#b5542c';
+  ctx.beginPath(); ctx.ellipse(2,-8,19,9,0,0,TAU); ctx.fill();
+  ctx.fillStyle='rgba(255,200,160,0.18)';
+  ctx.beginPath(); ctx.ellipse(3,-11,12,4,0,0,TAU); ctx.fill();
+  ctx.fillStyle='#a34823';
+  ctx.beginPath(); ctx.arc(20,-8,6.5,0,TAU); ctx.fill();
+  ctx.fillStyle='#241511';
+  ctx.beginPath(); ctx.arc(22.5,-10,1.4,0,TAU); ctx.fill();
+  ctx.strokeStyle='rgba(220,150,110,0.7)'; ctx.lineWidth=1.2;
+  ctx.beginPath();
+  ctx.moveTo(24,-10);
+  ctx.quadraticCurveTo(38,-18,50,-13+Math.sin(t*1.3+L.ph)*4);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(24,-10);
+  ctx.quadraticCurveTo(40,-8,54,-4+Math.sin(t*1.1+L.ph+2)*4);
+  ctx.stroke();
+  // far claw
+  ctx.strokeStyle='#a34823'; ctx.lineWidth=3.4;
+  ctx.beginPath(); ctx.moveTo(10,-12); ctx.quadraticCurveTo(15,-16,17,-18-9*L.raise); ctx.stroke();
+  ctx.save();
+  ctx.translate(19,-19.5-9*L.raise); ctx.rotate(0.5-0.9*L.raise);
+  ctx.fillStyle='#b5542c';
+  ctx.beginPath(); ctx.ellipse(3,0,6.4,4.4,0,0,TAU); ctx.fill();
+  ctx.strokeStyle='#6e2c12'; ctx.lineWidth=1.6;
+  ctx.beginPath(); ctx.moveTo(-0.5,-2.5); ctx.lineTo(7,-1); ctx.stroke();
+  ctx.restore();
+  // near claw
+  ctx.strokeStyle='#b5542c'; ctx.lineWidth=4;
+  ctx.beginPath(); ctx.moveTo(12,-10); ctx.quadraticCurveTo(18,-14,20,-16-11*L.raise); ctx.stroke();
+  ctx.save();
+  ctx.translate(22,-17.5-11*L.raise); ctx.rotate(0.4-1.0*L.raise);
+  ctx.fillStyle='#c05a2f';
+  ctx.beginPath(); ctx.ellipse(3.5,0,7.4,5,0,0,TAU); ctx.fill();
+  ctx.strokeStyle='#6e2c12'; ctx.lineWidth=1.8;
+  ctx.beginPath(); ctx.moveTo(-0.5,-3); ctx.lineTo(8,-0.5); ctx.stroke();
+  ctx.restore();
+  ctx.restore();
+}
+function drawStar(s){
+  const t=time.t;
+  const br=1+0.03*Math.sin(t*0.7+s.ph);
+  ctx.save();
+  ctx.translate(s.x,s.y);
+  ctx.rotate(s.rot);
+  ctx.scale(s.s*br, s.s*br*0.9);
+  for(let i=0;i<5;i++){
+    ctx.save();
+    ctx.rotate(i*TAU/5);
+    ctx.fillStyle=s.col;
+    ctx.beginPath();
+    ctx.moveTo(0,-3);
+    ctx.quadraticCurveTo(6,-6, 8.5,-11);
+    ctx.quadraticCurveTo(10,-13, 8,-15.5);
+    ctx.quadraticCurveTo(4,-13, 3.5,-8);
+    ctx.quadraticCurveTo(2,-4, 0,-3);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle=s.colD;
+    for(let d2=0;d2<4;d2++){
+      ctx.beginPath(); ctx.arc(4.5-d2*1.2, -7-d2*2.2, 0.8, 0, TAU); ctx.fill();
+    }
+    ctx.restore();
+  }
+  ctx.fillStyle=s.colD;
+  ctx.beginPath(); ctx.arc(0,0,3.4,0,TAU); ctx.fill();
+  ctx.restore();
+}
+function drawSeahorse(s){
+  const t=time.t;
+  const curl=0.5+0.5*Math.sin(t*0.45+s.ph);
+  ctx.save();
+  ctx.translate(s.x,s.y);
+  ctx.scale(s.dir*s.s,s.s);
+  // curled tail (spiral)
+  ctx.strokeStyle=s.col; ctx.lineWidth=3.6; ctx.lineCap='round';
+  const cx0=-2-curl*2, cy0=16+curl*2;
+  let a0=Math.PI/2, r=6.5-curl*1.2;
+  let px=cx0+Math.cos(a0)*r, py=cy0+Math.sin(a0)*r;
+  ctx.beginPath(); ctx.moveTo(1.5,11);
+  for(let k2=0;k2<6.5;k2++){
+    a0+=0.95; r*=0.82;
+    px=cx0+Math.cos(a0)*r; py=cy0+Math.sin(a0)*r;
+    ctx.lineTo(px,py);
+  }
+  ctx.stroke();
+  // body
+  ctx.fillStyle=s.col;
+  ctx.beginPath();
+  ctx.moveTo(3,-21);
+  ctx.bezierCurveTo(9,-14, 9.5,-4, 4.5,7);
+  ctx.quadraticCurveTo(3,10, 1.5,11);
+  ctx.quadraticCurveTo(-3,9, -3,4);
+  ctx.bezierCurveTo(-2,-5, -1.5,-14, 0.5,-19);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle=s.colD; ctx.lineWidth=1.2;
+  for(let i=0;i<4;i++){
+    const yy=-16+i*5.2;
+    ctx.beginPath(); ctx.moveTo(-2.6,yy); ctx.lineTo(6.5-i*1.2,yy); ctx.stroke();
+  }
+  // head + snout
+  ctx.fillStyle=s.col;
+  ctx.beginPath(); ctx.arc(3.5,-24,5,0,TAU); ctx.fill();
+  ctx.strokeStyle=s.col; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(7,-24.5); ctx.lineTo(13.5,-23.5); ctx.stroke();
+  ctx.fillStyle=s.col;
+  ctx.beginPath(); ctx.arc(2,-29,1.8,0,TAU); ctx.fill();
+  ctx.fillStyle='#20140c';
+  ctx.beginPath(); ctx.arc(5,-24.5,1.2,0,TAU); ctx.fill();
+  // flicking dorsal fin
+  ctx.save();
+  ctx.translate(8.5,-8);
+  ctx.rotate(Math.sin(t*13+s.ph)*0.35);
+  ctx.fillStyle='rgba(255,255,255,0.5)';
+  ctx.beginPath(); ctx.moveTo(0,-2); ctx.quadraticCurveTo(5,0,0,2.4); ctx.closePath(); ctx.fill();
+  ctx.restore();
+  ctx.restore();
+}
+function hexPath(g,x,y,r){
+  g.beginPath();
+  for(let i=0;i<6;i++){
+    const a=i*TAU/6+Math.PI/6;
+    const px=x+Math.cos(a)*r, py=y+Math.sin(a)*r;
+    if(i===0) g.moveTo(px,py); else g.lineTo(px,py);
+  }
+  g.closePath();
+}
+function drawTurtle(T){
+  const t=time.t;
+  const row=Math.sin(t*1.5+T.ph);
+  ctx.save();
+  ctx.translate(T.x,T.y);
+  ctx.rotate(T.tilt*T.dir);
+  ctx.scale(T.dir*T.s,T.s);
+  ctx.save(); ctx.translate(10,9); ctx.rotate(0.55+row*0.55);
+  ctx.fillStyle='#3c7357';
+  ctx.beginPath(); ctx.ellipse(10,0,12,4.2,0,0,TAU); ctx.fill(); ctx.restore();
+  ctx.save(); ctx.translate(-16,8); ctx.rotate(-0.7-row*0.4);
+  ctx.fillStyle='#3c7357';
+  ctx.beginPath(); ctx.ellipse(-9,0,10,3.6,0,0,TAU); ctx.fill(); ctx.restore();
+  // shell
+  ctx.fillStyle='#4e8a68';
+  ctx.beginPath(); ctx.ellipse(0,0,25,15.5,0,0,TAU); ctx.fill();
+  ctx.strokeStyle='#2d5942'; ctx.lineWidth=2.5; ctx.stroke();
+  // scute pattern
+  ctx.strokeStyle='rgba(35,74,53,0.85)'; ctx.lineWidth=1.6;
+  hexPath(ctx,0,-1,8.5); ctx.stroke();
+  for(let i=0;i<6;i++){
+    const a=i*TAU/6+0.26;
+    hexPath(ctx,Math.cos(a)*13.5,Math.sin(a)*8.8,7.2);
+    ctx.stroke();
+  }
+  // head
+  ctx.fillStyle='#4e8a68';
+  ctx.beginPath(); ctx.arc(26,-3,7,0,TAU); ctx.fill();
+  ctx.fillStyle='#20140c';
+  ctx.beginPath(); ctx.arc(28.5,-4.5,1.4,0,TAU); ctx.fill();
+  // near flippers
+  ctx.save(); ctx.translate(11,10); ctx.rotate(0.5-row*0.6);
+  ctx.fillStyle='#447f5f';
+  ctx.beginPath(); ctx.ellipse(10,0,12.5,4.6,0,0,TAU); ctx.fill(); ctx.restore();
+  ctx.save(); ctx.translate(-17,9); ctx.rotate(-0.65+row*0.45);
+  ctx.fillStyle='#447f5f';
+  ctx.beginPath(); ctx.ellipse(-9,0,10,3.8,0,0,TAU); ctx.fill(); ctx.restore();
+  ctx.fillStyle='#447f5f';
+  ctx.beginPath(); ctx.arc(-24.5,2,2.6,0,TAU); ctx.fill();
+  ctx.restore();
+}
+
+/* ============================== LOOP ============================== */
+let last=performance.now();
+function frame(now){
+  const dt=Math.min(0.05,(now-last)/1000)||0;
+  last=now;
+  time.rt+=dt;
+  update(dt*CONFIG.speedMultiplier);
+  render();
+  requestAnimationFrame(frame);
+}
+resize();
+requestAnimationFrame(t=>{ last=t; frame(t); });
+</script>
+</body>
+</html>

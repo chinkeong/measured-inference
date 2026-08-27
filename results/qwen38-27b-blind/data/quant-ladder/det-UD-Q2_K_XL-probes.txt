@@ -1,0 +1,119 @@
+﻿# detector probes for UD-Q2_K_XL - 2026-08-24T01:05:29
+
+===== PROBE A (code continuation, max_tokens=2048) =====
+this.a.push({ node, pri });
+  this.siftUp(this.a.length - 1);
+}
+  pop() {
+    if (this.size === 0) return null;
+    const top = this.a[0];
+    const last = this.a.pop();
+    if (this.size > 0) {
+      this.a[0] = last;
+      this.siftDown(0);
+    }
+    return top;
+  }
+  peek() { return this.size ? this.a[0] : null; }
+  siftUp(i) {
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      if (this.a[i].pri < this.a[p].pri) {
+        [this.a[i], this.a[p]] = [this.a[p], this.a[i]];
+        i = p;
+      } else break;
+    }
+  }
+  siftDown(i) {
+    const n = this.size;
+    while (true) {
+      const l = 2 * i + 1, r = 2 * i + 2;
+      let m = i;
+      if (l < n && this.a[l].pri < this.a[m].pri) m = l;
+      if (r < n && this.a[r].pri < this.a[m].pri) m = r;
+      if (m === i) break;
+      [this.a[i], this.a[m]] = [this.a[m], this.a[i]];
+      i = m;
+    }
+  }
+}
+
+class Graph {
+  constructor() { this.adj = new Map(); }
+  addNode(id) { if (!this.adj.has(id)) this.adj.set(id, []); }
+  addEdge(u, v, w) {
+    this.addNode(u); this.addNode(v);
+    this.adj.get(u).push({ to: v, w });
+  }
+  neighbors(id) { return this.adj.get(id) || []; }
+  nodeCount() { return this.adj.size; }
+}
+
+function dijkstra(graph, source) {
+  const dist = new Map();
+  const prev = new Map();
+  const heap = new MinHeap();
+  for (const id of graph.adj.keys()) dist.set(id, Infinity);
+  dist.set(source, 0);
+  heap.push(source, 0);
+  while (heap.size) {
+    const { node: u, pri: du } = heap.pop();
+    if (du > dist.get(u)) continue;
+    for (const { to: v, w } of graph.neighbors(u)) {
+      const nd = du + w;
+      if (nd < dist.get(v)) {
+        dist.set(v, nd);
+        prev.set(v, u);
+        heap.push(v, nd);
+      }
+    }
+  }
+  return { dist, prev };
+}
+
+function reconstructPath(prev, target) {
+  const path = [];
+  let cur = target;
+  while (cur !== undefined) {
+    path.unshift(cur);
+    cur = prev.get(cur);
+  }
+  return path;
+}
+
+function buildDemoGraph() {
+  const g = new Graph();
+  const edges = [
+    ['A','B',4], ['A','C',2],
+    ['B','D',5], ['B','E',10],
+    ['C','D',8], ['C','F',1],
+    ['D','E',2], ['D','G',6],
+    ['E','H',3],
+    ['F','G',4], ['F','H',7],
+    ['G','H',1]
+  ];
+  for (const [u,v,w] of edges) g.addEdge(u,v,w);
+  return g;
+}
+
+const g = buildDemoGraph();
+const { dist, prev } = dijkstra(g, 'A');
+const path = reconstructPath(prev, 'H');
+console.log('Shortest path A -> H:', path.join(' -> '));
+console.log('Total cost:', dist.get('H'));
+
+===== PROBE B (exact JSON) =====
+{"name": "ladder", "rung": 7, "ok": true, "tags": ["a", "b"]}
+
+===== PROBE C (fenced block) =====
+```python
+def median(xs):
+    if not xs:
+        raise ValueError("empty list")
+    xs = sorted(xs)
+    n = len(xs)
+    mid = n // 2
+    if n % 2:
+        return xs[mid]
+    return (xs[mid - 1] + xs[mid]) / 2
+```

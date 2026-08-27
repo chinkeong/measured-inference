@@ -1,0 +1,32 @@
+﻿  VRAM WITH-mmproj/rep3 at-load board=20281 ded=19362 shr=228 load_s=8.1
+  PREFILLPROBE WITH-mmproj/rep3 depth_tok=90862 prefill_tps=871.1 prefill_s=104.31 decode_tps=26.60 gpu_before=56/225/34.20/2 gpu_after=82/1455/330.50/98
+  PROBE WITH-mmproj/rep3 k=1 decode_tps=27.18 predicted_n=400 prefill_s=0.36 gpu_before=57/210/28.57/2
+  PROBE WITH-mmproj/rep3 k=2 decode_tps=27.04 predicted_n=400 prefill_s=0.13 gpu_before=77/1605/346.69/98
+  PROBE WITH-mmproj/rep3 k=3 decode_tps=26.95 predicted_n=400 prefill_s=0.13 gpu_before=80/1590/347.72/98
+  PROBE WITH-mmproj/rep3 k=4 decode_tps=26.88 predicted_n=400 prefill_s=0.13 gpu_before=82/1560/348.42/97
+  PROBE WITH-mmproj/rep3 k=5 decode_tps=26.90 predicted_n=400 prefill_s=0.13 gpu_before=81/1560/348.96/98
+SUMMARY WITH-mmproj/rep3 depth_tok=90862 n=5 median_tps=26.95 mean_tps=26.99 min_tps=26.88 max_tps=27.18 board_mib=20295 ded_mib=19376 shr_mib=228
+  VRAM NO-mmproj/rep3 at-load board=19143 ded=18224 shr=228 load_s=6
+  PREFILLPROBE NO-mmproj/rep3 depth_tok=90862 prefill_tps=865.8 prefill_s=104.94 decode_tps=18.82 gpu_before=66/435/130.59/1 gpu_after=78/990/271.05/98
+  PROBE NO-mmproj/rep3 k=1 decode_tps=27.19 predicted_n=400 prefill_s=0.52 gpu_before=57/210/28.04/3
+  PROBE NO-mmproj/rep3 k=2 decode_tps=27.06 predicted_n=400 prefill_s=0.13 gpu_before=77/1590/347.24/97
+  PROBE NO-mmproj/rep3 k=3 decode_tps=26.95 predicted_n=400 prefill_s=0.13 gpu_before=80/1575/347.95/98
+  PROBE NO-mmproj/rep3 k=4 decode_tps=26.90 predicted_n=400 prefill_s=0.13 gpu_before=82/1560/348.81/97
+  PROBE NO-mmproj/rep3 k=5 decode_tps=26.85 predicted_n=400 prefill_s=0.14 gpu_before=81/1560/348.92/98
+SUMMARY NO-mmproj/rep3 depth_tok=90862 n=5 median_tps=26.95 mean_tps=26.99 min_tps=26.85 max_tps=27.19 board_mib=19157 ded_mib=18238 shr_mib=228
+  VRAM NO-mmproj/rep4 at-load board=19143 ded=18224 shr=228 load_s=6
+  PREFILLPROBE NO-mmproj/rep4 depth_tok=90862 prefill_tps=864.7 prefill_s=105.08 decode_tps=19.21 gpu_before=66/375/135.80/1 gpu_after=77/900/254.16/98
+  PROBE NO-mmproj/rep4 k=1 decode_tps=27.19 predicted_n=400 prefill_s=0.44 gpu_before=57/210/27.83/3
+  PROBE NO-mmproj/rep4 k=2 decode_tps=27.03 predicted_n=400 prefill_s=0.13 gpu_before=76/1575/346.44/98
+  PROBE NO-mmproj/rep4 k=3 decode_tps=26.88 predicted_n=400 prefill_s=0.13 gpu_before=80/1575/347.15/97
+  PROBE NO-mmproj/rep4 k=4 decode_tps=26.85 predicted_n=400 prefill_s=0.13 gpu_before=82/1560/348.63/97
+  PROBE NO-mmproj/rep4 k=5 decode_tps=26.87 predicted_n=400 prefill_s=0.13 gpu_before=82/1560/349.17/98
+SUMMARY NO-mmproj/rep4 depth_tok=90862 n=5 median_tps=26.88 mean_tps=26.96 min_tps=26.85 max_tps=27.19 board_mib=19169 ded_mib=18238 shr_mib=228
+  VRAM WITH-mmproj/rep4 at-load board=20293 ded=19362 shr=228 load_s=8.1
+  PREFILLPROBE WITH-mmproj/rep4 depth_tok=90862 prefill_tps=864.8 prefill_s=105.07 decode_tps=18.27 gpu_before=63/315/62.36/2 gpu_after=77/960/265.13/98
+  PROBE WITH-mmproj/rep4 k=1 decode_tps=27.16 predicted_n=400 prefill_s=0.51 gpu_before=57/210/28.27/3
+  PROBE WITH-mmproj/rep4 k=2 decode_tps=27.02 predicted_n=400 prefill_s=0.13 gpu_before=77/1575/346.67/98
+  PROBE WITH-mmproj/rep4 k=3 decode_tps=26.92 predicted_n=400 prefill_s=0.13 gpu_before=80/1575/347.82/98
+  PROBE WITH-mmproj/rep4 k=4 decode_tps=26.79 predicted_n=400 prefill_s=0.13 gpu_before=82/1545/348.97/98
+  PROBE WITH-mmproj/rep4 k=5 decode_tps=26.80 predicted_n=400 prefill_s=0.13 gpu_before=82/1560/349.15/97
+SUMMARY WITH-mmproj/rep4 depth_tok=90862 n=5 median_tps=26.92 mean_tps=26.94 min_tps=26.79 max_tps=27.16 board_mib=20307 ded_mib=19376 shr_mib=228

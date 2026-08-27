@@ -1,0 +1,216 @@
+{
+ "date": "2026-08-26 10:50",
+ "tier": "in-band GPU board power (NVML) only; PSU, CPU, RAM, drives, display excluded",
+ "rows": [
+  {
+   "file": "UD-IQ4_XS",
+   "bpw": 4.223,
+   "loaded": true,
+   "drafter": "n4/p0.75",
+   "j_per_tok": 4.1985,
+   "tps": 74.12,
+   "mean_w": 311.7,
+   "host": "QUIET",
+   "probes": [
+    {
+     "tps": 74.43,
+     "mean_w": 307.9,
+     "peak_w": 345.1,
+     "sm_mhz": 1628,
+     "temp": 76.0,
+     "decode_s": 9.39,
+     "predicted_n": 700,
+     "j_per_tok": 4.1308
+    },
+    {
+     "tps": 74.06,
+     "mean_w": 314.2,
+     "peak_w": 344.7,
+     "sm_mhz": 1646,
+     "temp": 77.2,
+     "decode_s": 9.44,
+     "predicted_n": 700,
+     "j_per_tok": 4.2357
+    },
+    {
+     "tps": 73.88,
+     "mean_w": 312.9,
+     "peak_w": 343.7,
+     "sm_mhz": 1573,
+     "temp": 77.9,
+     "decode_s": 9.46,
+     "predicted_n": 700,
+     "j_per_tok": 4.2291
+    }
+   ]
+  },
+  {
+   "file": "UD-Q3_K_XL",
+   "bpw": 3.895,
+   "loaded": true,
+   "drafter": "n4/p0.75",
+   "j_per_tok": 4.389,
+   "tps": 71.48,
+   "mean_w": 314.2,
+   "host": "QUIET",
+   "probes": [
+    {
+     "tps": 71.43,
+     "mean_w": 310.4,
+     "peak_w": 346.3,
+     "sm_mhz": 1590,
+     "temp": 77.0,
+     "decode_s": 9.79,
+     "predicted_n": 700,
+     "j_per_tok": 4.3394
+    },
+    {
+     "tps": 71.33,
+     "mean_w": 314.0,
+     "peak_w": 345.5,
+     "sm_mhz": 1593,
+     "temp": 78.3,
+     "decode_s": 9.8,
+     "predicted_n": 700,
+     "j_per_tok": 4.396
+    },
+    {
+     "tps": 71.69,
+     "mean_w": 318.1,
+     "peak_w": 344.8,
+     "sm_mhz": 1628,
+     "temp": 79.2,
+     "decode_s": 9.75,
+     "predicted_n": 700,
+     "j_per_tok": 4.4316
+    }
+   ]
+  },
+  {
+   "file": "UD-IQ3_XXS",
+   "bpw": 3.24,
+   "loaded": true,
+   "drafter": "n4/p0.75",
+   "j_per_tok": 3.9032,
+   "tps": 79.6,
+   "mean_w": 311.1,
+   "host": "QUIET",
+   "probes": [
+    {
+     "tps": 79.33,
+     "mean_w": 304.6,
+     "peak_w": 344.8,
+     "sm_mhz": 1620,
+     "temp": 77.3,
+     "decode_s": 8.81,
+     "predicted_n": 700,
+     "j_per_tok": 3.8346
+    },
+    {
+     "tps": 79.87,
+     "mean_w": 311.4,
+     "peak_w": 346.1,
+     "sm_mhz": 1596,
+     "temp": 78.7,
+     "decode_s": 8.75,
+     "predicted_n": 700,
+     "j_per_tok": 3.8931
+    },
+    {
+     "tps": 79.61,
+     "mean_w": 317.4,
+     "peak_w": 346.9,
+     "sm_mhz": 1639,
+     "temp": 79.6,
+     "decode_s": 8.78,
+     "predicted_n": 700,
+     "j_per_tok": 3.9818
+    }
+   ]
+  },
+  {
+   "file": "UD-Q2_K_XL",
+   "bpw": 2.912,
+   "loaded": true,
+   "drafter": "n4/p0.75",
+   "j_per_tok": 4.0852,
+   "tps": 76.6,
+   "mean_w": 313.3,
+   "host": "QUIET",
+   "probes": [
+    {
+     "tps": 77.04,
+     "mean_w": 312.9,
+     "peak_w": 346.1,
+     "sm_mhz": 1678,
+     "temp": 78.4,
+     "decode_s": 9.07,
+     "predicted_n": 700,
+     "j_per_tok": 4.0553
+    },
+    {
+     "tps": 76.72,
+     "mean_w": 311.3,
+     "peak_w": 345.2,
+     "sm_mhz": 1621,
+     "temp": 79.0,
+     "decode_s": 9.11,
+     "predicted_n": 700,
+     "j_per_tok": 4.0522
+    },
+    {
+     "tps": 76.03,
+     "mean_w": 315.8,
+     "peak_w": 347.0,
+     "sm_mhz": 1648,
+     "temp": 79.9,
+     "decode_s": 9.19,
+     "predicted_n": 700,
+     "j_per_tok": 4.1481
+    }
+   ]
+  },
+  {
+   "file": "UD-IQ2_S",
+   "bpw": 2.481,
+   "loaded": true,
+   "drafter": "none",
+   "j_per_tok": 6.8286,
+   "tps": 47.76,
+   "mean_w": 326.6,
+   "host": "QUIET",
+   "probes": [
+    {
+     "tps": 47.99,
+     "mean_w": 322.1,
+     "peak_w": 346.1,
+     "sm_mhz": 1595,
+     "temp": 80.2,
+     "decode_s": 14.57,
+     "predicted_n": 700,
+     "j_per_tok": 6.7037
+    },
+    {
+     "tps": 47.52,
+     "mean_w": 328.2,
+     "peak_w": 345.7,
+     "sm_mhz": 1626,
+     "temp": 81.3,
+     "decode_s": 14.71,
+     "predicted_n": 700,
+     "j_per_tok": 6.8953
+    },
+    {
+     "tps": 47.77,
+     "mean_w": 329.5,
+     "peak_w": 346.3,
+     "sm_mhz": 1654,
+     "temp": 82.0,
+     "decode_s": 14.63,
+     "predicted_n": 700,
+     "j_per_tok": 6.8868
+    }
+   ]
+  }
+ ]
+}

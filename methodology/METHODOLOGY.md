@@ -346,6 +346,30 @@ beyond its retrieval-tested depth is labeled
       "Decode-neutrality was checked and held; the system-RAM half was never
       examined" is the shape — a justification is scoped to what it covers.
 
+29. **An ignore rule is a claim about re-creatability, and it has to be true.**
+    Every line in `.gitignore` asserts one thing about the files it matches:
+    that anyone who loses them can make them again from what is left. That
+    claim is true of downloaded weights, self-built runtimes, benchmark
+    corpora and per-run transcripts. It is false of an instrument, and false
+    of any primary record of an event that has already happened - a telemetry
+    capture, a power trace, a scored arm. Because those two kinds of file get
+    written into the same directories all day, ignore BY EXTENSION, or by a
+    directory that holds nothing but bulk, and never by a directory of mixed
+    content: the rule `results/**/work/`, written to exclude "campaign working
+    data", excluded the harness that every measurement ran through, and nobody
+    noticed for weeks, because git says nothing when it is obeying you. The
+    test is one question asked about the file itself, not about the directory
+    it happens to sit in: IF THIS FILE DISAPPEARED TONIGHT, WOULD REMAKING IT
+    COST A COMMAND, OR AN EXPERIMENT? A command is bulk and may be ignored; an
+    experiment is evidence and must be committed, whatever its size and
+    whichever directory it landed in. A file that a tracked script reads, or
+    that a committed record or a published page names, has already answered
+    the question - it is evidence, so `git add -f` it now.
+    `scripts/verify/instrument-guard.py` enforces this and exits non-zero;
+    silencing it costs one written sentence in `instrument-guard-allow.txt`
+    naming the command that remakes the file, and the difficulty of writing
+    that sentence is the measurement.
+
 ## Power
 24. **Every watt carries its instrumentation tier; every joule carries its
     phase.** Energy is measured or it is absent — TDP is not a measurement,

@@ -1,0 +1,132 @@
+// dijkstra.js - shortest paths on a weighted directed graph.
+// Self-contained: binary min-heap, graph builder, Dijkstra, path reconstruction,
+// plus an 8-node worked example at the bottom.
+
+class MinHeap {
+  constructor() { this.a = []; }
+  get size() { return this.a.length; }
+  push(node, pri) {
+    this.a.push({ node, pri });
+    this.siftUp(this.a.length - 1);
+  }
+  pop() {
+    if (this.a.length === 0) return null;
+    const min = this.a[0];
+    const last = this.a.pop();
+    if (this.a.length > 0) {
+      this.a[0] = last;
+      this.siftDown(0);
+    }
+    return min;
+  }
+  peek() {
+    return this.a.length === 0 ? null : this.a[0].node;
+  }
+  siftUp(i) {
+    while (i > 0) {
+      const parent = (i - 1) >> 1;
+      if (this.a[i].pri >= this.a[parent].pri) break;
+      [this.a[i], this.a[parent]] = [this.a[parent], this.a[i]];
+      i = parent;
+    }
+  }
+  siftDown(i) {
+    const n = this.a.length;
+    while (i * 2 + 1 < n) {
+      const left = i * 2 + 1;
+      const right = i * 2 + 2;
+      let m = i;
+      if (this.a[left].pri < this.a[m].pri) m = left;
+      if (right < n && this.a[right].pri < this.a[m].pri) m = right;
+      if (m === i) break;
+      [this.a[i], this.a[m]] = [this.a[m], this.a[i]];
+      i = m;
+    }
+  }
+}
+
+class Graph {
+  constructor() { this.nodes = new Map(); this.edges = new Map(); }
+  addNode(id) {
+    if (!this.nodes.has(id)) this.nodes.set(id, []);
+    return id;
+  }
+  addEdge(from, to, weight) {
+    this.addNode(from);
+    this.addNode(to);
+    this.edges.get(from).push({ to, weight });
+  }
+  neighbors(id) {
+    return this.edges.get(id) || [];
+  }
+  nodeCount() {
+    return this.nodes.size;
+  }
+}
+
+function dijkstra(graph, source) {
+  const dist = new Map();
+  const prev = new Map();
+  const visited = new Set();
+  const heap = new MinHeap();
+
+  const push = (node, d) => {
+    dist.set(node, d);
+    heap.push(node, d);
+  };
+
+  push(source, 0);
+
+  while (heap.size > 0) {
+    const { node, pri } = heap.pop();
+    if (visited.has(node)) continue;
+    visited.add(node);
+
+    for (const { to, weight } of graph.neighbors(node)) {
+      if (visited.has(to)) continue;
+      const nd = pri + weight;
+      if (nd < (dist.get(to) ?? Infinity)) {
+        prev.set(to, node);
+        push(to, nd);
+      }
+    }
+  }
+
+  return { dist, prev };
+}
+
+function reconstructPath(prev, target) {
+  const path = [];
+  let cur = target;
+  while (cur !== undefined) {
+    path.push(cur);
+    cur = prev.get(cur);
+  }
+  return path.reverse();
+}
+
+function buildDemoGraph() {
+  const g = new Graph();
+  const nodes = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+  nodes.forEach(n => g.addNode(n));
+  g.addEdge('A', 'B', 4);
+  g.addEdge('A', 'C', 1);
+  g.addEdge('B', 'C', 2);
+  g.addEdge('B', 'D', 5);
+  g.addEdge('C', 'D', 1);
+  g.addEdge('C', 'E', 3);
+  g.addEdge('D', 'E', 2);
+  g.addEdge('D', 'F', 6);
+  g.addEdge('E', 'F', 4);
+  g.addEdge('E', 'G', 1);
+  g.addEdge('F', 'G', 2);
+  g.addEdge('F', 'H', 3);
+  g.addEdge('G', 'H', 5);
+  return g;
+}
+
+const g = buildDemoGraph();
+const { dist, prev } = dijkstra(g, 'A');
+const path = reconstructPath(prev, 'H');
+console.log('Shortest path from A to H:', path.join(' -> '));
+console.log('Total cost:', dist.get('H'));

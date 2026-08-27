@@ -1,0 +1,138 @@
+﻿# detector probes for UD-IQ4_XS - 2026-08-23T14:23:28
+
+===== PROBE A (code continuation, max_tokens=1500) =====
+this.a.push({ node, pri });
+    this._bubbleUp(this.a.length - 1);
+  }
+  pop() {
+    if (this.a.length === 0) return null;
+    const top = this.a[0];
+    const last = this.a.pop();
+    if (this.a.length > 0) {
+      this.a[0] = last;
+      this._sinkDown(0);
+    }
+    return top;
+  }
+  peek() {
+    return this.a.length > 0 ? this.a[0] : null;
+  }
+  _bubbleUp(i) {
+    while (i > 0) {
+      const parent = (i - 1) >> 1;
+      if (this.a[i].pri < this.a[parent].pri) {
+        [this.a[i], this.a[parent]] = [this.a[parent], this.a[i]];
+        i = parent;
+      } else break;
+    }
+  }
+  _sinkDown(i) {
+    const n = this.a.length;
+    while (true) {
+      let smallest = i;
+      const left = 2 * i + 1;
+      const right = 2 * i + 2;
+      if (left < n && this.a[left].pri < this.a[smallest].pri) smallest = left;
+      if (right < n && this.a[right].pri < this.a[smallest].pri) smallest = right;
+      if (smallest !== i) {
+        [this.a[i], this.a[smallest]] = [this.a[smallest], this.a[i]];
+        i = smallest;
+      } else break;
+    }
+  }
+}
+
+class Graph {
+  constructor() {
+    this.adj = new Map();
+  }
+  addVertex(v) {
+    if (!this.adj.has(v)) this.adj.set(v, []);
+  }
+  addEdge(u, v, weight) {
+    if (!this.adj.has(u)) this.addVertex(u);
+    if (!this.adj.has(v)) this.addVertex(v);
+    this.adj.get(u).push({ to: v, weight });
+  }
+  getNeighbors(v) {
+    return this.adj.get(v) || [];
+  }
+  hasVertex(v) {
+    return this.adj.has(v);
+  }
+}
+
+function dijkstra(graph, source) {
+  const dist = new Map();
+  const prev = new Map();
+  const visited = new Set();
+  const heap = new MinHeap();
+
+  for (const v of graph.adj.keys()) {
+    dist.set(v, Infinity);
+    prev.set(v, null);
+  }
+  dist.set(source, 0);
+  heap.push(source, 0);
+
+  while (heap.size > 0) {
+    const { node: u, pri } = heap.pop();
+    if (visited.has(u)) continue;
+    visited.add(u);
+
+    for (const { to: v, weight } of graph.getNeighbors(u)) {
+      if (visited.has(v)) continue;
+      const alt = dist.get(u) + weight;
+      if (alt < dist.get(v)) {
+        dist.set(v, alt);
+        prev.set(v, u);
+        heap.push(v, alt);
+      }
+    }
+  }
+
+  return { dist, prev };
+}
+
+function reconstructPath(prev, source, target) {
+  if (!prev.has(target) || prev.get(target) === null && target !== source) {
+    return null;
+  }
+  const path = [];
+  let cur = target;
+  while (cur !== null) {
+    path.unshift(cur);
+    if (cur === source) break;
+    cur = prev.get(cur);
+  }
+  if (path[0] !== source) return null;
+  return path;
+}
+
+// Worked example
+const g = new Graph();
+g.addEdge('A', 'B', 4);
+g.addEdge('A', 'C', 1);
+g.addEdge('C', 'B', 2);
+g.addEdge('B', 'D', 5);
+g.addEdge('C', 'D', 8);
+
+const result = dijkstra(g, 'A');
+console.log('Distances from A:', Object.fromEntries(result.dist));
+console.log('Path A->D:', reconstructPath(result.prev, 'A', 'D'));
+
+===== PROBE B (exact JSON) =====
+{"name": "ladder", "rung": 7, "ok": true, "tags": ["a", "b"]}
+
+===== PROBE C (fenced block) =====
+```python
+def median(xs):
+    if not xs:
+        raise ValueError("empty list")
+    s = sorted(xs)
+    n = len(s)
+    mid = n // 2
+    if n % 2:
+        return s[mid]
+    return (s[mid - 1] + s[mid]) / 2
+```

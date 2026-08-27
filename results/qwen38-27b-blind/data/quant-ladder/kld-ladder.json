@@ -1,0 +1,112 @@
+{
+ "date": "2026-08-26 12:10",
+ "base": "UD-IQ4_XS",
+ "base_caveat": "agreement with the UD-IQ4_XS ANCHOR, not with FP16 - not comparable to anyone else's KLD table",
+ "chunks": 200,
+ "rows": [
+  {
+   "mean_kld": 0.018986,
+   "max_kld": 3.612995,
+   "same_top_p_pct": 94.12,
+   "ppl_ratio": 1.010741,
+   "ppl_delta": 0.0734,
+   "rms_dp": 3.851,
+   "file": "UD-Q3_K_XL",
+   "bpw": 3.895,
+   "chunks": 200,
+   "seconds": 154.2,
+   "returncode": 0
+  },
+  {
+   "mean_kld": 0.063867,
+   "max_kld": 5.811038,
+   "same_top_p_pct": 88.924,
+   "ppl_ratio": 1.032366,
+   "ppl_delta": 0.221187,
+   "rms_dp": 6.994,
+   "file": "UD-IQ3_XXS",
+   "bpw": 3.24,
+   "chunks": 200,
+   "seconds": 144.8,
+   "returncode": 0
+  },
+  {
+   "mean_kld": 0.094208,
+   "max_kld": 8.239365,
+   "same_top_p_pct": 86.594,
+   "ppl_ratio": 1.05664,
+   "ppl_delta": 0.387072,
+   "rms_dp": 8.474,
+   "file": "UD-Q2_K_XL",
+   "bpw": 2.912,
+   "chunks": 200,
+   "seconds": 137.4,
+   "returncode": 0
+  },
+  {
+   "mean_kld": 0.141097,
+   "max_kld": 13.544751,
+   "same_top_p_pct": 83.988,
+   "ppl_ratio": 1.104665,
+   "ppl_delta": 0.715267,
+   "rms_dp": 10.463,
+   "file": "UD-IQ2_S",
+   "bpw": 2.481,
+   "chunks": 200,
+   "seconds": 136.6,
+   "returncode": 0
+  },
+  {
+   "mean_kld": 0.225514,
+   "max_kld": 11.977668,
+   "same_top_p_pct": 79.451,
+   "ppl_ratio": 1.181363,
+   "ppl_delta": 1.239406,
+   "rms_dp": 13.617,
+   "file": "UD-IQ2_XXS",
+   "bpw": 2.153,
+   "chunks": 200,
+   "seconds": 134.7,
+   "returncode": 0
+  },
+  {
+   "mean_kld": 0.294556,
+   "max_kld": 11.414796,
+   "same_top_p_pct": 76.62,
+   "ppl_ratio": 1.259343,
+   "ppl_delta": 1.772313,
+   "rms_dp": 15.861,
+   "file": "UD-IQ1_M",
+   "bpw": 1.994,
+   "chunks": 200,
+   "seconds": 134.4,
+   "returncode": 0
+  },
+  {
+   "mean_kld": 0.411752,
+   "max_kld": 11.387553,
+   "same_top_p_pct": 73.071,
+   "ppl_ratio": 1.407522,
+   "ppl_delta": 2.784943,
+   "rms_dp": 19.119,
+   "file": "UD-IQ1_S",
+   "bpw": 1.835,
+   "chunks": 200,
+   "seconds": 134.8,
+   "returncode": 0
+  },
+  {
+   "mean_kld": 0.297016,
+   "max_kld": 11.363528,
+   "same_top_p_pct": 77.663,
+   "ppl_ratio": 1.222793,
+   "ppl_delta": 1.522532,
+   "rms_dp": 15.772,
+   "file": "QAT-Q2_0",
+   "bpw": 2.595,
+   "chunks": 200,
+   "seconds": 126.4,
+   "returncode": 0
+  }
+ ]
+}

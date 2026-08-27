@@ -1,0 +1,30 @@
+==============================================================================
+det-UD-Q2_K_XL-probeA.txt  [CLEAN]
+  bytes=2454 words=357 unique_word_ratio=0.5154
+  --- last 600 chars ---
+   path.unshift(cur);
+      cur = prev.get(cur);
+    }
+    return path;
+  }
+  
+  function buildDemoGraph() {
+    const g = new Graph();
+    const edges = [
+      ['A','B',4], ['A','C',2],
+      ['B','D',5], ['B','E',10],
+      ['C','D',8], ['C','F',1],
+      ['D','E',2], ['D','G',6],
+      ['E','H',3],
+      ['F','G',4], ['F','H',7],
+      ['G','H',1]
+    ];
+    for (const [u,v,w] of edges) g.addEdge(u,v,w);
+    return g;
+  }
+  
+  const g = buildDemoGraph();
+  const { dist, prev } = dijkstra(g, 'A');
+  const path = reconstructPath(prev, 'H');
+  console.log('Shortest path A -> H:', path.join(' -> '));
+  console.log('Total cost:', dist.get('H'));

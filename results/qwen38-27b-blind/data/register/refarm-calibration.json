@@ -1,0 +1,923 @@
+{
+ "date": "2026-08-25 20:06",
+ "arm": {
+  "model": "Qwen3.8-27B-UD-IQ4_XS.gguf",
+  "ctx": 32768,
+  "flags": [
+   "-ngl",
+   "99",
+   "-c",
+   "32768",
+   "--parallel",
+   "1",
+   "-ctk",
+   "q8_0",
+   "-ctv",
+   "q8_0",
+   "--spec-type",
+   "draft-mtp",
+   "--spec-draft-n-max",
+   "4",
+   "--spec-draft-p-min",
+   "0.75",
+   "--jinja",
+   "--reasoning",
+   "off"
+  ],
+  "prompt": "Write a single self-contained JavaScript module that implements a fixed-window rate limiter with a pluggable clock, a per-key limit, and an eviction sweep that runs at most once per window. Include JSDoc on every exported symbol, plus a short usage example. Code only.",
+  "probes": 3,
+  "warmup_discarded": 1,
+  "npredict": 700
+ },
+ "within_load": {
+  "date": "2026-08-25",
+  "n": 100,
+  "mean": 74.79,
+  "sd": 0.236,
+  "cv_pct": 0.32
+ },
+ "between_load": {
+  "n": 16,
+  "mean": 74.36,
+  "sd": 0.239,
+  "cv_pct": 0.32,
+  "min": 73.95,
+  "max": 74.8,
+  "range_pct": 1.1
+ },
+ "expected_from_within_load_pct": 0.18,
+ "excess_between_load_pct": 0.26,
+ "band": {
+  "mean": 74.36,
+  "cv_pct": 0.32,
+  "tolerance_pct": 1.0,
+  "basis": "3 sd of 16 separate server loads",
+  "cpu_probe_idle": 0.0312
+ },
+ "readings": [
+  {
+   "tag": "load-01",
+   "ok": true,
+   "mean_tps": 74.8,
+   "probes": [
+    75.081,
+    74.391,
+    74.932
+   ],
+   "spread_pct": 0.92,
+   "acceptance": 0.899,
+   "draft_len": 2.54,
+   "sm_mhz": 1745,
+   "temp": 73.3,
+   "watt": 336.5,
+   "vram_used_before_load": 1613.0,
+   "load_seconds": 6.6,
+   "fingerprint": [
+    "0.06.299.213 I common_speculative_init_result: creating MTP draft context against the target model 'C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf'",
+    "0.16.019.042 I slot print_timing: id  0 | task 0 | draft acceptance = 0.89762 (  491 accepted /   547 generated), mean len =  3.89",
+    "0.25.525.270 I slot print_timing: id  0 | task 211 | draft acceptance = 0.89852 (  487 accepted /   542 generated), mean len =  3.85",
+    "0.35.140.003 I slot print_timing: id  0 | task 425 | draft acceptance = 0.90000 (  486 accepted /   540 generated), mean len =  3.84",
+    "0.44.572.506 I slot print_timing: id  0 | task 640 | draft acceptance = 0.87500 (  490 accepted /   560 generated), mean len =  3.85"
+   ],
+   "rows": [
+    {
+     "decode_tps": 75.081,
+     "predicted_n": 700,
+     "acceptance": 0.899,
+     "draft_len": 2.54,
+     "sm_mhz": 1745,
+     "temp": 73.3,
+     "watt": 336.5
+    },
+    {
+     "decode_tps": 74.391,
+     "predicted_n": 700,
+     "acceptance": 0.9,
+     "draft_len": 2.52,
+     "sm_mhz": 1744,
+     "temp": 75.0,
+     "watt": 340.2
+    },
+    {
+     "decode_tps": 74.932,
+     "predicted_n": 700,
+     "acceptance": 0.875,
+     "draft_len": 2.67,
+     "sm_mhz": 1721,
+     "temp": 76.9,
+     "watt": 340.8
+    }
+   ]
+  },
+  {
+   "tag": "load-02",
+   "ok": true,
+   "mean_tps": 74.3,
+   "probes": [
+    74.364,
+    74.117,
+    74.406
+   ],
+   "spread_pct": 0.39,
+   "acceptance": 0.899,
+   "draft_len": 2.54,
+   "sm_mhz": 1707,
+   "temp": 77.7,
+   "watt": 339.6,
+   "vram_used_before_load": 1613.0,
+   "load_seconds": 6.5,
+   "fingerprint": [
+    "0.06.367.097 I common_speculative_init_result: creating MTP draft context against the target model 'C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf'",
+    "0.16.020.405 I slot print_timing: id  0 | task 0 | draft acceptance = 0.89762 (  491 accepted /   547 generated), mean len =  3.89",
+    "0.25.606.338 I slot print_timing: id  0 | task 211 | draft acceptance = 0.89852 (  487 accepted /   542 generated), mean len =  3.85",
+    "0.35.245.362 I slot print_timing: id  0 | task 425 | draft acceptance = 0.90000 (  486 accepted /   540 generated), mean len =  3.84",
+    "0.44.768.201 I slot print_timing: id  0 | task 640 | draft acceptance = 0.87500 (  490 accepted /   560 generated), mean len =  3.85"
+   ],
+   "rows": [
+    {
+     "decode_tps": 74.364,
+     "predicted_n": 700,
+     "acceptance": 0.899,
+     "draft_len": 2.54,
+     "sm_mhz": 1707,
+     "temp": 77.7,
+     "watt": 339.6
+    },
+    {
+     "decode_tps": 74.117,
+     "predicted_n": 700,
+     "acceptance": 0.9,
+     "draft_len": 2.52,
+     "sm_mhz": 1696,
+     "temp": 78.9,
+     "watt": 339.8
+    },
+    {
+     "decode_tps": 74.406,
+     "predicted_n": 700,
+     "acceptance": 0.875,
+     "draft_len": 2.67,
+     "sm_mhz": 1680,
+     "temp": 80.1,
+     "watt": 340.4
+    }
+   ]
+  },
+  {
+   "tag": "load-03",
+   "ok": true,
+   "mean_tps": 73.95,
+   "probes": [
+    73.994,
+    73.75,
+    74.118
+   ],
+   "spread_pct": 0.5,
+   "acceptance": 0.899,
+   "draft_len": 2.54,
+   "sm_mhz": 1692,
+   "temp": 79.7,
+   "watt": 340.2,
+   "vram_used_before_load": 1613.0,
+   "load_seconds": 6.5,
+   "fingerprint": [
+    "0.06.333.264 I common_speculative_init_result: creating MTP draft context against the target model 'C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf'",
+    "0.16.060.104 I slot print_timing: id  0 | task 0 | draft acceptance = 0.89762 (  491 accepted /   547 generated), mean len =  3.89",
+    "0.25.693.916 I slot print_timing: id  0 | task 211 | draft acceptance = 0.89852 (  487 accepted /   542 generated), mean len =  3.85",
+    "0.35.387.895 I slot print_timing: id  0 | task 425 | draft acceptance = 0.90000 (  486 accepted /   540 generated), mean len =  3.84",
+    "0.44.925.555 I slot print_timing: id  0 | task 640 | draft acceptance = 0.87500 (  490 accepted /   560 generated), mean len =  3.85"
+   ],
+   "rows": [
+    {
+     "decode_tps": 73.994,
+     "predicted_n": 700,
+     "acceptance": 0.899,
+     "draft_len": 2.54,
+     "sm_mhz": 1692,
+     "temp": 79.7,
+     "watt": 340.2
+    },
+    {
+     "decode_tps": 73.75,
+     "predicted_n": 700,
+     "acceptance": 0.9,
+     "draft_len": 2.52,
+     "sm_mhz": 1698,
+     "temp": 80.3,
+     "watt": 340.4
+    },
+    {
+     "decode_tps": 74.118,
+     "predicted_n": 700,
+     "acceptance": 0.875,
+     "draft_len": 2.67,
+     "sm_mhz": 1699,
+     "temp": 81.3,
+     "watt": 342.1
+    }
+   ]
+  },
+  {
+   "tag": "load-04",
+   "ok": true,
+   "mean_tps": 74.11,
+   "probes": [
+    73.861,
+    74.245,
+    74.234
+   ],
+   "spread_pct": 0.52,
+   "acceptance": 0.899,
+   "draft_len": 2.54,
+   "sm_mhz": 1719,
+   "temp": 80.5,
+   "watt": 339.1,
+   "vram_used_before_load": 1613.0,
+   "load_seconds": 6.6,
+   "fingerprint": [
+    "0.06.219.044 I common_speculative_init_result: creating MTP draft context against the target model 'C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf'",
+    "0.16.093.471 I slot print_timing: id  0 | task 0 | draft acceptance = 0.89762 (  491 accepted /   547 generated), mean len =  3.89",
+    "0.25.737.151 I slot print_timing: id  0 | task 211 | draft acceptance = 0.89852 (  487 accepted /   542 generated), mean len =  3.85",
+    "0.35.367.813 I slot print_timing: id  0 | task 425 | draft acceptance = 0.90000 (  486 accepted /   540 generated), mean len =  3.84",
+    "0.44.894.824 I slot print_timing: id  0 | task 640 | draft acceptance = 0.87500 (  490 accepted /   560 generated), mean len =  3.85"
+   ],
+   "rows": [
+    {
+     "decode_tps": 73.861,
+     "predicted_n": 700,
+     "acceptance": 0.899,
+     "draft_len": 2.54,
+     "sm_mhz": 1719,
+     "temp": 80.5,
+     "watt": 339.1
+    },
+    {
+     "decode_tps": 74.245,
+     "predicted_n": 700,
+     "acceptance": 0.9,
+     "draft_len": 2.52,
+     "sm_mhz": 1691,
+     "temp": 81.3,
+     "watt": 340.1
+    },
+    {
+     "decode_tps": 74.234,
+     "predicted_n": 700,
+     "acceptance": 0.875,
+     "draft_len": 2.67,
+     "sm_mhz": 1682,
+     "temp": 81.8,
+     "watt": 341.6
+    }
+   ]
+  },
+  {
+   "tag": "load-05",
+   "ok": true,
+   "mean_tps": 74.39,
+   "probes": [
+    74.641,
+    74.339,
+    74.192
+   ],
+   "spread_pct": 0.6,
+   "acceptance": 0.899,
+   "draft_len": 2.54,
+   "sm_mhz": 1681,
+   "temp": 81.1,
+   "watt": 340.7,
+   "vram_used_before_load": 1613.0,
+   "load_seconds": 6.6,
+   "fingerprint": [
+    "0.06.342.891 I common_speculative_init_result: creating MTP draft context against the target model 'C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf'",
+    "0.16.035.138 I slot print_timing: id  0 | task 0 | draft acceptance = 0.89762 (  491 accepted /   547 generated), mean len =  3.89",
+    "0.25.576.469 I slot print_timing: id  0 | task 211 | draft acceptance = 0.89852 (  487 accepted /   542 generated), mean len =  3.85",
+    "0.35.175.088 I slot print_timing: id  0 | task 425 | draft acceptance = 0.90000 (  486 accepted /   540 generated), mean len =  3.84",
+    "0.44.696.203 I slot print_timing: id  0 | task 640 | draft acceptance = 0.87500 (  490 accepted /   560 generated), mean len =  3.85"
+   ],
+   "rows": [
+    {
+     "decode_tps": 74.641,
+     "predicted_n": 700,
+     "acceptance": 0.899,
+     "draft_len": 2.54,
+     "sm_mhz": 1681,
+     "temp": 81.1,
+     "watt": 340.7
+    },
+    {
+     "decode_tps": 74.339,
+     "predicted_n": 700,
+     "acceptance": 0.9,
+     "draft_len": 2.52,
+     "sm_mhz": 1693,
+     "temp": 81.9,
+     "watt": 340.7
+    },
+    {
+     "decode_tps": 74.192,
+     "predicted_n": 700,
+     "acceptance": 0.875,
+     "draft_len": 2.67,
+     "sm_mhz": 1675,
+     "temp": 82.6,
+     "watt": 343.5
+    }
+   ]
+  },
+  {
+   "tag": "load-06",
+   "ok": true,
+   "mean_tps": 74.75,
+   "probes": [
+    74.791,
+    74.556,
+    74.893
+   ],
+   "spread_pct": 0.45,
+   "acceptance": 0.899,
+   "draft_len": 2.54,
+   "sm_mhz": 1694,
+   "temp": 81.0,
+   "watt": 341.3,
+   "vram_used_before_load": 1613.0,
+   "load_seconds": 6.6,
+   "fingerprint": [
+    "0.06.200.488 I common_speculative_init_result: creating MTP draft context against the target model 'C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf'",
+    "0.16.123.072 I slot print_timing: id  0 | task 0 | draft acceptance = 0.89762 (  491 accepted /   547 generated), mean len =  3.89",
+    "0.25.638.169 I slot print_timing: id  0 | task 211 | draft acceptance = 0.89852 (  487 accepted /   542 generated), mean len =  3.85",
+    "0.35.217.539 I slot print_timing: id  0 | task 425 | draft acceptance = 0.90000 (  486 accepted /   540 generated), mean len =  3.84",
+    "0.44.675.581 I slot print_timing: id  0 | task 640 | draft acceptance = 0.87500 (  490 accepted /   560 generated), mean len =  3.85"
+   ],
+   "rows": [
+    {
+     "decode_tps": 74.791,
+     "predicted_n": 700,
+     "acceptance": 0.899,
+     "draft_len": 2.54,
+     "sm_mhz": 1694,
+     "temp": 81.0,
+     "watt": 341.3
+    },
+    {
+     "decode_tps": 74.556,
+     "predicted_n": 700,
+     "acceptance": 0.9,
+     "draft_len": 2.52,
+     "sm_mhz": 1703,
+     "temp": 81.6,
+     "watt": 340.5
+    },
+    {
+     "decode_tps": 74.893,
+     "predicted_n": 700,
+     "acceptance": 0.875,
+     "draft_len": 2.67,
+     "sm_mhz": 1694,
+     "temp": 82.2,
+     "watt": 342.1
+    }
+   ]
+  },
+  {
+   "tag": "load-07",
+   "ok": true,
+   "mean_tps": 74.63,
+   "probes": [
+    74.675,
+    74.537,
+    74.693
+   ],
+   "spread_pct": 0.21,
+   "acceptance": 0.899,
+   "draft_len": 2.54,
+   "sm_mhz": 1704,
+   "temp": 80.7,
+   "watt": 341.7,
+   "vram_used_before_load": 1613.0,
+   "load_seconds": 6.6,
+   "fingerprint": [
+    "0.06.254.296 I common_speculative_init_result: creating MTP draft context against the target model 'C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf'",
+    "0.16.048.113 I slot print_timing: id  0 | task 0 | draft acceptance = 0.89762 (  491 accepted /   547 generated), mean len =  3.89",
+    "0.25.575.054 I slot print_timing: id  0 | task 211 | draft acceptance = 0.89852 (  487 accepted /   542 generated), mean len =  3.85",
+    "0.35.147.095 I slot print_timing: id  0 | task 425 | draft acceptance = 0.90000 (  486 accepted /   540 generated), mean len =  3.84",
+    "0.44.607.833 I slot print_timing: id  0 | task 640 | draft acceptance = 0.87500 (  490 accepted /   560 generated), mean len =  3.85"
+   ],
+   "rows": [
+    {
+     "decode_tps": 74.675,
+     "predicted_n": 700,
+     "acceptance": 0.899,
+     "draft_len": 2.54,
+     "sm_mhz": 1704,
+     "temp": 80.7,
+     "watt": 341.7
+    },
+    {
+     "decode_tps": 74.537,
+     "predicted_n": 700,
+     "acceptance": 0.9,
+     "draft_len": 2.52,
+     "sm_mhz": 1702,
+     "temp": 81.7,
+     "watt": 342.2
+    },
+    {
+     "decode_tps": 74.693,
+     "predicted_n": 700,
+     "acceptance": 0.875,
+     "draft_len": 2.67,
+     "sm_mhz": 1667,
+     "temp": 82.3,
+     "watt": 343.2
+    }
+   ]
+  },
+  {
+   "tag": "load-08",
+   "ok": true,
+   "mean_tps": 74.58,
+   "probes": [
+    74.886,
+    74.242,
+    74.621
+   ],
+   "spread_pct": 0.86,
+   "acceptance": 0.899,
+   "draft_len": 2.54,
+   "sm_mhz": 1672,
+   "temp": 80.8,
+   "watt": 341.9,
+   "vram_used_before_load": 1613.0,
+   "load_seconds": 6.5,
+   "fingerprint": [
+    "0.06.228.195 I common_speculative_init_result: creating MTP draft context against the target model 'C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf'",
+    "0.16.028.087 I slot print_timing: id  0 | task 0 | draft acceptance = 0.89762 (  491 accepted /   547 generated), mean len =  3.89",
+    "0.25.530.044 I slot print_timing: id  0 | task 211 | draft acceptance = 0.89852 (  487 accepted /   542 generated), mean len =  3.85",
+    "0.35.140.918 I slot print_timing: id  0 | task 425 | draft acceptance = 0.90000 (  486 accepted /   540 generated), mean len =  3.84",
+    "0.44.636.459 I slot print_timing: id  0 | task 640 | draft acceptance = 0.87500 (  490 accepted /   560 generated), mean len =  3.85"
+   ],
+   "rows": [
+    {
+     "decode_tps": 74.886,
+     "predicted_n": 700,
+     "acceptance": 0.899,
+     "draft_len": 2.54,
+     "sm_mhz": 1672,
+     "temp": 80.8,
+     "watt": 341.9
+    },
+    {
+     "decode_tps": 74.242,
+     "predicted_n": 700,
+     "acceptance": 0.9,
+     "draft_len": 2.52,
+     "sm_mhz": 1680,
+     "temp": 81.9,
+     "watt": 341.5
+    },
+    {
+     "decode_tps": 74.621,
+     "predicted_n": 700,
+     "acceptance": 0.875,
+     "draft_len": 2.67,
+     "sm_mhz": 1668,
+     "temp": 82.6,
+     "watt": 342.0
+    }
+   ]
+  },
+  {
+   "tag": "load-09",
+   "ok": true,
+   "mean_tps": 74.4,
+   "probes": [
+    74.534,
+    74.135,
+    74.526
+   ],
+   "spread_pct": 0.54,
+   "acceptance": 0.899,
+   "draft_len": 2.54,
+   "sm_mhz": 1707,
+   "temp": 81.1,
+   "watt": 341.0,
+   "vram_used_before_load": 1613.0,
+   "load_seconds": 6.6,
+   "fingerprint": [
+    "0.06.335.331 I common_speculative_init_result: creating MTP draft context against the target model 'C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf'",
+    "0.16.086.530 I slot print_timing: id  0 | task 0 | draft acceptance = 0.89762 (  491 accepted /   547 generated), mean len =  3.89",
+    "0.25.652.960 I slot print_timing: id  0 | task 211 | draft acceptance = 0.89852 (  487 accepted /   542 generated), mean len =  3.85",
+    "0.35.276.982 I slot print_timing: id  0 | task 425 | draft acceptance = 0.90000 (  486 accepted /   540 generated), mean len =  3.84",
+    "0.44.759.534 I slot print_timing: id  0 | task 640 | draft acceptance = 0.87500 (  490 accepted /   560 generated), mean len =  3.85"
+   ],
+   "rows": [
+    {
+     "decode_tps": 74.534,
+     "predicted_n": 700,
+     "acceptance": 0.899,
+     "draft_len": 2.54,
+     "sm_mhz": 1707,
+     "temp": 81.1,
+     "watt": 341.0
+    },
+    {
+     "decode_tps": 74.135,
+     "predicted_n": 700,
+     "acceptance": 0.9,
+     "draft_len": 2.52,
+     "sm_mhz": 1691,
+     "temp": 82.2,
+     "watt": 341.7
+    },
+    {
+     "decode_tps": 74.526,
+     "predicted_n": 700,
+     "acceptance": 0.875,
+     "draft_len": 2.67,
+     "sm_mhz": 1668,
+     "temp": 82.8,
+     "watt": 343.9
+    }
+   ]
+  },
+  {
+   "tag": "load-10",
+   "ok": true,
+   "mean_tps": 74.42,
+   "probes": [
+    74.656,
+    74.329,
+    74.262
+   ],
+   "spread_pct": 0.53,
+   "acceptance": 0.899,
+   "draft_len": 2.54,
+   "sm_mhz": 1688,
+   "temp": 80.9,
+   "watt": 342.0,
+   "vram_used_before_load": 1613.0,
+   "load_seconds": 6.6,
+   "fingerprint": [
+    "0.06.372.214 I common_speculative_init_result: creating MTP draft context against the target model 'C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf'",
+    "0.16.023.272 I slot print_timing: id  0 | task 0 | draft acceptance = 0.89762 (  491 accepted /   547 generated), mean len =  3.89",
+    "0.25.570.391 I slot print_timing: id  0 | task 211 | draft acceptance = 0.89852 (  487 accepted /   542 generated), mean len =  3.85",
+    "0.35.182.194 I slot print_timing: id  0 | task 425 | draft acceptance = 0.90000 (  486 accepted /   540 generated), mean len =  3.84",
+    "0.44.719.609 I slot print_timing: id  0 | task 640 | draft acceptance = 0.87500 (  490 accepted /   560 generated), mean len =  3.85"
+   ],
+   "rows": [
+    {
+     "decode_tps": 74.656,
+     "predicted_n": 700,
+     "acceptance": 0.899,
+     "draft_len": 2.54,
+     "sm_mhz": 1688,
+     "temp": 80.9,
+     "watt": 342.0
+    },
+    {
+     "decode_tps": 74.329,
+     "predicted_n": 700,
+     "acceptance": 0.9,
+     "draft_len": 2.52,
+     "sm_mhz": 1678,
+     "temp": 82.1,
+     "watt": 340.7
+    },
+    {
+     "decode_tps": 74.262,
+     "predicted_n": 700,
+     "acceptance": 0.875,
+     "draft_len": 2.67,
+     "sm_mhz": 1666,
+     "temp": 82.5,
+     "watt": 343.4
+    }
+   ]
+  },
+  {
+   "tag": "load-11",
+   "ok": true,
+   "mean_tps": 74.26,
+   "probes": [
+    74.527,
+    73.996,
+    74.269
+   ],
+   "spread_pct": 0.72,
+   "acceptance": 0.899,
+   "draft_len": 2.54,
+   "sm_mhz": 1699,
+   "temp": 81.1,
+   "watt": 341.4,
+   "vram_used_before_load": 1613.0,
+   "load_seconds": 6.5,
+   "fingerprint": [
+    "0.06.300.076 I common_speculative_init_result: creating MTP draft context against the target model 'C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf'",
+    "0.16.026.921 I slot print_timing: id  0 | task 0 | draft acceptance = 0.89762 (  491 accepted /   547 generated), mean len =  3.89",
+    "0.25.590.819 I slot print_timing: id  0 | task 211 | draft acceptance = 0.89852 (  487 accepted /   542 generated), mean len =  3.85",
+    "0.35.257.344 I slot print_timing: id  0 | task 425 | draft acceptance = 0.90000 (  486 accepted /   540 generated), mean len =  3.84",
+    "0.44.775.486 I slot print_timing: id  0 | task 640 | draft acceptance = 0.87500 (  490 accepted /   560 generated), mean len =  3.85"
+   ],
+   "rows": [
+    {
+     "decode_tps": 74.527,
+     "predicted_n": 700,
+     "acceptance": 0.899,
+     "draft_len": 2.54,
+     "sm_mhz": 1699,
+     "temp": 81.1,
+     "watt": 341.4
+    },
+    {
+     "decode_tps": 73.996,
+     "predicted_n": 700,
+     "acceptance": 0.9,
+     "draft_len": 2.52,
+     "sm_mhz": 1691,
+     "temp": 81.9,
+     "watt": 338.9
+    },
+    {
+     "decode_tps": 74.269,
+     "predicted_n": 700,
+     "acceptance": 0.875,
+     "draft_len": 2.67,
+     "sm_mhz": 1668,
+     "temp": 82.9,
+     "watt": 344.7
+    }
+   ]
+  },
+  {
+   "tag": "load-12",
+   "ok": true,
+   "mean_tps": 74.16,
+   "probes": [
+    74.08,
+    74.007,
+    74.384
+   ],
+   "spread_pct": 0.51,
+   "acceptance": 0.899,
+   "draft_len": 2.54,
+   "sm_mhz": 1692,
+   "temp": 81.2,
+   "watt": 341.6,
+   "vram_used_before_load": 1613.0,
+   "load_seconds": 6.5,
+   "fingerprint": [
+    "0.06.282.096 I common_speculative_init_result: creating MTP draft context against the target model 'C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf'",
+    "0.16.043.767 I slot print_timing: id  0 | task 0 | draft acceptance = 0.89762 (  491 accepted /   547 generated), mean len =  3.89",
+    "0.25.674.114 I slot print_timing: id  0 | task 211 | draft acceptance = 0.89852 (  487 accepted /   542 generated), mean len =  3.85",
+    "0.35.335.171 I slot print_timing: id  0 | task 425 | draft acceptance = 0.90000 (  486 accepted /   540 generated), mean len =  3.84",
+    "0.44.846.036 I slot print_timing: id  0 | task 640 | draft acceptance = 0.87500 (  490 accepted /   560 generated), mean len =  3.85"
+   ],
+   "rows": [
+    {
+     "decode_tps": 74.08,
+     "predicted_n": 700,
+     "acceptance": 0.899,
+     "draft_len": 2.54,
+     "sm_mhz": 1692,
+     "temp": 81.2,
+     "watt": 341.6
+    },
+    {
+     "decode_tps": 74.007,
+     "predicted_n": 700,
+     "acceptance": 0.9,
+     "draft_len": 2.52,
+     "sm_mhz": 1677,
+     "temp": 82.3,
+     "watt": 341.2
+    },
+    {
+     "decode_tps": 74.384,
+     "predicted_n": 700,
+     "acceptance": 0.875,
+     "draft_len": 2.67,
+     "sm_mhz": 1676,
+     "temp": 82.8,
+     "watt": 343.2
+    }
+   ]
+  },
+  {
+   "tag": "load-13",
+   "ok": true,
+   "mean_tps": 74.07,
+   "probes": [
+    74.117,
+    73.948,
+    74.141
+   ],
+   "spread_pct": 0.26,
+   "acceptance": 0.899,
+   "draft_len": 2.54,
+   "sm_mhz": 1676,
+   "temp": 81.1,
+   "watt": 343.0,
+   "vram_used_before_load": 1689.0,
+   "load_seconds": 6.6,
+   "fingerprint": [
+    "0.06.154.905 I common_speculative_init_result: creating MTP draft context against the target model 'C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf'",
+    "0.16.036.663 I slot print_timing: id  0 | task 0 | draft acceptance = 0.89762 (  491 accepted /   547 generated), mean len =  3.89",
+    "0.25.635.909 I slot print_timing: id  0 | task 211 | draft acceptance = 0.89852 (  487 accepted /   542 generated), mean len =  3.85",
+    "0.35.293.020 I slot print_timing: id  0 | task 425 | draft acceptance = 0.90000 (  486 accepted /   540 generated), mean len =  3.84",
+    "0.44.823.783 I slot print_timing: id  0 | task 640 | draft acceptance = 0.87500 (  490 accepted /   560 generated), mean len =  3.85"
+   ],
+   "rows": [
+    {
+     "decode_tps": 74.117,
+     "predicted_n": 700,
+     "acceptance": 0.899,
+     "draft_len": 2.54,
+     "sm_mhz": 1676,
+     "temp": 81.1,
+     "watt": 343.0
+    },
+    {
+     "decode_tps": 73.948,
+     "predicted_n": 700,
+     "acceptance": 0.9,
+     "draft_len": 2.52,
+     "sm_mhz": 1678,
+     "temp": 82.3,
+     "watt": 340.5
+    },
+    {
+     "decode_tps": 74.141,
+     "predicted_n": 700,
+     "acceptance": 0.875,
+     "draft_len": 2.67,
+     "sm_mhz": 1686,
+     "temp": 82.7,
+     "watt": 343.6
+    }
+   ]
+  },
+  {
+   "tag": "load-14",
+   "ok": true,
+   "mean_tps": 74.32,
+   "probes": [
+    74.647,
+    74.06,
+    74.253
+   ],
+   "spread_pct": 0.79,
+   "acceptance": 0.899,
+   "draft_len": 2.54,
+   "sm_mhz": 1670,
+   "temp": 80.9,
+   "watt": 341.5,
+   "vram_used_before_load": 1689.0,
+   "load_seconds": 6.6,
+   "fingerprint": [
+    "0.06.332.451 I common_speculative_init_result: creating MTP draft context against the target model 'C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf'",
+    "0.16.049.910 I slot print_timing: id  0 | task 0 | draft acceptance = 0.89762 (  491 accepted /   547 generated), mean len =  3.89",
+    "0.25.584.166 I slot print_timing: id  0 | task 211 | draft acceptance = 0.89852 (  487 accepted /   542 generated), mean len =  3.85",
+    "0.35.236.558 I slot print_timing: id  0 | task 425 | draft acceptance = 0.90000 (  486 accepted /   540 generated), mean len =  3.84",
+    "0.44.772.193 I slot print_timing: id  0 | task 640 | draft acceptance = 0.87500 (  490 accepted /   560 generated), mean len =  3.85"
+   ],
+   "rows": [
+    {
+     "decode_tps": 74.647,
+     "predicted_n": 700,
+     "acceptance": 0.899,
+     "draft_len": 2.54,
+     "sm_mhz": 1670,
+     "temp": 80.9,
+     "watt": 341.5
+    },
+    {
+     "decode_tps": 74.06,
+     "predicted_n": 700,
+     "acceptance": 0.9,
+     "draft_len": 2.52,
+     "sm_mhz": 1688,
+     "temp": 82.2,
+     "watt": 340.7
+    },
+    {
+     "decode_tps": 74.253,
+     "predicted_n": 700,
+     "acceptance": 0.875,
+     "draft_len": 2.67,
+     "sm_mhz": 1679,
+     "temp": 82.8,
+     "watt": 342.5
+    }
+   ]
+  },
+  {
+   "tag": "load-15",
+   "ok": true,
+   "mean_tps": 74.32,
+   "probes": [
+    74.666,
+    73.949,
+    74.331
+   ],
+   "spread_pct": 0.96,
+   "acceptance": 0.899,
+   "draft_len": 2.54,
+   "sm_mhz": 1688,
+   "temp": 81.4,
+   "watt": 342.1,
+   "vram_used_before_load": 1689.0,
+   "load_seconds": 6.6,
+   "fingerprint": [
+    "0.06.267.862 I common_speculative_init_result: creating MTP draft context against the target model 'C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf'",
+    "0.16.044.074 I slot print_timing: id  0 | task 0 | draft acceptance = 0.89762 (  491 accepted /   547 generated), mean len =  3.89",
+    "0.25.572.499 I slot print_timing: id  0 | task 211 | draft acceptance = 0.89852 (  487 accepted /   542 generated), mean len =  3.85",
+    "0.35.232.583 I slot print_timing: id  0 | task 425 | draft acceptance = 0.90000 (  486 accepted /   540 generated), mean len =  3.84",
+    "0.44.752.471 I slot print_timing: id  0 | task 640 | draft acceptance = 0.87500 (  490 accepted /   560 generated), mean len =  3.85"
+   ],
+   "rows": [
+    {
+     "decode_tps": 74.666,
+     "predicted_n": 700,
+     "acceptance": 0.899,
+     "draft_len": 2.54,
+     "sm_mhz": 1688,
+     "temp": 81.4,
+     "watt": 342.1
+    },
+    {
+     "decode_tps": 73.949,
+     "predicted_n": 700,
+     "acceptance": 0.9,
+     "draft_len": 2.52,
+     "sm_mhz": 1691,
+     "temp": 82.5,
+     "watt": 341.9
+    },
+    {
+     "decode_tps": 74.331,
+     "predicted_n": 700,
+     "acceptance": 0.875,
+     "draft_len": 2.67,
+     "sm_mhz": 1659,
+     "temp": 82.9,
+     "watt": 344.4
+    }
+   ]
+  },
+  {
+   "tag": "load-16",
+   "ok": true,
+   "mean_tps": 74.25,
+   "probes": [
+    74.368,
+    73.997,
+    74.398
+   ],
+   "spread_pct": 0.54,
+   "acceptance": 0.899,
+   "draft_len": 2.54,
+   "sm_mhz": 1688,
+   "temp": 81.6,
+   "watt": 340.5,
+   "vram_used_before_load": 1689.0,
+   "load_seconds": 6.5,
+   "fingerprint": [
+    "0.06.289.641 I common_speculative_init_result: creating MTP draft context against the target model 'C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf'",
+    "0.16.030.437 I slot print_timing: id  0 | task 0 | draft acceptance = 0.89762 (  491 accepted /   547 generated), mean len =  3.89",
+    "0.25.614.958 I slot print_timing: id  0 | task 211 | draft acceptance = 0.89852 (  487 accepted /   542 generated), mean len =  3.85",
+    "0.35.274.303 I slot print_timing: id  0 | task 425 | draft acceptance = 0.90000 (  486 accepted /   540 generated), mean len =  3.84",
+    "0.44.772.191 I slot print_timing: id  0 | task 640 | draft acceptance = 0.87500 (  490 accepted /   560 generated), mean len =  3.85"
+   ],
+   "rows": [
+    {
+     "decode_tps": 74.368,
+     "predicted_n": 700,
+     "acceptance": 0.899,
+     "draft_len": 2.54,
+     "sm_mhz": 1688,
+     "temp": 81.6,
+     "watt": 340.5
+    },
+    {
+     "decode_tps": 73.997,
+     "predicted_n": 700,
+     "acceptance": 0.9,
+     "draft_len": 2.52,
+     "sm_mhz": 1680,
+     "temp": 82.3,
+     "watt": 341.3
+    },
+    {
+     "decode_tps": 74.398,
+     "predicted_n": 700,
+     "acceptance": 0.875,
+     "draft_len": 2.67,
+     "sm_mhz": 1666,
+     "temp": 82.9,
+     "watt": 344.1
+    }
+   ]
+  }
+ ]
+}

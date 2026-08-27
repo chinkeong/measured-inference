@@ -1,0 +1,1 @@
+﻿RESULT effort-xhigh-120k prompt_n=1701 predicted_n=61476 decode_tps=55.76 wall_s=1104.46 finish=stop accept=0.8763 think_chars=114081 answer_chars=41376 html_ok=True t0=[2026/08/23 01:55:46] t1=[2026/08/23 02:14:11]

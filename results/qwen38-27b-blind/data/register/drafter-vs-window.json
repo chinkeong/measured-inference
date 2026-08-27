@@ -1,0 +1,96 @@
+{
+ "date": "2026-08-25 14:23",
+ "board_mib": 24576,
+ "desktop_reserve_mib": 1308,
+ "prompt": "Write a single self-contained JavaScript module that implements a fixed-window\nrate limiter with a pluggable clock, a per-key limit, and an eviction sweep that\nruns at most once per window. Include JSDoc on every exported symbol and a short\nusage example at the end. Do not explain the code outside the module.",
+ "vision": true,
+ "arms": [
+  {
+   "arm": "A shipped   n4/p0.75  @122880",
+   "nmax": 4,
+   "pmin": 0.75,
+   "ctx": 122880,
+   "vram_mib": 21584,
+   "slack_mib": 2992,
+   "desktop_ok": true,
+   "mean_tps": 65.67,
+   "spread_pct": 5.2,
+   "acceptance": 0.897,
+   "probes": [
+    {
+     "decode_tps": 64.21,
+     "acceptance": 0.897,
+     "predicted_n": 700
+    },
+    {
+     "decode_tps": 65.21,
+     "acceptance": 0.897,
+     "predicted_n": 700
+    },
+    {
+     "decode_tps": 67.6,
+     "acceptance": 0.897,
+     "predicted_n": 700
+    }
+   ]
+  },
+  {
+   "arm": "B wide      n10/p0.5  @122880",
+   "nmax": 10,
+   "pmin": 0.5,
+   "ctx": 122880,
+   "vram_mib": 22553,
+   "slack_mib": 2023,
+   "desktop_ok": true,
+   "mean_tps": 87.49,
+   "spread_pct": 3.5,
+   "acceptance": 0.611,
+   "probes": [
+    {
+     "decode_tps": 89.28,
+     "acceptance": 0.613,
+     "predicted_n": 700
+    },
+    {
+     "decode_tps": 86.22,
+     "acceptance": 0.603,
+     "predicted_n": 700
+    },
+    {
+     "decode_tps": 86.97,
+     "acceptance": 0.618,
+     "predicted_n": 700
+    }
+   ]
+  },
+  {
+   "arm": "C wide+trim n10/p0.5  @98304",
+   "nmax": 10,
+   "pmin": 0.5,
+   "ctx": 98304,
+   "vram_mib": 21396,
+   "slack_mib": 3180,
+   "desktop_ok": true,
+   "mean_tps": 87.04,
+   "spread_pct": 2.1,
+   "acceptance": 0.611,
+   "probes": [
+    {
+     "decode_tps": 87.79,
+     "acceptance": 0.613,
+     "predicted_n": 700
+    },
+    {
+     "decode_tps": 86.0,
+     "acceptance": 0.603,
+     "predicted_n": 700
+    },
+    {
+     "decode_tps": 87.34,
+     "acceptance": 0.618,
+     "predicted_n": 700
+    }
+   ]
+  }
+ ]
+}

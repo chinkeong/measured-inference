@@ -1,0 +1,83 @@
+{
+ "node": "v24.15.0",
+ "timeout_s": 15,
+ "results": [
+  {
+   "file": "UD-IQ4_XS",
+   "bpw": 4.223,
+   "shape": "CONTINUED",
+   "result": "RUNS",
+   "detail": "Total cost: 15"
+  },
+  {
+   "file": "UD-Q3_K_XL",
+   "bpw": 3.895,
+   "shape": "CONTINUED",
+   "result": "RUNS",
+   "detail": "Total cost: 10"
+  },
+  {
+   "file": "UD-IQ3_XXS",
+   "bpw": 3.24,
+   "shape": "CONTINUED",
+   "result": "RUNS",
+   "detail": "Total cost: 12"
+  },
+  {
+   "file": "UD-Q2_K_XL",
+   "bpw": 2.912,
+   "shape": "CONTINUED",
+   "result": "RUNS",
+   "detail": "Total cost: 8"
+  },
+  {
+   "file": "QAT-Q2_0",
+   "bpw": 2.595,
+   "shape": "RE-EMITTED",
+   "result": "RUNS",
+   "detail": "Total cost: 50"
+  },
+  {
+   "file": "UD-IQ2_S",
+   "bpw": 2.481,
+   "shape": "CONTINUED-fenced",
+   "result": "RUNS",
+   "detail": "Total cost: 15"
+  },
+  {
+   "file": "UD-IQ2_XXS",
+   "bpw": 2.153,
+   "shape": "RESTARTED",
+   "result": "THROWS",
+   "detail": "TypeError: Cannot read properties of undefined (reading 'push')"
+  },
+  {
+   "file": "UD-IQ1_M",
+   "bpw": 1.994,
+   "shape": "RESTARTED-fenced",
+   "result": "SYNTAX",
+   "detail": "SyntaxError: Missing initializer in const declaration"
+  },
+  {
+   "file": "UD-IQ1_S",
+   "bpw": 1.835,
+   "shape": "RESTARTED-fenced",
+   "result": "SYNTAX",
+   "detail": "SyntaxError: Identifier 'shortestPathCostsTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTotalTot"
+  },
+  {
+   "file": "NVFP4-MTP-VERY-LOW",
+   "bpw": 4.404,
+   "shape": "CONTINUED",
+   "result": "RUNS",
+   "detail": "Total cost: 11"
+  },
+  {
+   "file": "gemma-4-12B-QAT-Q4_0",
+   "bpw": 4.651,
+   "shape": "CONTINUED",
+   "result": "SYNTAX",
+   "detail": "SyntaxError: Unexpected token '{'"
+  }
+ ]
+}

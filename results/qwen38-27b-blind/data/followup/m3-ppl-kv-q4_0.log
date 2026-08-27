@@ -1,0 +1,33 @@
+llama-perplexity.exe : 0.00.824.915 W model has unused tensor blk.64.attn_norm.weight (size = 20480 bytes) -- ignoring
+At E:\AI\measured-inference\results\qwen38-27b-blind\work\followup-m3.ps1:30 char:8
++ $txt = & $ppl -m $model -f $corpus -ngl 99 -c 8192 -fa on --load-mode ...
++        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (0.00.824.915 W ...es) -- ignoring:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+0.00.824.928 W model has unused tensor blk.64.post_attention_norm.weight (size = 20480 bytes) -- ignoring
+0.00.824.946 W model has unused tensor blk.64.attn_q.weight (size = 51609600 bytes) -- ignoring
+0.00.824.953 W model has unused tensor blk.64.attn_k.weight (size = 5570560 bytes) -- ignoring
+0.00.824.959 W model has unused tensor blk.64.attn_v.weight (size = 5570560 bytes) -- ignoring
+0.00.824.982 W model has unused tensor blk.64.attn_output.weight (size = 25804800 bytes) -- ignoring
+0.00.824.989 W model has unused tensor blk.64.attn_q_norm.weight (size = 1024 bytes) -- ignoring
+0.00.824.997 W model has unused tensor blk.64.attn_k_norm.weight (size = 1024 bytes) -- ignoring
+0.00.825.004 W model has unused tensor blk.64.ffn_gate.weight (size = 73113600 bytes) -- ignoring
+0.00.825.012 W model has unused tensor blk.64.ffn_down.weight (size = 73113600 bytes) -- ignoring
+0.00.825.018 W model has unused tensor blk.64.ffn_up.weight (size = 73113600 bytes) -- ignoring
+0.00.825.028 W model has unused tensor blk.64.nextn.eh_proj.weight (size = 43008000 bytes) -- ignoring
+0.00.825.034 W model has unused tensor blk.64.nextn.enorm.weight (size = 20480 bytes) -- ignoring
+0.00.825.041 W model has unused tensor blk.64.nextn.hnorm.weight (size = 20480 bytes) -- ignoring
+0.00.825.061 W model has unused tensor blk.64.nextn.shared_head_norm.weight (size = 20480 bytes) -- ignoring
+0.05.482.898 I cmn          init: llama threadpool init, n_threads = 14
+0.05.567.089 I 
+0.05.567.676 I system_info: n_threads = 14 (n_threads_batch = 14) / 20 | CUDA : ARCHS = 750,800,860,890,900,1200,1210 
+| USE_GRAPHS = 1 | CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | AVX_VNNI = 1 | AVX2 = 1 | F16C = 1 | FMA = 1 | BMI2 = 1 | 
+LLAMAFILE = 1 | OPENMP = 1 | REPACK = 1 | 
+0.05.567.830 I perplexity: tokenizing the input ..
+0.05.844.946 I perplexity: tokenization took 277.11 ms
+0.05.845.454 I perplexity: calculating perplexity over 36 chunks, n_ctx=8192, batch_size=2048, n_seq=1
+4.68 minutes
+0.13.670.709 I perplexity: 7.83 seconds per pass - ETA 4.24.467.732 I Final estimate: PPL = 6.6413 +/- 0.04507
+[1]7.0361,[2]4.8749,[3]6.4433,[4]6.3725,[5]6.0730,[6]6.1213,[7]6.5969,[8]6.2842,[9]6.4386,[10]6.0635,[11]6.4015,[12]6.4370,[13]6.3764,[14]6.1757,[15]6.1031,[16]6.2118,[17]6.1658,[18]6.0559,[19]6.0135,[20]6.0298,[21]5.9419,[22]5.8875,[23]6.0316,[24]6.1518,[25]6.3124,[26]6.3183,[27]6.3550,[28]6.4032,[29]6.4053,[30]6.4028,[31]6.3824,[32]6.3490,[33]6.3407,[34]6.4088,[35]6.6363,[36]6.6413,
+

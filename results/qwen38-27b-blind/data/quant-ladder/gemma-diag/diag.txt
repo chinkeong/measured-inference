@@ -1,0 +1,12 @@
+﻿# gemma perplexity instrument isolation - opened 2026-08-23T18:37:11
+DIAG A-repro-fa-on-c8192 | model=gemma-4-12B-it-QAT-Q4_0.gguf | flags=-ngl 99 -c 8192 -fa on --load-mode mmap | chunks=4 | chunk1=2196.0308, | PPL=851.8236 | err=41.07701 | n_ctx=8192 | wall_s=21 | 
+DIAG B-fa-OFF-c8192 | model=gemma-4-12B-it-QAT-Q4_0.gguf | flags=-ngl 99 -c 8192 -fa off --load-mode mmap | chunks=4 | chunk1=2168.1492, | PPL=847.7646 | err=40.79879 | n_ctx=8192 | wall_s=22.4 | 
+DIAG C-fa-on-SWAFULL | model=gemma-4-12B-it-QAT-Q4_0.gguf | flags=-ngl 99 -c 8192 -fa on --swa-full --load-mode mmap | chunks=4 | chunk1=2296.9692, | PPL=874.8670 | err=42.26999 | n_ctx=8192 | wall_s=21.4 | 
+DIAG D-fa-OFF-SWAFULL | model=gemma-4-12B-it-QAT-Q4_0.gguf | flags=-ngl 99 -c 8192 -fa off --swa-full --load-mode mmap | chunks=4 | chunk1=2246.5117, | PPL=859.5518 | err=41.48812 | n_ctx=8192 | wall_s=25.2 | 
+DIAG E-fa-on-c4096 | model=gemma-4-12B-it-QAT-Q4_0.gguf | flags=-ngl 99 -c 4096 -fa on --load-mode mmap | chunks=4 | chunk1=1683.1597, | PPL=1107.0809 | err=77.52006 | n_ctx=4096 | wall_s=12.6 | 
+DIAG F-fa-on-c1024 | model=gemma-4-12B-it-QAT-Q4_0.gguf | flags=-ngl 99 -c 1024 -fa on --load-mode mmap | chunks=8 | chunk1=126.9533, | PPL=769.5220 | err=74.21003 | n_ctx=1024 | wall_s=8.6 | 
+DIAG G-no-mmap-defaults | model=gemma-4-12B-it-QAT-Q4_0.gguf | flags=-ngl 99 -c 8192 | chunks=4 | chunk1=2196.0308, | PPL=851.8236 | err=41.07701 | n_ctx=8192 | wall_s=20.1 | 
+DIAG H-E2B-Q8_0-same-flags | model=gemma-4-E2B-it-Q8_0.gguf | flags=-ngl 99 -c 8192 -fa on --load-mode mmap | chunks=4 | chunk1=242.2214, | PPL=133.6917 | err=5.41682 | n_ctx=8192 | wall_s=12.6 | 
+DIAG I-E2B-Q8_0-SWAFULL | model=gemma-4-E2B-it-Q8_0.gguf | flags=-ngl 99 -c 8192 -fa on --swa-full --load-mode mmap | chunks=4 | chunk1=241.7578, | PPL=133.5847 | err=5.41123 | n_ctx=8192 | wall_s=11.2 | 
+DIAG J-CPU-ngl0-c2048 | model=gemma-4-12B-it-QAT-Q4_0.gguf | flags=-ngl 0 -c 2048 -fa off --load-mode mmap | chunks=2 | chunk1=955.5485, | PPL=1441.6142 | err=201.95553 | n_ctx=2048 | wall_s=14.3 | 
+DIAG K-qwen-control | model=Qwen3.8-27B-UD-IQ4_XS.gguf | flags=-ngl 99 -c 8192 -fa on --load-mode mmap | chunks=4 | chunk1=7.0251, | PPL=6.3159 | err=0.12884 | n_ctx=8192 | wall_s=41.9 | 

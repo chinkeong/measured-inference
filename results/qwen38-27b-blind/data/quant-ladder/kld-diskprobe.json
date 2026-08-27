@@ -1,0 +1,8 @@
+{
+ "date": "2026-08-26 11:14",
+ "bytes_per_chunk": 126647292.0,
+ "total_chunks": 5,
+ "full_gib": 0.59,
+ "chunks_within_budget": 5,
+ "seconds_for_5_chunks": 11.0
+}

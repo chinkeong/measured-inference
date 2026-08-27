@@ -1,0 +1,125 @@
+```javascript
+// dijkstra.js - shortest paths on a weighted directed graph.
+// Self-contained: binary min-heap, graph builder, Dijkstra, path reconstruction,
+// plus an 8-node worked example at the bottom.
+
+class MinHeap {
+  constructor() { this.a = []; }
+  get size() { return this.a.length; }
+  push(node, pri) {
+    this.a.push({ node, pri });
+    this.siftUp(this.a.length - 1);
+  }
+  pop() {
+    const top = this.a[0];
+    const last = this.a.pop();
+    if (this.a.length > 0) {
+      this.a[0] = last;
+      this.siftDown(0);
+    }
+    return top;
+  }
+  peek() { return this.a[0]; }
+  siftUp(i) {
+    while (i > 0) {
+      const parent = Math.floor((i - 1) / 2);
+      if (this.a[i].pri < this.a[parent].pri) {
+        [this.a[i], this.a[parent]] = [this.a[parent], this.a[i]];
+        i = parent;
+      } else break;
+    }
+  }
+  siftDown(i) {
+    while (i < this.a.length) {
+      const child = Math.min(i * 2 + 1, i * 2 + 2);
+      const childIdx = i * 2 + 1;
+      const child2 = i * 2 + 2;
+      const minIdx = childIdx < this.a.length ? childIdx : child2;
+      const minVal = this.a[minIdx].pri;
+      if (this.a[i].pri >= minVal) {
+        [this.a[i], this.a[minIdx]] = [this.a[minIdx], this.a[i]];
+        i = minIdx;
+      } else break;
+    }
+  }
+}
+
+class Graph {
+  constructor() { this.nodes = new Map(); this.edges = new Map(); }
+  addNode(id) { this.nodes.set(id, id); }
+  addEdge(u, v, w) {
+    if (!this.nodes.has(u)) this.addNode(u);
+    if (!this.nodes.has(v)) this.addNode(v);
+    if (!this.edges.has(u)) this.edges.set(u, []);
+    this.edges.get(u).push({ to: v, weight: w });
+  }
+  neighbors(u) { return this.edges.get(u) || []; }
+  nodeCount() { return this.nodes.size; }
+}
+
+function dijkstra(graph, source) {
+  const dist = new Map();
+  const prev = new Map();
+  const heap = new MinHeap();
+  const visited = new Set();
+  const unvisited = new Set();
+  const visitedSet = new Set();
+  const unvisitedSet = new Set();
+  const visitedMap = new Map();
+  const unvisitedMap = new Map();
+  const visitedMap2 = new Map();
+  const unvisitedMap2 = new Map();
+  const visitedMap3 = new Map();
+  const unvisitedMap3 = new Map();
+  const visitedMap4 = new Map();
+  const unvisitedMap4 = new Map();
+  const visitedMap5 = new Map();
+  const unvisitedMap5 = new Map();
+  const visitedMap6 = new Map();
+  const unvisitedMap6 = new Map();
+  const visitedMap7 = new Map();
+  const unvisitedMap7 = new Map();
+  const visitedMap8 = new Map();
+  const unvisitedMap8 = new Map();
+  const visitedMap9 = new Map();
+  const unvisitedMap9 = new Map();
+  const visitedMap10 = new Map();
+  const unvisitedMap10 = new Map();
+  const visitedMap11 = new Map();
+  const unvisitedMap11 = new Map();
+  const visitedMap12 = new Map();
+  const unvisitedMap12 = new Map();
+  const visitedMap13 = new Map();
+  const unvisitedMap13 = new Map();
+  const visitedMap14 = new Map();
+  const unvisitedMap14 = new Map();
+  const visitedMap15 = new Map();
+  const unvisitedMap15 = new Map();
+  const visitedMap16 = new Map();
+  const unvisitedMap16 = new Map();
+  const visitedMap17 = new Map();
+  const unvisitedMap17 = new Map();
+  const visitedMap18 = new Map();
+  const unvisitedMap18 = new Map();
+  const visitedMap19 = new Map();
+  const unvisitedMap19 = new Map();
+  const visitedMap20 = new Map();
+  const unvisitedMap20 = new Map();
+  const visitedMap21 = new Map();
+  const unvisitedMap21 = new Map();
+  const visitedMap22 = new Map();
+  const unvisitedMap22 = new Map();
+  const visitedMap23 = new Map();
+  const unvisitedMap23 = new Map();
+  const visitedMap24 = new Map();
+  const unvisitedMap24 = new Map();
+  const visitedMap25 = new Map();
+  const unvisitedMap25 = new Map();
+  const visitedMap26 = new Map();
+  const unvisitedMap26 = new Map();
+  const visitedMap27 = new Map();
+  const unvisitedMap27 = new Map();
+  const visitedMap28 = new Map();
+  const unvisitedMap28 = new Map();
+  const visitedMap29 = new Map();
+  const un

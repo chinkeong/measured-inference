@@ -1,0 +1,54 @@
+{
+  "model_label": "Qwen3.8-27B-UD-IQ4_XS",
+  "model_key": "C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf",
+  "speculative": false,
+  "scored": true,
+  "protocol": "METHODOLOGY rule 21",
+  "backend": {
+    "engine": "llama.cpp (llama-server)",
+    "server_bin": "E:\\AI\\llama.cpp\\llama-server.exe",
+    "version": "version: 0.1.2-dev (build 10502, commit 0adcc3bb5)",
+    "server_args": "-ctk q8_0 -ctv q8_0 --chat-template-kwargs {\"reasoning_effort\":\"xhigh\"}",
+    "ctx": 65536
+  },
+  "machine": {
+    "host": "GAMINGPC",
+    "os": "Windows-10-10.0.26200-SP0",
+    "cpu": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+    "gpu": "NVIDIA GeForce RTX 3090, 596.36",
+    "llama_cpp": "version: 0.1.2-dev (build 10502, commit 0adcc3bb5)"
+  },
+  "suite_hash": "1cdf54f8eb9d3f8f",
+  "datasets": [
+    "ALPACA"
+  ],
+  "results": {
+    "ALPACA": {
+      "n": 25,
+      "tokens": 1886.6,
+      "tok_s": 42.417167176200785,
+      "ttft": 0.2008372,
+      "unscored_reason": "unscored: no independent judge"
+    }
+  },
+  "scorers": {},
+  "unscored": {
+    "ALPACA": "unscored: no independent judge"
+  },
+  "composite": null,
+  "judge": null,
+  "exec_scoring": true,
+  "settings": {
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "top_k": 1,
+    "presence_penalty": 0.0,
+    "samples": 25,
+    "max_tokens": 32768,
+    "seed": 42,
+    "max_prompt_tokens": 8192
+  },
+  "elapsed_s": 1221.8,
+  "date": "2026-08-24T16:08:02",
+  "transcripts": "Qwen3_8-27B-UD-IQ4_XS_20260824_154740_transcripts.json"
+}

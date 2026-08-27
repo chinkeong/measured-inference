@@ -1,0 +1,325 @@
+{
+ "entry": "6",
+ "date": "2026-08-25 15:04",
+ "target": "detail-target.png",
+ "arms": {
+  "FULL 10580": {
+   "rows": [
+    {
+     "id": "coarse_headline",
+     "class": "coarse",
+     "expected": "171",
+     "raw": "171",
+     "correct": true,
+     "blank": false,
+     "prompt_n": 3666,
+     "predicted_n": 87,
+     "think_chars": 307,
+     "finish": "stop"
+    },
+    {
+     "id": "coarse_banner",
+     "class": "coarse",
+     "expected": "NOMINAL",
+     "raw": "NOMINAL",
+     "correct": true,
+     "blank": false,
+     "prompt_n": 3634,
+     "predicted_n": 64,
+     "think_chars": 253,
+     "finish": "stop"
+    },
+    {
+     "id": "fine_latency",
+     "class": "fine",
+     "expected": "207",
+     "raw": "207",
+     "correct": true,
+     "blank": false,
+     "prompt_n": 3642,
+     "predicted_n": 93,
+     "think_chars": 317,
+     "finish": "stop"
+    },
+    {
+     "id": "fine_queue",
+     "class": "fine",
+     "expected": "9155",
+     "raw": "9155",
+     "correct": true,
+     "blank": false,
+     "prompt_n": 3639,
+     "predicted_n": 100,
+     "think_chars": 304,
+     "finish": "stop"
+    },
+    {
+     "id": "fine_fails",
+     "class": "fine",
+     "expected": "3",
+     "raw": "3",
+     "correct": true,
+     "blank": false,
+     "prompt_n": 3633,
+     "predicted_n": 205,
+     "think_chars": 456,
+     "finish": "stop"
+    },
+    {
+     "id": "fine_serial",
+     "class": "fine",
+     "expected": "QUB-85731-3D3B",
+     "raw": "QUB-85731-3D3B",
+     "correct": true,
+     "blank": false,
+     "prompt_n": 3635,
+     "predicted_n": 109,
+     "think_chars": 354,
+     "finish": "stop"
+    },
+    {
+     "id": "fine_offset",
+     "class": "fine",
+     "expected": "1074",
+     "raw": "1074",
+     "correct": true,
+     "blank": false,
+     "prompt_n": 3629,
+     "predicted_n": 68,
+     "think_chars": 236,
+     "finish": "stop"
+    }
+   ],
+   "summary": {
+    "coarse": {
+     "correct": 2,
+     "n": 2,
+     "blank": 0
+    },
+    "fine": {
+     "correct": 5,
+     "n": 5,
+     "blank": 0
+    },
+    "all": {
+     "correct": 7,
+     "n": 7,
+     "blank": 0
+    },
+    "prompt_n_median": 3635
+   }
+  },
+  "REDUCED 1024": {
+   "rows": [
+    {
+     "id": "coarse_headline",
+     "class": "coarse",
+     "expected": "171",
+     "raw": "171",
+     "correct": true,
+     "blank": false,
+     "prompt_n": 1074,
+     "predicted_n": 103,
+     "think_chars": 401,
+     "finish": "stop"
+    },
+    {
+     "id": "coarse_banner",
+     "class": "coarse",
+     "expected": "NOMINAL",
+     "raw": "NOMINAL",
+     "correct": true,
+     "blank": false,
+     "prompt_n": 1042,
+     "predicted_n": 66,
+     "think_chars": 269,
+     "finish": "stop"
+    },
+    {
+     "id": "fine_latency",
+     "class": "fine",
+     "expected": "207",
+     "raw": "287",
+     "correct": false,
+     "blank": false,
+     "prompt_n": 1050,
+     "predicted_n": 149,
+     "think_chars": 363,
+     "finish": "stop"
+    },
+    {
+     "id": "fine_queue",
+     "class": "fine",
+     "expected": "9155",
+     "raw": "3155",
+     "correct": false,
+     "blank": false,
+     "prompt_n": 1047,
+     "predicted_n": 102,
+     "think_chars": 314,
+     "finish": "stop"
+    },
+    {
+     "id": "fine_fails",
+     "class": "fine",
+     "expected": "3",
+     "raw": "3",
+     "correct": true,
+     "blank": false,
+     "prompt_n": 1041,
+     "predicted_n": 209,
+     "think_chars": 484,
+     "finish": "stop"
+    },
+    {
+     "id": "fine_serial",
+     "class": "fine",
+     "expected": "QUB-85731-3D3B",
+     "raw": "QLN-05771-2053",
+     "correct": false,
+     "blank": false,
+     "prompt_n": 1043,
+     "predicted_n": 110,
+     "think_chars": 352,
+     "finish": "stop"
+    },
+    {
+     "id": "fine_offset",
+     "class": "fine",
+     "expected": "1074",
+     "raw": "1074",
+     "correct": true,
+     "blank": false,
+     "prompt_n": 1037,
+     "predicted_n": 75,
+     "think_chars": 274,
+     "finish": "stop"
+    }
+   ],
+   "summary": {
+    "coarse": {
+     "correct": 2,
+     "n": 2,
+     "blank": 0
+    },
+    "fine": {
+     "correct": 2,
+     "n": 5,
+     "blank": 0
+    },
+    "all": {
+     "correct": 4,
+     "n": 7,
+     "blank": 0
+    },
+    "prompt_n_median": 1043
+   }
+  },
+  "BLIND": {
+   "rows": [
+    {
+     "id": "coarse_headline",
+     "class": "coarse",
+     "expected": "171",
+     "raw": "8",
+     "correct": false,
+     "blank": false,
+     "prompt_n": 64,
+     "predicted_n": 471,
+     "think_chars": 2134,
+     "finish": "stop"
+    },
+    {
+     "id": "coarse_banner",
+     "class": "coarse",
+     "expected": "NOMINAL",
+     "raw": "No image was provided in your message, so I cannot identify the word. Please share the screenshot and I'll be happy to help.",
+     "correct": false,
+     "blank": false,
+     "prompt_n": 32,
+     "predicted_n": 188,
+     "think_chars": 734,
+     "finish": "stop"
+    },
+    {
+     "id": "fine_latency",
+     "class": "fine",
+     "expected": "207",
+     "raw": "I don't see a screenshot attached to your message. Could you please upload the image so I can read the LATENCY value for SHARD-07?",
+     "correct": false,
+     "blank": false,
+     "prompt_n": 40,
+     "predicted_n": 200,
+     "think_chars": 744,
+     "finish": "stop"
+    },
+    {
+     "id": "fine_queue",
+     "class": "fine",
+     "expected": "9155",
+     "raw": "3",
+     "correct": false,
+     "blank": false,
+     "prompt_n": 37,
+     "predicted_n": 383,
+     "think_chars": 1695,
+     "finish": "stop"
+    },
+    {
+     "id": "fine_fails",
+     "class": "fine",
+     "expected": "3",
+     "raw": "I cannot see any screenshot in this conversation. Please provide the image so I can count the rows with STATUS = FAIL.",
+     "correct": false,
+     "blank": false,
+     "prompt_n": 31,
+     "predicted_n": 385,
+     "think_chars": 1676,
+     "finish": "stop"
+    },
+    {
+     "id": "fine_serial",
+     "class": "fine",
+     "expected": "QUB-85731-3D3B",
+     "raw": "No screenshot was provided in your message, so I'm unable to identify the unit serial. Please share the image and I'll be happy to help.",
+     "correct": false,
+     "blank": false,
+     "prompt_n": 33,
+     "predicted_n": 204,
+     "think_chars": 787,
+     "finish": "stop"
+    },
+    {
+     "id": "fine_offset",
+     "class": "fine",
+     "expected": "1074",
+     "raw": "0.5",
+     "correct": false,
+     "blank": false,
+     "prompt_n": 27,
+     "predicted_n": 299,
+     "think_chars": 1326,
+     "finish": "stop"
+    }
+   ],
+   "summary": {
+    "coarse": {
+     "correct": 0,
+     "n": 2,
+     "blank": 0
+    },
+    "fine": {
+     "correct": 0,
+     "n": 5,
+     "blank": 0
+    },
+    "all": {
+     "correct": 0,
+     "n": 7,
+     "blank": 0
+    },
+    "prompt_n_median": 33
+   }
+  }
+ }
+}

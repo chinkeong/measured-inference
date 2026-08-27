@@ -1,0 +1,16 @@
+{
+  "arm": "qwen-qat-q2_0-cap32k",
+  "family": "qwen",
+  "model": "C:\\Users\\chink\\.lmstudio\\models\\sdkyuan\\qwen3.8-27B-qat-q2_0-gguf\\qwen38-27b-qat-q2_0.gguf",
+  "datasets": "GSM8K,HumanEval,MBPP",
+  "samples": 25,
+  "seed": 42,
+  "max_tokens": 32768,
+  "ctx": 65536,
+  "greedy": true,
+  "suite": "E:\\AI\\measured-inference\\results\\qwen38-27b-blind\\work\\rule21-n25-cap32768.json",
+  "server_args": "-ctk q8_0 -ctv q8_0 --chat-template-kwargs {\"reasoning_effort\":\"low\"}",
+  "wall_s": 1908.6,
+  "wall_h": 0.53,
+  "finished": "2026-08-26T01:30:26"
+}

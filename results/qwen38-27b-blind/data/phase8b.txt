@@ -1,0 +1,15 @@
+=== vis-default ===
+  [vis-default] healthy in 12.0s
+BASELINE vis-default text_prompt_n=75 board_mib=19200
+RESULT vis-default/720p px=1280x720 png_bytes=124223 payload_bytes=165969 text_prompt_n=75 img_prompt_n=997 image_tokens=922 prefill_tps=573.8 prefill_s=1.66 decode_tps=52.98 predicted_n=177 wall_s=5.19 answer_chars=287 think_chars=530
+  REPLY vis-default/720p| This is a cartoon-style underwater ocean scene, likely an animated background or game screen, showing marine life swimming above a sandy seabed. Three distinct things visible are a green sea turtle, a cluster of purple jellyfish, and a purple starfish resting on the rocks at the bottom.
+RESULT vis-default/1440p px=2560x1440 png_bytes=195875 payload_bytes=261505 text_prompt_n=75 img_prompt_n=3677 image_tokens=3602 prefill_tps=613.2 prefill_s=5.93 decode_tps=44.33 predicted_n=162 wall_s=10.0 answer_chars=314 think_chars=396
+  REPLY vis-default/1440p| This is an underwater ocean scene, most likely a screen from a simple game or animated illustration, showing a sandy seabed beneath deep blue water with light rays filtering down. Three distinct elements visible in it are purple jellyfish, a green sea turtle, and tall green stalks of seaweed rising from the sand.
+=== vis-min1024 ===
+  [vis-min1024] healthy in 12.1s
+BASELINE vis-min1024 text_prompt_n=75 board_mib=19234
+RESULT vis-min1024/720p px=1280x720 png_bytes=124223 payload_bytes=165969 text_prompt_n=75 img_prompt_n=1152 image_tokens=1077 prefill_tps=681.3 prefill_s=1.63 decode_tps=52.14 predicted_n=239 wall_s=6.37 answer_chars=387 think_chars=690
+  REPLY vis-min1024/720p| This is a cartoon-style underwater ocean scene, most likely a screen from a simple game or animated background, showing marine life against a deep blue water backdrop with light rays and a sandy seabed. Three distinct things visible in it are a green sea turtle swimming on the left, a cluster of purple jellyfish in the center, and a purple starfish resting on the sand near the bottom.
+RESULT vis-min1024/1440p px=2560x1440 png_bytes=195875 payload_bytes=261505 text_prompt_n=75 img_prompt_n=3677 image_tokens=3602 prefill_tps=615.9 prefill_s=5.9 decode_tps=45.97 predicted_n=162 wall_s=9.72 answer_chars=314 think_chars=396
+  REPLY vis-min1024/1440p| This is an underwater ocean scene, most likely a screen from a simple game or animated illustration, showing a sandy seabed beneath deep blue water with light rays filtering down. Three distinct elements visible in it are purple jellyfish, a green sea turtle, and tall green stalks of seaweed rising from the sand.
+PHASE8B DONE

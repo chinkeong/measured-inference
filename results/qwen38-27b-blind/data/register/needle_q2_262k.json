@@ -1,0 +1,58 @@
+{
+ "date": "2026-08-25 15:16",
+ "ctx": 262144,
+ "model": "Qwen3.8-27B-UD-Q2_K_XL.gguf",
+ "fill_target": 235929,
+ "retrieved": 5,
+ "of": 5,
+ "rows": [
+  {
+   "depth_pct": 10,
+   "sector": "GAMMA-17",
+   "expected": "4823-XQ",
+   "got": "4823-XQ",
+   "correct": true,
+   "prompt_n": 241655
+  },
+  {
+   "depth_pct": 30,
+   "sector": "DELTA-42",
+   "expected": "9176-BT",
+   "got": "9176-BT",
+   "correct": true,
+   "prompt_n": 516
+  },
+  {
+   "depth_pct": 50,
+   "sector": "SIGMA-08",
+   "expected": "5304-ZM",
+   "got": "5304-ZM",
+   "correct": true,
+   "prompt_n": 516
+  },
+  {
+   "depth_pct": 70,
+   "sector": "OMEGA-23",
+   "expected": "2758-VK",
+   "got": "2758-VK",
+   "correct": true,
+   "prompt_n": 517
+  },
+  {
+   "depth_pct": 90,
+   "sector": "KAPPA-91",
+   "expected": "6091-LR",
+   "got": "6091-LR",
+   "correct": true,
+   "prompt_n": 516
+  },
+  {
+   "depth_pct": null,
+   "sector": "THETA-55",
+   "expected": "NONE",
+   "got": "NONE",
+   "correct": true,
+   "control": true
+  }
+ ]
+}

@@ -1,0 +1,104 @@
+context check: longest prompt ~1436 tok (GPQA-Diamond) + max_tokens 30000 = ~31436 tok needed
+machine: GAMINGPC | NVIDIA GeForce RTX 3090, 596.36 | version: 0.1.2-dev (build 10502, commit 0adcc3bb5)
+starting llama-server for Qwen3.8-27B-UD-IQ4_XS.gguf ...
+[Qwen3.8-27B-UD-IQ4_XS] GPQA-Diamond: 198 prompts (exact match)
+    prompt 1/198: 338 tok, 51.8 tok/s, accept_len 2.02, CORRECT
+    prompt 2/198: 3215 tok, 48.7 tok/s, accept_len 1.95, CORRECT
+    prompt 3/198: 2061 tok, 51.2 tok/s, accept_len 2.15, CORRECT
+    prompt 4/198: 7536 tok, 54.2 tok/s, accept_len 2.20, wrong
+    prompt 5/198: 4927 tok, 51.4 tok/s, accept_len 2.22, CORRECT
+    prompt 6/198: 1487 tok, 46.1 tok/s, accept_len 2.04, CORRECT
+    prompt 7/198: 8840 tok, 45.3 tok/s, accept_len 2.07, CORRECT
+    prompt 8/198: 6965 tok, 55.1 tok/s, accept_len 2.67, CORRECT
+    prompt 9/198: 1704 tok, 47.4 tok/s, accept_len 2.25, CORRECT
+    prompt 10/198: 26927 tok, 39.2 tok/s, accept_len 2.34, wrong
+    prompt 11/198: 30000 tok, 46.5 tok/s, accept_len 2.32, wrong (truncated)
+    prompt 12/198: 4658 tok, 48.0 tok/s, accept_len 2.16, CORRECT
+    prompt 13/198: 3546 tok, 46.7 tok/s, accept_len 2.07, CORRECT
+    prompt 14/198: 499 tok, 51.0 tok/s, accept_len 2.27, CORRECT
+    prompt 15/198: 16798 tok, 44.7 tok/s, accept_len 2.00, CORRECT
+    prompt 16/198: 5431 tok, 50.5 tok/s, accept_len 2.17, CORRECT
+    prompt 17/198: 3676 tok, 50.9 tok/s, accept_len 2.27, CORRECT
+    prompt 18/198: 732 tok, 56.2 tok/s, accept_len 2.43, CORRECT
+    prompt 19/198: 29453 tok, 50.0 tok/s, accept_len 2.20, CORRECT
+    prompt 20/198: 961 tok, 62.8 tok/s, accept_len 2.67, CORRECT
+    prompt 21/198: 10200 tok, 54.1 tok/s, accept_len 2.22, CORRECT
+    prompt 22/198: 9835 tok, 55.4 tok/s, accept_len 2.26, CORRECT
+    prompt 23/198: 3941 tok, 56.3 tok/s, accept_len 2.24, CORRECT
+    prompt 24/198: 537 tok, 56.7 tok/s, accept_len 2.34, CORRECT
+    prompt 25/198: 9571 tok, 51.2 tok/s, accept_len 2.25, CORRECT
+    prompt 26/198: 10986 tok, 53.5 tok/s, accept_len 2.47, CORRECT
+    prompt 27/198: 974 tok, 51.5 tok/s, accept_len 2.35, CORRECT
+    prompt 28/198: 581 tok, 46.4 tok/s, accept_len 2.02, CORRECT
+    prompt 29/198: 30000 tok, 52.4 tok/s, accept_len 2.38, wrong (truncated)
+    prompt 30/198: 20967 tok, 48.2 tok/s, accept_len 2.03, CORRECT
+    prompt 31/198: 11277 tok, 55.7 tok/s, accept_len 2.38, CORRECT
+    prompt 32/198: 30000 tok, 50.1 tok/s, accept_len 2.19, wrong (truncated)
+    prompt 33/198: 1208 tok, 54.7 tok/s, accept_len 2.15, CORRECT
+    prompt 34/198: 382 tok, 56.9 tok/s, accept_len 2.30, CORRECT
+    prompt 35/198: 2991 tok, 58.1 tok/s, accept_len 2.33, CORRECT
+    prompt 36/198: 1781 tok, 52.2 tok/s, accept_len 2.06, CORRECT
+    prompt 37/198: 559 tok, 47.4 tok/s, accept_len 1.85, CORRECT
+    prompt 38/198: 532 tok, 62.7 tok/s, accept_len 2.61, CORRECT
+    prompt 39/198: 5820 tok, 52.0 tok/s, accept_len 2.10, CORRECT
+    prompt 40/198: 1922 tok, 43.8 tok/s, accept_len 1.67, CORRECT
+    prompt 41/198: 8244 tok, 51.5 tok/s, accept_len 2.12, CORRECT
+    prompt 42/198: 5293 tok, 59.9 tok/s, accept_len 2.50, CORRECT
+    prompt 43/198: 10763 tok, 49.4 tok/s, accept_len 2.01, CORRECT
+    prompt 44/198: 937 tok, 53.1 tok/s, accept_len 2.09, wrong
+    prompt 45/198: 567 tok, 55.3 tok/s, accept_len 2.30, CORRECT
+    prompt 46/198: 406 tok, 60.3 tok/s, accept_len 2.62, CORRECT
+    prompt 47/198: 5667 tok, 56.4 tok/s, accept_len 2.35, CORRECT
+    prompt 48/198: 851 tok, 60.4 tok/s, accept_len 2.45, CORRECT
+    prompt 49/198: 509 tok, 50.5 tok/s, accept_len 1.95, CORRECT
+    prompt 50/198: 6957 tok, 47.1 tok/s, accept_len 1.83, CORRECT
+    prompt 51/198: 3323 tok, 55.4 tok/s, accept_len 2.23, CORRECT
+    prompt 52/198: 621 tok, 50.3 tok/s, accept_len 1.98, CORRECT
+    prompt 53/198: 1393 tok, 51.7 tok/s, accept_len 2.02, CORRECT
+    prompt 54/198: 673 tok, 54.5 tok/s, accept_len 2.29, CORRECT
+    prompt 55/198: 724 tok, 51.6 tok/s, accept_len 1.94, CORRECT
+    prompt 56/198: 8829 tok, 49.4 tok/s, accept_len 1.97, CORRECT
+    prompt 57/198: 338 tok, 51.7 tok/s, accept_len 2.04, CORRECT
+    prompt 58/198: 979 tok, 50.6 tok/s, accept_len 1.94, CORRECT
+    prompt 59/198: 10215 tok, 54.0 tok/s, accept_len 2.24, CORRECT
+    prompt 60/198: 25214 tok, 56.7 tok/s, accept_len 2.53, CORRECT
+    prompt 61/198: 7404 tok, 48.7 tok/s, accept_len 1.91, CORRECT
+    prompt 62/198: 811 tok, 61.4 tok/s, accept_len 2.61, CORRECT
+    prompt 63/198: 2209 tok, 56.4 tok/s, accept_len 2.24, CORRECT
+    prompt 64/198: 4086 tok, 53.9 tok/s, accept_len 2.18, CORRECT
+    prompt 65/198: 22214 tok, 52.3 tok/s, accept_len 2.25, CORRECT
+    prompt 66/198: 30000 tok, 53.6 tok/s, accept_len 2.41, wrong (truncated)
+    prompt 67/198: 367 tok, 57.8 tok/s, accept_len 2.35, CORRECT
+    prompt 68/198: 5610 tok, 54.2 tok/s, accept_len 2.20, CORRECT
+    prompt 69/198: 504 tok, 57.0 tok/s, accept_len 2.28, CORRECT
+    prompt 70/198: 27881 tok, 51.5 tok/s, accept_len 2.25, CORRECT
+    prompt 71/198: 488 tok, 55.0 tok/s, accept_len 2.18, wrong
+    prompt 72/198: 29945 tok, 63.6 tok/s, accept_len 2.94, wrong
+    prompt 73/198: 2772 tok, 50.7 tok/s, accept_len 1.95, CORRECT
+    prompt 74/198: 195 tok, 53.5 tok/s, accept_len 2.14, CORRECT
+    prompt 75/198: 1400 tok, 54.7 tok/s, accept_len 2.17, CORRECT
+    prompt 76/198: 11273 tok, 52.2 tok/s, accept_len 2.15, CORRECT
+    prompt 77/198: 30000 tok, 49.0 tok/s, accept_len 2.12, wrong (truncated)
+    prompt 78/198: 30000 tok, 50.3 tok/s, accept_len 2.20, wrong (truncated)
+    prompt 79/198: 30000 tok, 48.8 tok/s, accept_len 2.12, wrong (truncated)
+    prompt 80/198: 30000 tok, 51.2 tok/s, accept_len 2.28, wrong (truncated)
+    prompt 81/198: 10859 tok, 52.5 tok/s, accept_len 2.20, CORRECT
+    prompt 82/198: 14373 tok, 51.1 tok/s, accept_len 2.14, CORRECT
+    prompt 83/198: 9428 tok, 54.4 tok/s, accept_len 2.27, CORRECT
+    prompt 84/198: 24421 tok, 53.8 tok/s, accept_len 2.51, CORRECT
+    prompt 85/198: 30000 tok, 50.9 tok/s, accept_len 2.38, wrong (truncated)
+    prompt 86/198: 30000 tok, 47.7 tok/s, accept_len 2.25, wrong (truncated)
+    prompt 87/198: 1945 tok, 44.6 tok/s, accept_len 1.95, CORRECT
+    prompt 88/198: 30000 tok, 45.1 tok/s, accept_len 2.09, wrong (truncated)
+    prompt 89/198: 30000 tok, 45.9 tok/s, accept_len 2.26, wrong (truncated)
+    prompt 90/198: 19141 tok, 52.2 tok/s, accept_len 2.42, CORRECT
+    prompt 91/198: 13622 tok, 50.5 tok/s, accept_len 2.06, CORRECT
+    prompt 92/198: 11439 tok, 53.8 tok/s, accept_len 2.23, CORRECT
+    prompt 93/198: 375 tok, 52.8 tok/s, accept_len 2.07, CORRECT
+    prompt 94/198: 12523 tok, 52.7 tok/s, accept_len 2.15, CORRECT
+    prompt 95/198: 26870 tok, 49.2 tok/s, accept_len 2.07, CORRECT
+    prompt 96/198: 1033 tok, 54.4 tok/s, accept_len 2.22, CORRECT
+    prompt 97/198: 28837 tok, 47.8 tok/s, accept_len 2.12, CORRECT
+    prompt 98/198: 30000 tok, 49.7 tok/s, accept_len 2.32, wrong (truncated)
+    prompt 99/198: 13156 tok, 49.4 tok/s, accept_len 2.32, CORRECT
+    prompt 100/198: 5093 tok, 46.2 tok/s, accept_len 2.10, CORRECT

@@ -1,0 +1,8 @@
+﻿  VRAM WITH-mmproj/rep1 at-load board=20281 ded=19362 shr=228 load_s=14.2
+RESULT WITH-mmproj/rep1 depth_tok=90862 prefill_tps=870.2 prefill_s=104.42 decode_tps_1=26.73 decode_tps_2=26.47 predicted_n_1=400 predicted_n_2=400 answer_chars=1387 think_chars=0 finish=length board_mib=20295 ded_mib=19376 shr_mib=228
+  VRAM NO-mmproj/rep1 at-load board=19143 ded=18224 shr=228 load_s=6
+RESULT NO-mmproj/rep1 depth_tok=90862 prefill_tps=865.0 prefill_s=105.05 decode_tps_1=19.43 decode_tps_2=23.87 predicted_n_1=400 predicted_n_2=400 answer_chars=1387 think_chars=0 finish=length board_mib=19157 ded_mib=18238 shr_mib=228
+  VRAM WITH-mmproj/rep2 at-load board=20281 ded=19362 shr=228 load_s=8.1
+RESULT WITH-mmproj/rep2 depth_tok=90862 prefill_tps=865.5 prefill_s=104.98 decode_tps_1=18.97 decode_tps_2=24.88 predicted_n_1=400 predicted_n_2=400 answer_chars=1387 think_chars=0 finish=length board_mib=20295 ded_mib=19376 shr_mib=228
+  VRAM NO-mmproj/rep2 at-load board=19143 ded=18224 shr=228 load_s=6
+RESULT NO-mmproj/rep2 depth_tok=90862 prefill_tps=865.1 prefill_s=105.03 decode_tps_1=18.52 decode_tps_2=24.51 predicted_n_1=400 predicted_n_2=400 answer_chars=1387 think_chars=0 finish=length board_mib=19157 ded_mib=18238 shr_mib=228

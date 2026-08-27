@@ -1,0 +1,30 @@
+==============================================================================
+det-NVFP4-MTP-VERY-LOW-probeA.txt  [CLEAN]
+  bytes=2881 words=389 unique_word_ratio=0.5064
+  --- last 600 chars ---
+  );
+      cur = prev.get(cur);
+    }
+    return path;
+  }
+  
+  function buildDemoGraph() {
+    const g = new Graph();
+    g.addEdge('A', 'B', 4);
+    g.addEdge('A', 'C', 2);
+    g.addEdge('B', 'D', 3);
+    g.addEdge('C', 'B', 1);
+    g.addEdge('C', 'E', 5);
+    g.addEdge('D', 'F', 2);
+    g.addEdge('E', 'F', 1);
+    g.addEdge('E', 'G', 4);
+    g.addEdge('F', 'H', 3);
+    g.addEdge('G', 'H', 1);
+    return g;
+  }
+  
+  const graph = buildDemoGraph();
+  const { dist, prev } = dijkstra(graph, 'A');
+  const path = reconstructPath(prev, 'H');
+  console.log('Shortest path from A to H:', path.join(' -> '));
+  console.log('Total cost:', dist.get('H'));

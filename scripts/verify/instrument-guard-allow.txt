@@ -1,0 +1,41 @@
+# instrument-guard allow-list.
+#
+# One path per line, then '#', then the REASON - specifically, how the file
+# would be remade if it vanished tonight. A line with no reason is an error,
+# because the whole point of this file is that silencing the guard costs a
+# sentence. If the sentence is hard to write, the file belongs in git.
+#
+# Paths are repo-relative. A bare basename is also accepted, and applies to
+# every copy of that name; use it only for classes of file, never for a
+# specific record.
+
+# --- the 25 GB logit cache. This is the one file in the tree that is genuinely
+# --- bulk AND genuinely cited: kld-ladder.py names it as its base. It is an
+# --- intermediate, not a reading - every number derived from it is kept in the
+# --- per-rung JSONs beside it, which ARE tracked.
+results/qwen38-27b-blind/data/quant-ladder/kld-base-iq4xs.dat  # 25 GB base-logit dump, remade by one command: llama-perplexity --kl-divergence-base on the UD-IQ4_XS anchor over the same wikitext slice (hours of GPU time, no judgement calls). The derived kld-*.json rungs are tracked.
+
+# --- vendored upstream clone: re-created by scripts/agentic/setup, which
+# --- pins the commit. agentic/setup-log.md quotes these files while
+# --- explaining what had to be patched; the clone is the source of truth.
+agentic/pier/src/pier/agents/installed/base.py            # upstream Pier clone, re-cloned at the pinned commit by scripts/agentic/setup
+agentic/pier/src/pier/agents/installed/mini_swe_agent.py  # upstream Pier clone, same
+agentic/pier/src/pier/cli/utils.py                        # upstream Pier clone, same
+agentic/pier/src/pier/environments/agent_setup.py         # upstream Pier clone, same
+
+# --- per-run agent trajectories: the output of one validation run, quoted in
+# --- setup-log.md as an example of shape, not as evidence for any published
+# --- number. Re-made by re-running the validate-01 task set.
+mini-swe-agent.trajectory.json   # per-run trajectory, re-made by re-running the task; no published number depends on it
+mini-swe-agent.txt               # per-run agent transcript, same
+trajectory.json                  # per-run trajectory, same
+test-stdout.txt                  # per-run verifier stdout, same
+
+# --- benchmark corpora: downloaded by scripts/bench/fetch-datasets, which
+# --- records the source URL and the checksum.
+scripts/bench/datasets/alpaca_data.jsonl       # downloaded corpus, re-fetched with checksum by scripts/bench
+scripts/bench/datasets/meetingbank_test.jsonl  # downloaded corpus, same
+
+# --- per-run bench output, re-made by re-running the arm. The DERIVED
+# --- summaries that the page cites are tracked separately.
+scripts/bench/results/  # per-run bench output directory (one JSON, one PNG and one transcript per arm), all re-made by re-running the arm. Every number the published page quotes from a bench arm is carried into a tracked summary under results/, and it is the summary that gets cited.

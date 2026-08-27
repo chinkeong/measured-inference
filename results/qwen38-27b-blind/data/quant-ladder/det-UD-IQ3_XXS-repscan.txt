@@ -1,0 +1,28 @@
+==============================================================================
+det-UD-IQ3_XXS-probeA.txt  [CLEAN]
+  bytes=3194 words=416 unique_word_ratio=0.5024
+  --- last 600 chars ---
+  g.addEdge('A', 'B', 4);
+    g.addEdge('A', 'C', 2);
+    g.addEdge('B', 'D', 5);
+    g.addEdge('C', 'D', 1);
+    g.addEdge('C', 'E', 8);
+    g.addEdge('D', 'E', 3);
+    g.addEdge('D', 'F', 6);
+    g.addEdge('E', 'F', 2);
+    g.addEdge('E', 'G', 4);
+    g.addEdge('F', 'G', 1);
+    g.addEdge('F', 'H', 7);
+    g.addEdge('G', 'H', 3);
+  
+    return g;
+  }
+  
+  const graph = buildDemoGraph();
+  const { dist, prev } = dijkstra(graph, 'A');
+  const path = reconstructPath(prev, 'H');
+  const totalCost = dist.get('H');
+  
+  console.log('Shortest path from A to H:');
+  console.log('Path:', path.join(' -> '));
+  console.log('Total cost:', totalCost);

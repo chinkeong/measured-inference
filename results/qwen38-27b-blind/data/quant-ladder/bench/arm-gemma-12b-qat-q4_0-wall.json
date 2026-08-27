@@ -1,0 +1,16 @@
+{
+  "arm": "gemma-12b-qat-q4_0",
+  "family": "gemma",
+  "model": "C:\\Users\\chink\\.lmstudio\\models\\lmstudio-community\\gemma-4-12B-it-QAT-GGUF\\gemma-4-12B-it-QAT-Q4_0.gguf",
+  "datasets": "GSM8K,HumanEval,MBPP",
+  "samples": 25,
+  "seed": 42,
+  "max_tokens": 16384,
+  "ctx": 32768,
+  "greedy": true,
+  "suite": "E:\\AI\\measured-inference\\scripts\\bench\\suites\\rule21-n25.json",
+  "server_args": "",
+  "wall_s": 5365.0,
+  "wall_h": 1.49,
+  "finished": "2026-08-23T20:10:54"
+}
