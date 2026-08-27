@@ -256,7 +256,30 @@
 
   /* table headers are scanned, so sans; numeric CELLS keep mono because
      the whole point of a figure column is that the digits line up */
-  th { font-family: var(--ui); font-weight: 600; letter-spacing: 0.02em; }
+  /* TABLES HAD THE SAME THREE PROBLEMS AS THE CODE CHIPS, in four places.
+
+     th was 11px uppercase, tracked 0.1em, in muted grey - the previous pass
+     changed only its FACE and weight and left the size, tracking and colour
+     alone, so it stayed a small pale label. Body text on the page is 16px and
+     the tables were set at 14. And td.n carries the figures in monospace at
+     weight 400, which is the same light face that made the flags fade.
+
+     Numbers in a results table are the payload. They should be the most solid
+     thing in the row. */
+  table { font-size: 15px; }
+  th { font-family: var(--ui); font-weight: 600; font-size: 12px;
+       letter-spacing: 0.04em; color: var(--label); }
+  td { color: var(--ink); }
+  td.n { font-family: var(--mono); font-weight: 600; font-variant-numeric: tabular-nums;
+         letter-spacing: -0.005em; }
+
+  /* Highlighted rows read against --surface, which the restyle redefined to
+     the warm PAGE ground - so an emphasised row was being tinted the colour of
+     the area outside the card and barely separated from the plain rows beside
+     it. Its own token, a tint of the accent, the way the code chips got one. */
+  :root { --row-hl: rgba(10,102,194,0.06); }
+  @media (prefers-color-scheme: dark) { :root { --row-hl: rgba(112,181,249,0.10); } }
+  tr.hl td { background: var(--row-hl); }
   /* .num MARKS A NUMBER FOR EMPHASIS and it is used inline in prose far more
      than in tables - "spent about <span class=num>12.9</span> hours". Setting
      it in mono made it RECEDE instead: monospace has a smaller x-height than
