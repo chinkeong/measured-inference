@@ -33,6 +33,7 @@ changes and restored in a finally block, and the restore is VERIFIED by reading
 the value back rather than trusted from an exit code.
 """
 
+import argparse
 import json
 import os
 import subprocess
@@ -51,6 +52,13 @@ BASE = "http://127.0.0.1:%d" % PORT
 
 CAPS = [350, 300, 250]
 CTX, NPREDICT, SETTLED = 32768, 700, 3
+
+# Saturation controls, added 2026-08-28. The defaults reproduce the original
+# non-saturating run exactly, so the published curve stays reproducible.
+WARM_SECONDS = 0        # burn before the first measured probe
+COOLDOWN = True         # sleep between settled probes
+REQUIRE_CAP_PCT = 0.0   # refuse an arm below this SwPowerCap residency
+TAG = ""                # artefact suffix
 
 PROMPT = ("Write a single self-contained JavaScript module that implements a "
           "fixed-window rate limiter with a pluggable clock, a per-key limit, and "
@@ -152,6 +160,24 @@ def stop_srv(p, lf):
     time.sleep(4)
 
 
+def burn(seconds):
+    """Hold the card under sustained decode before measuring. A cap arm
+    measured from idle spends its window climbing clock and temperature,
+    which is exactly how the published curve came to average 305 W against
+    a 350 W limit. Real agentic work arrives at a board that is already
+    hot."""
+    if seconds <= 0:
+        return
+    print("    warming %d s ..." % seconds, end="", flush=True)
+    t0 = time.time()
+    while time.time() - t0 < seconds:
+        try:
+            probe()
+        except Exception:
+            break
+    print(" done (%.0f s)" % (time.time() - t0), flush=True)
+
+
 def probe():
     t0 = time.time()
     r = post({"model": "qwen/qwen3.8-27b", "temperature": 0, "top_k": 1,
@@ -166,6 +192,35 @@ def probe():
 
 
 def main():
+    global NPREDICT, WARM_SECONDS, COOLDOWN, REQUIRE_CAP_PCT, TAG
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--npredict", type=int, default=NPREDICT,
+                    help="tokens per probe. 700 does not saturate: it is "
+                         "about nine seconds of decode and the board is "
+                         "still climbing when the window closes.")
+    ap.add_argument("--warm-seconds", type=int, default=0,
+                    help="burn under sustained decode before the first "
+                         "measured probe, so the arm starts at the "
+                         "temperature real work arrives at.")
+    ap.add_argument("--no-cooldown", action="store_true",
+                    help="drop the sleeps between settled probes so the "
+                         "board stays hot across all three.")
+    ap.add_argument("--require-cap-pct", type=float, default=0.0,
+                    help="REFUSE to report an arm whose SwPowerCap "
+                         "residency is below this share of busy samples. "
+                         "An arm that never reached its cap cannot price "
+                         "what the cap costs.")
+    ap.add_argument("--tag", default="",
+                    help="artefact suffix, so a saturating run does not "
+                         "overwrite the published non-saturating one.")
+    a = ap.parse_args()
+    NPREDICT = a.npredict
+    WARM_SECONDS = a.warm_seconds
+    COOLDOWN = not a.no_cooldown
+    REQUIRE_CAP_PCT = a.require_cap_pct
+    TAG = a.tag
+    print("npredict %d, warm %d s, cooldown %s, require cap >= %.0f%%"
+          % (NPREDICT, WARM_SECONDS, COOLDOWN, REQUIRE_CAP_PCT))
     if not os.path.exists(MODEL):
         sys.exit("missing model: %s" % MODEL)
     default_w = float(smi("power.default_limit").split(",")[0])
@@ -194,9 +249,10 @@ def main():
             got_probes = []
             try:
                 probe()                       # rule 12: warmup, discarded
-                time.sleep(4)
+                burn(WARM_SECONDS)
+                time.sleep(4 if COOLDOWN else 0)
                 for i in range(SETTLED):
-                    if i:
+                    if i and COOLDOWN:
                         time.sleep(3)
                     s = Sampler()
                     s.start()
@@ -282,6 +338,15 @@ def main():
                          mean("mean_util_mem") or 0.0,
                          "" if pc >= 50.0 else
                          "   <-- THE CAP DID NOT BIND: this arm did not test a cap"))
+            if REQUIRE_CAP_PCT > 0 and (pc is None or pc < REQUIRE_CAP_PCT):
+                rows[-1]["REFUSED"] = (
+                    "SwPowerCap residency %.1f%% is below the required "
+                    "%.0f%%. This arm did not reach its cap, so it cannot "
+                    "price what the cap costs. Reported as refused rather "
+                    "than published with a caveat - a caveat on a curve "
+                    "gets quoted without the caveat."
+                    % (pc or 0.0, REQUIRE_CAP_PCT))
+                print("  *** ARM REFUSED: %s" % rows[-1]["REFUSED"])
     finally:
         ok, got, _ = set_cap(int(default_w))
         print("\nRESTORE to default: ok=%s, card now reads %.0f W (default %.0f)"
@@ -305,10 +370,16 @@ def main():
         print("\n  A cap is worth taking when the throughput cost is SMALLER than")
         print("  the power saving - that is what the J/token column decides.")
 
-    out = os.path.join(OUT, "power-cap-arms.json")
+    out = os.path.join(OUT, "power-cap-arms%s.json" % (("-" + TAG) if TAG else ""))
     json.dump({"date": time.strftime("%Y-%m-%d %H:%M"), "card": smi("name"),
                "default_limit_w": default_w, "ctx": CTX, "npredict": NPREDICT,
-               "settled": SETTLED, "prompt": PROMPT, "arms": rows},
+               "settled": SETTLED, "prompt": PROMPT,
+               "warm_seconds": WARM_SECONDS, "cooldown": COOLDOWN,
+               "require_cap_pct": REQUIRE_CAP_PCT,
+               "regime": ("SATURATING - each arm gated on reaching its cap"
+                          if REQUIRE_CAP_PCT > 0 else
+                          "as originally published; arms may not reach their cap"),
+               "arms": rows},
               open(out, "w", encoding="utf-8"), indent=1)
     print("\n-> %s" % out)
 
