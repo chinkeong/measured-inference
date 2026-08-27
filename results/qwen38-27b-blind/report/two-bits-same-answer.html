@@ -186,9 +186,8 @@ footer b{color:var(--ink-2);font-weight:500}
   <p class="eyebrow">Measured Inference · Agentic arm pair · 2026-08-27</p>
   <h1>Two Bits, Same Answer</h1>
   <p class="standfirst">Two quantisations of Qwen3.8-27B — 4-bit and 2-bit — run against
-  the same 225 agentic coding tasks on the same card. Their scores are
-  <strong>indistinguishable</strong>. They nonetheless succeed on
-  <strong>materially different tasks</strong>, and the smaller file spends
+  the same 225 agentic coding tasks on the same card, from byte-identical inputs. Their
+  scores are <strong>indistinguishable</strong>. The smaller file spends
   <strong>about a third more energy</strong> — the one difference here that is
   statistically resolved.</p>
   <p class="standfirst" style="margin-top:.9rem;font-size:1rem">This page reports how the
@@ -239,12 +238,25 @@ card and not. The question a buyer actually has is what that costs.</p>
 </div>
 
 <div class="col">
-<p><b>The equal totals hide the more interesting fact.</b> Only 66 exercises were solved by
-both arms. Fifty-nine — a quarter of the benchmark — were solved by exactly one of them,
-split almost evenly at 29 and 30. So the matching scores are substantially coincidence: the
-two files succeed on materially different tasks and happen to land on the same total. The
-pass rates are indistinguishable, which is not the same as equal — the interval spans
-thirteen points, and a real difference anywhere inside it fits this data.</p>
+<p><b>The equal totals sit on top of a lot of disagreement.</b> Of 225 exercises, 66 were
+solved by both arms, 99 by neither, and <b>60 by exactly one</b> — split almost evenly at 30
+and 30. The matching totals are therefore substantially coincidence. The pass rates are
+indistinguishable, which is not the same as equal: the interval spans thirteen points, and a
+real difference anywhere inside it fits this data.</p>
+
+<div class="note">
+<p><b>What that disagreement is NOT known to be.</b> It is tempting to read 60 discordant
+exercises as "the two files succeed at different things", and this page said exactly that in
+an earlier draft. It is not supported. Nothing here separates a difference caused by the
+quantisation from ordinary run-to-run variation, because <b>this benchmark has never been
+run twice with the same file</b> on this rig — there is no test-retest baseline.</p>
+<p>Two measured facts say the baseline would not be zero. First, <b>68–87% of all passes
+came only on the second attempt</b>: nearly every success is a repair after a failure, which
+is the regime where a small perturbation flips an outcome. Second, this campaign has already
+measured that decoding here is not bit-reproducible run to run even at temperature 0, because
+a change in batch shape flips near-ties. The discordance is therefore an <em>upper bound</em>
+on what quantisation explains, not a measurement of it.</p>
+</div>
 
 <p>What <em>is</em> resolved is the cost. Its confidence interval excludes 1.0, so unlike
 the accuracy difference the energy difference is a measured result rather than a null. The 2-bit file needs about a fifth more
@@ -378,6 +390,20 @@ that reason, not by omission.</p>
 <p class="lede">Dead claims are kept as dated case studies rather than deleted. Each of
 these was measured, published, and then refuted by a better measurement — in every case one
 this campaign ran against its own work.</p>
+
+<div class="retraction">
+  <span class="tag">Withdrawn — discordance attributed without evidence</span>
+  <p><s>The two files succeed on materially different tasks: 60 of 225 exercises went to
+  exactly one of them.</s></p>
+  <p><b>The count is right; the attribution is not.</b> Nothing measured here separates a
+  quantisation effect from run-to-run variation, because the benchmark has never been run
+  twice with the same weights on this rig. Since 68–87% of passes arrive only on a second
+  attempt, and decoding here is already known not to be bit-reproducible run to run, the
+  baseline flip rate is certainly above zero and its size is unknown. 60 discordant
+  exercises is an upper bound on what quantisation explains. A same-file repeat of one arm —
+  about three and a half hours — would settle it, and is the single most valuable
+  measurement this campaign has not made.</p>
+</div>
 
 <div class="retraction">
   <span class="tag">Corrected — a true number that read as the wrong claim</span>
@@ -518,6 +544,10 @@ files to each other under identical conditions.</p>
   <li><b>Reasoning is off throughout.</b> Other people's work finds the gap between
   quantisations <em>widens</em> at higher reasoning effort, so this is one corner of that
   surface. A full sweep is four more arms and fourteen hours of exclusive machine time.</li>
+  <li><b>No test-retest baseline.</b> Neither arm was ever repeated with its own weights,
+  so the benchmark's own run-to-run flip rate on this rig is unmeasured — and it is not zero,
+  since decoding here is not bit-reproducible at temperature 0. Every statement about
+  <em>which</em> exercises differ is bounded by that gap.</li>
   <li><b>One machine, one runtime, one context length.</b> No second GPU vendor, no second
   inference engine, and 32k rather than the ~98k an agentic benchmark can demand.</li>
   <li><b>Per-process GPU attribution is impossible here.</b> <code>nvidia-smi pmon</code>
@@ -529,9 +559,7 @@ files to each other under identical conditions.</p>
 <p><b>The practical read.</b> If 4.4 GB of video memory is what stands between the model
 fitting and not fitting, the 2-bit file costs about a fifth more tokens and roughly a third
 more energy per finished task, at a pass rate this sample cannot distinguish. If the 4-bit
-file already fits, there is no measured reason to move down. And the two files are not
-interchangeable task-for-task even where their totals match — swapping one for the other
-changes which quarter of the work succeeds.</p>
+file already fits, there is no measured reason to move down.</p>
 </div>
 </div>
 
