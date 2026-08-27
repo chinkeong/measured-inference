@@ -287,3 +287,40 @@ measured run-to-run band for greedy decode (0.77% coefficient of variation, so
 2.0% is roughly at the edge of resolvable). It is removed from the ranked
 levers. Speculation itself remains the largest lever measured anywhere in this
 campaign at 2.2×; **tuning its depth is not.**
+
+---
+
+## Speculation's 2.2× does not transfer across workloads
+
+Measured 2026-08-27 while setting up a GPQA anchor run, and it qualifies the
+largest lever in this document.
+
+| workload | mean accepted length | decode |
+|---|---|---|
+| agentic coding (aider polyglot, 1,082 requests) | **3.73** median | 99.2 t/s |
+| scientific reasoning (GPQA at xhigh, 9 questions) | **1.68 – 2.43** | 44.9 – 56.1 t/s |
+
+**The draft head is roughly half as accurate on dense scientific reasoning as on
+code, and throughput follows it down.** Code is locally predictable — closing
+brackets, repeated identifiers, boilerplate — and a draft head exploits that.
+Free-running technical prose gives it far less to work with.
+
+The roofline position, however, barely moves: 35–41% of the bandwidth roof
+against 43% on agentic work. Both traffic figures land in the same region
+because throughput falls in proportion to the acceptance that produced it. So
+the *conclusion* — that this part is power-limited rather than bandwidth-limited
+under speculation — survives the workload change, while the *speed-up* does not.
+
+**What this costs the ranked lever table.** "Ship a draft head, 2.2×" was
+measured on one workload and is stated here as though it were a property of the
+part. It is a property of the pair. A buyer choosing hardware for reasoning
+rather than for coding should expect materially less, and the sample here is
+nine questions from an interrupted run — enough to show the direction, not to
+put a number on it.
+
+**A second consequence, for cost planning rather than for silicon.** The same
+run showed GPQA at xhigh spending **4,247 to over 16,384 output tokens per
+question**, against 326–463 for GSM8K on this rig. Three of nine questions
+exhausted a 16,384-token cap and were scored wrong for truncation. Any estimate
+of what a reasoning benchmark costs that was extrapolated from GSM8K token
+counts is wrong by an order of magnitude.
