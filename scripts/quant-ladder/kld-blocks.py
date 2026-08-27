@@ -1,36 +1,40 @@
 #!/usr/bin/env python3
-"""The quant ladder, measured in BLOCKS so every rung carries an error bar.
+"""The quant ladder in BLOCKS - a DISK reduction, not an error-bar technique.
 
     kld-blocks.py [--blocks 4] [--chunks-per-block 50] [--dry-run]
 
-WHY BLOCKS RATHER THAN ONE LONG PASS. The existing ladder runs 200 chunks in a
-single pass per file and reports one mean KL divergence per rung with no
-uncertainty attached at all. That is the campaign's central quality table, and
-every accuracy claim rests on numbers that cannot say how much they would move
-if a different 200 chunks of text had been chosen.
+READ THIS BEFORE USING IT, because the reason this file was written turned out
+to be wrong.
 
-Splitting the same 200 chunks into 4 blocks of 50 costs only the extra model
-loads and yields four independent estimates per rung. The standard error across
-blocks IS the corpus-sampling uncertainty - exactly the error bar the table
-needs. For estimating a mean, k blocks and one pass of the same total size have
-the same standard error; the difference is that k blocks also MEASURE the
-spread, and one pass cannot.
+It was built to give the quant ladder error bars, on the argument that k blocks
+measure the spread while one long pass cannot. That argument is sound in
+general and it is why this campaign's speed probes have always run in threes.
+It was unnecessary HERE: `llama-perplexity --kl-divergence` already prints a
+standard error on every statistic it reports -
 
-The same argument is why this campaign's speed probes have always been run in
-threes rather than once at triple length. It had simply never been applied to
-the quality ladder.
+    Mean    KLD:   0.094208 ± 0.000990
+    Same top p: 86.594 ± 0.151 %
 
-AND IT IS CHEAPER ON DISK, which was the original constraint. --kl-divergence
-needs a base-logits file from the anchor, and at 200 chunks against a
-151,936-token vocabulary that file is about 23.6 GiB. Processed block by block,
-only one block's base exists at a time: peak disk falls to about 5.9 GiB. The
-base is deleted before the next block begins.
+- and the ladder's parser was simply discarding the second half of those lines.
+The error bars had been sitting in the saved logs the whole time. They were
+recovered retroactively with no machine time at all, and the tool's figure is
+BETTER than blocking would give: its standard error is computed across all 200
+chunks, where four blocks would estimate the same quantity from four numbers.
 
-WHAT THE BLOCKS ARE. The corpus is split into equal byte ranges and the first
-`--chunks-per-block` chunks of each range are used, so the blocks sample
-different regions of the text rather than four passes over the same words.
-Blocks are therefore independent draws from the corpus, which is what makes
-their spread meaningful.
+WHAT BLOCKING IS STILL GOOD FOR, and it is not nothing. `--kl-divergence` needs
+the anchor's logits saved to disk, and at 200 chunks against a 151,936-token
+vocabulary that file is about 23.6 GiB. Disk was the original binding
+constraint on this measurement - it is why the ladder runs 200 chunks and not
+the corpus's full 580. Processed block by block only one block's base exists at
+a time and it is deleted before the next begins: peak disk falls to about
+5.9 GiB, which is what would make a LONGER ladder affordable. Use this script
+when the constraint is disk, not when the constraint is uncertainty.
+
+WHAT THE BLOCKS ARE. The corpus is split into equal byte ranges on line
+boundaries, and the first `--chunks-per-block` chunks of each range are used, so
+blocks sample different regions of the text rather than repeating the same
+words. Cutting mid-line would hand the tokenizer a fragment and shift every
+chunk after it.
 """
 import argparse, io, json, os, re, subprocess, sys, time
 
@@ -52,12 +56,21 @@ RUNGS = [
 # being comparable, which is the whole point of keeping the older numbers.
 FLAGS = ["-ngl", "99", "-c", "512", "-fa", "on", "--load-mode", "mmap"]
 
+# llama-perplexity pads its labels: the line is "Mean    KLD:" with FOUR
+# spaces, not one. A single-space pattern matches nothing, the tool still exits
+# 0, and every rung reports FAILED with rc=0 - which is what the first run of
+# this script did, for all seven rungs, having burned the anchor pass first.
+# \s+ everywhere, and the raw output is now written to disk so the next parse
+# failure can be diagnosed without re-measuring.
 METRICS = {
-    "mean_kld": r"Mean KLD:\s*([0-9.eE+-]+)",
-    "max_kld": r"Maximum KLD:\s*([0-9.eE+-]+)",
+    "mean_kld": r"Mean\s+KLD:\s*([0-9.eE+-]+)",
+    "mean_kld_se": r"Mean\s+KLD:\s*[0-9.eE+-]+\s*±\s*([0-9.eE+-]+)",
+    "max_kld": r"Maximum\s+KLD:\s*([0-9.eE+-]+)",
     "same_top_p_pct": r"Same top p:\s*([0-9.]+)",
-    "ppl_ratio": r"PPL ratio:\s*([0-9.]+)",
-    "rms_dp": r"RMS Δp:\s*([0-9.]+)|RMS delta p:\s*([0-9.]+)",
+    "same_top_p_se": r"Same top p:\s*[0-9.]+\s*±\s*([0-9.]+)",
+    "ppl_ratio": r"Mean PPL\(Q\)/PPL\(base\)\s*:\s*([0-9.eE+-]+)",
+    "ppl_delta": r"Mean PPL\(Q\)-PPL\(base\)\s*:\s*([-0-9.eE+]+)",
+    "rms_dp": r"RMS\s+.{0,4}p\s*:\s*([0-9.eE+-]+)",
 }
 
 
@@ -175,9 +188,12 @@ if __name__ == "__main__":
                 txt, rc = run([PPL, "-m", f, "-f", cpath] + FLAGS +
                               ["--chunks", str(a.chunks_per_block),
                                "--kl-divergence-base", base, "--kl-divergence"])
+                io.open(os.path.join(WORK, "block%d-%s.log" % (b, name)), "w",
+                        encoding="utf-8", errors="replace").write(txt)
                 met = parse(txt)
                 if rc != 0 or "mean_kld" not in met:
-                    log("  %-12s FAILED rc=%d" % (name, rc))
+                    log("  %-12s FAILED rc=%d (output kept at %s)"
+                        % (name, rc, os.path.join(WORK, "block%d-%s.log" % (b, name))))
                     continue
                 met.update({"block": b, "bpw": bpw,
                             "seconds": round(time.time() - t0, 1)})
