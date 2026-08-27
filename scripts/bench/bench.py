@@ -79,6 +79,48 @@ LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1", "0.0.0.0", "",
 _TEXT = dict(text=True, encoding="utf-8", errors="replace")
 
 
+def server_props(base_url, timeout=8):
+    """What the RUNNING server says about itself.
+
+    Asked over HTTP rather than by reading a process command line, because the
+    command line is unavailable under --no-spawn, differs by platform, and this
+    toolkit is moving to Linux. /props is the server's own account of the
+    configuration that produced the numbers - sampler defaults, chat format,
+    reasoning format, context - and it is the only authoritative record
+    available when the harness did not start the process.
+
+    A failure here is recorded rather than raised: losing the run because the
+    provenance probe failed would be worse than the missing provenance, but a
+    SILENT loss would be worse than either.
+    """
+    # requests, matching every other HTTP call in this file. urllib.request is
+    # NOT imported here - only urllib.parse is - so reaching for urlopen would
+    # raise AttributeError, be swallowed by the except below, and record a
+    # provenance failure that looked like a server problem.
+    try:
+        r = requests.get(base_url + "/props", timeout=timeout)
+        r.raise_for_status()
+        d = r.json()
+    except Exception as e:
+        return {"error": "could not read /props: %s" % e}
+    gen = (d.get("default_generation_settings") or {})
+    par = (gen.get("params") or {})
+    return {
+        "model_path": d.get("model_path"),
+        "n_ctx": gen.get("n_ctx") or d.get("n_ctx"),
+        "chat_format": par.get("chat_format"),
+        "reasoning_format": par.get("reasoning_format"),
+        "speculative_types": par.get("speculative.types"),
+        # The server's OWN sampler defaults. If these disagree with the
+        # settings block, the run overrode them per request - and knowing
+        # which of the two applied is the whole point of recording both.
+        "server_default_sampler": {k: par.get(k) for k in
+                                   ("temperature", "top_p", "top_k", "min_p",
+                                    "presence_penalty", "repeat_penalty")
+                                   if k in par},
+    }
+
+
 def find_server(explicit=None):
     """Locate llama-server: --server-bin, $LLAMA_SERVER, PATH, repo bin/ (setup.*)."""
     repo_bin = os.path.join(os.path.dirname(os.path.dirname(HERE)),
@@ -631,11 +673,30 @@ def main():
                 "speculative": speculative,
                 "scored": bool(args.score),
                 "protocol": "METHODOLOGY rule 21" if args.rule21 else None,
-                "backend": {"engine": "llama.cpp (llama-server)",
-                            "server_bin": server_bin,
-                            "version": machine.get("llama_cpp"),
-                            "server_args": args.server_args,
-                            "ctx": args.ctx},
+                "backend": dict(
+                    {"engine": "llama.cpp (llama-server)",
+                     "server_bin": server_bin,
+                     "version": machine.get("llama_cpp"),
+                     # WHOSE arguments these are, said explicitly. Under
+                     # --no-spawn this harness did NOT start the server and has
+                     # no access to its command line, so recording
+                     # args.server_args here describes the HARNESS, not the
+                     # server. Every GSM8K artefact on this machine carries
+                     # "server_args": "" for exactly that reason, while the
+                     # server had been started by serve-qwen.bat with
+                     # --chat-template-kwargs reasoning_effort - the single
+                     # setting that dominates the result. The effort survived
+                     # only in the FILENAME, which rule 3 forbids.
+                     "server_started_by_harness": not args.no_spawn,
+                     "server_args": (args.server_args if not args.no_spawn
+                                     else None),
+                     "server_args_note": (None if not args.no_spawn else
+                                          "harness attached to a server it did "
+                                          "not start; see server_props for what "
+                                          "that server actually reports"),
+                     "ctx": args.ctx},
+                    **({"server_props": server_props(base_url)}
+                       if args.no_spawn else {})),
                 "machine": machine,
                 "suite_hash": suite_hash,
                 "datasets": [d for d in prompts_by_ds if d in results],
