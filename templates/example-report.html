@@ -179,6 +179,7 @@
   .glossary dt:first-child { margin-top: 0; }
   figure { margin: 22px 0; padding: 0; }
   figure svg { width: 100%; height: auto; display: block; }
+  figure img { max-width: 100%; height: auto; display: block; border-radius: 8px; border: 1px solid var(--panel-line); }
   figcaption { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 8px; }
   .axis-t { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
   .dlabel { font-family: var(--mono); font-size: 11.5px; fill: var(--ink); }
@@ -420,6 +421,7 @@
   <div class="toctitle">Contents</div>
   <div class="toclinks">
   <a href="#s01">01 · What this page is, and what it measured</a>
+  <a href="#s01-power" style="padding-left:22px">&rarr; power &amp; performance: 19 figures</a>
   <a href="#s02">02 · Plain words: every term used here</a>
   <a href="#s03">03 · The recipes — copy one for your card</a>
   <a href="#s03-24gb" style="padding-left:22px">24&ndash;32 GB (default, speed, big-window, Q4_K_M)</a>
@@ -465,6 +467,15 @@
   <a href="#s14-qwencode" style="padding-left:22px">Qwen Code</a>
   <a href="#s14-pi" style="padding-left:22px">Pi</a>
   <a href="#s14-dsh" style="padding-left:22px">DeepSeek Harness</a>
+  <a href="#s16">16 &middot; Power and performance: the figures</a>
+  <a href="#s16-limits" style="padding-left:22px">What limits this part</a>
+  <a href="#s16-clocks" style="padding-left:22px">What the clocks actually did</a>
+  <a href="#s16-binding" style="padding-left:22px">Which limit was binding</a>
+  <a href="#s16-capping" style="padding-left:22px">What capping the board costs</a>
+  <a href="#s16-phases" style="padding-left:22px">Where the time and energy go</a>
+  <a href="#s16-host" style="padding-left:22px">What the host contributes</a>
+  <a href="#s16-levers" style="padding-left:22px">Which lever is worth pulling</a>
+  <a href="#s16-workload" style="padding-left:22px">The workload that drove it</a>
   <a href="#s-corrections">Corrections &mdash; what this page got wrong</a>
   <a href="#s15">15 · Sources, instruments, and what was not measured</a>
   <a href="#s15-corrections" style="padding-left:22px">Where this page corrected itself</a>
@@ -544,6 +555,13 @@
   the machine rather than the dice.</p>
   <p><strong>Energy.</strong> One configuration measured three times in the 2026-08-23 power matrix reproduces joules per decode token to <strong>2.9%</strong> on the slow arms and <strong>5.6%</strong> on energy-delay product, tightening to <strong>0.03%</strong> on the fast speculating arms. Separately, board power drifted <strong>±6%</strong> between arms measured hours apart at constant throughput, so a 6% energy gap between two arms run at different times is the instrument, not the setting.</p>
   <p><strong>What survives those bands: shapes, ratios and rankings. Individual levels do not.</strong> Do not believe a slow-arm energy gap under about 3%, and do not believe a speed difference between two single post-prefill probes under about 25%. Printed precision on this page follows the band, with one deliberate exception. Single probes are rounded; cooled and multi-probe speeds are given to one decimal. The energy tables print four significant figures (8.104, 3.743, 3.210 and the rest) because that is what the integrator reports and because the ratios between them are the finding — but the energy noise floor is 2.9%, so <strong>the third digit of any of those is not meaningful and only their ratios and ranking are</strong>. Two figures are printed to four and five places on purpose, and neither is a level claim: <span class="num">81.71</span>&nbsp;t/s and perplexity <span class="num">6.5956</span> are reproduction matches between two independent runs, quoted at that precision because matching to the decimal is the point.</p>
+  </div>
+
+  <div class="callout" id="s01-power">
+    <span class="tag">If you came here for power and performance</span>
+    <p><b>The first several screens of this page are a buying guide. The instrument is below them.</b> Two complete agentic runs on one RTX 3090 were instrumented end to end &mdash; board power and clocks by NVML at 0.5&nbsp;s, the clock-event mask, per-request prompt depth and KV reuse, the server&rsquo;s own prefill-against-decode split, and host CPU, syscalls and context switches on the same clock. <b>Nineteen figures</b>, each carrying its conditions on the figure itself.</p>
+    <p><b>Go to the figures:</b> <a href="#s16">&sect;16&nbsp;&mdash;&nbsp;Power and performance</a> has all nineteen inline, ordered by the question they answer.</p>
+    <p><b>Or read the standalone reports:</b> <a href="../results/qwen38-27b-blind/figures/report-iq4xs-agentic.html">UD-IQ4_XS agentic run</a> &nbsp;&middot;&nbsp; <a href="../results/qwen38-27b-blind/figures/report-q2kxl-agentic.html">UD-Q2_K_XL agentic run</a> <span class="small">&mdash; self-contained, every figure embedded, nothing fetched.</span></p>
   </div>
 </section>
 
@@ -3013,6 +3031,150 @@ llm-pi-ai:
                                       <span class="c"># on any xhigh answer (section 11)</span></pre>
   <p style="font-size:14px">The harness's headline trick is routing: it plans with heavy reasoning, then fans the plan out to sub-agents that execute with light reasoning. Two things to know when backing it with llama-server. First, llama-server ignores a per-request <code>reasoning_effort</code> field (the same dialect issue as Pi above) — effort is fixed server-side with <code>--chat-template-kwargs</code>, so either run one server at <code>xhigh</code> (this page's quality-first default), or run two llama-server instances — one <code>xhigh</code> planner on one port, one <code>low</code> executor on another — and register both as separate models in <code>settings.yaml</code> so the harness can route between them. Second, its parallel sub-agents each hold their own context: with <code>--parallel 1</code> (every recipe here) requests queue rather than run concurrently, which is the right default on a single 24&nbsp;GB card <em>for memory reasons</em> — raising <code>--parallel</code> multiplies the KV cache and walks you off <a href="#s05">§05</a>'s cliff. It is now also the right default for <em>latency</em> reasons, which was an open question in earlier editions and is not any more: the matched pair of 2026-08-25 measured two concurrent slots at +22.0% aggregate throughput and <strong>−35.4% per slot</strong> with the drafter on (<a href="#s03-axes">§03</a>), so a harness whose sub-agents you are waiting on finishes each one faster with a single slot. For non-thinking "fast mode" runs, Qwen's official instruct sampling is temperature 0.7 · top-p 0.8 · presence penalty 1.5.</p>
   <div class="callout"><span class="tag">One rule for all agents</span><p>Whatever the agent, its context and maximum-output settings must match the server's <code>-c</code> value — the client-side limits are the only thing preventing silent mid-generation cut-offs, because the model itself cannot budget its own tokens (<a href="#s11-client">§11</a>).</p></div>
+</section>
+
+<section id="s16">
+  <p class="fno">16</p>
+  <h2>Power and performance: the figures</h2>
+  <p>Everything below is from one instrumented run of the aider polyglot agentic coding benchmark on one RTX 3090 (GA102, 24&nbsp;GB GDDR6X, 350&nbsp;W enforced board limit), running Qwen3.8-27B UD-IQ4_XS at 14.25&nbsp;GB resident with MTP speculative decoding on (mean accepted length 3.55). Board power and clocks were logged by NVML at roughly 0.5&nbsp;s; the server&rsquo;s own per-request split was polled at 1&nbsp;Hz; host CPU counters were sampled at 3&nbsp;s. Run tag <code>iq4xs-agentic</code>, 2026-08-26.</p>
+
+  <div class="callout"><span class="tag">What is NOT measured anywhere in this section</span>
+  <p><b>Wall and system power</b> &mdash; every watt here is the GPU board rail read in-band by NVML, so power-supply conversion loss, CPU, RAM, drives and fans are all excluded. <b>Per-process VRAM and power attribution</b> is impossible under Windows WDDM, where <code>nvidia-smi pmon</code> reports a dash for every process. <b>Memory-junction temperature</b> reads NULL on this part (the NVML field is absent in every sample), so memory thermal headroom is unknown. <b>And there is no time-series of SM clock, board power and throughput against wall clock</b>: the sustained drift &mdash; 1,453 to 1,606&nbsp;MHz with board power rising 305.5 to 341.1&nbsp;W at constant throughput &mdash; is published as two endpoints, which cannot separate monotone drift from stepped or oscillatory behaviour. The telemetry to draw it was collected; the plot has not been made.</p>
+  </div>
+
+  <h3 id="s16-limits">What limits this part</h3>
+
+  <p>The first question about any accelerator workload: is it starving for memory bandwidth, or is it sitting on a power limit?</p>
+
+  <figure>
+    <img src="../results/qwen38-27b-blind/figures/roofline-operating-points.png" alt="Roofline diagram placing single-stream decode on the RTX 3090 bandwidth and compute ceilings, with drafter off and drafter on marked as separate operating points" loading="lazy" width="1600">
+    <figcaption>Is this workload bandwidth-bound or power-bound? Drafter off sits at 69% of the 936&nbsp;GB/s bandwidth ceiling (45.2&nbsp;t/s). Drafter on exceeds the one-weight-pass-per-token ceiling at 99.16&nbsp;t/s &mdash; real traffic falls to 43% of bandwidth while 93% of busy samples hit the 350&nbsp;W board limit. RTX 3090, Qwen3.8-27B UD-IQ4_XS, 32,768-token context, one slot. <span class="chip m">measured</span></figcaption>
+  </figure>
+
+  <p>Speculation is a workload transform, not a speed-up: it moves the operating point off the memory roof and onto the power limit. What a better draft head would buy is the next question.</p>
+
+  <figure>
+    <img src="../results/qwen38-27b-blind/figures/roofline-accepted-length-sweep.png" alt="Roofline swept over hypothetical mean accepted lengths 1 to 6, showing diminishing returns as the asymptote approaches" loading="lazy" width="1600">
+    <figcaption>What would a better draft head buy? Filled markers are the two measured points (L&nbsp;=&nbsp;1 at 45.2&nbsp;t/s, L&nbsp;=&nbsp;3.55 at 99.16&nbsp;t/s); open markers are a two-parameter cost model fitted through them with zero degrees of freedom. Today&rsquo;s L&nbsp;=&nbsp;3.55 already returns 53% of the 186&nbsp;t/s asymptote; reaching L&nbsp;=&nbsp;6 is worth +24%. No accepted length other than 1 and 3.55 was measured. Board power only. <span class="chip m">measured</span> <span class="chip d">derived</span></figcaption>
+  </figure>
+
+  <h3 id="s16-clocks">What the clocks actually did</h3>
+
+  <p>The roofline shows what the power cap costs in principle. These two figures show what it did to the clocks in practice, over 128 minutes of real traffic.</p>
+
+  <figure>
+    <img src="../results/qwen38-27b-blind/figures/dvfs-operating-point.png" alt="SM clock against board power for 4327 decode samples, coloured by SM utilisation, showing the part pinned at the power cap with clocks 465 MHz below maximum" loading="lazy" width="1600">
+    <figcaption>Where does this part sit in voltage and frequency? 4,327 decode samples plus 2,549 further busy samples at 1.07&nbsp;s cadence. Board power is pinned at 345&nbsp;W median against a 350&nbsp;W limit; SM clock gives &mdash; 465&nbsp;MHz (22%) below the 2,130&nbsp;MHz maximum P-state. The memory clock holds 9,501&nbsp;MHz on 100% of decode samples while its controller is busy only 60% of the time; the lower memory P-states are never selected under load. RTX 3090, agentic coding workload. Utilisation figures are NVML duty cycles, not bandwidth fractions. <span class="chip m">measured</span></figcaption>
+  </figure>
+
+  <figure>
+    <img src="../results/qwen38-27b-blind/figures/dvfs-clock-residency.png" alt="Time-weighted histogram of SM and memory clock frequencies over 7369 seconds of busy samples" loading="lazy" width="1600">
+    <figcaption>How long did each clock domain spend at each frequency? 7,369&nbsp;s of busy samples (SM&nbsp;&gt;&nbsp;5%), each weighted by its 1.07&nbsp;s interval. The SM clock is spread over 42 frequencies on a 15&nbsp;MHz grid, spending 89% of busy time inside a 150&nbsp;MHz band around 1,665&nbsp;MHz. The memory clock is a single bar &mdash; 9,501&nbsp;MHz for 99.1% of busy time &mdash; while the traffic it serves centres on 60% controller busy time. No clock was locked, offset or varied in this campaign; per-rail power is not available on this part. <span class="chip m">measured</span></figcaption>
+  </figure>
+
+  <h3 id="s16-binding">Which limit was binding</h3>
+
+  <p>The operating point says where the part sits. These two figures say which clock-event limit NVML reported, moment by moment and in aggregate.</p>
+
+  <figure>
+    <img src="../results/qwen38-27b-blind/figures/limits-timeline.png" alt="Timeline of NVML clock-event limits across the full 128-minute run, with board power on the right axis" loading="lazy" width="1600">
+    <figcaption>Which limit was active at each moment? Severity-collapsed NVML clock-event label over 1,434 samples (1,375 busy), with board power on the right axis. The power cap tracks for the entire run, dropping only where the server goes idle between requests. RTX 3090, 128 minutes of telemetry. Board power is NVML GPU board domain only. <span class="chip m">measured</span></figcaption>
+  </figure>
+
+  <figure>
+    <img src="../results/qwen38-27b-blind/figures/limits-share.png" alt="Bar chart of time in each NVML limit as a share of busy samples, showing software power cap at 92.9%" loading="lazy" width="1600">
+    <figcaption>How much of the time was each limit binding? Time in each limit as a share of busy samples only (idle excluded and its count stated). SW power cap: 92.9% of busy samples. SW thermal: 6.8%. Unconstrained: 0.2%. Limits that never fired are drawn at zero rather than omitted. 1,434 clock-event samples, 1,375 busy. <span class="chip m">measured</span></figcaption>
+  </figure>
+
+  <h3 id="s16-capping">What capping the board costs</h3>
+
+  <p>The limit is binding 93% of the time. What happens if you lower it?</p>
+
+  <figure>
+    <img src="../results/qwen38-27b-blind/figures/pareto-power-cap-sweep.png" alt="Power-cap sweep at 350, 300 and 250 W showing throughput, actual board power and energy per token at each step" loading="lazy" width="1600">
+    <figcaption>What does capping the board actually cost? 300&nbsp;W costs &minus;5.0% throughput for &minus;11.2% board power and &minus;6.5%&nbsp;J/token; 250&nbsp;W costs &minus;12.8% throughput for &minus;24.8% board power and &minus;13.7%&nbsp;J/token. The stock 350&nbsp;W limit sits past the efficiency knee for this workload. Caveat on the figure: the sweep ran on synthetic decode drawing 305&nbsp;W (never reaching its cap), while the agentic workload averages 344&nbsp;W in steady decode &mdash; the two power distributions barely overlap. Source: 3 probes per arm, 32,768-token context, measured 2026-08-25. <span class="chip m">measured</span></figcaption>
+  </figure>
+
+  <p>The sweep was measured in one regime. The next figure shows the regime the agentic workload actually occupies.</p>
+
+  <figure>
+    <img src="../results/qwen38-27b-blind/figures/pareto-operating-cloud.png" alt="Scatter plot of 4081 decode intervals on the throughput-against-board-power plane, forming a near-vertical stripe at the power limit" loading="lazy" width="1600">
+    <figcaption>Where does real work land on the throughput-against-power plane? 4,081 poll-to-poll decode intervals (~1&nbsp;s each), both endpoints in decode on the same task. Board power holds a coefficient of variation of 1.5% while throughput holds 23.5% &mdash; the cloud is a near-vertical stripe standing on the power limit. At this operating point there is no power-side lever to pull: energy per token is decided by decode speed, which is speculative-decoding acceptance. Run aggregate: 4.57&nbsp;J/decoded token, 310,169 tokens over 4,123&nbsp;s, 344&nbsp;W mean. RTX 3090, 350&nbsp;W stock limit, fan pinned at 100%. <span class="chip m">measured</span></figcaption>
+  </figure>
+
+  <h3 id="s16-phases">Where the time and energy go</h3>
+
+  <p>The power limit constrains the part, but the workload alternates between prefill, decode and idle. These figures show how the time, energy and tokens split between phases, and what drives the per-exercise cost.</p>
+
+  <figure>
+    <img src="../results/qwen38-27b-blind/figures/phases-timeline.png" alt="Phase timeline showing alternating prefill, decode and idle phases with board power overlaid across the 104-minute slots trace" loading="lazy" width="1600">
+    <figcaption>Where does the time go, moment by moment? 104 minutes of /slots trace, 1,045 phase runs across 508 requests (median run 3.0&nbsp;s). Decode holds 74.5% of wall-clock seconds, prompt processing 23.0%, idle 2.5%. Mean board power is 340&nbsp;W in decode and 332&nbsp;W in prompt &mdash; only 8&nbsp;W apart, so the phase cannot be read off the power trace. The idle floor is 125&nbsp;W with 17.0&nbsp;GiB still resident. RTX 3090, Qwen3.8-27B UD-IQ4_XS, MTP on. <span class="chip m">measured</span></figcaption>
+  </figure>
+
+  <figure>
+    <img src="../results/qwen38-27b-blind/figures/phases-time-energy-tokens.png" alt="Three stacked bars splitting time, energy and tokens between prefill, decode and idle phases" loading="lazy" width="1600">
+    <figcaption>How do time, energy and tokens split? Decode takes 74.5% of seconds but only 19.0% of tokens: 4.26 prompt tokens are recomputed per token generated (981&nbsp;tok/s prefill against 71&nbsp;tok/s decode aggregate). Board energy: 76.2% decode, 22.9% prompt, 0.9% idle of 2,070&nbsp;kJ total. Decoded-token counts are a floor (sampled between polls); a further 426k prompt tokens hit KV cache and cost no prefill compute. <span class="chip m">measured</span></figcaption>
+  </figure>
+
+  <figure>
+    <img src="../results/qwen38-27b-blind/figures/cost-energy-per-token-vs-prompt-ratio.png" alt="Scatter plot of energy per completion token against prompt-to-completion ratio, one point per exercise, coloured by language" loading="lazy" width="1600">
+    <figcaption>What drives energy per token across exercises? 134 attributed exercises of the aider polyglot benchmark. Run mean 6.91&nbsp;J per completion token (1.92&nbsp;kWh per million completion tokens); range 4.51 to 14.39, a spread of 3.2&times;, correlating with the prompt-to-completion ratio at Pearson r&nbsp;=&nbsp;0.79 (n&nbsp;=&nbsp;134). Attribution: each exercise owns the interval since its predecessor finished, integrated over GPU-busy samples (SM&nbsp;&gt;&nbsp;5%). Board power only &mdash; no system or wall power. <span class="chip m">measured</span></figcaption>
+  </figure>
+
+  <p>The spread looks large, but the next figure shows it is not an independent degree of freedom.</p>
+
+  <figure>
+    <img src="../results/qwen38-27b-blind/figures/cost-energy-is-throughput-restated.png" alt="Left: energy per token against time per token fitting a constant 336 W line at r-squared 0.949. Right: board power distribution with clock-limit reasons" loading="lazy" width="1600">
+    <figcaption>Is energy per token an independent measurement? Mostly not. Left: energy per completion token against GPU-busy seconds per completion token; the line is a constant 336&nbsp;W and fits at r&sup2;&nbsp;=&nbsp;0.949. Mean board power per exercise varies by only 4.1% (coefficient of variation), so energy per token is time per token multiplied by a near-constant. Right: 6,875 GPU-busy samples &mdash; SW power cap 92.9%, SW thermal 6.8%, unconstrained 0.2%. An architect should treat energy-per-token differences on this part as throughput differences. <span class="chip m">measured</span></figcaption>
+  </figure>
+
+  <h3 id="s16-host">What the host contributes</h3>
+
+  <p>Everything above is the GPU board. The host &mdash; an i5-13600KF running the llama-server, a Docker-based scoring container, and the WSL2 boundary &mdash; contributes its own load, and the question is whether that load reaches the GPU.</p>
+
+  <figure>
+    <img src="../results/qwen38-27b-blind/figures/coupling-host-cpu-decomposition.png" alt="Host CPU decomposition: kernel and user time stacked with system-call and context-switch rates on the right axis" loading="lazy" width="1600">
+    <figcaption>What is the host doing during inference? Aggregate CPU busy averages 15.4% (median 13.3%); 55% of that is kernel time. The same samples sustain 205,171 system calls/s and 50,994 context switches/s &mdash; the utilisation figure and the syscall figure describe two different machines. Host counters are machine-wide (llama-server, scoring container and WSL2 boundary together). Per-process CPU attribution was not recorded. Clock domains differ: host series shifted by &minus;8.00&nbsp;h to maximise overlap (6,904&nbsp;s). <span class="chip m">measured</span></figcaption>
+  </figure>
+
+  <figure>
+    <img src="../results/qwen38-27b-blind/figures/coupling-host-pressure-vs-decode.png" alt="Scatter plots of decode rate against host system-call rate and CPU busy, showing weak negative correlation" loading="lazy" width="1600">
+    <figcaption>Does host load reach the GPU? 1,195 host-counter intervals where every /slots sample was decode. System-call rate: Spearman rho&nbsp;=&nbsp;&minus;0.206, fit &minus;0.1&nbsp;t/s per extra 10k syscalls/s. CPU busy: Pearson r&nbsp;=&nbsp;&minus;0.020 (p&nbsp;=&nbsp;0.494) &mdash; the utilisation number carries no usable signal about the GPU. The controlled 5.4% decode cost of host load was measured separately in this campaign, and the GPU clock rose while it happened. Host counters are machine-wide; clock-domain alignment as above. <span class="chip m">measured</span></figcaption>
+  </figure>
+
+  <h3 id="s16-levers">Which lever is worth pulling</h3>
+
+  <p>Nine levers were measured in this campaign. The tornado ranks all of them on one chart.</p>
+
+  <figure>
+    <img src="../results/qwen38-27b-blind/figures/tornado-levers.png" alt="Tornado chart ranking nine measured levers by throughput effect and energy effect, with the rig's noise floor shaded" loading="lazy" width="1600">
+    <figcaption>Which lever is worth pulling? Left panel: throughput (% change in decode t/s). Middle panel: efficiency (% change in J/token). The two panels are not on a shared axis &mdash; different units and opposite polarity. Grey bands are the rig&rsquo;s own noise floor (1.1% total range on throughput, 2.9% on J/token). Six of nine levers were never paired for energy and carry an explicit &ldquo;not measured&rdquo; mark. Both power-cap rows were measured on synthetic decode that never reached the 350&nbsp;W cap, while agentic coding sits on the cap on ~97% of busy samples &mdash; those two rows do not transfer to this workload. RTX 3090, i5-13600KF, llama.cpp build 10502, Qwen3.8-27B UD-IQ4_XS, &minus;ngl 99. No interaction between levers was measured &mdash; each row is its own arm. <span class="chip m">measured</span></figcaption>
+  </figure>
+
+  <h3 id="s16-workload">The workload that drove it</h3>
+
+  <p>The figures above are only as representative as the workload that produced them. These show what the agentic coding loop actually asked of the card.</p>
+
+  <figure>
+    <img src="../results/qwen38-27b-blind/figures/workload-request-shape.png" alt="Per-request prompt depth and generated token count over 508 requests, showing median depth 2281 tokens and heavy tail to 21k" loading="lazy" width="1600">
+    <figcaption>What did each request look like? 508 requests. Left: prompt depth (processed + cache-supplied tokens), median 2,281, p95 11,431, with peak KV footprint as dashed curve &mdash; p99 footprint of 21,738 is 66% of the 32,768-token window. Right: generated tokens, median at least 318, p95 at least 2,270. Prompt tokens outnumber generated 5.6&nbsp;to&nbsp;1. Generated counts are a floor (the 1&nbsp;Hz poll loses the last partial second of each request). Single slot, no concurrency. <span class="chip m">measured</span></figcaption>
+  </figure>
+
+  <figure>
+    <img src="../results/qwen38-27b-blind/figures/workload-kv-reuse.png" alt="KV cache reuse per request: prompt depth against cache-hit share, showing 50.9% of requests reuse nothing" loading="lazy" width="1600">
+    <figcaption>How much of each prompt was served from cache? 507 requests. The cache supplied 23.4% of all 1,825,447 prompt tokens, but 50.9% of requests reused nothing &mdash; the median request reused 0%. Reuse does not increase monotonically with depth: it rises, collapses in the 4k&ndash;8k band and rises again. Cache evictions and byte size per cached token were not measured. Single slot, q8_0 K and V. <span class="chip m">measured</span></figcaption>
+  </figure>
+
+  <figure>
+    <img src="../results/qwen38-27b-blind/figures/capacity-vram-ceiling.png" alt="VRAM in use across the telemetry window against the 24576 MiB ceiling, showing a flat 17410 MiB footprint with 7 GiB headroom" loading="lazy" width="1600">
+    <figcaption>How much of the card&rsquo;s memory does this workload use? VRAM footprint is 17,410&nbsp;MiB median (17.00&nbsp;GiB), varying by only 33&nbsp;MiB across 128 minutes (0.19% of that median). 7.0&nbsp;GiB of headroom remains. Capacity is committed at load and never managed at run time &mdash; a memory limit is answered with a quantisation ladder, not a scheduler. Per-process VRAM attribution is not available (WDDM). The 24,576&nbsp;MiB ceiling is specification; every other number is measured on this rig. <span class="chip m">measured</span></figcaption>
+  </figure>
+
+  <figure>
+    <img src="../results/qwen38-27b-blind/figures/capacity-null-interconnect.png" alt="Two null-result panels: PCIe traffic at 0.96% of link capacity, and host disk traffic dominated by host paging rather than inference" loading="lazy" width="1600">
+    <figcaption>Is the interconnect or the disk a bottleneck? Two deliberate null results. PCIe: combined traffic is 302&nbsp;MB/s median (0.96% of Gen4 x16), with 97.4% of samples below 1,000&nbsp;MB/s &mdash; the link is empty because the weights fit in VRAM. Host disk: median 316&nbsp;kB/s, but 398&nbsp;GB crossed the disk in this window, 95% from host paging (r&nbsp;=&nbsp;0.990 between pages-in and disk bytes), while available host RAM fell to 306&nbsp;MiB. The paging traffic is from the co-resident scoring container and is explicitly not charged to inference. Clock-domain alignment: host shifted by &minus;8.00&nbsp;h, residual &minus;2&nbsp;s. Per-process PCIe and disk attribution do not exist under Windows WDDM. <span class="chip m">measured</span></figcaption>
+  </figure>
+
 </section>
 
 <section id="s-corrections">
