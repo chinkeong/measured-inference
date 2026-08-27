@@ -280,6 +280,47 @@
   :root { --row-hl: rgba(10,102,194,0.06); }
   @media (prefers-color-scheme: dark) { :root { --row-hl: rgba(112,181,249,0.10); } }
   tr.hl td { background: var(--row-hl); }
+
+  /* THIRD INSTANCE OF THE SAME MISTAKE. `pre` also reads
+     `background: var(--surface)`, and the restyle redefined --surface to the
+     warm page ground and handed it to the body. So the command blocks are now
+     tinted the colour of the area OUTSIDE the card they sit on, which is why
+     they read as a washed-out slab rather than a panel.
+
+     Code chips, highlighted rows and now command blocks: every component that
+     used --surface as a FILL broke the moment --surface became the PAGE.
+     Each gets its own token. The rule, stated so it is not learned a fourth
+     time: a surface token that paints the page cannot also paint things that
+     must stand ON the page. */
+  :root { --panel: #f7f8fa; --panel-line: rgba(0,0,0,0.10); }
+  @media (prefers-color-scheme: dark) {
+    :root { --panel: #16191d; --panel-line: rgba(255,255,255,0.12); }
+  }
+  pre { background: var(--panel); border-color: var(--panel-line); }
+  /* Swept rather than waited for. SEVEN rules filled with var(--surface) and
+     three had been repaired one complaint at a time; these are the rest, found
+     by searching the stylesheet for the pattern instead of for the symptom. */
+  .callout { background: var(--panel); border-color: var(--panel-line); }
+  .retraction { background: var(--panel); border-color: var(--panel-line); }
+  .chip { background: transparent; }
+
+  /* Comment lines inside a command block were --muted at 60% black on that
+     panel. They carry the REASON each flag is there - the thing the block is
+     worth reading for - and they were the faintest text on the page. */
+  pre .c, .c { color: var(--label); }
+  pre .f { color: var(--accent-ink); font-weight: 600; }
+
+  /* .chip.d set a dashed border and no colour, so a DERIVED marker inherited
+     whatever ran around it and washed out beside the outlined MEASURED one.
+     Provenance markers are the page's own honesty labels; they have to be
+     readable or they are decoration. */
+  .chip { color: var(--label); border-color: var(--line); }
+  .chip.d { border-style: dashed; color: var(--label); border-color: rgba(0,0,0,0.28); }
+  .chip.m { color: var(--accent); border-color: var(--accent); }
+  .chip.u { color: var(--bad); border-color: var(--bad); }
+  @media (prefers-color-scheme: dark) {
+    .chip.d { border-color: rgba(255,255,255,0.30); }
+  }
   /* .num MARKS A NUMBER FOR EMPHASIS and it is used inline in prose far more
      than in tables - "spent about <span class=num>12.9</span> hours". Setting
      it in mono made it RECEDE instead: monospace has a smaller x-height than
