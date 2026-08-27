@@ -214,6 +214,21 @@ card and not. The question a buyer actually has is what that costs.</p>
 
 <h2><span class="num">01 — The comparison</span>Same accuracy, more of everything else</h2>
 
+<div class="col">
+<p><b>Each exercise is attempted twice, and the mechanism lives there.</b> The model writes a
+solution, the harness runs that exercise's own unit tests, and if they fail the model is shown
+the failure output and asked to fix its own mistake. The pass rate the two files tie on is the
+state after that second attempt.</p>
+
+<p>Most passes here are repairs rather than first drafts: <b>69% and 80% respectively of all passes arrived only
+on the second attempt</b>. That is what makes the rest of these numbers legible. The 2-bit file
+lands a clean first answer far less often — 8.4% against 13.3% — and then recovers to exactly
+the same second-attempt rate by leaning harder on the repair step. It is not less capable at
+these tasks so much as less likely to land them cleanly, and every extra repair is a second
+full generation: the problem read again, a fresh solution written, a test failure explained.
+That is what the overheads below are made of — extra work, not slower work.</p>
+</div>
+
 <div class="figures">
   <div class="fig">
     <div class="v">+0.4<small> pts</small></div>
@@ -250,18 +265,21 @@ exercises as "the two files succeed at different things", and this page said exa
 an earlier draft. It is not supported. Nothing here separates a difference caused by the
 quantisation from ordinary run-to-run variation, because <b>this benchmark has never been
 run twice with the same file</b> on this rig — there is no test-retest baseline.</p>
-<p>Two measured facts say the baseline would not be zero. First, <b>68–87% of all passes
-came only on the second attempt</b>: nearly every success is a repair after a failure, which
-is the regime where a small perturbation flips an outcome. Second, this campaign has already
+<p>Two measured facts say the baseline would not be zero. First, the repair loop above: when
+most passes arrive only on the second attempt, an exercise turns on whether one particular
+failure happened to be recoverable — the regime in which a small perturbation flips an outcome
+most easily. Second, this campaign has already
 measured that decoding here is not bit-reproducible run to run even at temperature 0, because
 a change in batch shape flips near-ties. The discordance is therefore an <em>upper bound</em>
 on what quantisation explains, not a measurement of it.</p>
 </div>
 
 <p>What <em>is</em> resolved is the cost. Its confidence interval excludes 1.0, so unlike
-the accuracy difference the energy difference is a measured result rather than a null. The 2-bit file needs about a fifth more
-tokens to reach the same answer, takes about a fifth longer, and burns roughly a third
-more energy per task it actually completes.</p>
+the accuracy difference the energy difference is a measured result rather than a null. How
+large the token overhead looks depends on what it is divided by: <b>20% more</b> as a paired
+median over the 66 exercises both arms solved, <b>41% more</b> in total across all 225, and
+<b>55% more</b> per exercise actually solved. Wall time tracks it — 20% paired, 36% on seconds
+per case — and energy runs roughly a third higher per task actually completed.</p>
 
 <div class="note">
 <p><b>Per token, the smaller file is the more efficient one.</b> It decodes at 77 tok/s
@@ -293,13 +311,6 @@ or a finished task, and only the second one is what a user pays.</p>
 </div>
 
 <div class="col">
-<div class="note">
-<p><b>The first-attempt gap is the interesting one.</b> The 2-bit file gets it right first
-time far less often — 8.4% against 13.3% — and then recovers to exactly the same
-second-attempt rate. It is not less capable at these tasks so much as less likely to land
-them cleanly, and the retry is where the extra tokens and energy go.</p>
-</div>
-
 <p>The token-overhead measurement is borrowed from Quesma's August 2026 study, which
 reported roughly 1.25× output tokens for a 2-bit file against BF16. Measured here against a
 4-bit anchor instead, and paired over only the exercises both arms solved — so an arm
@@ -413,7 +424,7 @@ this campaign ran against its own work.</p>
   exactly one of them.</s></p>
   <p><b>The count is right; the attribution is not.</b> Nothing measured here separates a
   quantisation effect from run-to-run variation, because the benchmark has never been run
-  twice with the same weights on this rig. Since 68–87% of passes arrive only on a second
+  twice with the same weights on this rig. Since 69% and 80% respectively of passes arrive only on a second
   attempt, and decoding here is already known not to be bit-reproducible run to run, the
   baseline flip rate is certainly above zero and its size is unknown. 60 discordant
   exercises is an upper bound on what quantisation explains. A same-file repeat of one arm —
@@ -605,6 +616,11 @@ Its absolute level is a measurement of a configuration, not of a model.</p>
 fitting and not fitting, the 2-bit file costs about a fifth more tokens and roughly a third
 more energy per finished task, at a pass rate this sample cannot distinguish. If the 4-bit
 file already fits, there is no measured reason to move down.</p>
+<p><b>The verdict.</b> The 2-bit file works, and it reaches the same second-attempt score. It
+is the less stable of the two in the one way this run can show — fewer answers land on the
+first try, and more of the score is bought back through the repair loop — and it charges more
+tokens, more wall time and more energy for the same finished work. Take it when the 4.4 GB is
+what makes the model fit at all; otherwise the 4-bit file is the better choice.</p>
 </div>
 </div>
 
