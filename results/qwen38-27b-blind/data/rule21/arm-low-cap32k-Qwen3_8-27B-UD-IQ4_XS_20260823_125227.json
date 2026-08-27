@@ -1,0 +1,68 @@
+{
+  "model_label": "Qwen3.8-27B-UD-IQ4_XS",
+  "model_key": "C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf",
+  "speculative": false,
+  "scored": true,
+  "protocol": "METHODOLOGY rule 21",
+  "backend": {
+    "engine": "llama.cpp (llama-server)",
+    "server_bin": "E:\\AI\\llama.cpp\\llama-server.exe",
+    "version": "version: 0.1.2-dev (build 10502, commit 0adcc3bb5)",
+    "server_args": "-ctk q8_0 -ctv q8_0 --chat-template-kwargs {\"reasoning_effort\":\"low\"}",
+    "ctx": 65536
+  },
+  "machine": {
+    "host": "GAMINGPC",
+    "os": "Windows-10-10.0.26200-SP0",
+    "cpu": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+    "gpu": "NVIDIA GeForce RTX 3090, 596.36",
+    "llama_cpp": "version: 0.1.2-dev (build 10502, commit 0adcc3bb5)"
+  },
+  "suite_hash": "1cdf54f8eb9d3f8f",
+  "datasets": [
+    "MATH-500"
+  ],
+  "results": {
+    "MATH-500": {
+      "n": 25,
+      "tokens": 2143.16,
+      "tok_s": 41.34552992003899,
+      "ttft": 0.27369748,
+      "accuracy": 0.96,
+      "score": 96.0,
+      "scorer": "exact match",
+      "graded_n": 25,
+      "truncated_n": 0
+    }
+  },
+  "scorers": {
+    "MATH-500": "exact match"
+  },
+  "unscored": {},
+  "composite": {
+    "mean": 96.0,
+    "included": [
+      "MATH-500"
+    ],
+    "scores": {
+      "MATH-500": 96.0
+    },
+    "excluded": {},
+    "label": "composite index over MATH-500"
+  },
+  "judge": null,
+  "exec_scoring": true,
+  "settings": {
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "top_k": 1,
+    "presence_penalty": 0.0,
+    "samples": 25,
+    "max_tokens": 32768,
+    "seed": 42,
+    "max_prompt_tokens": 8192
+  },
+  "elapsed_s": 1353.5,
+  "date": "2026-08-23T13:15:01",
+  "transcripts": "Qwen3_8-27B-UD-IQ4_XS_20260823_125227_transcripts.json"
+}

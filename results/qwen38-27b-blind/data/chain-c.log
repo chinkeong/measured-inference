@@ -1,0 +1,98 @@
+--- pre phase8b.ps1 01:35:04 ---
+=== vis-default ===
+  [vis-default] healthy in 12.0s
+BASELINE vis-default text_prompt_n=75 board_mib=19200
+RESULT vis-default/720p px=1280x720 png_bytes=124223 payload_bytes=165969 text_prompt_n=75 img_prompt_n=997 image_tokens=922 prefill_tps=573.8 prefill_s=1.66 decode_tps=52.98 predicted_n=177 wall_s=5.19 answer_chars=287 think_chars=530
+  REPLY vis-default/720p| This is a cartoon-style underwater ocean scene, likely an animated background or game screen, showing marine life swimming above a sandy seabed. Three distinct things visible are a green sea turtle, a cluster of purple jellyfish, and a purple starfish resting on the rocks at the bottom.
+RESULT vis-default/1440p px=2560x1440 png_bytes=195875 payload_bytes=261505 text_prompt_n=75 img_prompt_n=3677 image_tokens=3602 prefill_tps=613.2 prefill_s=5.93 decode_tps=44.33 predicted_n=162 wall_s=10.0 answer_chars=314 think_chars=396
+  REPLY vis-default/1440p| This is an underwater ocean scene, most likely a screen from a simple game or animated illustration, showing a sandy seabed beneath deep blue water with light rays filtering down. Three distinct elements visible in it are purple jellyfish, a green sea turtle, and tall green stalks of seaweed rising from the sand.
+=== vis-min1024 ===
+  [vis-min1024] healthy in 12.1s
+BASELINE vis-min1024 text_prompt_n=75 board_mib=19234
+RESULT vis-min1024/720p px=1280x720 png_bytes=124223 payload_bytes=165969 text_prompt_n=75 img_prompt_n=1152 image_tokens=1077 prefill_tps=681.3 prefill_s=1.63 decode_tps=52.14 predicted_n=239 wall_s=6.37 answer_chars=387 think_chars=690
+  REPLY vis-min1024/720p| This is a cartoon-style underwater ocean scene, most likely a screen from a simple game or animated background, showing marine life against a deep blue water backdrop with light rays and a sandy seabed. Three distinct things visible in it are a green sea turtle swimming on the left, a cluster of purple jellyfish in the center, and a purple starfish resting on the sand near the bottom.
+RESULT vis-min1024/1440p px=2560x1440 png_bytes=195875 payload_bytes=261505 text_prompt_n=75 img_prompt_n=3677 image_tokens=3602 prefill_tps=615.9 prefill_s=5.9 decode_tps=45.97 predicted_n=162 wall_s=9.72 answer_chars=314 think_chars=396
+  REPLY vis-min1024/1440p| This is an underwater ocean scene, most likely a screen from a simple game or animated illustration, showing a sandy seabed beneath deep blue water with light rays filtering down. Three distinct elements visible in it are purple jellyfish, a green sea turtle, and tall green stalks of seaweed rising from the sand.
+PHASE8B DONE
+--- pre phase3d.ps1 01:36:14 ---
+=== nothink-none ===
+  [nothink-none] healthy in 10.2s
+RESULT nothink-none/code-js decode_tps=42.17 predicted_n=700 accept=n/a draft_n= draft_acc_n= answer_chars=2639 think_chars=0 finish=length
+  HEAD nothink-none/code-js| ```javascript class RedBlackTree {   static RED = 'red';   static BLACK = 'black';    constructor() {     this
+RESULT nothink-none/code-py decode_tps=41.84 predicted_n=700 accept=n/a draft_n= draft_acc_n= answer_chars=2960 think_chars=0 finish=length
+  HEAD nothink-none/code-py| ```python import threading import time from collections import OrderedDict   class LRUCache:     """     A thr
+RESULT nothink-none/prose decode_tps=41.55 predicted_n=700 accept=n/a draft_n= draft_acc_n= answer_chars=3293 think_chars=0 finish=length
+  HEAD nothink-none/prose| The nitrogen cycle in a marine aquarium is a complex biochemical process that converts toxic ammonia into less
+RESULT nothink-none/verbatim decode_tps=41.46 predicted_n=531 accept=n/a draft_n= draft_acc_n= answer_chars=1304 think_chars=0 finish=stop
+  HEAD nothink-none/verbatim| function fibonacci(n) {     if (n <= 1) return n;     let a = 0, b = 1;     for (let i = 2; i <= n; i++) {    
+=== nothink-n10-p0.5 ===
+  [nothink-n10-p0.5] healthy in 12.1s
+RESULT nothink-n10-p0.5/code-js decode_tps=95.35 predicted_n=700 accept=0.6738 draft_n=892 draft_acc_n=601 answer_chars=2294 think_chars=0 finish=length
+  HEAD nothink-n10-p0.5/code-js| ```javascript class RBNode {   constructor(key) {     this.key = key;     this.left = null;     this.right = n
+RESULT nothink-n10-p0.5/code-py decode_tps=79.13 predicted_n=700 accept=0.593 draft_n=978 draft_acc_n=580 answer_chars=2982 think_chars=0 finish=length
+  HEAD nothink-n10-p0.5/code-py| ```python import threading import time from collections import OrderedDict   class LRUCache:     """     A thr
+RESULT nothink-n10-p0.5/prose decode_tps=43.80 predicted_n=692 accept=0.4353 draft_n=1013 draft_acc_n=441 answer_chars=3462 think_chars=0 finish=stop
+  HEAD nothink-n10-p0.5/prose| The nitrogen cycle in a marine aquarium is a complex biochemical process that converts toxic ammonia into less
+RESULT nothink-n10-p0.5/verbatim decode_tps=148.66 predicted_n=531 accept=0.9898 draft_n=490 draft_acc_n=485 answer_chars=1304 think_chars=0 finish=stop
+  HEAD nothink-n10-p0.5/verbatim| function fibonacci(n) {     if (n <= 1) return n;     let a = 0, b = 1;     for (let i = 2; i <= n; i++) {    
+=== nothink-n4-p0.75 ===
+  [nothink-n4-p0.75] healthy in 12.1s
+RESULT nothink-n4-p0.75/code-js decode_tps=84.47 predicted_n=700 accept=0.9225 draft_n=581 draft_acc_n=536 answer_chars=2395 think_chars=0 finish=length
+  HEAD nothink-n4-p0.75/code-js| ```javascript class RedBlackTree {   static RED = 'red';   static BLACK = 'black';    constructor() {     this
+RESULT nothink-n4-p0.75/code-py decode_tps=75.12 predicted_n=700 accept=0.9189 draft_n=567 draft_acc_n=521 answer_chars=2960 think_chars=0 finish=length
+  HEAD nothink-n4-p0.75/code-py| ```python import threading import time from collections import OrderedDict   class LRUCache:     """     A thr
+RESULT nothink-n4-p0.75/prose decode_tps=48.35 predicted_n=700 accept=0.7988 draft_n=482 draft_acc_n=385 answer_chars=3449 think_chars=0 finish=length
+  HEAD nothink-n4-p0.75/prose| The nitrogen cycle in a marine aquarium is a complex biochemical process that converts toxic ammonia into less
+RESULT nothink-n4-p0.75/verbatim decode_tps=97.04 predicted_n=531 accept=1 draft_n=424 draft_acc_n=424 answer_chars=1304 think_chars=0 finish=stop
+  HEAD nothink-n4-p0.75/verbatim| function fibonacci(n) {     if (n <= 1) return n;     let a = 0, b = 1;     for (let i = 2; i <= n; i++) {    
+PHASE3D DONE
+--- pre phase4d.ps1 01:39:27 ---
+=== recipe-mm-c163840 (shipped config, verified) ===
+  [recipe-mm] healthy in 14.2s
+RESULT recipe-mm-c163840 ctx=163840 decode_tps=74.61 accept=0.5924 board_mib=24039 srv_ded_mib=23189 srv_shr_mib=574
+=== nomm-c180224 ===
+  [nomm-c180224] healthy in 12.1s
+RESULT nomm-c180224 ctx=180224 decode_tps=56.58 board_mib=23729 srv_ded_mib=22882 srv_shr_mib=478
+=== nomm-c196608 ===
+  [nomm-c196608] healthy in 12.1s
+RESULT nomm-c196608 ctx=196608 decode_tps=51.88 board_mib=24161 srv_ded_mib=23459 srv_shr_mib=638
+=== nomm-c212992 ===
+  [nomm-c212992] healthy in 14.1s
+RESULT nomm-c212992 ctx=212992 decode_tps=49.20 board_mib=24296 srv_ded_mib=24163 srv_shr_mib=744
+PHASE4D DONE
+--- pre phase10b.ps1 01:41:17 ---
+IDLE_W mean=34.6 peak=70.1 n=15 (no server loaded)
+=== R1-code-vision-163840 ===
+  [R1-code-vision-163840] healthy in 14.2s
+  LOADED_IDLE_W R1-code-vision-163840 mean=30.7 peak=32.5 n=10
+RESULT R1-code-vision-163840 decode_tps=79.26 accept=0.5924 predicted_n=700 wall_s=9.48 board_mib=23565 srv_ded_mib=23316 srv_shr_mib=446 mean_W=277 peak_W=340 n_samples=10 kWh_per_answer=0.0007297 Wh_per_answer=0.7297 kWh_per_1k_tok=0.0010424
+=== R2-desktop-safe-131072 ===
+  [R2-desktop-safe-131072] healthy in 14.1s
+  LOADED_IDLE_W R2-desktop-safe-131072 mean=30.8 peak=32.1 n=10
+RESULT R2-desktop-safe-131072 decode_tps=77.05 accept=0.5924 predicted_n=700 wall_s=9.66 board_mib=22150 srv_ded_mib=21908 srv_shr_mib=382 mean_W=278 peak_W=338.1 n_samples=10 kWh_per_answer=0.0007462 Wh_per_answer=0.7462 kWh_per_1k_tok=0.001066
+=== R3-textonly-196608 ===
+  [R3-textonly-196608] healthy in 12.1s
+  LOADED_IDLE_W R3-textonly-196608 mean=31.1 peak=36.3 n=10
+RESULT R3-textonly-196608 decode_tps=80.02 accept=0.5924 predicted_n=700 wall_s=9.33 board_mib=23813 srv_ded_mib=23587 srv_shr_mib=510 mean_W=283 peak_W=336.2 n_samples=10 kWh_per_answer=0.0007331 Wh_per_answer=0.7331 kWh_per_1k_tok=0.0010473
+=== R4-prose-131072 ===
+  [R4-prose-131072] healthy in 14.1s
+  LOADED_IDLE_W R4-prose-131072 mean=30.2 peak=30.8 n=10
+RESULT R4-prose-131072 decode_tps=72.44 accept=0.8991 predicted_n=700 wall_s=10.31 board_mib=21241 srv_ded_mib=21010 srv_shr_mib=382 mean_W=279 peak_W=336.5 n_samples=11 kWh_per_answer=0.0007987 Wh_per_answer=0.7987 kWh_per_1k_tok=0.001141
+=== R1b-code-vision-163840-n4 ===
+  [R1b-code-vision-163840-n4] healthy in 12.1s
+  LOADED_IDLE_W R1b-code-vision-163840-n4 mean=30.6 peak=34.2 n=10
+RESULT R1b-code-vision-163840-n4 decode_tps=70.46 accept=0.8991 predicted_n=700 wall_s=10.6 board_mib=22641 srv_ded_mib=22418 srv_shr_mib=446 mean_W=286.7 peak_W=335.7 n_samples=11 kWh_per_answer=0.0008446 Wh_per_answer=0.8446 kWh_per_1k_tok=0.0012065
+PHASE10B DONE
+=== ppl-kv-q8 01:45:31 ===
+TIMING ppl-kv-q8 wall_s=298.3
+RESULT ppl-kv-q8 | 0.18.971.524 I perplexity: 8.96 seconds per pass - ETA 4.54.733.274 I Final estimate: PPL = 6.6160 +/- 0.04483
+  META ppl-kv-q8 | 0.10.010.943 I perplexity: calculating perplexity over 36 chunks, n_ctx=8192, batch_size=2048, n_seq=1 ;; 0.18.971.524 I perplexity: 8.96 seconds per pass - ETA 4.54.733.274 I Final estimate: PPL = 6.6160 +/- 0.04483
+=== ppl-kv-f16 01:50:29 ===
+TIMING ppl-kv-f16 wall_s=296.8
+RESULT ppl-kv-f16 | 0.18.064.595 I perplexity: 8.19 seconds per pass - ETA 4.53.576.576 I Final estimate: PPL = 6.5956 +/- 0.04453
+  META ppl-kv-f16 | 0.09.874.758 I perplexity: calculating perplexity over 36 chunks, n_ctx=8192, batch_size=2048, n_seq=1 ;; 0.18.064.595 I perplexity: 8.19 seconds per pass - ETA 4.53.576.576 I Final estimate: PPL = 6.5956 +/- 0.04453
+--- xhigh rerun (last GPU job) 01:55:26 ---
+  [effort-xhigh-120k] healthy in 12.2s
+RESULT effort-xhigh-120k prompt_n=1701 predicted_n=61476 decode_tps=55.76 wall_s=1104.46 finish=stop accept=0.8763 think_chars=114081 answer_chars=41376 html_ok=True t0=[2026/08/23 01:55:46] t1=[2026/08/23 02:14:11]
+PHASE7B DONE
+PHASE6 DONE

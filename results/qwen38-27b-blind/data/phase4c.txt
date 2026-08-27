@@ -1,0 +1,8 @@
+﻿VRAM c131072 at-load board=21438 ded=21010 shr=382
+RESULT c131072-deep20 ctx=131072 depth_tok=1530 prefill_tps=914.4 decode_tps=53.48 accept=0.8869 predicted_n=300 board=21464 ded=21036 shr=426
+RESULT c131072-deep420 ctx=131072 depth_tok=29837 prefill_tps=1084.8 decode_tps=47.30 accept=0.903 predicted_n=300 board=21464 ded=21036 shr=426
+RESULT c131072-deep1275 ctx=131072 depth_tok=90885 prefill_tps=818.9 decode_tps=30.61 accept=0.8494 predicted_n=300 board=21466 ded=21038 shr=426
+VRAM c262144 at-load board=24206 ded=23784 shr=3502
+RESULT c262144-deep20 ctx=262144 depth_tok=1531 prefill_tps=755.1 decode_tps=42.92 accept=0.8107 predicted_n=300 board=24236 ded=23811 shr=3546
+RESULT c262144-deep420 ctx=262144 depth_tok=29837 prefill_tps=408.2 decode_tps=18.64 accept=0.8951 predicted_n=300 board=24236 ded=23811 shr=3546
+RESULT c262144-deep1275 ctx=262144 depth_tok=90886 prefill_tps=182.9 decode_tps=8.02 accept=0.9068 predicted_n=300 board=24238 ded=23813 shr=3546

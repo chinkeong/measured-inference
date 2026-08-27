@@ -29,6 +29,14 @@ bin/
 *.gguf
 *.safetensors
 
+# Empty stderr captures. A collector that wrote nothing recorded nothing, and
+# 36 of these accumulated from runs whose stderr stayed silent. A zero-byte
+# file is the one case where "re-creatable" is trivially true: re-running the
+# collector produces the same nothing. Non-empty .err files ARE tracked - the
+# retest server stderr holds 545 draft-acceptance lines that no endpoint
+# exposes.
+*.err
+
 # process debris
 *.pid
 *.pyc

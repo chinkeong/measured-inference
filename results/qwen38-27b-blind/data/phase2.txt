@@ -1,0 +1,7 @@
+﻿IDLE board_vram_mib=1179  (desktop overhead, no server)
+RESULT A-ngl99-q8 load_s=10.6 decode_tps=42.31 prefill_tps=245.7 prompt_n=83 predicted_n=700 wall_s=16.87 board_mib=15661 srv_ded_mib=14480 srv_shr_mib=132 finish=length
+  LOG A-ngl99-q8| 0.10.116.563 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 32768, kv_unified = 'false'
+RESULT B-ngl99-f16 load_s=6 decode_tps=43.19 prefill_tps=193.9 prompt_n=83 predicted_n=700 wall_s=16.62 board_mib=16428 srv_ded_mib=15354 srv_shr_mib=132 finish=length
+  LOG B-ngl99-f16| 0.05.828.343 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 32768, kv_unified = 'false'
+RESULT C-ngl64-q8 load_s=6 decode_tps=29.84 prefill_tps=177.5 prompt_n=83 predicted_n=700 wall_s=23.9 board_mib=15256 srv_ded_mib=14182 srv_shr_mib=142 finish=length
+  LOG C-ngl64-q8| 0.05.681.186 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 32768, kv_unified = 'false'

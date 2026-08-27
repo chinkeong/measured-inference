@@ -1,0 +1,18 @@
+Traceback (most recent call last):
+  File "E:\AI\measured-inference\scripts\quant-ladder\bench-arm.py", line 144, in <module>
+    main()
+  File "E:\AI\measured-inference\scripts\quant-ladder\bench-arm.py", line 116, in main
+    bench.main()
+  File "E:\AI\measured-inference\scripts\bench\bench.py", line 663, in main
+    results, speculative = bench_model(label, base_url, prompts_by_ds,
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\AI\measured-inference\scripts\bench\bench.py", line 281, in bench_model
+    else score_response(ds, text, answers[i], prompt=p, opts=opts))
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\AI\measured-inference\scripts\bench\datasets_io.py", line 661, in score_response
+    verdict = grade(name, response, ref)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\AI\measured-inference\scripts\bench\datasets_io.py", line 350, in grade
+    pred = response.rsplit("####", 1)[-1].strip().splitlines()[0]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^
+IndexError: list index out of range

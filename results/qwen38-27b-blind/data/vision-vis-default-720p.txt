@@ -1,0 +1,4 @@
+The user wants a two-sentence description. Sentence one: identify the page type. It's a cartoon/illustrated underwater ocean scene, likely a game or animated background. Sentence two: name three distinct visible things. I need to pick three clearly distinct elements. Options: fish, jellyfish, sea turtle, seahorse, starfish, rocks, seaweed, crab. I'll choose three that are visually distinct and unambiguous: a green sea turtle, purple jellyfish, and a purple starfish on the sandy floor. Keep it concise, exactly two sentences.
+
+---ANSWER---
+This is a cartoon-style underwater ocean scene, likely an animated background or game screen, showing marine life swimming above a sandy seabed. Three distinct things visible are a green sea turtle, a cluster of purple jellyfish, and a purple starfish resting on the rocks at the bottom.

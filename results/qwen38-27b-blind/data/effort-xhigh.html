@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pelagia — a living aquarium</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#04182b;user-select:none;-webkit-user-select:none;}
+  #sea{position:fixed;inset:0;display:block;cursor:crosshair;}
+  #vignette{position:fixed;inset:0;pointer-events:none;
+    background:radial-gradient(120% 90% at 50% 38%, rgba(0,0,0,0) 55%, rgba(1,6,14,.52) 100%);}
+  #hud{position:fixed;inset:0;pointer-events:none;color:#cfe9f7;
+    font-family:"Avenir Next","Avenir","Segoe UI","Helvetica Neue",system-ui,sans-serif;
+    text-shadow:0 1px 10px rgba(0,10,20,.65);}
+  .brand{position:absolute;top:22px;left:26px;}
+  .overline{font-size:10px;letter-spacing:.34em;text-transform:uppercase;color:#6fd3c0;font-weight:600;}
+  .brand h1{margin:3px 0 5px;font:italic 500 clamp(30px,4.6vw,46px)/1 "Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;color:#eaf6ff;letter-spacing:.02em;}
+  .tag{margin:0;font-size:12px;letter-spacing:.08em;color:rgba(190,225,240,.75);}
+  .hints{position:absolute;left:26px;bottom:20px;display:flex;gap:16px;font-size:11px;letter-spacing:.06em;color:rgba(180,215,235,.66);}
+  .hints b{display:inline-block;padding:1px 7px;margin-right:6px;border:1px solid rgba(160,220,235,.35);border-radius:3px;font-weight:600;color:#bfe8ee;font-size:10px;}
+  .clock{position:absolute;right:24px;bottom:20px;font-size:12px;letter-spacing:.12em;color:rgba(190,225,240,.8);display:flex;align-items:center;gap:8px;font-variant-numeric:tabular-nums;}
+  #phaseDot{width:9px;height:9px;border-radius:50%;background:#ffd97a;box-shadow:0 0 8px 2px rgba(255,217,122,.55);transition:background 1s,box-shadow 1s;}
+  #phaseDot.night{background:#bcd2ff;box-shadow:0 0 8px 2px rgba(150,180,255,.5);}
+  @media(max-width:640px){.tag{display:none}.hints span:nth-child(2){display:none}}
+</style>
+</head>
+<body>
+<canvas id="sea"></canvas>
+<div id="hud">
+  <header class="brand">
+    <div class="overline">Deep Tank &middot; N&deg;07</div>
+    <h1>Pelagia</h1>
+    <p class="tag">a living aquarium &mdash; nine species, one slow breath of water</p>
+  </header>
+  <footer class="hints">
+    <span><b>click</b>burst bubbles</span>
+    <span><b>move</b>stir the water</span>
+    <span><b>space</b>day / night</span>
+  </footer>
+  <div class="clock"><span id="phaseDot"></span><span id="clockTxt">&mdash;</span></div>
+</div>
+<div id="vignette"></div>
+
+<script>
+"use strict";
+/* ============================== CONFIG ============================== */
+const CONFIG = {
+  SPEED: 1.0,                 // global speed multiplier for all creatures
+  FISH_TROPICAL: 3,           // count per species
+  FISH_ANGEL: 2,
+  SCHOOL_SIZE: 11,            // schooling fish (min 8)
+  JELLYFISH: 3,
+  CRAB: 2,
+  LOBSTER: 1,
+  STARFISH: 2,
+  SEAHORSE: 1,
+  TURTLE: 1,
+  MANTA: 1,                   // bonus species
+  CLOWNFISH: 2,               // bonus: live in the anemone
+  BUBBLE_INTERVAL_MS: 320,    // bubble spawn interval
+  MAX_BUBBLES: 46,
+  DAY_NIGHT_SECONDS: 70,      // 0 disables the cycle
+  MOTES: 46
+};
+
+/* ============================== SETUP ============================== */
+const canvas = document.getElementById('sea');
+const ctx = canvas.getContext('2d');
+const bg = document.createElement('canvas'),   bgx = bg.getContext('2d');
+const floorC = document.createElement('canvas'), floorX = floorC.getContext('2d');
+let glowSprite, raySprite, shellSprite;
+
+let W = 0, H = 0, DPR = 1;
+let T = 0, TA = 0;                 // T: creature time (scaled), TA: ambient time
+let cycleOffset = 0.12;            // day/night phase offset (0 = midday)
+let seed = 42;
+function srand(){ seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }
+
+const TAU = Math.PI * 2;
+const rand  = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+function steerToward(h, target, amt){ let d = target - h; d = ((d + Math.PI) % TAU + TAU) % TAU - Math.PI; return h + d * Math.min(1, amt); }
+
+function floorH(){ return clamp(H * 0.14, 62, 108); }
+function floorTop(x){
+  const f = H - floorH();
+  return f + 7 * Math.sin(x * 0.006 + 1.7) + 3.5 * Math.sin(x * 0.017 + 0.4) + 2 * Math.sin(x * 0.043 + 2.2);
+}
+function daylight(){
+  const per = CONFIG.DAY_NIGHT_SECONDS;
+  if (per <= 0) return 1;
+  const ph = (((TA / per) + cycleOffset) % 1 + 1) % 1;
+  return 0.5 + 0.5 * Math.cos(ph * TAU);
+}
+
+/* ============================== SPRITES ============================== */
+function makeGlow(){
+  glowSprite = document.createElement('canvas'); glowSprite.width = glowSprite.height = 160;
+  const g = glowSprite.getContext('2d');
+  const rg = g.createRadialGradient(80, 80, 4, 80, 80, 80);
+  rg.addColorStop(0, 'rgba(255,255,255,0.85)');
+  rg.addColorStop(0.35, 'rgba(255,255,255,0.25)');
+  rg.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = rg; g.fillRect(0, 0, 160, 160);
+}
+function makeRay(){
+  raySprite = document.createElement('canvas'); raySprite.width = 220; raySprite.height = 900;
+  const g = raySprite.getContext('2d');
+  const lg = g.createLinearGradient(0, 0, 0, 900);
+  lg.addColorStop(0, 'rgba(190,235,255,0.5)');
+  lg.addColorStop(0.7, 'rgba(190,235,255,0.12)');
+  lg.addColorStop(1, 'rgba(190,235,255,0)');
+  g.fillStyle = lg;
+  g.beginPath(); g.moveTo(78, 0); g.lineTo(142, 0); g.lineTo(215, 900); g.lineTo(5, 900); g.closePath(); g.fill();
+}
+function hexPath(g, x, y, r){
+  g.beginPath();
+  for (let i = 0; i < 6; i++){ const a = i / 6 * TAU; const px = x + Math.cos(a) * r, py = y + Math.sin(a) * r; i ? g.lineTo(px, py) : g.moveTo(px, py); }
+  g.closePath();
+}
+function makeShell(){
+  shellSprite = document.createElement('canvas'); shellSprite.width = 220; shellSprite.height = 140;
+  const g = shellSprite.getContext('2d'); g.setTransform(2, 0, 0, 2, 0, 0); g.translate(55, 35);
+  g.fillStyle = '#1d5a44'; g.beginPath(); g.ellipse(0, 0, 46, 27, 0, 0, TAU); g.fill();
+  g.fillStyle = '#297052';
+  for (let i = 0; i < 7; i++){ const a = i / 7 * TAU; g.beginPath(); g.ellipse(Math.cos(a) * 38, Math.sin(a) * 21.5, 9, 5.5, a, 0, TAU); g.fill(); }
+  g.fillStyle = '#2f7d5c';
+  for (let i = 0; i < 6; i++){ const a = i / 6 * TAU + 0.3; g.beginPath(); g.ellipse(Math.cos(a) * 24, Math.sin(a) * 15, 11, 7, a, 0, TAU); g.fill(); }
+  hexPath(g, 0, 0, 13); g.fill();
+  g.strokeStyle = 'rgba(10,40,28,0.55)'; g.lineWidth = 1.4;
+  hexPath(g, 0, 0, 13); g.stroke();
+  g.beginPath(); g.ellipse(0, 0, 31, 18.5, 0, 0, TAU); g.stroke();
+  g.strokeStyle = 'rgba(190,255,220,0.25)'; g.lineWidth = 2;
+  g.beginPath(); g.ellipse(0, 0, 44, 25.5, 0, -2.6, -0.6); g.stroke();
+}
+
+/* ============================== ANCHORS / LAYOUT ============================== */
+const A = { anx: 0, any: 0, shx: 0, shy: 0 };
+let glints = [];
+const kelps = [];
+const tropicals = [], angels = [], jellies = [], crabs = [], lobsters = [], starfish = [], clowns = [];
+let school = null, turtle = null, manta = null;
+const rays = [], motes = [], ripples = [];
+const bubbles = [];
+for (let i = 0; i < CONFIG.MAX_BUBBLES; i++) bubbles.push({ x: 0, y: 0, r: 0, vy: 0, ph: 0, wa: 0, on: false });
+const vents = [{ xf: 0.305 }, { xf: 0.70 }, { xf: 0.835 }];
+let bubbleTimer = 0;
+const pointer = { x: -9999, y: -9999, active: false };
+
+function layout(){
+  A.anx = 0.70 * W; A.any = floorTop(A.anx) - 38;
+  A.shx = 0.615 * W; A.shy = floorTop(A.shx) - 44;
+  const chX = 0.93 * W, chFy = floorTop(chX);
+  glints = [{ x: chX - 26, y: chFy - 4, p: 0 }, { x: chX + 27, y: chFy - 3, p: 2.1 }, { x: chX - 13, y: chFy - 11, p: 4.2 }];
+  for (const k of kelps){ k.x = k.xf * W; k.y = floorTop(k.x) + 3; }
+  for (const f of tropicals){ f.x = clamp(f.x, 20, W - 20); f.y = clamp(f.y, H * 0.16, H * 0.62); }
+  for (const a of angels){ a.x = clamp(a.x, 25, W - 25); a.baseY = clamp(a.baseY, H * 0.42, H * 0.72); }
+  if (school){ school.x = clamp(school.x, 40, W - 40); school.y = clamp(school.y, H * 0.3, H * 0.6); }
+  for (const j of jellies){ j.x = clamp(j.x, 10, W - 10); j.y = clamp(j.y, j.r + 25, H * 0.55); }
+  for (const c of crabs){ c.x = clamp(c.x, 26, Math.max(27, W - 26)); c.y = floorTop(c.x) - 8; }
+  for (const l of lobsters){ l.x = clamp(l.x, 70, Math.max(71, W - 70)); l.y = floorTop(l.x) - 10; }
+  for (let i = 0; i < starfish.length; i++){
+    const s = starfish[i];
+    if (s.onRock){ s.x = clamp(A.anx + 20, 26, W - 26); s.y = floorTop(A.anx) - 34; }
+    else { if (s.x === 0) s.x = 0.52 * W; s.x = clamp(s.x, 30, W - 30); s.y = floorTop(s.x) - 5; }
+  }
+  for (const c of clowns){
+    if (c.x === 0){ c.x = A.an

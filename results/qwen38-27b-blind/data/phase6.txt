@@ -1,0 +1,6 @@
+﻿TIMING ppl-kv-q8 wall_s=298.3
+RESULT ppl-kv-q8 | 0.18.971.524 I perplexity: 8.96 seconds per pass - ETA 4.54.733.274 I Final estimate: PPL = 6.6160 +/- 0.04483
+  META ppl-kv-q8 | 0.10.010.943 I perplexity: calculating perplexity over 36 chunks, n_ctx=8192, batch_size=2048, n_seq=1 ;; 0.18.971.524 I perplexity: 8.96 seconds per pass - ETA 4.54.733.274 I Final estimate: PPL = 6.6160 +/- 0.04483
+TIMING ppl-kv-f16 wall_s=296.8
+RESULT ppl-kv-f16 | 0.18.064.595 I perplexity: 8.19 seconds per pass - ETA 4.53.576.576 I Final estimate: PPL = 6.5956 +/- 0.04453
+  META ppl-kv-f16 | 0.09.874.758 I perplexity: calculating perplexity over 36 chunks, n_ctx=8192, batch_size=2048, n_seq=1 ;; 0.18.064.595 I perplexity: 8.19 seconds per pass - ETA 4.53.576.576 I Final estimate: PPL = 6.5956 +/- 0.04453

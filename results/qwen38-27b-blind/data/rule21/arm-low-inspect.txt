@@ -1,0 +1,70 @@
+transcripts: E:\AI\measured-inference\results\qwen38-27b-blind\data\rule21\arm-low-Qwen3_8-27B-UD-IQ4_XS_20260823_044050_transcripts.json
+suite hash : 1cdf54f8eb9d3f8f | model: Qwen3.8-27B-UD-IQ4_XS
+
+==============================================================================
+### GSM8K  (n=25)
+truncated at 16384 tok : 0
+empty content      : 0
+mean output tokens : 304
+offline re-score   : 100.0/100 over n=25
+re-score mismatches: none (offline == run-time)
+EXTRACTION WARNINGS: 0
+==============================================================================
+### MATH-500  (n=25)
+truncated at 16384 tok : 1
+empty content      : 1
+mean output tokens : 1777
+offline re-score   : 92.0/100 over n=25
+re-score mismatches: [(3, 0.0, 100.0), (5, 0.0, 100.0), (11, 0.0, 100.0), (13, 0.0, 100.0), (17, 0.0, 100.0), (18, 0.0, 100.0), (21, 0.0, 100.0), (23, 0.0, 100.0)]
+EXTRACTION WARNINGS: 1
+   [20] no \boxed{} in the answer
+==============================================================================
+### HumanEval  (n=25)
+truncated at 16384 tok : 0
+empty content      : 0
+mean output tokens : 665
+offline re-score   : 100.0/100 over n=25
+re-score mismatches: none (offline == run-time)
+EXTRACTION WARNINGS: 0
+==============================================================================
+### MBPP  (n=25)
+truncated at 16384 tok : 0
+empty content      : 0
+mean output tokens : 880
+offline re-score   : 92.0/100 over n=25
+re-score mismatches: none (offline == run-time)
+EXTRACTION WARNINGS: 0
+==============================================================================
+### ALPACA  (n=25)
+truncated at 16384 tok : 0
+empty content      : 0
+mean output tokens : 635
+offline re-score   : (unscored here)
+re-score mismatches: none (offline == run-time)
+EXTRACTION WARNINGS: 0
+==============================================================================
+### MeetingBank  (n=25)
+truncated at 16384 tok : 0
+empty content      : 0
+mean output tokens : 453
+offline re-score   : 22.6/100 over n=25
+re-score mismatches: none (offline == run-time)
+EXTRACTION WARNINGS: 0
+==============================================================================
+### MT-Bench  (n=25)
+truncated at 16384 tok : 0
+empty content      : 0
+mean output tokens : 1099
+offline re-score   : (unscored here)
+re-score mismatches: none (offline == run-time)
+EXTRACTION WARNINGS: 0
+==============================================================================
+SUMMARY  dataset / offline score / graded n / truncated / empty
+  GSM8K        100.0    n=25  trunc=0   empty=0
+  MATH-500     92.0     n=25  trunc=1   empty=1
+  HumanEval    100.0    n=25  trunc=0   empty=0
+  MBPP         92.0     n=25  trunc=0   empty=0
+  ALPACA       -        n=0   trunc=0   empty=0
+  MeetingBank  22.6     n=25  trunc=0   empty=0
+  MT-Bench     -        n=0   trunc=0   empty=0
+  Mean over 5 scored sets: 81.3

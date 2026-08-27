@@ -1,0 +1,24 @@
+﻿RESULT nothink-none/code-js decode_tps=42.17 predicted_n=700 accept=n/a draft_n= draft_acc_n= answer_chars=2639 think_chars=0 finish=length
+  HEAD nothink-none/code-js| ```javascript class RedBlackTree {   static RED = 'red';   static BLACK = 'black';    constructor() {     this
+RESULT nothink-none/code-py decode_tps=41.84 predicted_n=700 accept=n/a draft_n= draft_acc_n= answer_chars=2960 think_chars=0 finish=length
+  HEAD nothink-none/code-py| ```python import threading import time from collections import OrderedDict   class LRUCache:     """     A thr
+RESULT nothink-none/prose decode_tps=41.55 predicted_n=700 accept=n/a draft_n= draft_acc_n= answer_chars=3293 think_chars=0 finish=length
+  HEAD nothink-none/prose| The nitrogen cycle in a marine aquarium is a complex biochemical process that converts toxic ammonia into less
+RESULT nothink-none/verbatim decode_tps=41.46 predicted_n=531 accept=n/a draft_n= draft_acc_n= answer_chars=1304 think_chars=0 finish=stop
+  HEAD nothink-none/verbatim| function fibonacci(n) {     if (n <= 1) return n;     let a = 0, b = 1;     for (let i = 2; i <= n; i++) {    
+RESULT nothink-n10-p0.5/code-js decode_tps=95.35 predicted_n=700 accept=0.6738 draft_n=892 draft_acc_n=601 answer_chars=2294 think_chars=0 finish=length
+  HEAD nothink-n10-p0.5/code-js| ```javascript class RBNode {   constructor(key) {     this.key = key;     this.left = null;     this.right = n
+RESULT nothink-n10-p0.5/code-py decode_tps=79.13 predicted_n=700 accept=0.593 draft_n=978 draft_acc_n=580 answer_chars=2982 think_chars=0 finish=length
+  HEAD nothink-n10-p0.5/code-py| ```python import threading import time from collections import OrderedDict   class LRUCache:     """     A thr
+RESULT nothink-n10-p0.5/prose decode_tps=43.80 predicted_n=692 accept=0.4353 draft_n=1013 draft_acc_n=441 answer_chars=3462 think_chars=0 finish=stop
+  HEAD nothink-n10-p0.5/prose| The nitrogen cycle in a marine aquarium is a complex biochemical process that converts toxic ammonia into less
+RESULT nothink-n10-p0.5/verbatim decode_tps=148.66 predicted_n=531 accept=0.9898 draft_n=490 draft_acc_n=485 answer_chars=1304 think_chars=0 finish=stop
+  HEAD nothink-n10-p0.5/verbatim| function fibonacci(n) {     if (n <= 1) return n;     let a = 0, b = 1;     for (let i = 2; i <= n; i++) {    
+RESULT nothink-n4-p0.75/code-js decode_tps=84.47 predicted_n=700 accept=0.9225 draft_n=581 draft_acc_n=536 answer_chars=2395 think_chars=0 finish=length
+  HEAD nothink-n4-p0.75/code-js| ```javascript class RedBlackTree {   static RED = 'red';   static BLACK = 'black';    constructor() {     this
+RESULT nothink-n4-p0.75/code-py decode_tps=75.12 predicted_n=700 accept=0.9189 draft_n=567 draft_acc_n=521 answer_chars=2960 think_chars=0 finish=length
+  HEAD nothink-n4-p0.75/code-py| ```python import threading import time from collections import OrderedDict   class LRUCache:     """     A thr
+RESULT nothink-n4-p0.75/prose decode_tps=48.35 predicted_n=700 accept=0.7988 draft_n=482 draft_acc_n=385 answer_chars=3449 think_chars=0 finish=length
+  HEAD nothink-n4-p0.75/prose| The nitrogen cycle in a marine aquarium is a complex biochemical process that converts toxic ammonia into less
+RESULT nothink-n4-p0.75/verbatim decode_tps=97.04 predicted_n=531 accept=1 draft_n=424 draft_acc_n=424 answer_chars=1304 think_chars=0 finish=stop
+  HEAD nothink-n4-p0.75/verbatim| function fibonacci(n) {     if (n <= 1) return n;     let a = 0, b = 1;     for (let i = 2; i <= n; i++) {    

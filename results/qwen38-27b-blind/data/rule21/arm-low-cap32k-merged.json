@@ -1,0 +1,178 @@
+{
+  "model_label": "low-cap32k",
+  "model_key": "C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf",
+  "speculative": false,
+  "scored": true,
+  "protocol": "METHODOLOGY rule 21",
+  "backend": {
+    "engine": "llama.cpp (llama-server)",
+    "server_bin": "E:\\AI\\llama.cpp\\llama-server.exe",
+    "version": "version: 0.1.2-dev (build 10502, commit 0adcc3bb5)",
+    "server_args": "-ctk q8_0 -ctv q8_0 --chat-template-kwargs {\"reasoning_effort\":\"low\"}",
+    "ctx": 32768
+  },
+  "machine": {
+    "host": "GAMINGPC",
+    "os": "Windows-10-10.0.26200-SP0",
+    "cpu": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+    "gpu": "NVIDIA GeForce RTX 3090, 596.36",
+    "llama_cpp": "version: 0.1.2-dev (build 10502, commit 0adcc3bb5)"
+  },
+  "suite_hash": "1cdf54f8eb9d3f8f",
+  "datasets": [
+    "GSM8K",
+    "MATH-500",
+    "HumanEval",
+    "MBPP",
+    "ALPACA",
+    "MeetingBank",
+    "MT-Bench"
+  ],
+  "results": {
+    "GSM8K": {
+      "n": 25,
+      "tokens": 304.0,
+      "tok_s": 42.95246203697193,
+      "ttft": 0.21279583999999999,
+      "accuracy": 1.0,
+      "score": 100.0,
+      "scorer": "exact match",
+      "graded_n": 25,
+      "truncated_n": 0
+    },
+    "MATH-500": {
+      "n": 25,
+      "tokens": 2143.16,
+      "tok_s": 41.34552992003899,
+      "ttft": 0.27369748,
+      "accuracy": 0.96,
+      "score": 96.0,
+      "scorer": "exact match",
+      "graded_n": 25,
+      "truncated_n": 0
+    },
+    "HumanEval": {
+      "n": 25,
+      "tokens": 664.72,
+      "tok_s": 42.16066396232396,
+      "ttft": 0.27468428,
+      "accuracy": 1.0,
+      "score": 100.0,
+      "scorer": "execution pass@1",
+      "graded_n": 25,
+      "truncated_n": 0
+    },
+    "MBPP": {
+      "n": 25,
+      "tokens": 880.28,
+      "tok_s": 42.09966130978991,
+      "ttft": 0.21143923999999997,
+      "accuracy": 0.92,
+      "score": 92.0,
+      "scorer": "execution pass@1",
+      "graded_n": 25,
+      "truncated_n": 0
+    },
+    "ALPACA": {
+      "n": 25,
+      "tokens": 635.28,
+      "tok_s": 41.93680838623134,
+      "ttft": 0.18754388000000002,
+      "unscored_reason": "unscored: no independent judge"
+    },
+    "MeetingBank": {
+      "n": 25,
+      "tokens": 453.0,
+      "tok_s": 41.839234434688095,
+      "ttft": 1.34099324,
+      "accuracy": 0.22626548097736465,
+      "score": 22.6,
+      "scorer": "ROUGE-L F1",
+      "graded_n": 25,
+      "truncated_n": 0,
+      "prompt_truncated_n": 2
+    },
+    "MT-Bench": {
+      "n": 25,
+      "tokens": 1099.16,
+      "tok_s": 41.97332438846119,
+      "ttft": 0.21490615999999998,
+      "unscored_reason": "unscored: no independent judge"
+    }
+  },
+  "scorers": {
+    "GSM8K": "exact match",
+    "MATH-500": "exact match",
+    "HumanEval": "execution pass@1",
+    "MBPP": "execution pass@1",
+    "MeetingBank": "ROUGE-L F1"
+  },
+  "unscored": {
+    "ALPACA": "unscored: no independent judge",
+    "MT-Bench": "unscored: no independent judge"
+  },
+  "composite": {
+    "mean": 82.1,
+    "included": [
+      "GSM8K",
+      "MATH-500",
+      "HumanEval",
+      "MBPP",
+      "MeetingBank"
+    ],
+    "scores": {
+      "GSM8K": 100.0,
+      "MATH-500": 96.0,
+      "HumanEval": 100.0,
+      "MBPP": 92.0,
+      "MeetingBank": 22.6
+    },
+    "excluded": {
+      "ALPACA": "unscored: no independent judge",
+      "MT-Bench": "unscored: no independent judge"
+    },
+    "label": "composite index over GSM8K, MATH-500, HumanEval, MBPP, MeetingBank"
+  },
+  "judge": null,
+  "exec_scoring": true,
+  "settings": {
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "top_k": 1,
+    "presence_penalty": 0.0,
+    "samples": 25,
+    "max_tokens": "16384/32768 (see max_tokens_by_dataset)",
+    "seed": 42,
+    "max_prompt_tokens": 8192
+  },
+  "elapsed_s": 3579.0,
+  "date": "2026-08-23T05:40:29",
+  "transcripts": "Qwen3_8-27B-UD-IQ4_XS_20260823_044050_transcripts.json",
+  "regraded": {
+    "from_transcripts": "arm-low-Qwen3_8-27B-UD-IQ4_XS_20260823_044050_transcripts.json",
+    "why": "all arms re-graded offline with one scorer version (MATH-500 LaTeX normalization fix); generations untouched",
+    "score_changes": [
+      "MATH-500 60.0 -> 92.0"
+    ]
+  },
+  "max_tokens_by_dataset": {
+    "GSM8K": 16384,
+    "MATH-500": 32768,
+    "HumanEval": 16384,
+    "MBPP": 16384,
+    "ALPACA": 16384,
+    "MeetingBank": 16384,
+    "MT-Bench": 16384
+  },
+  "rule7_rerun": {
+    "rerun_datasets": [
+      "MATH-500"
+    ],
+    "rerun_ctx": 65536,
+    "rerun_max_tokens": 32768,
+    "score_changes": [
+      "MATH-500 92.0 -> 96.0"
+    ],
+    "note": "datasets not listed were carried over from the 16384-cap arm; the determinism check showed non-truncated prompts reproduce byte-identically when the cap and -c are raised"
+  }
+}

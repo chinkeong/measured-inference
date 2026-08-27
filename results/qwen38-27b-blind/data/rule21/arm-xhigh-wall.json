@@ -1,0 +1,10 @@
+{
+  "arm": "xhigh",
+  "effort": "xhigh",
+  "wall_s": 9717.2,
+  "wall_h": 2.699,
+  "suite": "E:\\AI\\measured-inference\\scripts\\bench\\suites\\rule21-n25.json",
+  "server_args": "-ctk q8_0 -ctv q8_0 --chat-template-kwargs {\"reasoning_effort\":\"xhigh\"}",
+  "model": "C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf",
+  "finished": "2026-08-23T09:55:20"
+}

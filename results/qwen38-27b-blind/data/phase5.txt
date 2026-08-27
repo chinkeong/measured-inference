@@ -1,0 +1,7 @@
+﻿CONFIG ctx=131072 spec=--spec-type draft-mtp --spec-draft-n-max 4 --spec-draft-p-min 0.75
+RESULT depth-notes20 depth_tok=1533 prefill_tps=1082.2 prefill_s=1.42 decode_tps=51.15 predicted_n=300 accept=0.7955 wall_s=7.27
+RESULT depth-notes150 depth_tok=10658 prefill_tps=1197.8 prefill_s=8.90 decode_tps=50.32 predicted_n=300 accept=0.8868 wall_s=15
+RESULT depth-notes400 depth_tok=28423 prefill_tps=1097.3 prefill_s=25.90 decode_tps=47.07 predicted_n=300 accept=0.9231 wall_s=32.77
+RESULT depth-notes800 depth_tok=56840 prefill_tps=950.8 prefill_s=59.78 decode_tps=41.07 predicted_n=300 accept=0.9108 wall_s=67.94
+RESULT depth-notes1300 depth_tok=92679 prefill_tps=815.6 prefill_s=113.63 decode_tps=35.81 predicted_n=300 accept=0.8588 wall_s=123.06
+VRAM_AT_END board_mib=20328 srv_ded_mib=19900 srv_shr_mib=426

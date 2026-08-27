@@ -1,0 +1,36 @@
+<figure>
+<svg viewBox="0 0 640 300" role="img" aria-label="Line chart of what a GPU power cap costs, plotted as per cent of the stock 350 watt setting, across caps of 350, 300 and 250 watts. Board power falls fastest, to 88.8 and then 75.2 per cent. The SM clock falls to 94.2 and then 77.9 per cent. Decode throughput falls least, to 95.0 and then 87.2 per cent. Because throughput is retained better than power is spent, energy per token improves from 4.033 joules to 3.771 and then 3.479. Every value is printed in the table beside this figure.">
+<g stroke="var(--line)" stroke-width="1">
+<line x1="52" y1="200" x2="616" y2="200"/>
+<line x1="52" y1="151" x2="616" y2="151"/>
+<line x1="52" y1="102" x2="616" y2="102"/>
+<line x1="52" y1="54" x2="616" y2="54"/>
+</g>
+<text class="axis-t" x="44" y="204" text-anchor="end">70%</text>
+<text class="axis-t" x="44" y="155" text-anchor="end">80%</text>
+<text class="axis-t" x="44" y="106" text-anchor="end">90%</text>
+<text class="axis-t" x="44" y="58" text-anchor="end">100%</text>
+<text class="axis-t" x="52" y="228" text-anchor="middle">350 W</text>
+<text class="axis-t" x="52" y="244" text-anchor="middle" style="font-size:10px" opacity=".85">4.033 J/tok</text>
+<text class="axis-t" x="334" y="228" text-anchor="middle">300 W</text>
+<text class="axis-t" x="334" y="244" text-anchor="middle" style="font-size:10px" opacity=".85">3.771 J/tok</text>
+<text class="axis-t" x="616" y="228" text-anchor="middle">250 W</text>
+<text class="axis-t" x="616" y="244" text-anchor="middle" style="font-size:10px" opacity=".85">3.479 J/tok</text>
+<path d="M 52,54 334,78 616,116 L 616,175 L 334,108 L 52,54 Z" fill="var(--accent)" opacity=".10"/>
+<polyline points="52,54 334,108 616,175" fill="none" stroke="var(--bad)" stroke-width="2.4" stroke-linejoin="round"/>
+<polyline points="52,54 334,82 616,161" fill="none" stroke="var(--muted)" stroke-width="2" stroke-dasharray="2 3" stroke-linejoin="round"/>
+<polyline points="52,54 334,78 616,116" fill="none" stroke="var(--accent)" stroke-width="2.6" stroke-linejoin="round"/>
+<g fill="var(--bad)" stroke="var(--ground)" stroke-width="1.5"><circle cx="52" cy="54" r="3.2"/><circle cx="334" cy="108" r="3.2"/><circle cx="616" cy="175" r="3.2"/></g>
+<g fill="var(--muted)" stroke="var(--ground)" stroke-width="1.5"><circle cx="52" cy="54" r="2.6"/><circle cx="334" cy="82" r="2.6"/><circle cx="616" cy="161" r="2.6"/></g>
+<g fill="var(--accent)" stroke="var(--ground)" stroke-width="1.5"><circle cx="52" cy="54" r="3.6"/><circle cx="334" cy="78" r="3.6"/><circle cx="616" cy="116" r="3.6"/></g>
+<text class="axis-t" x="342" y="97" style="font-size:10.5px" fill="var(--accent)">this gap is the win</text>
+<text class="axis-t" x="616" y="22" text-anchor="end">power cap &#8594; lower &#183; higher is better</text>
+<line x1="52" y1="254" x2="76" y2="254" stroke="var(--accent)" stroke-width="2.4" />
+<text class="axis-t" x="82" y="258" style="font-size:10px">decode throughput kept &#8212; falls least</text>
+<line x1="52" y1="267" x2="76" y2="267" stroke="var(--bad)" stroke-width="2.4" />
+<text class="axis-t" x="82" y="271" style="font-size:10px">board power &#8212; falls fastest</text>
+<line x1="52" y1="280" x2="76" y2="280" stroke="var(--muted)" stroke-width="2.4" stroke-dasharray="2 3"/>
+<text class="axis-t" x="82" y="284" style="font-size:10px">SM clock &#8212; why the others move</text>
+</svg>
+<figcaption><b>Capping the board spends power faster than it costs speed.</b> <span class="chip m">meas</span> Each line is that quantity as a percentage of the stock 350&nbsp;W setting, so higher is better throughout. <b>Power falls fastest and throughput falls least</b>, and the shaded gap between them is the efficiency win &mdash; it widens as the cap bites, which is why 250&nbsp;W is a better trade than 300 rather than a worse one. <b>The dashed clock line explains the shape:</b> a cap works by lowering the SM clock, and throughput does not follow it down one-for-one because decode is partly memory-bandwidth-bound and the memory clock is untouched. Note also that <b>the stock arm never reaches its own cap</b> &mdash; 305.4&nbsp;W against a 350&nbsp;W limit &mdash; so the first 50&nbsp;W removes headroom the workload was not using. Decode only; prefill is compute-bound and would plausibly lose more. <span class="chip u">n=3</span> per arm.</figcaption>
+</figure>

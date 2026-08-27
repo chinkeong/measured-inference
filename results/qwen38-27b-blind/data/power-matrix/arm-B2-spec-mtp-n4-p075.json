@@ -1,0 +1,60 @@
+{
+  "tier": "in-band GPU board power (NVML via nvidia-smi); PSU/wall/PUE excluded",
+  "generated": "2026-08-23T13:28:38",
+  "power_files": [
+    {
+      "path": "E:\\AI\\measured-inference\\results\\qwen38-27b-blind\\data\\power\\power-matrix-20260823-132140.csv",
+      "rows": 798
+    }
+  ],
+  "log_span": [
+    "2026-08-23 13:21:49.752000",
+    "2026-08-23 13:28:37.842000"
+  ],
+  "idle_w": 31.0,
+  "max_gap_s": 2.0,
+  "lead_ms": 0.0,
+  "drop_first": true,
+  "arms": [
+    {
+      "label": "B2-spec-mtp-n4-p075",
+      "n_requests": 3,
+      "mode": "events",
+      "window_s": 27.53150400000004,
+      "covered_s": 27.53150400000004,
+      "excluded_s": 0.0,
+      "n_samples": 53,
+      "peak_w": 347.09,
+      "j_prefill": 630.0960093841749,
+      "j_decode": 7859.889997710005,
+      "j_total": 8489.98600709418,
+      "prefill_s": 4.528675000000021,
+      "decode_s": 23.00282900000002,
+      "prompt_n": 4374,
+      "predicted_n": 2100,
+      "edp_sum": 60273.724503243255,
+      "warnings": [],
+      "mean_w": 308.3734912227885,
+      "coverage": 1.0,
+      "j_gross": 8489.98600709418,
+      "j_net": 7636.509383094179,
+      "wh_gross": 2.3583294464150497,
+      "wh_net": 2.1212526064150494,
+      "wh_per_answer_gross": 0.7861098154716832,
+      "wh_per_answer_net": 0.7070842021383498,
+      "j_net_decode": 7146.802298710005,
+      "j_net_prefill": 489.7070843841742,
+      "j_per_decode_token": 3.7428047608142885,
+      "j_per_decode_token_net": 3.403239189861907,
+      "j_per_prompt_token": 0.14405487182994395,
+      "j_per_prompt_token_net": 0.111958638405161,
+      "tokens_per_kwh": 961845.522291358,
+      "tokens_per_kwh_net": 1057815.7452829748,
+      "decode_tps": 91.29311877247787,
+      "prefill_tps": 965.8454183618784,
+      "edp_js": 20091.241501081084,
+      "edp_total_js": 77914.0279047526,
+      "idle_w_used": 31.0
+    }
+  ]
+}

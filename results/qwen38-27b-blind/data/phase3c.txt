@@ -1,0 +1,8 @@
+﻿RESULT novel-code decode_tps=88.79 predicted_n=700 accept=0.5924 draft_n=969 draft_acc_n=574 finish=length
+  HEAD novel-code| 
+RESULT verbatim-code decode_tps=59.29 predicted_n=700 accept=0.5468 draft_n=854 draft_acc_n=467 finish=length
+  HEAD verbatim-code| 
+RESULT verbatim-prose decode_tps=102.55 predicted_n=700 accept=0.7706 draft_n=754 draft_acc_n=581 finish=length
+  HEAD verbatim-prose| The nitrogen cycle in a marine aquarium begins when fish waste, uneaten food and decaying matter release ammonia into the water. Ammonia is acutely toxic even a
+RESULT counting decode_tps=133.78 predicted_n=700 accept=0.8546 draft_n=722 draft_acc_n=617 finish=length
+  HEAD counting| 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 5

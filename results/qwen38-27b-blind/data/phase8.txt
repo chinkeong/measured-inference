@@ -1,0 +1,3 @@
+﻿SHOT page=effort-low.html px=2560x1440 png_bytes=195875
+RESULT vis-default text_prompt_n=35 img_prompt_n= image_tokens=-35 prefill_tps= prefill_s=0 decode_tps= board_mib=19142 srv_ded_mib=18194
+  REPLY vis-default| 

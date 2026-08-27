@@ -1,0 +1,5 @@
+﻿CONFIG recipe2 ctx=131072 mmproj=on spec=n10/p0.5 thinking=off board=22517 ded=21908 shr=382
+RESULT r2-depth20 depth_tok=1488 prefill_tps=963.9 prefill_s=1.54 decode_tps=94.49 accept=0.6 predicted_n=400 answer_chars=1168 think_chars=0
+CONFIG recipe2 ctx=131072 mmproj=on spec=n10/p0.5 thinking=off board=22517 ded=21908 shr=382
+RESULT r2-depth420 depth_tok=29841 prefill_tps=1084.0 prefill_s=27.53 decode_tps=80.96 accept=0.6092 predicted_n=400 answer_chars=1386 think_chars=0
+RESULT r2-depth1275 depth_tok=90887 prefill_tps=814.1 prefill_s=111.65 decode_tps=70.09 accept=0.6468 predicted_n=400 answer_chars=1395 think_chars=0

@@ -1,0 +1,10 @@
+{
+  "arm": "medium",
+  "effort": "medium",
+  "wall_s": 5289.7,
+  "wall_h": 1.469,
+  "suite": "E:\\AI\\measured-inference\\scripts\\bench\\suites\\rule21-n25.json",
+  "server_args": "-ctk q8_0 -ctv q8_0 --chat-template-kwargs {\"reasoning_effort\":\"medium\"}",
+  "model": "C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf",
+  "finished": "2026-08-23T07:13:01"
+}

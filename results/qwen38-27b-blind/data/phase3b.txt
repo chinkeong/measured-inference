@@ -1,0 +1,12 @@
+﻿RESULT none/code-js decode_tps=42.81 predicted_n=700 accept=n/a draft_n= draft_acc_n= finish=length
+RESULT none/code-py decode_tps=42.77 predicted_n=700 accept=n/a draft_n= draft_acc_n= finish=length
+RESULT none/prose decode_tps=42.66 predicted_n=700 accept=n/a draft_n= draft_acc_n= finish=length
+RESULT none/verbatim decode_tps=42.47 predicted_n=700 accept=n/a draft_n= draft_acc_n= finish=length
+RESULT n10-p0.5/code-js decode_tps=88.77 predicted_n=700 accept=0.5924 draft_n=969 draft_acc_n=574 finish=length
+RESULT n10-p0.5/code-py decode_tps=63.09 predicted_n=700 accept=0.5654 draft_n=856 draft_acc_n=484 finish=length
+RESULT n10-p0.5/prose decode_tps=48.42 predicted_n=700 accept=0.4315 draft_n=964 draft_acc_n=416 finish=length
+RESULT n10-p0.5/verbatim decode_tps=56.44 predicted_n=700 accept=0.5488 draft_n=851 draft_acc_n=467 finish=length
+RESULT n4-p0.75/code-js decode_tps=78.71 predicted_n=700 accept=0.8991 draft_n=565 draft_acc_n=508 finish=length
+RESULT n4-p0.75/code-py decode_tps=56.36 predicted_n=700 accept=0.8738 draft_n=428 draft_acc_n=374 finish=length
+RESULT n4-p0.75/prose decode_tps=51.68 predicted_n=700 accept=0.7986 draft_n=432 draft_acc_n=345 finish=length
+RESULT n4-p0.75/verbatim decode_tps=79.64 predicted_n=700 accept=0.9628 draft_n=511 draft_acc_n=492 finish=length

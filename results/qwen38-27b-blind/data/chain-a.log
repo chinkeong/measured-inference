@@ -1,0 +1,63 @@
+===== CHAIN START phase3b.ps1 00:28:02 =====
+=== none ===
+  [b-none] healthy in 6.1s
+RESULT none/code-js decode_tps=42.81 predicted_n=700 accept=n/a draft_n= draft_acc_n= finish=length
+RESULT none/code-py decode_tps=42.77 predicted_n=700 accept=n/a draft_n= draft_acc_n= finish=length
+RESULT none/prose decode_tps=42.66 predicted_n=700 accept=n/a draft_n= draft_acc_n= finish=length
+RESULT none/verbatim decode_tps=42.47 predicted_n=700 accept=n/a draft_n= draft_acc_n= finish=length
+=== n10-p0.5 ===
+  [b-n10-p0.5] healthy in 8s
+RESULT n10-p0.5/code-js decode_tps=88.77 predicted_n=700 accept=0.5924 draft_n=969 draft_acc_n=574 finish=length
+RESULT n10-p0.5/code-py decode_tps=63.09 predicted_n=700 accept=0.5654 draft_n=856 draft_acc_n=484 finish=length
+RESULT n10-p0.5/prose decode_tps=48.42 predicted_n=700 accept=0.4315 draft_n=964 draft_acc_n=416 finish=length
+RESULT n10-p0.5/verbatim decode_tps=56.44 predicted_n=700 accept=0.5488 draft_n=851 draft_acc_n=467 finish=length
+=== n4-p0.75 ===
+  [b-n4-p0.75] healthy in 8s
+RESULT n4-p0.75/code-js decode_tps=78.71 predicted_n=700 accept=0.8991 draft_n=565 draft_acc_n=508 finish=length
+RESULT n4-p0.75/code-py decode_tps=56.36 predicted_n=700 accept=0.8738 draft_n=428 draft_acc_n=374 finish=length
+RESULT n4-p0.75/prose decode_tps=51.68 predicted_n=700 accept=0.7986 draft_n=432 draft_acc_n=345 finish=length
+RESULT n4-p0.75/verbatim decode_tps=79.64 predicted_n=700 accept=0.9628 draft_n=511 draft_acc_n=492 finish=length
+PHASE3B DONE
+===== CHAIN END phase3b.ps1 00:31:21 =====
+===== CHAIN START phase4.ps1 00:31:21 =====
+=== ctx 32768 (mmproj on) ===
+  [c32768-mm] healthy in 10.1s
+RESULT c32768-mm ctx=32768 mmproj=True load_s=10.1 decode_tps=63.63 prefill_tps=142.9 board_mib=17978 srv_ded_mib=16816 srv_shr_mib=190 board_after=18000 shr_after=234 kv=[]
+=== ctx 65536 (mmproj on) ===
+  [c65536-mm] healthy in 8s
+RESULT c65536-mm ctx=65536 mmproj=True load_s=8 decode_tps=64.06 prefill_tps=147.8 board_mib=19356 srv_ded_mib=18194 srv_shr_mib=254 board_after=19378 shr_after=298 kv=[]
+=== ctx 98304 (mmproj on) ===
+  [c98304-mm] healthy in 8.1s
+RESULT c98304-mm ctx=98304 mmproj=True load_s=8.1 decode_tps=63.80 prefill_tps=150.1 board_mib=20764 srv_ded_mib=19602 srv_shr_mib=318 board_after=20786 shr_after=362 kv=[]
+=== ctx 131072 (mmproj on) ===
+  [c131072-mm] healthy in 8.1s
+RESULT c131072-mm ctx=131072 mmproj=True load_s=8.1 decode_tps=63.84 prefill_tps=162.0 board_mib=22172 srv_ded_mib=21010 srv_shr_mib=382 board_after=22194 shr_after=426 kv=[]
+=== ctx 163840 (mmproj on) ===
+  [c163840-mm] healthy in 8s
+RESULT c163840-mm ctx=163840 mmproj=True load_s=8 decode_tps=63.74 prefill_tps=153.2 board_mib=23580 srv_ded_mib=22418 srv_shr_mib=446 board_after=23602 shr_after=490 kv=[]
+=== ctx 196608 (mmproj on) ===
+  [c196608-mm] healthy in 8.1s
+RESULT c196608-mm ctx=196608 mmproj=True load_s=8.1 decode_tps=59.72 prefill_tps=145.9 board_mib=24132 srv_ded_mib=23637 srv_shr_mib=700 board_after=24154 shr_after=744 kv=[]
+=== ctx 229376 (mmproj on) ===
+  [c229376-mm] healthy in 8.1s
+RESULT c229376-mm ctx=229376 mmproj=True load_s=8.1 decode_tps=60.44 prefill_tps=150.1 board_mib=24145 srv_ded_mib=23716 srv_shr_mib=2096 board_after=24167 shr_after=2140 kv=[]
+=== ctx 262144 (mmproj on) ===
+  [c262144-mm] healthy in 10.1s
+RESULT c262144-mm ctx=262144 mmproj=True load_s=10.1 decode_tps=59.06 prefill_tps=104.7 board_mib=24162 srv_ded_mib=23784 srv_shr_mib=3502 board_after=24184 shr_after=3546 kv=[]
+=== ctx 262144 (mmproj OFF) ===
+  [c262144-nomm] healthy in 8s
+RESULT c262144-nomm ctx=262144 mmproj=False load_s=8 decode_tps=58.85 prefill_tps=137.8 board_mib=24162 srv_ded_mib=23782 srv_shr_mib=2364 board_after=24184 shr_after=2408 kv=[]
+PHASE4 DONE
+===== CHAIN END phase4.ps1 00:34:43 =====
+===== CHAIN START phase5.ps1 00:34:43 =====
+  [depth] healthy in 8.1s
+CONFIG ctx=131072 spec=--spec-type draft-mtp --spec-draft-n-max 4 --spec-draft-p-min 0.75
+RESULT depth-notes20 depth_tok=1533 prefill_tps=1082.2 prefill_s=1.42 decode_tps=51.15 predicted_n=300 accept=0.7955 wall_s=7.27
+RESULT depth-notes150 depth_tok=10658 prefill_tps=1197.8 prefill_s=8.90 decode_tps=50.32 predicted_n=300 accept=0.8868 wall_s=15
+RESULT depth-notes400 depth_tok=28423 prefill_tps=1097.3 prefill_s=25.90 decode_tps=47.07 predicted_n=300 accept=0.9231 wall_s=32.77
+RESULT depth-notes800 depth_tok=56840 prefill_tps=950.8 prefill_s=59.78 decode_tps=41.07 predicted_n=300 accept=0.9108 wall_s=67.94
+RESULT depth-notes1300 depth_tok=92679 prefill_tps=815.6 prefill_s=113.63 decode_tps=35.81 predicted_n=300 accept=0.8588 wall_s=123.06
+VRAM_AT_END board_mib=20328 srv_ded_mib=19900 srv_shr_mib=426
+PHASE5 DONE
+===== CHAIN END phase5.ps1 00:39:06 =====
+CHAIN-A DONE

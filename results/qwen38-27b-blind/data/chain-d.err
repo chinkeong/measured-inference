@@ -1,0 +1,44 @@
+Invoke-RestMethod : The underlying connection was closed: A connection that was expected to be kept alive was closed 
+by the server.
+At E:\AI\measured-inference\results\qwen38-27b-blind\work\lib.ps1:86 char:13
++     $resp = Invoke-RestMethod -Uri "$($script:BASE)/v1/chat/completio ...
++             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : InvalidOperation: (System.Net.HttpWebRequest:HttpWebRequest) [Invoke-RestMethod], WebExc 
+   eption
+    + FullyQualifiedErrorId : WebCmdletWebResponseException,Microsoft.PowerShell.Commands.InvokeRestMethodCommand
+ 
+Cannot index into a null array.
+At E:\AI\measured-inference\results\qwen38-27b-blind\work\lib.ps1:90 char:5
++     $msg = $resp.choices[0].message
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : InvalidOperation: (:) [], RuntimeException
+    + FullyQualifiedErrorId : NullArray
+ 
+Cannot index into a null array.
+At E:\AI\measured-inference\results\qwen38-27b-blind\work\lib.ps1:105 char:130
++ ... contains 'draft_n_accepted')) { $t.draft_n_accepted } else { $null })
++                                                                  ~~~~~
+    + CategoryInfo          : InvalidOperation: (:) [], RuntimeException
+    + FullyQualifiedErrorId : NullArray
+ 
+Invoke-RestMethod : Unable to connect to the remote server
+At E:\AI\measured-inference\results\qwen38-27b-blind\work\lib.ps1:86 char:13
++     $resp = Invoke-RestMethod -Uri "$($script:BASE)/v1/chat/completio ...
++             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [Invoke-RestMethod], WebException
+    + FullyQualifiedErrorId : System.Net.WebException,Microsoft.PowerShell.Commands.InvokeRestMethodCommand
+ 
+Cannot index into a null array.
+At E:\AI\measured-inference\results\qwen38-27b-blind\work\lib.ps1:90 char:5
++     $msg = $resp.choices[0].message
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : InvalidOperation: (:) [], RuntimeException
+    + FullyQualifiedErrorId : NullArray
+ 
+Cannot index into a null array.
+At E:\AI\measured-inference\results\qwen38-27b-blind\work\lib.ps1:105 char:130
++ ... contains 'draft_n_accepted')) { $t.draft_n_accepted } else { $null })
++                                                                  ~~~~~
+    + CategoryInfo          : InvalidOperation: (:) [], RuntimeException
+    + FullyQualifiedErrorId : NullArray
+ 

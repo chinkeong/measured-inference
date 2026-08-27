@@ -1,0 +1,4 @@
+﻿RESULT recipe-mm-c163840 ctx=163840 decode_tps=74.61 accept=0.5924 board_mib=24039 srv_ded_mib=23189 srv_shr_mib=574
+RESULT nomm-c180224 ctx=180224 decode_tps=56.58 board_mib=23729 srv_ded_mib=22882 srv_shr_mib=478
+RESULT nomm-c196608 ctx=196608 decode_tps=51.88 board_mib=24161 srv_ded_mib=23459 srv_shr_mib=638
+RESULT nomm-c212992 ctx=212992 decode_tps=49.20 board_mib=24296 srv_ded_mib=24163 srv_shr_mib=744

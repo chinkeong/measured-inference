@@ -1,0 +1,27 @@
+Add-Content : The process cannot access the file 
+'E:\AI\measured-inference\results\qwen38-27b-blind\data\quant-ladder\results.txt' because it is being used by another 
+process.
+At E:\AI\measured-inference\scripts\quant-ladder\ladder-lib.ps1:22 char:5
++     Add-Content -Path $Path -Value $Line -Encoding utf8
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : WriteError: (E:\AI\measured-...der\results.txt:String) [Add-Content], IOException
+    + FullyQualifiedErrorId : GetContentWriterIOError,Microsoft.PowerShell.Commands.AddContentCommand
+ 
+Add-Content : The process cannot access the file 
+'E:\AI\measured-inference\results\qwen38-27b-blind\data\quant-ladder\results.txt' because it is being used by another 
+process.
+At E:\AI\measured-inference\scripts\quant-ladder\ladder-lib.ps1:22 char:5
++     Add-Content -Path $Path -Value $Line -Encoding utf8
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : WriteError: (E:\AI\measured-...der\results.txt:String) [Add-Content], IOException
+    + FullyQualifiedErrorId : GetContentWriterIOError,Microsoft.PowerShell.Commands.AddContentCommand
+ 
+Add-Content : The process cannot access the file 
+'E:\AI\measured-inference\results\qwen38-27b-blind\data\quant-ladder\detectors.txt' because it is being used by 
+another process.
+At E:\AI\measured-inference\scripts\quant-ladder\ladder-lib.ps1:22 char:5
++     Add-Content -Path $Path -Value $Line -Encoding utf8
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : WriteError: (E:\AI\measured-...r\detectors.txt:String) [Add-Content], IOException
+    + FullyQualifiedErrorId : GetContentWriterIOError,Microsoft.PowerShell.Commands.AddContentCommand
+ 
