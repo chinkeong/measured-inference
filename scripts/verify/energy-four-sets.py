@@ -165,6 +165,10 @@ def newest(pattern_dir, contains):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--samples", type=int, default=25)
+    ap.add_argument("--passes", type=int, default=2,
+                    help="repeats. Even passes run the sets in REVERSED "
+                         "order so thermal drift stops being confounded "
+                         "with set identity.")
     a = ap.parse_args()
     os.makedirs(OUT, exist_ok=True)
     resdir = os.path.join(ROOT, "scripts", "bench", "results")
@@ -172,8 +176,21 @@ def main():
     log("four sets, one server load and one power window each, n=%d" % a.samples)
 
     rows = []
-    for name in SETS:
-        tag = "energy-%s" % name.replace("-", "")
+    # The board warms monotonically through a session: measured on this rig
+    # at 305.5 -> 341.1 W, +11.7%, over 2.5 h AT CONSTANT THROUGHPUT, while
+    # the SM clock climbed 1,453 -> 1,606 MHz. In a single fixed-order pass
+    # the last set is therefore systematically hotter than the first, and
+    # its energy figure carries that rather than only its own workload
+    # shape. Repeating in the SAME order would reproduce the confound and
+    # report a tight spread while doing it, so even passes are reversed and
+    # every set gets one early reading and one late one.
+    plan = []
+    for _p in range(a.passes):
+        order = SETS if _p % 2 == 0 else list(reversed(SETS))
+        plan += [(_p + 1, order.index(_n) + 1, _n) for _n in order]
+    log("plan: %s" % " | ".join("p%d.%d %s" % t for t in plan))
+    for pass_i, pos_i, name in plan:
+        tag = "energy-%s-p%d" % (name.replace("-", ""), pass_i)
         # bench.py resolves llama-server from --server-bin, $LLAMA_SERVER or
         # PATH, and none of those are set for a subprocess launched from here.
         # Without it every set exits 1 in under a second and reports 0 joules,
@@ -219,7 +236,7 @@ def main():
         # happening. The first version of this file printed "0.0000 Wh" and
         # "DONE" for four sets that never started, which reads as a result.
         if r.returncode != 0 or items == 0:
-            rows.append({"set": name, "FAILED": True,
+            rows.append({"set": name, "pass": pass_i, "FAILED": True,
                          "returncode": r.returncode, "items": items,
                          "wall_s": round(wall, 1),
                          "why": "bench exited %d / %d items scored"
@@ -230,7 +247,8 @@ def main():
                       io.open(os.path.join(OUT, "energy-four-sets.json"), "w",
                               encoding="utf-8"), indent=1)
             continue
-        row = {"set": name, "wall_s": round(wall, 1), "items": items,
+        row = {"set": name, "pass": pass_i, "position_in_pass": pos_i,
+               "wall_s": round(wall, 1), "items": items,
                "generated_tokens": toks,
                "mean_board_w": round(mean_w, 1) if mean_w else None,
                "whole_set_joules": round(joules, 1) if joules else None,
