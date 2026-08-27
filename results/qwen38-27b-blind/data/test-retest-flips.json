@@ -1,0 +1,210 @@
+{
+ "what": "test-retest flip count: the same file and flags, run twice",
+ "run_a": {
+  "file": "E:\\AI\\measured-inference\\results\\qwen38-27b-blind\\data\\telemetry\\exercises-2026-08-26-14-57-05--iq4xs-full.json",
+  "label": "run 1 (2026-08-26, 225 ex)",
+  "n_listed": 225
+ },
+ "run_b": {
+  "file": "E:\\AI\\measured-inference\\results\\qwen38-27b-blind\\data\\telemetry\\exercises-2026-08-27-11-19-36--iq4xs-retest.json",
+  "label": "retest (2026-08-27, 113 ex)",
+  "n_listed": 113
+ },
+ "paired_n": 113,
+ "pass_rate_a_on_paired": 43.36,
+ "pass_rate_b_on_paired": 43.36,
+ "agree_pass": 40,
+ "agree_fail": 55,
+ "flips": 18,
+ "flip_rate_pct": 15.93,
+ "flip_rate_wilson95": [
+  10.32,
+  23.78
+ ],
+ "flipped_pass_to_fail": 9,
+ "flipped_fail_to_pass": 9,
+ "flipped_exercises": [
+  {
+   "case": "bank-account",
+   "lang": "cpp",
+   "a_passed": false,
+   "b_passed": true,
+   "a_completion": 7606,
+   "b_completion": 4279,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "counter",
+   "lang": "go",
+   "a_passed": false,
+   "b_passed": true,
+   "a_completion": 2881,
+   "b_completion": 3617,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "crypto-square",
+   "lang": "cpp",
+   "a_passed": true,
+   "b_passed": false,
+   "a_completion": 9308,
+   "b_completion": 7089,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "error-handling",
+   "lang": "go",
+   "a_passed": true,
+   "b_passed": false,
+   "a_completion": 826,
+   "b_completion": 706,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "grade-school",
+   "lang": "javascript",
+   "a_passed": true,
+   "b_passed": false,
+   "a_completion": 2106,
+   "b_completion": 1152,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "grade-school",
+   "lang": "rust",
+   "a_passed": true,
+   "b_passed": false,
+   "a_completion": 554,
+   "b_completion": 931,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "kindergarten-garden",
+   "lang": "cpp",
+   "a_passed": false,
+   "b_passed": true,
+   "a_completion": 4777,
+   "b_completion": 5522,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "ledger",
+   "lang": "java",
+   "a_passed": false,
+   "b_passed": true,
+   "a_completion": 3702,
+   "b_completion": 3223,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "ocr-numbers",
+   "lang": "javascript",
+   "a_passed": true,
+   "b_passed": false,
+   "a_completion": 1931,
+   "b_completion": 1824,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "parallel-letter-frequency",
+   "lang": "cpp",
+   "a_passed": true,
+   "b_passed": false,
+   "a_completion": 4750,
+   "b_completion": 4856,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "phone-number",
+   "lang": "cpp",
+   "a_passed": false,
+   "b_passed": true,
+   "a_completion": 2586,
+   "b_completion": 4700,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "pig-latin",
+   "lang": "javascript",
+   "a_passed": true,
+   "b_passed": false,
+   "a_completion": 1517,
+   "b_completion": 1254,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "robot-name",
+   "lang": "rust",
+   "a_passed": false,
+   "b_passed": true,
+   "a_completion": 2034,
+   "b_completion": 1060,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "say",
+   "lang": "rust",
+   "a_passed": true,
+   "b_passed": false,
+   "a_completion": 951,
+   "b_completion": 1984,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "simple-linked-list",
+   "lang": "javascript",
+   "a_passed": false,
+   "b_passed": true,
+   "a_completion": 2177,
+   "b_completion": 964,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "variable-length-quantity",
+   "lang": "go",
+   "a_passed": false,
+   "b_passed": true,
+   "a_completion": 2934,
+   "b_completion": 5724,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "variable-length-quantity",
+   "lang": "javascript",
+   "a_passed": true,
+   "b_passed": false,
+   "a_completion": 3117,
+   "b_completion": 990,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  },
+  {
+   "case": "zebra-puzzle",
+   "lang": "python",
+   "a_passed": false,
+   "b_passed": true,
+   "a_completion": 8783,
+   "b_completion": 3218,
+   "a_zero_tokens": false,
+   "b_zero_tokens": false
+  }
+ ],
+ "pairing": "by (case, language). aider shuffles UNSEEDED before truncating to --num-tests, so a run is a random subsample and not a stable prefix; pairing by position would compare unrelated exercises.",
+ "how_to_read": "This is the noise floor. Any two-arm difference on this benchmark must clear it before it can be called real. It does NOT decompose the 60 discordant exercises between quantisations into signal and noise - it bounds how much of that 60 the benchmark can produce on its own."
+}
