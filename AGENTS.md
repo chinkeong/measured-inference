@@ -8,7 +8,7 @@ the situation below triggers it.
 
 ## THE INVARIANTS
 
-`methodology/METHODOLOGY.md`'s 26 rules, one line each, plus the interview rule
+`methodology/METHODOLOGY.md`'s 30 rules, one line each, plus the interview rule
 — enough to know WHEN a decision is governed. Open the rule before acting on it.
 
 1. Measured, cited, or labeled-derived — there is no fourth category [1]
@@ -38,6 +38,9 @@ the situation below triggers it.
 25. Cheap probes buy the map; the map locks the recipes; only locked recipes earn expensive hours — no expensive run before the written RECIPE LOCK [25]
 26. Publish the noise floor ONCE, page-wide, with the class of claim that survives it; printed precision respects the band, and the report's one reproduction check carries a PASS BAND derived from it [26]
 27. Questions to the user happen at Stage 0 ONLY; after the interview closes the campaign is autonomous to the end — mid-run uncertainty resolves interview-record → measured default → record-the-assumption-and-proceed, never by stopping to ask [interview rule]
+28. The RUN is the scarce thing, not the sampling — widening a query already being issued costs nothing, and a field not written down during the run cannot be recovered at any price [28]
+29. An ignore rule is a claim about re-creatability and it has to be true — ignore by EXTENSION or by a directory of pure bulk, never by a directory of mixed content [29]
+30. Throughput on this rig has two levels ~13% apart and nothing recorded predicts which — compare arms INSIDE one sweep, alternate arm order, publish the level a reader usually gets, and never name a cause (seven candidates tested, all eliminated) [30]
 
 Three failures no rule number catches:
 - Separate "the effect is real" from "the explanation is right" — independent claims, judged separately (81.7 t/s was a real number with a wrong story; the "debunked" verdict was wrong too).

@@ -851,3 +851,45 @@ beyond its retrieval-tested depth is labeled
     and `scripts/make-offline-bundle.ps1`, which pre-downloads every external
     dependency into one folder for USB transfer. A campaign that had to touch
     the network for anything beyond the model weights records what and why.
+
+30. **On this rig throughput has two levels and nothing recorded predicts
+    which one you get, so ratios travel and absolute numbers do not.**
+    Twenty-three sessions of one identical configuration on 2026-08-28 -
+    UD-IQ4_XS, n-max 10 / p-min 0.5, `-c 32768`, `-ctk/-ctv q8_0`, `-ngl 99`,
+    `--parallel 1`, `-fa on`, reasoning off, greedy, 700 predicted tokens,
+    fresh server each, one warmup discarded - produced twenty results between
+    75.71 and 78.65 t/s and three at 88.76, 88.18 and 88.21. Two levels about
+    13% apart, with nothing in between.
+
+    Seven candidates were tested and every one was eliminated: the workload
+    (greedy output is bit-identical, probe for probe), the drafter (acceptance
+    and mean draft length bit-identical across sessions), the llama.cpp build
+    (every compute library unchanged since 2026-08-19), the core clock (a HIGH
+    session ran 49 MHz SLOWER than a low one), board temperature (75-83 C
+    throughout), the memory clock (pinned at 9501 MHz in every probe ever
+    recorded), and prior sustained load, which was tested by four alternating
+    pairs and refuted at -0.43% with overlapping ranges. **The cause is
+    unmeasured. Do not name one.** Three mechanisms were named and withdrawn
+    in a single day before this rule was written.
+
+    THE OPERATING CONSEQUENCES, which cost nothing to follow:
+
+    - **Compare arms inside ONE sweep. Never compare a number from one sweep
+      against a number from another.** Re-running the five-arm drafter sweep
+      last-to-first kept every relationship's sign and rough size (f16 KV
+      -8.9% then -8.2%; `-c 180224` -3.1% then -4.7%; n4/p0.00 +8.4% then
+      +13.2%) while the baseline arm itself moved 76.32 to 67.41, -11.7%.
+      Ratios are robust; levels are not.
+    - **A multi-arm sweep alternates or reverses its arm order**, because a
+      sweep that starts a fresh server per arm and runs them back to back
+      confounds arm POSITION with arm SETTING. `energy-four-sets.py` already
+      does this; the drafter sweeps did not until 2026-08-28.
+    - **A single-figure throughput claim is a point drawn from a band.**
+      Publish the level a reader will usually see, not the best one observed:
+      the figure this campaign advertised for these flags, 86.91 t/s, was
+      reached in 3 of 23 attempts, and rule 2 says no reader may measure less
+      than the report promised.
+    - **Record what the card was doing before the probe started**, alongside
+      the build, the driver and the cap. `scripts/bench/provenance.py` records
+      the rest; prior state is the field this rule adds to the list of things
+      an artefact must carry.
