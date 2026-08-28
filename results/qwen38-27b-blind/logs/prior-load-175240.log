@@ -1,0 +1,41 @@
+
+=== COLD session 1  17:52:40
+  idling 150 s ...
+  COLD 1: mean 77.33  range 75.52-79.62
+
+=== HOT session 1  17:56:25
+  burning 180 s on different work ...
+  burn done: {'burned_s': 187.4, 'clocks_at_burn_end': {'sm_mhz': 1935.0, 'mem_mhz': 9501.0, 'temp_c': 71.0, 'watts': 163.37}}
+  HOT 1: mean 88.18  range 86.36-91.51
+
+=== COLD session 2  18:00:29
+  idling 150 s ...
+  COLD 2: mean 88.21  range 86.91-91.37
+
+=== HOT session 2  18:03:56
+  burning 180 s on different work ...
+  burn done: {'burned_s': 182.6, 'clocks_at_burn_end': {'sm_mhz': 1935.0, 'mem_mhz': 9501.0, 'temp_c': 71.0, 'watts': 161.23}}
+  HOT 2: mean 77.41  range 75.42-81.14
+
+=== COLD session 3  18:08:04
+  idling 150 s ...
+  COLD 3: mean 78.33  range 76.37-81.52
+
+=== HOT session 3  18:11:41
+  burning 180 s on different work ...
+  burn done: {'burned_s': 188.5, 'clocks_at_burn_end': {'sm_mhz': 1920.0, 'mem_mhz': 9501.0, 'temp_c': 74.0, 'watts': 165.75}}
+  HOT 3: mean 78.27  range 76.48-81.29
+
+=== COLD session 4  18:15:57
+  idling 150 s ...
+  COLD 4: mean 78.05  range 75.23-82.93
+
+=== HOT session 4  18:19:38
+  burning 180 s on different work ...
+  burn done: {'burned_s': 187.7, 'clocks_at_burn_end': {'sm_mhz': 1935.0, 'mem_mhz': 9501.0, 'temp_c': 73.0, 'watts': 163.97}}
+  HOT 4: mean 76.67  range 74.55-80.01
+
+COLD means: [77.33, 88.21, 78.33, 78.05]
+HOT  means: [88.18, 77.41, 78.27, 76.67]
+cold 80.48   hot 80.13   hot-cold -0.43%   overlap: True
+wrote E:\AI\measured-inference\results\qwen38-27b-blind\data\followup\prior-load-probe.json

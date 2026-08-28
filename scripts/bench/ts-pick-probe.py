@@ -1,15 +1,5 @@
 #!/usr/bin/env python3
 
-# Provenance, added 2026-08-28. A throughput number whose toolchain is not
-# recorded cannot be compared with a later one - this campaign published four
-# readings of one configuration spanning 80.0 to 106.2 t/s and could not test
-# the build, because no artefact had recorded it.
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__))), "bench"))
-try:
-    import provenance as _prov
-except Exception:                                    # pragma: no cover
-    _prov = None
 """Is there a FASTER pick than [2], and does [2]'s own recipe survive its window?
 
     ts-pick-probe.py --model <path.gguf> [--probes 3]
@@ -101,6 +91,17 @@ import subprocess
 import sys
 import time
 import urllib.request
+
+# Provenance, added 2026-08-28. A throughput number whose toolchain is not
+# recorded cannot be compared with a later one - this campaign published four
+# readings of one configuration spanning 80.0 to 106.2 t/s and could not test
+# the build, because no artefact had recorded it.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), "bench"))
+try:
+    import provenance as _prov
+except Exception:                                    # pragma: no cover
+    _prov = None
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(HERE, "..", "..")
@@ -237,6 +238,19 @@ if __name__ == "__main__":
     ap.add_argument("--model", required=True)
     ap.add_argument("--probes", type=int, default=3)
     ap.add_argument("--only", nargs="*", help="arm ids to run (default all)")
+    ap.add_argument("--reverse", action="store_true",
+                    help="run the arms LAST TO FIRST. This sweep starts a "
+                         "fresh server per arm and runs them back to back, so "
+                         "arm POSITION is confounded with arm SETTING: on "
+                         "2026-08-28 a paired probe measured a session "
+                         "following sustained load running about 14%% faster "
+                         "than one following idle. Arm E was measured last "
+                         "and arm B second. Reversing the order is the test "
+                         "that separates the two - a real effect survives the "
+                         "swap, a positional artefact does not.")
+    ap.add_argument("--tag", default="",
+                    help="artefact suffix, so a reversed run cannot overwrite "
+                         "the forward one it is being compared against.")
     a = ap.parse_args()
 
     if not os.path.exists(a.model):
@@ -256,6 +270,9 @@ if __name__ == "__main__":
         pass
 
     arms = [x for x in ARMS if not a.only or x["id"] in a.only]
+    if a.reverse:
+        arms = list(reversed(arms))
+        print("ARM ORDER REVERSED: %s" % " -> ".join(x["id"] for x in arms))
     rows = []
     for arm in arms:
         print("\n=== %s : %s ===" % (arm["id"], arm["what"]), flush=True)
@@ -335,7 +352,8 @@ if __name__ == "__main__":
             lf.close()
             time.sleep(5)
 
-    path = os.path.join(OUT, "ts-pick-probe.json")
+    suffix = ("-" + a.tag) if a.tag else ("-reversed" if a.reverse else "")
+    path = os.path.join(OUT, "ts-pick-probe%s.json" % suffix)
     with io.open(path, "w", encoding="utf-8") as f:
         json.dump({"model": a.model, "probes_per_arm": a.probes,
                    "toolchain": (_prov.toolchain(SERVER, a.model) if _prov
