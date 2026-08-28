@@ -1,0 +1,229 @@
+{
+  "date": "2026-08-28 11:56",
+  "question": "does probe pacing explain the 39% spread on one configuration (93.9 / 106.2 / 76.3 t/s)?",
+  "config_held_fixed": "UD-IQ4_XS, n-max 10 / p-min 0.5, -c 32768, -ctk/-ctv q8_0, -ngl 99, --parallel 1, -fa on, reasoning off, greedy (temp 0 / top_k 1), fresh server per arm, quiet machine (rule 27)",
+  "model": "C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf",
+  "probes_per_arm": 3,
+  "prompt": "Write a single self-contained JavaScript module that implements a fixed-window rate limiter with a pluggable clock, a per-key limit, and an eviction sweep that runs at most once per window. Include JSDoc on every exported symbol.",
+  "published_readings": {
+    "2026-08-21 code sweep": 93.9,
+    "energy arm": 106.2,
+    "2026-08-28 ts-pick arm A": 76.32
+  },
+  "rows": [
+    {
+      "arm": "P1-tspick-pacing",
+      "what": "ts-pick-probe.py's exact pacing; must reproduce ~76 t/s",
+      "warm_tokens": 120,
+      "burn_s": 0,
+      "burned_actual_s": 0.0,
+      "cooldown_s": 2,
+      "npredict": 400,
+      "mean_tps": 74.97,
+      "spread_pct": 2.22,
+      "mean_sm_mhz": 1800.0,
+      "clocks_before_arm": {
+        "sm_mhz": 1965.0,
+        "temp_c": 63.0,
+        "watts": 150.68
+      },
+      "probes": [
+        {
+          "decode_tps": 76.05191684103154,
+          "predicted_n": 400,
+          "prompt_n": 4,
+          "wall_s": 5.59,
+          "clocks": {
+            "sm_mhz": 1800.0,
+            "temp_c": 74.0,
+            "watts": 338.57
+          }
+        },
+        {
+          "decode_tps": 74.47763250501794,
+          "predicted_n": 400,
+          "prompt_n": 4,
+          "wall_s": 5.71,
+          "clocks": {
+            "sm_mhz": 1815.0,
+            "temp_c": 74.0,
+            "watts": 342.25
+          }
+        },
+        {
+          "decode_tps": 74.39009421505432,
+          "predicted_n": 400,
+          "prompt_n": 4,
+          "wall_s": 5.76,
+          "clocks": {
+            "sm_mhz": 1785.0,
+            "temp_c": 76.0,
+            "watts": 344.3
+          }
+        }
+      ],
+      "log": "pacing-P1-tspick-pacing-server.log"
+    },
+    {
+      "arm": "P2-nocooldown-400",
+      "what": "same but probes run back to back; isolates the inter-probe gap",
+      "warm_tokens": 120,
+      "burn_s": 0,
+      "burned_actual_s": 0.0,
+      "cooldown_s": 0,
+      "npredict": 400,
+      "mean_tps": 76.44,
+      "spread_pct": 1.58,
+      "mean_sm_mhz": 1725.0,
+      "clocks_before_arm": {
+        "sm_mhz": 1905.0,
+        "temp_c": 64.0,
+        "watts": 132.97
+      },
+      "probes": [
+        {
+          "decode_tps": 76.91951199954002,
+          "predicted_n": 400,
+          "prompt_n": 4,
+          "wall_s": 5.48,
+          "clocks": {
+            "sm_mhz": 1755.0,
+            "temp_c": 74.0,
+            "watts": 340.51
+          }
+        },
+        {
+          "decode_tps": 76.67384269939464,
+          "predicted_n": 400,
+          "prompt_n": 4,
+          "wall_s": 5.41,
+          "clocks": {
+            "sm_mhz": 1755.0,
+            "temp_c": 75.0,
+            "watts": 340.37
+          }
+        },
+        {
+          "decode_tps": 75.7143554796561,
+          "predicted_n": 400,
+          "prompt_n": 4,
+          "wall_s": 5.49,
+          "clocks": {
+            "sm_mhz": 1665.0,
+            "temp_c": 76.0,
+            "watts": 336.6
+          }
+        }
+      ],
+      "log": "pacing-P2-nocooldown-400-server.log"
+    },
+    {
+      "arm": "P3-nocooldown-700",
+      "what": "same, 700 tokens; isolates generation length",
+      "warm_tokens": 120,
+      "burn_s": 0,
+      "burned_actual_s": 0.0,
+      "cooldown_s": 0,
+      "npredict": 700,
+      "mean_tps": 80.15,
+      "spread_pct": 12.64,
+      "mean_sm_mhz": 1770.0,
+      "clocks_before_arm": {
+        "sm_mhz": 1920.0,
+        "temp_c": 66.0,
+        "watts": 138.68
+      },
+      "probes": [
+        {
+          "decode_tps": 83.86194311476675,
+          "predicted_n": 700,
+          "prompt_n": 4,
+          "wall_s": 8.63,
+          "clocks": {
+            "sm_mhz": 1740.0,
+            "temp_c": 76.0,
+            "watts": 344.6
+          }
+        },
+        {
+          "decode_tps": 82.86183960149609,
+          "predicted_n": 700,
+          "prompt_n": 4,
+          "wall_s": 8.65,
+          "clocks": {
+            "sm_mhz": 1785.0,
+            "temp_c": 77.0,
+            "watts": 339.75
+          }
+        },
+        {
+          "decode_tps": 73.73231504090774,
+          "predicted_n": 700,
+          "prompt_n": 4,
+          "wall_s": 9.83,
+          "clocks": {
+            "sm_mhz": 1785.0,
+            "temp_c": 78.0,
+            "watts": 336.88
+          }
+        }
+      ],
+      "log": "pacing-P3-nocooldown-700-server.log"
+    },
+    {
+      "arm": "P4-burned-700",
+      "what": "board burned to steady state first; the 2026-08-21 regime",
+      "warm_tokens": 0,
+      "burn_s": 30,
+      "burned_actual_s": 38.6,
+      "cooldown_s": 0,
+      "npredict": 700,
+      "mean_tps": 80.03,
+      "spread_pct": 6.52,
+      "mean_sm_mhz": 1745.0,
+      "clocks_before_arm": {
+        "sm_mhz": 1965.0,
+        "temp_c": 65.0,
+        "watts": 93.81
+      },
+      "probes": [
+        {
+          "decode_tps": 81.7611921435904,
+          "predicted_n": 700,
+          "prompt_n": 4,
+          "wall_s": 8.69,
+          "clocks": {
+            "sm_mhz": 1740.0,
+            "temp_c": 80.0,
+            "watts": 341.96
+          }
+        },
+        {
+          "decode_tps": 81.77936954181122,
+          "predicted_n": 700,
+          "prompt_n": 4,
+          "wall_s": 8.7,
+          "clocks": {
+            "sm_mhz": 1755.0,
+            "temp_c": 80.0,
+            "watts": 341.02
+          }
+        },
+        {
+          "decode_tps": 76.56214111496354,
+          "predicted_n": 700,
+          "prompt_n": 4,
+          "wall_s": 9.25,
+          "clocks": {
+            "sm_mhz": 1740.0,
+            "temp_c": 81.0,
+            "watts": 330.35
+          }
+        }
+      ],
+      "log": "pacing-P4-burned-700-server.log"
+    }
+  ],
+  "pacing_effect_pct": 6.91,
+  "reading": "P1 reproduces ts-pick; the spread between P1 and the best-paced arm is what pacing alone is worth on this rig. It does NOT by itself prove the card's 93.9 is right - compare the best arm to 93.9 directly."
+}

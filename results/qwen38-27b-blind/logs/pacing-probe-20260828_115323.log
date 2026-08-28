@@ -1,0 +1,32 @@
+cap check: stock
+
+=== P1-tspick-pacing  ts-pick-probe.py's exact pacing; must reproduce ~76 t/s
+  probe 1:  76.05 t/s   400 tok  5.6s  1800.0 MHz 74.0 C 338.57 W
+  probe 2:  74.48 t/s   400 tok  5.7s  1815.0 MHz 74.0 C 342.25 W
+  probe 3:  74.39 t/s   400 tok  5.8s  1785.0 MHz 76.0 C 344.3 W
+  MEAN 74.97 t/s  spread 2.22%  SM 1800.0 MHz
+
+=== P2-nocooldown-400  same but probes run back to back; isolates the inter-probe gap
+  probe 1:  76.92 t/s   400 tok  5.5s  1755.0 MHz 74.0 C 340.51 W
+  probe 2:  76.67 t/s   400 tok  5.4s  1755.0 MHz 75.0 C 340.37 W
+  probe 3:  75.71 t/s   400 tok  5.5s  1665.0 MHz 76.0 C 336.6 W
+  MEAN 76.44 t/s  spread 1.58%  SM 1725.0 MHz
+
+=== P3-nocooldown-700  same, 700 tokens; isolates generation length
+  probe 1:  83.86 t/s   700 tok  8.6s  1740.0 MHz 76.0 C 344.6 W
+  probe 2:  82.86 t/s   700 tok  8.7s  1785.0 MHz 77.0 C 339.75 W
+  probe 3:  73.73 t/s   700 tok  9.8s  1785.0 MHz 78.0 C 336.88 W
+  MEAN 80.15 t/s  spread 12.64%  SM 1770.0 MHz
+
+=== P4-burned-700  board burned to steady state first; the 2026-08-21 regime
+  burning 30 s ...
+  probe 1:  81.76 t/s   700 tok  8.7s  1740.0 MHz 80.0 C 341.96 W
+  probe 2:  81.78 t/s   700 tok  8.7s  1755.0 MHz 80.0 C 341.02 W
+  probe 3:  76.56 t/s   700 tok  9.2s  1740.0 MHz 81.0 C 330.35 W
+  MEAN 80.03 t/s  spread 6.52%  SM 1745.0 MHz
+
+wrote E:\AI\measured-inference\results\qwen38-27b-blind\data\followup\pacing-probe.json
+  P1-tspick-pacing        74.97 t/s  spread  2.22%  SM 1800.0 MHz
+  P2-nocooldown-400       76.44 t/s  spread  1.58%  SM 1725.0 MHz
+  P3-nocooldown-700       80.15 t/s  spread 12.64%  SM 1770.0 MHz
+  P4-burned-700           80.03 t/s  spread  6.52%  SM 1745.0 MHz
