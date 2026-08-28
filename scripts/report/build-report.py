@@ -51,6 +51,10 @@ def build_ctx(tag, run):
     except Exception as e:
         ctx["exercises"] = None
         print("  [ctx] exercises unavailable: %s" % e)
+    meta = A.load_runmeta(tag)
+    ctx["meta"] = meta
+    if meta.get("ctx_tokens") is not None:
+        ctx["ctx_tokens"] = meta["ctx_tokens"]
     return ctx
 
 
@@ -140,8 +144,17 @@ if __name__ == "__main__":
     ap.add_argument("--outdir", default=None)
     a = ap.parse_args()
 
-    outdir = a.outdir or os.path.join(ROOT, "results", "qwen38-27b-blind", "figures")
-    os.makedirs(outdir, exist_ok=True)
+    # PER-TAG output. Every tag used to render into ONE directory under the
+    # same 19 filenames, so two builds a minute apart silently overwrote each
+    # other and the surviving set was whichever build wrote each file last -
+    # unrecorded, and not the same run for every figure. The published set was
+    # exactly that: capacity-vram-ceiling.png shows a 17,410 MiB median for the
+    # 4-bit arm and 13,417 MiB for the 2-bit one, and nothing on disk said
+    # which was on the page. A figure that cannot name its run is not evidence.
+    outdir = a.outdir or os.path.join(ROOT, "results", "qwen38-27b-blind",
+                                      "figures", a.tag)
+    if not os.path.isdir(outdir):
+        os.makedirs(outdir)
 
     print("loading telemetry for %s" % a.tag)
     ctx = build_ctx(a.tag, a.run)
@@ -153,6 +166,16 @@ if __name__ == "__main__":
         print("  requests  %d" % len(ctx["requests"]))
     if ctx.get("exercises"):
         print("  exercises %d" % len(ctx["exercises"]))
+    meta = ctx.get("meta")
+    if meta:
+        src = ("read from server log" if meta.get("log")
+               else ("inferred from tag" if meta.get("inferred_from_tag")
+                     else "not recorded"))
+        n_missing = len(meta.get("flags_missing", []))
+        print("  model     %s (%s, %d flags unrecorded)"
+              % (meta.get("model_label") or "unknown", src, n_missing))
+    else:
+        print("  model     no run metadata available")
 
     mods = discover()
     if not mods:
