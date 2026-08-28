@@ -1,0 +1,209 @@
+{
+ "date": "2026-08-28 15:39",
+ "ctx": 32768,
+ "spec_n_max": 10,
+ "spec_p_min": 0.5,
+ "replicates": "results/qwen38-27b-blind/work/drafter-at-2bit.ps1",
+ "flags": "-ngl 99 -c 32768 -fa on --parallel 1 -ctk q8_0 -ctv q8_0 --jinja --reasoning off",
+ "prompt": "Write a single self-contained JavaScript module that implements a fixed-window\nrate limiter with a pluggable clock, a per-key limit, and an eviction sweep that\nruns at most once per window. Include JSDoc on every exported symbol and a short\nusage example at the end. Do not explain the code outside the module.",
+ "published": {
+  "UD-IQ4_XS|False": 42.34,
+  "UD-IQ4_XS|True": 86.91,
+  "UD-Q2_K_XL|False": 45.66,
+  "UD-Q2_K_XL|True": 77.01
+ },
+ "arms": [
+  {
+   "file": "UD-IQ4_XS",
+   "drafter": false,
+   "mean_tps": 41.85,
+   "spread_pct": 3.8,
+   "acceptance": null,
+   "draft_len": null,
+   "warmup_tps": 42.78,
+   "probes": [
+    {
+     "decode_tps": 42.66,
+     "predicted_n": 700,
+     "prompt_n": 4,
+     "draft_n": null,
+     "draft_accepted": null,
+     "acceptance": null,
+     "draft_len": null,
+     "sm_mhz": 1623,
+     "temp": 72.4,
+     "watt": 322.0
+    },
+    {
+     "decode_tps": 41.09,
+     "predicted_n": 700,
+     "prompt_n": 4,
+     "draft_n": null,
+     "draft_accepted": null,
+     "acceptance": null,
+     "draft_len": null,
+     "sm_mhz": 1639,
+     "temp": 74.8,
+     "watt": 328.1
+    },
+    {
+     "decode_tps": 41.79,
+     "predicted_n": 700,
+     "prompt_n": 4,
+     "draft_n": null,
+     "draft_accepted": null,
+     "acceptance": null,
+     "draft_len": null,
+     "sm_mhz": 1580,
+     "temp": 75.8,
+     "watt": 322.1
+    }
+   ],
+   "gib": 13.274
+  },
+  {
+   "file": "UD-IQ4_XS",
+   "drafter": true,
+   "mean_tps": 80.5,
+   "spread_pct": 10.2,
+   "acceptance": 0.611,
+   "draft_len": 7.22,
+   "warmup_tps": 75.69,
+   "probes": [
+    {
+     "decode_tps": 77.59,
+     "predicted_n": 700,
+     "prompt_n": 4,
+     "draft_n": 935,
+     "draft_accepted": 573,
+     "acceptance": 0.613,
+     "draft_len": 7.36,
+     "sm_mhz": 1692,
+     "temp": 74.5,
+     "watt": 305.4
+    },
+    {
+     "decode_tps": 78.12,
+     "predicted_n": 700,
+     "prompt_n": 4,
+     "draft_n": 945,
+     "draft_accepted": 570,
+     "acceptance": 0.603,
+     "draft_len": 7.27,
+     "sm_mhz": 1767,
+     "temp": 75.5,
+     "watt": 310.2
+    },
+    {
+     "decode_tps": 85.79,
+     "predicted_n": 700,
+     "prompt_n": 4,
+     "draft_n": 920,
+     "draft_accepted": 569,
+     "acceptance": 0.618,
+     "draft_len": 7.02,
+     "sm_mhz": 1659,
+     "temp": 76.2,
+     "watt": 309.1
+    }
+   ],
+   "gib": 13.274
+  },
+  {
+   "file": "UD-Q2_K_XL",
+   "drafter": false,
+   "mean_tps": 44.47,
+   "spread_pct": 3.1,
+   "acceptance": null,
+   "draft_len": null,
+   "warmup_tps": 45.68,
+   "probes": [
+    {
+     "decode_tps": 45.33,
+     "predicted_n": 700,
+     "prompt_n": 4,
+     "draft_n": null,
+     "draft_accepted": null,
+     "acceptance": null,
+     "draft_len": null,
+     "sm_mhz": 1599,
+     "temp": 77.2,
+     "watt": 323.4
+    },
+    {
+     "decode_tps": 43.97,
+     "predicted_n": 700,
+     "prompt_n": 4,
+     "draft_n": null,
+     "draft_accepted": null,
+     "acceptance": null,
+     "draft_len": null,
+     "sm_mhz": 1617,
+     "temp": 78.6,
+     "watt": 327.5
+    },
+    {
+     "decode_tps": 44.1,
+     "predicted_n": 700,
+     "prompt_n": 4,
+     "draft_n": null,
+     "draft_accepted": null,
+     "acceptance": null,
+     "draft_len": null,
+     "sm_mhz": 1612,
+     "temp": 79.1,
+     "watt": 324.7
+    }
+   ],
+   "gib": 9.154
+  },
+  {
+   "file": "UD-Q2_K_XL",
+   "drafter": true,
+   "mean_tps": 68.84,
+   "spread_pct": 8.9,
+   "acceptance": 0.551,
+   "draft_len": 6.83,
+   "warmup_tps": 73.34,
+   "probes": [
+    {
+     "decode_tps": 71.96,
+     "predicted_n": 682,
+     "prompt_n": 4,
+     "draft_n": 1004,
+     "draft_accepted": 547,
+     "acceptance": 0.545,
+     "draft_len": 7.44,
+     "sm_mhz": 1627,
+     "temp": 76.2,
+     "watt": 294.9
+    },
+    {
+     "decode_tps": 65.86,
+     "predicted_n": 700,
+     "prompt_n": 4,
+     "draft_n": 974,
+     "draft_accepted": 543,
+     "acceptance": 0.557,
+     "draft_len": 6.2,
+     "sm_mhz": 1723,
+     "temp": 77.2,
+     "watt": 303.8
+    },
+    {
+     "decode_tps": 68.69,
+     "predicted_n": 700,
+     "prompt_n": 4,
+     "draft_n": 1005,
+     "draft_accepted": 553,
+     "acceptance": 0.55,
+     "draft_len": 6.84,
+     "sm_mhz": 1708,
+     "temp": 77.6,
+     "watt": 301.5
+    }
+   ],
+   "gib": 9.154
+  }
+ ]
+}

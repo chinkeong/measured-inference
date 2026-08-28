@@ -1,3 +1,4 @@
+import os
 #!/usr/bin/env python3
 """The quant ladder in BLOCKS - a DISK reduction, not an error-bar technique.
 
@@ -41,7 +42,7 @@ import argparse, io, json, os, re, subprocess, sys, time
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 PPL = r"E:\AI\llama.cpp\llama-perplexity.exe"
-UNS = r"C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF"
+UNS = os.environ.get("MODEL_DIR", r"C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF")
 CORPUS = os.path.join(ROOT, "corpora", "wikitext-2-raw-test.raw")
 OUT = os.path.join(ROOT, "results", "qwen38-27b-blind", "data", "quant-ladder")
 WORK = os.path.join(OUT, "blocks-work")

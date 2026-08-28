@@ -45,9 +45,20 @@ import urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import refarm   # Sampler, smi(), quiet_report()
 
+# Provenance, added 2026-08-28. A throughput number whose toolchain is not
+# recorded cannot be compared with a later one - this campaign published four
+# readings of one configuration spanning 80.0 to 106.2 t/s and could not test
+# the build, because no artefact had recorded it.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), "bench"))
+try:
+    import provenance as _prov
+except Exception:                                    # pragma: no cover
+    _prov = None
+
 SERVER = os.environ.get("LLAMA_SERVER", r"E:\AI\llama.cpp\llama-server.exe")
 MODELS = os.environ.get(
-    "QWEN_DIR", r"C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF")
+    "QWEN_DIR", os.environ.get("MODEL_DIR", r"C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF"))
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                    "..", "..", "results", "qwen38-27b-blind", "data", "register")
 PORT = 1237
@@ -271,6 +282,8 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     out = os.path.join(OUT, "q2-vs-q4-headtohead%s.json" % (opts.tag or ""))
     json.dump({"date": time.strftime("%Y-%m-%d %H:%M"), "ctx": CTX,
+        "toolchain": (_prov.toolchain(SERVER) if _prov else
+                      "NOT RECORDED: provenance module unavailable"),
                "spec_n_max": NMAX, "spec_p_min": PMIN,
                "replicates": "results/qwen38-27b-blind/work/drafter-at-2bit.ps1",
                "flags": "-ngl 99 -c 32768 -fa on --parallel 1 -ctk q8_0 -ctv q8_0 "

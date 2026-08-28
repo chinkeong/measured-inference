@@ -1,4 +1,15 @@
 #!/usr/bin/env python3
+
+# Provenance, added 2026-08-28. A throughput number whose toolchain is not
+# recorded cannot be compared with a later one - this campaign published four
+# readings of one configuration spanning 80.0 to 106.2 t/s and could not test
+# the build, because no artefact had recorded it.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), "bench"))
+try:
+    import provenance as _prov
+except Exception:                                    # pragma: no cover
+    _prov = None
 """Is there a FASTER pick than [2], and does [2]'s own recipe survive its window?
 
     ts-pick-probe.py --model <path.gguf> [--probes 3]
@@ -94,7 +105,8 @@ import urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(HERE, "..", "..")
 OUT = os.path.join(ROOT, "results", "qwen38-27b-blind", "data", "followup")
-SERVER = r"E:\AI\llama.cpp\llama-server.exe"
+SERVER = os.environ.get("LLAMA_SERVER",
+                              r"E:\AI\llama.cpp\llama-server.exe")
 PORT = 1293
 
 # The desktop's own share of the board with no server loaded, measured directly
@@ -326,6 +338,8 @@ if __name__ == "__main__":
     path = os.path.join(OUT, "ts-pick-probe.json")
     with io.open(path, "w", encoding="utf-8") as f:
         json.dump({"model": a.model, "probes_per_arm": a.probes,
+                   "toolchain": (_prov.toolchain(SERVER, a.model) if _prov
+                                 else "NOT RECORDED: provenance module unavailable"),
                    "prompt": PROMPT,
                    "desktop_reserve_mib": DESKTOP_RESERVE_MIB,
                    "conditions": ("greedy, temp 0 / top_k 1, 400 predicted "

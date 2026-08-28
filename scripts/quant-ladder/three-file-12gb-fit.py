@@ -44,7 +44,7 @@ ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, os.path.join(ROOT, "scripts", "bench"))
 import refarm
 
-UNSLOTH = r"C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF"
+UNSLOTH = os.environ.get("MODEL_DIR", r"C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF")
 FILES = [
     ("UD-Q2_K_XL", os.path.join(UNSLOTH, "Qwen3.8-27B-UD-Q2_K_XL.gguf"), 2.912),
     ("QAT-Q2_0", r"C:\Users\chink\.lmstudio\models\sdkyuan\qwen3.8-27B-qat-q2_0-gguf\qwen38-27b-qat-q2_0.gguf", 2.595),

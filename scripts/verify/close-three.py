@@ -43,7 +43,7 @@ ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, os.path.join(ROOT, "scripts", "bench"))
 import refarm
 
-UNS = r"C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF"
+UNS = os.environ.get("MODEL_DIR", r"C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF")
 OUT = os.path.join(ROOT, "results", "qwen38-27b-blind", "data", "register")
 PORT = 1266
 BASE = "http://127.0.0.1:%d" % PORT

@@ -1,3 +1,4 @@
+import os
 #!/usr/bin/env python3
 """Is speculation limited by the draft head, or by the flag that caps it?
 
@@ -32,10 +33,22 @@ run alongside other work measures the other work.
 """
 import argparse, io, json, os, re, subprocess, sys, time, urllib.request
 
+# Provenance, added 2026-08-28. A throughput number whose toolchain is not
+# recorded cannot be compared with a later one - this campaign published four
+# readings of one configuration spanning 80.0 to 106.2 t/s and could not test
+# the build, because no artefact had recorded it.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), "bench"))
+try:
+    import provenance as _prov
+except Exception:                                    # pragma: no cover
+    _prov = None
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(HERE, "..", "..")
 OUT = os.path.join(ROOT, "results", "qwen38-27b-blind", "data", "followup")
-SERVER = r"E:\AI\llama.cpp\llama-server.exe"
+SERVER = os.environ.get("LLAMA_SERVER",
+                              r"E:\AI\llama.cpp\llama-server.exe")
 PORT = 1291
 
 BASE_FLAGS = ["--alias", "qwen", "--host", "127.0.0.1", "-ngl", "99",
@@ -201,6 +214,8 @@ if __name__ == "__main__":
               % (r["nmax"], r["mean_tps"], rel,
                  100 * (r["accept_rate"] or 0), r["mean_accepted_len"] or 0))
     json.dump({"date": time.strftime("%Y-%m-%d %H:%M"),
+        "toolchain": (_prov.toolchain(SERVER) if _prov else
+                      "NOT RECORDED: provenance module unavailable"),
                "model": os.path.basename(a.model),
                "note": "shipped recipe; only --spec-draft-n-max varies; "
                        "greedy; quiet machine",

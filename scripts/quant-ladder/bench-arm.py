@@ -38,7 +38,8 @@ import time
 
 BENCH = r"E:\AI\measured-inference\scripts\bench"
 OUT = r"E:\AI\measured-inference\results\qwen38-27b-blind\data\quant-ladder\bench"
-SRV = r"E:\AI\llama.cpp\llama-server.exe"
+SRV = os.environ.get("LLAMA_SERVER",
+                              r"E:\AI\llama.cpp\llama-server.exe")
 PORT = "1236"
 DATASETS = "GSM8K,HumanEval,MBPP"
 

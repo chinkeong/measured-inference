@@ -1,3 +1,4 @@
+import os
 """Energy for the four benchmark sets that ran outside the power logger.
 
     python energy-four-sets.py [--samples 25]
@@ -54,7 +55,7 @@ sys.path.insert(0, os.path.join(ROOT, "scripts", "bench"))
 import refarm
 
 BENCH = os.path.join(ROOT, "scripts", "bench", "bench.py")
-MODEL = os.path.join(r"C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF",
+MODEL = os.path.join(os.environ.get("MODEL_DIR", r"C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF"),
                      "Qwen3.8-27B-UD-IQ4_XS.gguf")
 OUT = os.path.join(ROOT, "results", "qwen38-27b-blind", "data", "register")
 SETS = ["GSM8K", "ALPACA", "MeetingBank", "MT-Bench"]

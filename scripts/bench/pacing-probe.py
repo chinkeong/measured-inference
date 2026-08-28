@@ -63,7 +63,19 @@ import sys
 import time
 import urllib.request
 
-SERVER = r"E:\AI\llama.cpp\llama-server.exe"
+# Provenance, added 2026-08-28. A throughput number whose toolchain is not
+# recorded cannot be compared with a later one - this campaign published four
+# readings of one configuration spanning 80.0 to 106.2 t/s and could not test
+# the build, because no artefact had recorded it.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), "bench"))
+try:
+    import provenance as _prov
+except Exception:                                    # pragma: no cover
+    _prov = None
+
+SERVER = os.environ.get("LLAMA_SERVER",
+                              r"E:\AI\llama.cpp\llama-server.exe")
 PORT = 1294
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUT = os.path.join(REPO, "results", "qwen38-27b-blind", "data", "followup",
@@ -270,6 +282,8 @@ def main():
     best = max(ok_rows, key=lambda r: r["mean_tps"]) if ok_rows else None
     out = {
         "date": time.strftime("%Y-%m-%d %H:%M"),
+        "toolchain": (_prov.toolchain(SERVER, a.model) if _prov else
+                      "NOT RECORDED: provenance module unavailable"),
         "question": "does probe pacing explain the 39% spread on one "
                     "configuration (93.9 / 106.2 / 76.3 t/s)?",
         "config_held_fixed": "UD-IQ4_XS, n-max 10 / p-min 0.5, -c 32768, "

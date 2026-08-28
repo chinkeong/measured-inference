@@ -42,6 +42,17 @@ import threading
 import time
 import urllib.request
 
+# Provenance, added 2026-08-28. A throughput number whose toolchain is not
+# recorded cannot be compared with a later one - this campaign published four
+# readings of one configuration spanning 80.0 to 106.2 t/s and could not test
+# the build, because no artefact had recorded it.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), "bench"))
+try:
+    import provenance as _prov
+except Exception:                                    # pragma: no cover
+    _prov = None
+
 SERVER = os.environ.get("LLAMA_SERVER", r"E:\AI\llama.cpp\llama-server.exe")
 LMS = r"C:\Users\chink\.lmstudio\models"
 MODEL = os.path.join(LMS, r"unsloth\Qwen3.8-27B-GGUF\Qwen3.8-27B-UD-IQ4_XS.gguf")
@@ -372,6 +383,8 @@ def main():
 
     out = os.path.join(OUT, "power-cap-arms%s.json" % (("-" + TAG) if TAG else ""))
     json.dump({"date": time.strftime("%Y-%m-%d %H:%M"), "card": smi("name"),
+               "toolchain": (_prov.toolchain(SERVER) if _prov else
+                             "NOT RECORDED: provenance module unavailable"),
                "default_limit_w": default_w, "ctx": CTX, "npredict": NPREDICT,
                "settled": SETTLED, "prompt": PROMPT,
                "warm_seconds": WARM_SECONDS, "cooldown": COOLDOWN,
