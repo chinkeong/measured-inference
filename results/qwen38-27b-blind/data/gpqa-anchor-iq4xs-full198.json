@@ -1,0 +1,83 @@
+{
+  "combined": true,
+  "why": "the two halves are complementary and together cover the frozen file exactly once, which is what removes the subject-ordering bias that neither half can escape alone",
+  "halves": [
+    {
+      "span": "questions 1-100",
+      "date": "2026-08-27",
+      "source": "gpqa-anchor-iq4xs.json",
+      "n": 100,
+      "correct": 82,
+      "pct": 82.0,
+      "truncated": 13,
+      "tok_s_mean": 52.07,
+      "tokens_mean": 10166.0
+    },
+    {
+      "span": "questions 101-198",
+      "date": "2026-08-28",
+      "source": "gpqa-anchor-iq4xs-tail.json",
+      "n": 98,
+      "correct": 76,
+      "pct": 77.6,
+      "truncated": 19,
+      "tok_s_mean": 54.24,
+      "tokens_mean": 10859.6
+    }
+  ],
+  "score": {
+    "correct": 158,
+    "n": 198,
+    "pct": 79.8,
+    "wilson95": [
+      73.7,
+      84.8
+    ]
+  },
+  "score_excluding_truncated": {
+    "correct": 158,
+    "n": 166,
+    "pct": 95.2,
+    "wilson95": [
+      90.8,
+      97.5
+    ],
+    "this_is_an_upper_bound": "it assumes every truncated answer would have been correct, which is the most generous assumption available"
+  },
+  "truncated": {
+    "n": 32,
+    "pct": 16.2,
+    "first_half": "13 of 100",
+    "second_half": "19 of 98",
+    "halves_differ": {
+      "z": -1.221,
+      "p": 0.2221
+    },
+    "note": "the ceiling is a harness condition at max_tokens 30000, not a property of the model's knowledge"
+  },
+  "halves_differ_in_accuracy": {
+    "z": 0.78,
+    "p": 0.4357,
+    "reading": "a difference here is a statement about the two halves of a subject-ordered file, not about run-to-run noise: the halves contain different questions"
+  },
+  "throughput_not_pooled": "per-half only. The halves differ in generated length and in the board temperature they met, so a single mean would describe neither.",
+  "subject_bias": "REMOVED. Each half covers what the other misses (prefix: biology 16 of 16, quantum 3 of 21; tail: biology 0 of 16, quantum 18 of 21). The union is every row exactly once.",
+  "conditions": {
+    "sampler": "vendor thinking profile: temperature 1.0, top_p 0.95, top_k 20, presence_penalty 0.0 (set explicitly - bench.py's default pairs the thinking temperature with the NON-thinking presence penalty of 1.5)",
+    "effort": "xhigh, via LLAMA_ARG_CHAT_TEMPLATE_KWARGS (the JSON could not survive PowerShell -> cmd -> argparse -> split())",
+    "max_tokens": 30000,
+    "ctx": 32768,
+    "model": "Qwen3.8-27B-UD-IQ4_XS",
+    "server_flags": "-ngl 99 -fa on -ctk q8_0 -ctv q8_0 --jinja --spec-type draft-mtp --spec-draft-n-max 4 --spec-draft-p-min 0.75",
+    "machine": "one RTX 3090, 350 W stock board cap, llama.cpp b10502-0adcc3bb5",
+    "seed": 42,
+    "stopped_early": "at 100 of 198 by decision, to free the machine for the test-retest baseline.",
+    "CORRECTION_to_the_stopping_justification": "An earlier version of this condition block justified stopping early on a chi-square of 4.30 on the ANSWER KEY between halves, 3 df, described as 'no detectable order effect'. That test asks only whether the correct letter A/B/C/D is evenly spread. It cannot see SUBJECT ordering, and subject ordering is what actually breaks a prefix. Measured 2026-08-27: the file is strongly subject-ordered - 106 adjacent same-subject pairs against 48.1 expected under random order, permutation p < 0.00005 over 20,000 shuffles. Both are true at once; only the second matters here.",
+    "what_this_detects": "A BROKEN harness. It does NOT validate one. The option order is the mirror's and is not the order that produced any published number; 89.2 is vendor self-reported with no independent third-party score for this model on this benchmark; and this rig serves 32,768 tokens of a 262,144-token-native model."
+  },
+  "published_reference": {
+    "value": 89.2,
+    "inside_wilson95": false,
+    "note": "a published figure this run can be compared against. It detects a BROKEN harness; it does not validate one - the option order is the mirror's, the published value is vendor self-reported, and this rig serves a fraction of the model's native context."
+  }
+}

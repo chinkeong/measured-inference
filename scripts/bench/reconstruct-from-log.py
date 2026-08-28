@@ -101,7 +101,7 @@ def classify(question):
     return best if score else "unclassified"
 
 
-def subject_profile(dataset, completed_n, shuffles=20000, seed=0):
+def subject_profile(dataset, completed_n, shuffles=20000, seed=0, offset=0):
     """Measure whether the frozen file is subject-ordered, and if a run stopped
     short, say which subjects it covered and which it never reached.
 
@@ -111,6 +111,12 @@ def subject_profile(dataset, completed_n, shuffles=20000, seed=0):
     path = FROZEN.get(dataset)
     if not path or not os.path.exists(path):
         return None
+    # OFFSET, added 2026-08-28. A run no longer has to start at row 0: bench.py
+    # gained --offset so the complement of a stopped prefix could be run. This
+    # function assumed the covered rows were [0, completed_n), which for an
+    # offset run reports the PREFIX's subjects as the tail's - biology 16 of 16
+    # and quantum 3, on a run that answered neither. A coverage figure that
+    # describes the wrong rows is worse than none: it reads as measured.
     rows = [json.loads(l) for l in io.open(path, encoding="utf-8") if l.strip()]
     labels = [classify(r.get("question", "")) for r in rows]
 
@@ -130,9 +136,10 @@ def subject_profile(dataset, completed_n, shuffles=20000, seed=0):
     p_value = at_least / float(shuffles)
 
     seen, missed = {}, {}
+    lo, hi = offset, offset + completed_n
     for i, lab in enumerate(labels):
-        (seen if i < completed_n else missed)[lab] = \
-            (seen if i < completed_n else missed).get(lab, 0) + 1
+        d = seen if lo <= i < hi else missed
+        d[lab] = d.get(lab, 0) + 1
     never = sorted(k for k in missed if k not in seen)
 
     # Per-subject coverage: what share of each subject's questions the prefix
@@ -209,6 +216,11 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--log", required=True)
     ap.add_argument("--dataset", default="GPQA-Diamond")
+    ap.add_argument("--offset", type=int, default=0,
+                    help="row the run STARTED at, matching bench.py --offset. "
+                         "Subject coverage is computed over rows "
+                         "[offset, offset+completed_n); leaving it at 0 for an "
+                         "offset run reports the wrong rows as covered.")
     ap.add_argument("--out", required=True)
     ap.add_argument("--model-label", default="Qwen3.8-27B-UD-IQ4_XS")
     ap.add_argument("--published", type=float, default=None,
@@ -278,7 +290,7 @@ if __name__ == "__main__":
         "tok_s_mean": round(st.mean([r["tok_s"] for r in rows]), 2),
         "rows": rows,
     }
-    prof = subject_profile(a.dataset, n)
+    prof = subject_profile(a.dataset, n, offset=a.offset)
     if prof is None:
         # NOT silence. A check that could not run is recorded as not having run.
         out["subject_coverage"] = {
