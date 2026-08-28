@@ -58,9 +58,13 @@ REASON_BIT = {"SW power cap": 0x0004, "HW slowdown": 0x0008,
               "HW power brake": 0x0080}
 
 PART = "NVIDIA GeForce RTX 3090 (single board, GPU 0)"
-WORKLOAD = ("aider polyglot agentic coding benchmark against a local "
-            "llama-server, IQ4_XS weights 14.25 GB resident, MTP speculative "
-            "decoding on")
+def _workload(meta):
+    """Build the workload description from run metadata."""
+    import archdata as A
+    return ("aider polyglot agentic coding benchmark against a local "
+            "llama-server, %s, %s, %s"
+            % (A.model_phrase(meta), A.resident_phrase(meta),
+               A.drafter_phrase(meta)))
 NOT_MEASURED = ("board power is the NVML GPU board domain only, so PSU, CPU "
                 "and wall power were not measured, and per-process power "
                 "attribution is unavailable under Windows WDDM")
@@ -235,7 +239,7 @@ def _labels(thr):
 
 # ---------------------------------------------------------------- figure 1
 
-def _fig_timeline(thr, dmon, spot, outdir):
+def _fig_timeline(thr, dmon, spot, outdir, workload=""):
     t, lab = _labels(thr)
     if t is None:
         return None
@@ -343,7 +347,7 @@ def _fig_timeline(thr, dmon, spot, outdir):
              "limiting appears only as isolated samples"
              % ("%.0f W cap" % cap_w if np.isfinite(cap_w)
                 else "board-power cap"))
-    cond = "%s | workload: %s" % (PART, WORKLOAD)
+    cond = "%s | workload: %s" % (PART, workload)
     if np.isfinite(pmean):
         cond += " | board power %.0f W mean over busy samples" % pmean
     cond += " | %s | %s" % (_thermal_note(dmon, spot), NOT_MEASURED)
@@ -362,7 +366,7 @@ def _fig_timeline(thr, dmon, spot, outdir):
 
 # ---------------------------------------------------------------- figure 2
 
-def _fig_share(thr, dmon, spot, outdir):
+def _fig_share(thr, dmon, spot, outdir, workload=""):
     t, lab = _labels(thr)
     if t is None:
         return None
@@ -448,7 +452,7 @@ def _fig_share(thr, dmon, spot, outdir):
              % (pcap, tsw, unc))
     cond = ("%s | workload: %s | %d idle samples (%.1f%% of all %d) excluded: "
             "idle is a state, not a limit, and counting it would dilute every "
-            "bar" % (PART, WORKLOAD, n_idle, 100.0 * n_idle / n_all, n_all))
+            "bar" % (PART, workload, n_idle, 100.0 * n_idle / n_all, n_all))
     if n_nodata:
         cond += "; %d samples carried no mask and are excluded too" % n_nodata
     top = _header(fig, title, cond)
@@ -519,6 +523,8 @@ def make(ctx, outdir):
     never crash). Returns a list of (png_path, caption_string)."""
     tag = _get(ctx, "tag") or "unknown-tag"
     run = _get(ctx, "run") or "unknown-run"
+    meta = _get(ctx, "meta")
+    workload = _workload(meta)
     thr = _get(ctx, "throttle")
     dmon = _get(ctx, "dmon")
 
@@ -542,24 +548,23 @@ def make(ctx, outdir):
 
     cond = ("%s. Workload: %s; run %s, tag %s. Window: %.0f minutes of "
             "telemetry, %d clock-event samples, %d of them busy. %s."
-            % (PART, WORKLOAD, run, tag, span_min, len(t), n_busy,
+            % (PART, workload, run, tag, span_min, len(t), n_busy,
                NOT_MEASURED[0].upper() + NOT_MEASURED[1:]))
 
     out = []
     try:
-        p1 = _fig_timeline(thr, dmon, spot, outdir)
+        p1 = _fig_timeline(thr, dmon, spot, outdir, workload=workload)
     except Exception:
         p1 = None
     if p1:
-        c = ("Which single limit was active at each sampled moment across the "
-             "whole run, with board power on the right axis. The band is the "
-             "severity-collapsed NVML clock-event label, so exactly one limit "
-             "holds each sample and the stack is 100% at every instant; "
-             "limits other than the power cap also get fixed-width tick marks "
-             "above the band, because one sample is roughly one pixel wide at "
-             "this aspect ratio and would otherwise be invisible. Board power "
-             "tracks the enforced limit for essentially the entire run, "
-             "dropping only where the server goes idle between requests. "
+        c = ("Board power tracks the enforced limit for essentially the "
+             "entire run, dropping only where the server goes idle between "
+             "requests. The band is the severity-collapsed NVML clock-event "
+             "label, so exactly one limit holds each sample and the stack is "
+             "100%% at every instant; limits other than the power cap also get "
+             "fixed-width tick marks above the band, because one sample is "
+             "roughly one pixel wide at this aspect ratio and would otherwise "
+             "be invisible. "
              + cond)
         if dmon is None:
             c += (" Board power is NOT drawn on this copy: the dmon source "
@@ -567,20 +572,20 @@ def make(ctx, outdir):
         out.append((p1, c))
 
     try:
-        p2 = _fig_share(thr, dmon, spot, outdir)
+        p2 = _fig_share(thr, dmon, spot, outdir, workload=workload)
     except Exception:
         p2 = None
     if p2:
-        c = ("Time in each limit as a share of BUSY samples. Idle is excluded "
-             "and the figure states how many idle samples were dropped: idle "
-             "is a state, not a limit, and including it would dilute every "
-             "bar. Filled bars are the exclusive severity-collapsed label; "
-             "open diamonds are how often each reason bit was set at all, "
-             "since reasons co-occur. Measured in this window: SW power cap "
-             "%.1f%% of busy samples, SW thermal %.1f%%, unconstrained "
-             "%.1f%%. Limits that never fired are drawn at zero and labelled "
-             "as measured rather than omitted, so a reader can tell 'never "
-             "happened' from 'never sampled'. %s" % (pcap, tsw, unc, cond))
+        c = ("Power is the limit on %.1f%% of busy samples, temperature on "
+             "%.1f%%, and the part is unconstrained on %.1f%%. Idle is "
+             "excluded and the figure states how many idle samples were "
+             "dropped: idle is a state, not a limit, and including it would "
+             "dilute every bar. Filled bars are the exclusive "
+             "severity-collapsed label; open diamonds are how often each "
+             "reason bit was set at all, since reasons co-occur. Limits that "
+             "never fired are drawn at zero and labelled as measured rather "
+             "than omitted, so a reader can tell 'never happened' from "
+             "'never sampled'. %s" % (pcap, tsw, unc, cond))
         out.append((p2, c))
 
     return out

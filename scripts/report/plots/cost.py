@@ -47,8 +47,6 @@ _GREY = "#5a5a5a"
 # Conditions that are true of every figure this module emits. Written once so a
 # number can never travel without them.
 _PART = "NVIDIA RTX 3090 (GA102, 24 GB GDDR6X)"
-_WORKLOAD = ("aider polyglot exercises, Qwen3-Coder-30B IQ4_XS on llama.cpp, "
-             "MTP speculative decoding on")
 _NOTMEAS = ("NOT measured: system or wall power (this is GPU board power from "
             "NVML only, so no PSU loss, CPU, RAM or fans); per-process GPU "
             "power (nvidia-smi pmon reports \"-\" for every process under "
@@ -56,29 +54,38 @@ _NOTMEAS = ("NOT measured: system or wall power (this is GPU board power from "
             "and anything else on the card); memory junction temperature "
             "(not exposed by NVML on this part).")
 
-# The same conditions, pre-broken into lines that fit a figure footer without
-# relying on matplotlib's wrapper, so the reserved height is predictable.
-_FOOTER = (
-    "Part: NVIDIA RTX 3090 (GA102, 24 GB GDDR6X), stock 350 W board power "
-    "limit, fan pinned at 100%.",
-    "Workload: aider polyglot exercises, Qwen3-Coder-30B IQ4_XS on llama.cpp, "
-    "MTP speculative decoding on.",
-    "Attribution: each exercise owns the interval since the PREVIOUS exercise "
-    "finished, integrated over GPU-busy samples only. aider's own \"duration\" "
-    "is not",
-    "used as the window: the results-file timestamp is written after the unit "
-    "tests, so that window has the right length in the wrong place.",
-    "NOT measured: system or wall power - this is GPU board power from NVML "
-    "only, with no PSU loss, CPU, RAM or fans. Per-process GPU power is "
-    "unavailable",
-    "under Windows WDDM, so board draw is not split between the server and "
-    "anything else on the card. Memory junction temperature is not exposed by "
-    "NVML.")
+
+def _workload(meta):
+    """Run-specific workload clause built from the server log's own identity."""
+    model = A.model_phrase(meta) if meta else "model identity unknown"
+    drafter = A.drafter_phrase(meta) if meta else "drafter status unknown"
+    return ("aider polyglot exercises, %s on llama.cpp, %s"
+            % (model, drafter))
+
+
+def _footer_lines(meta):
+    """Pre-broken footer lines for the figure band, using the run's own
+    model identity so no hardcoded name can drift from the data."""
+    wl = _workload(meta)
+    return (
+        "Part: %s, stock 350 W board power limit, fan pinned at 100%%." % _PART,
+        "Workload: %s." % wl,
+        "Attribution: each exercise owns the interval since the PREVIOUS exercise "
+        "finished, integrated over GPU-busy samples only. aider's own \"duration\" "
+        "is not",
+        "used as the window: the results-file timestamp is written after the unit "
+        "tests, so that window has the right length in the wrong place.",
+        "NOT measured: system or wall power - this is GPU board power from NVML "
+        "only, with no PSU loss, CPU, RAM or fans. Per-process GPU power is "
+        "unavailable",
+        "under Windows WDDM, so board draw is not split between the server and "
+        "anything else on the card. Memory junction temperature is not exposed by "
+        "NVML.")
 
 _FOOT_IN = 1.12          # inches of figure height reserved for that footer
 
 
-def _lay_out(fig, axes, top=1.0):
+def _lay_out(fig, axes, footer, top=1.0):
     """Common finish: grid, despine, reserve the footer band, stamp it."""
     for a in axes:
         a.grid(alpha=0.3, linewidth=0.6)
@@ -87,7 +94,7 @@ def _lay_out(fig, axes, top=1.0):
             a.spines[sp].set_visible(False)
     frac = _FOOT_IN / float(fig.get_size_inches()[1])
     fig.tight_layout(rect=(0, frac, 1, top))
-    fig.text(0.008, frac - 0.015, chr(10).join(_FOOTER), fontsize=7.6,
+    fig.text(0.008, frac - 0.015, chr(10).join(footer), fontsize=7.6,
              color=_GREY, ha="left", va="top", linespacing=1.5)
 
 
@@ -210,7 +217,7 @@ def _throttle_mix(throttle):
 # Figure 1: cost against the shape of the request
 # --------------------------------------------------------------------------
 def _fig_cost_vs_ratio(recs, ctx, n_nopred, n_outside, n_empty, late_min,
-                       outdir):
+                       outdir, meta):
     jpt = np.array([r["j"] / r["comp"] for r in recs])
     ratio = np.array([r["prompt"] / r["comp"] for r in recs])
     ok = np.isfinite(jpt) & np.isfinite(ratio) & (ratio > 0)
@@ -302,28 +309,30 @@ def _fig_cost_vs_ratio(recs, ctx, n_nopred, n_outside, n_empty, late_min,
     ax.legend(loc="lower right", fontsize=8.3, framealpha=0.94,
               edgecolor="#cccccc")
 
-    _lay_out(fig, [ax])
+    _lay_out(fig, [ax], _footer_lines(meta))
 
     path = os.path.join(outdir, "cost-energy-per-token-vs-prompt-ratio.png")
     fig.savefig(path, dpi=140, facecolor="white")
     plt.close(fig)
 
-    cap = ("Energy per completion token against the prompt-to-completion token "
-           "ratio, one point per aider polyglot exercise, coloured by source "
-           "language. Part: %s. Workload: %s. Attribution: each exercise owns "
-           "the interval since the previous exercise finished, integrated over "
-           "GPU-busy samples (SM > %.0f%%); aider's \"duration\" is deliberately "
-           "not used as the window because the results-file timestamp is "
-           "written after the unit tests, which would bill test-time idle to "
-           "the model. %d exercises attributed, %d dropped for having no "
-           "predecessor, %d for falling outside the telemetry trace (the GPU "
-           "collector started %.0f minutes after the first exercise finished) "
-           "and %d for holding no GPU-busy sample. Run "
-           "mean %.2f J per completion token (%.2f kWh per million completion "
-           "tokens); range %.2f (%s) to %.2f (%s), a spread of %.1fx, "
-           "correlating with the prompt:completion ratio at Pearson r = %.2f "
-           "(Spearman rho = %.2f, n = %d). %s"
-           % (_PART, _WORKLOAD, A.BUSY_SM_PCT, len(jpt), n_nopred, n_outside,
+    wl = _workload(meta)
+    cap = ("Prompt-heavy calls cost measured %.1fx more GPU board energy per "
+           "completion token. One point per aider polyglot exercise, coloured "
+           "by source language. Part: %s. Workload: %s. Attribution: each "
+           "exercise owns the interval since the previous exercise finished, "
+           "integrated over GPU-busy samples (SM > %.0f%%); aider's "
+           "\"duration\" is deliberately not used as the window because the "
+           "results-file timestamp is written after the unit tests, which "
+           "would bill test-time idle to the model. %d exercises attributed, "
+           "%d dropped for having no predecessor, %d for falling outside the "
+           "telemetry trace (the GPU collector started %.0f minutes after the "
+           "first exercise finished) and %d for holding no GPU-busy sample. "
+           "Run mean measured %.2f J per completion token (derived "
+           "%.2f kWh per million completion tokens); range measured %.2f (%s) "
+           "to measured %.2f (%s), a spread of %.1fx, correlating with the "
+           "prompt:completion ratio at Pearson r = %.2f (Spearman rho = %.2f, "
+           "n = %d). %s"
+           % (spread, _PART, wl, A.BUSY_SM_PCT, len(jpt), n_nopred, n_outside,
               late_min, n_empty,
               overall, overall * 1e6 / 3.6e6, float(jpt.min()),
               keep[lo_i]["case"], float(jpt.max()), keep[hi_i]["case"],
@@ -334,7 +343,7 @@ def _fig_cost_vs_ratio(recs, ctx, n_nopred, n_outside, n_empty, late_min,
 # --------------------------------------------------------------------------
 # Figure 2: the caveat, demonstrated
 # --------------------------------------------------------------------------
-def _fig_cost_is_throughput(recs, ctx, outdir):
+def _fig_cost_is_throughput(recs, ctx, outdir, meta):
     jpt = np.array([r["j"] / r["comp"] for r in recs])
     spt = np.array([r["busy_s"] / r["comp"] for r in recs])
     ok = np.isfinite(jpt) & np.isfinite(spt) & (spt > 0)
@@ -436,31 +445,32 @@ def _fig_cost_is_throughput(recs, ctx, outdir):
                  "is power-capped, not power-varying",
                  fontsize=12.5, fontweight="bold", color=_INK, y=0.982)
 
-    _lay_out(fig, (axL, axR), top=0.955)
+    _lay_out(fig, (axL, axR), _footer_lines(meta), top=0.955)
 
     path = os.path.join(outdir, "cost-energy-is-throughput-restated.png")
     fig.savefig(path, dpi=140, facecolor="white")
     plt.close(fig)
 
-    cap = ("Why the joules-per-token number on the companion figure is not an "
-           "independent measurement. Left: energy per completion token against "
-           "GPU-busy seconds per completion token, one point per exercise; the "
-           "line is a constant %.0f W board draw and fits at r2 = %.3f. Mean "
-           "board power per exercise varies by only %.1f%% (coefficient of "
-           "variation), so energy per token is essentially time per token "
-           "multiplied by a fixed number. Right: distribution of board power "
-           "over %d GPU-busy telemetry samples (SM > %.0f%%), mean %.0f W at "
-           "%.1f%% coefficient of variation, with the NVML clock-limit reason "
-           "over non-idle samples (%s). An architect should therefore treat "
-           "energy-per-token differences on this part as throughput "
-           "differences, and expect the two to decouple only on a part that is "
-           "not pinned to its power limit. Part: %s. Workload: %s. %s"
+    wl = _workload(meta)
+    cap = ("Joules per token is throughput restated, not an independent "
+           "measurement: the board draws a measured constant %.0f W and the "
+           "one-parameter model fits at r2 = %.3f. Left: energy per completion "
+           "token against GPU-busy seconds per completion token, one point per "
+           "exercise. Mean board power per exercise varies by only measured "
+           "%.1f%% (coefficient of variation), so energy per token is time per "
+           "token multiplied by a fixed number. Right: distribution of board "
+           "power over %d GPU-busy telemetry samples (SM > %.0f%%), mean "
+           "measured %.0f W at %.1f%% coefficient of variation, with the NVML "
+           "clock-limit reason over non-idle samples (%s). An architect should "
+           "treat energy-per-token differences on this part as throughput "
+           "differences, and expect the two to decouple only on a part not "
+           "pinned to its power limit. Part: %s. Workload: %s. %s"
            % (p_bar, r2, 100 * win_cv, pw_n, A.BUSY_SM_PCT, pw_mean,
               100 * pw_cv,
               ", ".join("%s %.1f%%" % (k, v)
                         for k, v in sorted(mix.items(), key=lambda kv: -kv[1]))
               or "not collected",
-              _PART, _WORKLOAD, _NOTMEAS))
+              _PART, wl, _NOTMEAS))
     return path, cap
 
 
@@ -486,14 +496,16 @@ def make(ctx, outdir):
     except Exception:
         return out
 
+    meta = ctx.get("meta")
+
     recs, n_nopred, n_outside, n_empty, late_min = _attribute(
         dmon, exercises, run)
     if len(recs) < 3:
         return out
 
     for fn in (lambda: _fig_cost_vs_ratio(recs, ctx, n_nopred, n_outside,
-                                          n_empty, late_min, outdir),
-               lambda: _fig_cost_is_throughput(recs, ctx, outdir)):
+                                          n_empty, late_min, outdir, meta),
+               lambda: _fig_cost_is_throughput(recs, ctx, outdir, meta)):
         try:
             r = fn()
         except Exception:

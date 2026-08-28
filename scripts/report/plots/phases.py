@@ -139,7 +139,7 @@ def _pick_window(runs, t0, t1, width, step=30.0):
 
 
 # --------------------------------------------------------------------------
-def _fig_timeline(ctx, outdir, runs, secs, jou, gap, nreq):
+def _fig_timeline(ctx, outdir, runs, secs, jou, gap, nreq, meta=None):
     t = ctx["slots"]["t"]
     dmon = ctx.get("dmon")
     t0, t1 = float(t[0]), float(t[-1])
@@ -251,10 +251,11 @@ def _fig_timeline(ctx, outdir, runs, secs, jou, gap, nreq):
                  % (100.0 * secs[2] / tot_s,
                     sum(1 for p, _, _ in runs if p == 2), nreq),
                  fontsize=13, y=0.985)
+    model_sub = A.model_phrase(meta) if meta else "model identity not recorded"
     fig.text(0.5, 0.945,
-             "%s  -  RTX 3090, IQ4_XS, MTP speculative decoding on  -  median "
+             "%s  -  RTX 3090, %s  -  median "
              "phase run %.1f s, longest %.0f s%s"
-             % (ctx.get("tag", "?"), float(np.median(rl)), max(rl),
+             % (ctx.get("tag", "?"), model_sub, float(np.median(rl)), max(rl),
                 ("" if gap <= 0 else
                  "  -  %.0f s of collector gap excluded" % gap)),
              ha="center", va="top", fontsize=8.7, color="#444444")
@@ -268,7 +269,7 @@ def _fig_timeline(ctx, outdir, runs, secs, jou, gap, nreq):
 
 
 # --------------------------------------------------------------------------
-def _fig_split(ctx, outdir, secs, jou, tokens, cache_tok, nreq, inst):
+def _fig_split(ctx, outdir, secs, jou, tokens, cache_tok, nreq, inst, meta=None):
     ks = (2, 1, 0)
     s_sh, _ = _shares(secs, ks)
     t_sh, _ = _shares(tokens, ks)
@@ -372,9 +373,10 @@ def _fig_split(ctx, outdir, secs, jou, tokens, cache_tok, nreq, inst):
            if j_sh is not None else
            "time is interval-weighted; board energy is absent from this run "
            "and is\nreported as not measured, not as zero")
+    model_sub = A.model_phrase(meta) if meta else "model identity not recorded"
     fig.text(0.5, 0.938,
-             "%s, %d requests  -  RTX 3090, IQ4_XS, MTP speculative decoding "
-             "on  -  %s" % (ctx.get("tag", "?"), nreq, how),
+             "%s, %d requests  -  RTX 3090, %s  -  %s"
+             % (ctx.get("tag", "?"), nreq, model_sub, how),
              ha="center", va="top", fontsize=8.5, color="#444444",
              linespacing=1.4)
 
@@ -461,15 +463,20 @@ def make(ctx, outdir):
     except Exception:
         inst = None
 
+    run_meta = ctx.get("meta")
+    model_cond = A.model_phrase(run_meta) if run_meta else "model identity not recorded"
+    drafter_cond = A.drafter_phrase(run_meta) if run_meta else ""
     cond = ("RTX 3090 (board power via NVML; system and wall power not "
-            "measured), Qwen3-27B IQ4_XS with MTP speculative decoding on, "
+            "measured), %s%s, "
             "aider polyglot agentic workload, run %s, tag %s. Phase accounting "
             "is scoped to the %.0f-minute /slots trace; GPU work outside that "
             "window is not counted."
-            % (ctx.get("run", "?"), ctx.get("tag", "?"), tot_s / 60.0))
+            % (model_cond,
+               (", %s" % drafter_cond) if drafter_cond else "",
+               ctx.get("run", "?"), ctx.get("tag", "?"), tot_s / 60.0))
 
     try:
-        p1 = _fig_timeline(ctx, outdir, runs, secs, jou, gap, nreq)
+        p1 = _fig_timeline(ctx, outdir, runs, secs, jou, gap, nreq, meta=run_meta)
         mw = ""
         if jou is not None and all(secs[p] > 0 for p in (0, 1, 2)):
             fb = (np.nanmean(dmon["fb"]) / 1024.0
@@ -499,7 +506,7 @@ def make(ctx, outdir):
         out.append((None, "phases-timeline.png could not be built: %r" % (e,)))
 
     try:
-        p2 = _fig_split(ctx, outdir, secs, jou, tokens, cache_tok, nreq, inst)
+        p2 = _fig_split(ctx, outdir, secs, jou, tokens, cache_tok, nreq, inst, meta=run_meta)
         ej = ""
         if jou is not None and sum(jou.values()) > 0:
             tj = sum(jou.values())

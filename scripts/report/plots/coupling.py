@@ -52,9 +52,13 @@ FOOT_FS = 7.0
 
 # Conditions every caption from this module must carry.
 PART = "NVIDIA RTX 3090 (board), single card"
-WORKLOAD = ("aider polyglot agentic coding benchmark, scored in a Docker "
-            "container on this same host; model IQ4_XS at 14.25 GB resident, "
-            "MTP speculative decoding on (mean accepted length 3.55)")
+def _workload(meta):
+    """Build the workload description from run metadata."""
+    import archdata as A
+    return ("aider polyglot agentic coding benchmark, scored in a Docker "
+            "container on this same host; %s, %s, %s"
+            % (A.model_phrase(meta), A.resident_phrase(meta),
+               A.drafter_phrase(meta)))
 HOSTNOTE = ("Host counters are machine-wide: they include llama-server, the "
             "scoring container and the WSL2 boundary together. Per-process CPU "
             "attribution was not recorded, and neither was the per-core "
@@ -252,7 +256,7 @@ def _windows(ctx, offset):
 
 # ------------------------------------------------------------- figure one
 
-def _fig_decomposition(ctx, outdir, offset, offnote):
+def _fig_decomposition(ctx, outdir, offset, offnote, workload=""):
     host = ctx["host"]
     t = np.asarray(host["t"], dtype=float) + offset
     kern = np.asarray(host["priv_pct"], dtype=float)
@@ -409,18 +413,17 @@ def _fig_decomposition(ctx, outdir, offset, offnote):
     fig.savefig(path, dpi=DPI, facecolor="white")
     plt.close(fig)
 
-    cap = ("Host CPU decomposition over an in-flight agentic inference run. "
-           "Stacked left axis: kernel (privileged) and user time as a "
-           "percentage of total logical-CPU capacity, smoothed over 27 s, with "
-           "the raw 3 s total drawn over it; right axis: system-call and "
-           "context-switch rates. Aggregate CPU busy averages %.1f%% (median "
-           "%.1f%%) and %.0f%% of that is kernel time, while the same samples "
-           "sustain %s system calls and %s context switches per second - the "
-           "utilisation figure and the syscall figure describe two different "
-           "machines, and only the second one is a platform requirement. "
+    cap = ("A host at %.1f%% mean CPU busy (median %.1f%%) is issuing %s "
+           "system calls and %s context switches per second, and %.0f%% of the "
+           "busy time is kernel (privileged) time. The utilisation figure and "
+           "the syscall figure describe two different machines, and only the "
+           "second one is a platform requirement. Stacked left axis: kernel "
+           "and user time as a percentage of total logical-CPU capacity, "
+           "smoothed over 27 s, with the raw 3 s total drawn over it; right "
+           "axis: system-call and context-switch rates. "
            "Conditions: %s; workload is the %s. %s %s"
-           % (cpu_mean, cpu_med, kfrac, _thousands(sys_mean),
-              _thousands(ctx_mean), PART, WORKLOAD, HOSTNOTE, POWERNOTE))
+           % (cpu_mean, cpu_med, _thousands(sys_mean),
+              _thousands(ctx_mean), kfrac, PART, workload, HOSTNOTE, POWERNOTE))
     if offnote:
         cap += " " + offnote
     return (path, cap)
@@ -459,7 +462,7 @@ def _scatter_panel(ax, x, y, xlabel, title, st, note=None):
                       edgecolor="#8C8C8C", alpha=0.97))
 
 
-def _fig_coupling(ctx, outdir, offset, offnote):
+def _fig_coupling(ctx, outdir, offset, offnote, workload=""):
     w = _windows(ctx, offset)
     if w is None:
         return None
@@ -534,25 +537,25 @@ def _fig_coupling(ctx, outdir, offset, offnote):
     fig.savefig(path, dpi=DPI, facecolor="white")
     plt.close(fig)
 
-    cap = ("Host-to-GPU coupling, joined on time. Each point is one host "
-           "counter interval (about 3 s) in which every /slots sample was in "
-           "the decode phase; y is the mean GPU decode rate over that "
-           "interval, from n_decoded differences, so a slow request and a "
-           "loaded host land on the same axis. Left: host %s, Pearson r = "
-           "%+.3f (%s), Spearman rho = %+.3f, fit %+.1f tokens/s per extra "
-           "10,000 %s. Right: the same %d windows against aggregate CPU busy, "
-           "Pearson r = %+.3f (%s) - the utilisation number an architect "
-           "would reach for carries no usable signal about the GPU. The %s "
-           "was selected because its ranked correlation is the stronger of "
-           "the two named candidates; the interrupt rate, not a candidate, "
-           "was stronger still at rho %+.3f. Conditions: %s; %s. This is an "
-           "association over one uncontrolled run - the controlled 5.4%% "
-           "decode cost of host load was measured separately in this "
-           "campaign, and the GPU clock rose while it happened. %s %s"
+    cap = ("Host %s tracks GPU decode rate (Pearson r = %+.3f, %s; "
+           "Spearman rho = %+.3f; fit %+.1f tokens/s per extra 10,000 %s), "
+           "while aggregate CPU busy does not (Pearson r = %+.3f, %s). "
+           "The utilisation number an architect would reach for carries no "
+           "usable signal about the GPU. Each point is one host counter "
+           "interval (about 3 s) in which every /slots sample was in the "
+           "decode phase; y is the mean GPU decode rate over that interval, "
+           "from n_decoded differences, so a slow request and a loaded host "
+           "land on the same axis. The %s was selected because its ranked "
+           "correlation is the stronger of the two named candidates (%d "
+           "windows); the interrupt rate, not a candidate, was stronger "
+           "still at rho %+.3f. This is an association over one uncontrolled "
+           "run - the controlled 5.4%% decode cost of host load was measured "
+           "separately in this campaign, and the GPU clock rose while it "
+           "happened. Conditions: %s; %s. %s %s"
            % (cands[win]["label"], cands[win]["r"], _pfmt(cands[win]["p"]),
-              cands[win]["rho"], per10k, cands[win]["unit"], len(y),
-              cpu_st[0], _pfmt(cpu_st[1]), cands[win]["label"], irq_st[2],
-              PART, WORKLOAD, HOSTNOTE, POWERNOTE))
+              cands[win]["rho"], per10k, cands[win]["unit"],
+              cpu_st[0], _pfmt(cpu_st[1]), cands[win]["label"], len(y),
+              irq_st[2], PART, workload, HOSTNOTE, POWERNOTE))
     if offnote:
         cap += " " + offnote
     return (path, cap)
@@ -572,6 +575,9 @@ def make(ctx, outdir):
     except Exception:
         return out
 
+    meta = ctx.get("meta")
+    workload = _workload(meta)
+
     host = ctx.get("host")
     if host is None or len(host.get("t", [])) < 5:
         return out     # nothing host-side was collected; emit no empty chart
@@ -582,7 +588,7 @@ def make(ctx, outdir):
 
     for fn in (_fig_decomposition, _fig_coupling):
         try:
-            got = fn(ctx, outdir, offset, offnote)
+            got = fn(ctx, outdir, offset, offnote, workload=workload)
         except Exception:
             got = None
         if got:

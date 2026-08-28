@@ -73,8 +73,12 @@ _LEVERBG = "#fff4e3"
 _LEVEREC = "#c07a10"
 
 _PART = "NVIDIA RTX 3090 (GA102, 24 GB GDDR6X, 350 W enforced board limit)"
-_WORKLOAD = ("aider polyglot exercises, Qwen3-Coder-30B IQ4_XS on llama.cpp, "
-             "MTP speculative decoding on")
+def _workload(meta):
+    """Run-specific workload clause built from the server log's own identity."""
+    model = A.model_phrase(meta) if meta else "model identity unknown"
+    drafter = A.drafter_phrase(meta) if meta else "drafter status unknown"
+    return ("aider polyglot exercises, %s on llama.cpp, %s"
+            % (model, drafter))
 _NOTMEAS = ("NOT measured: system or wall power (this is GPU board power from "
             "NVML only - no PSU loss, CPU, RAM, fans or display); per-rail "
             "power (NVML gives one board number on this part, so the watts "
@@ -280,14 +284,15 @@ def _refline_label(s, which):
                              s["obs_sm"] if which == "SM" else s["obs_mem"]))
 
 
-def _footer(fig, extra=""):
+def _footer(fig, meta, extra=""):
     """Figure-level caveat block, drawn into a band reserved for it by the
     caller's subplots_adjust(bottom=...). It is deliberately NOT laid out
     automatically: tight_layout cannot see figure text at all, so a footer left
     to it lands on top of the x-axis label every time."""
+    wl = _workload(meta)
     fig.text(0.007, 0.012,
              "Part: %s.   Workload: %s.\n%s\n%s%s"
-             % (_PART, _WORKLOAD, _DEFS, _NOTMEAS,
+             % (_PART, wl, _DEFS, _NOTMEAS,
                 ("  " + extra) if extra else ""),
              fontsize=6.6, color=_GREY, va="bottom", ha="left", wrap=True)
 
@@ -330,7 +335,7 @@ def _phase_scatter(ax, s, x, y, c, sizes=(11, 24, 30), unk=5, alpha=0.6):
 
 
 # --------------------------------------------------------------------------
-def _fig_operating_point(dmon, s, throttle, outdir):
+def _fig_operating_point(dmon, s, throttle, outdir, meta):
     pwr, pclk, mclk = dmon["pwr"], dmon["pclk"], dmon["mclk"]
     smu, mem = dmon["sm"], dmon["mem"]
 
@@ -615,44 +620,45 @@ def _fig_operating_point(dmon, s, throttle, outdir):
                                              key=lambda kv: -kv[1])))
              if mix else
              "NVML clock-limit reasons: not collected for this run.")
-    _footer(fig, extra)
+    _footer(fig, meta, extra)
     fig.subplots_adjust(left=0.073, right=0.996, top=0.912, bottom=0.152)
     path = os.path.join(outdir, "dvfs-operating-point.png")
     fig.savefig(path, dpi=140, facecolor="white")
     plt.close(fig)
 
+    wl = _workload(meta)
     dt_med = float(np.median(np.diff(dmon["t"]))) if len(dmon["t"]) > 1 else 0.0
-    cap = ("The part's effective voltage/frequency operating point under a real "
-           "agentic-coding load: %d %s plus %d further busy samples, at a "
-           "%.2f s cadence. Upper panel plots SM clock against GPU board power, "
-           "colour is SM utilisation, marker is workload phase; the grey points "
-           "are samples outside the /slots trace, whose phase is unknown rather "
-           "than idle, and the inset magnifies the corner the workload actually "
-           "occupies. Board power is pinned at %.0f W median against a %.0f W "
-           "limit and the SM clock is the variable that gives - %.0f MHz, "
-           "%.0f%%, below the %.0f MHz maximum SM P-state - with NVML reporting "
-           "the power cap actively reducing clocks on %.0f%% of the sample "
-           "period. Inside that capped regime r(board power, SM clock) is "
-           "%+.2f, not positive: watts are not buying clock. Lower panel, same "
-           "power axis: the memory clock holds %.0f MHz on %.1f%% of %s samples "
-           "while its controller is busy only %.0f%% of the time, and the lower "
+    cap = ("The board power cap binds almost continuously and the SM clock "
+           "pays the entire cost: measured %.0f W median against a %.0f W "
+           "limit, with NVML reporting the cap actively reducing clocks on "
+           "measured %.0f%% of the sample period. %d %s plus %d further busy "
+           "samples, at a %.2f s cadence. Upper panel plots SM clock against "
+           "GPU board power, colour is SM utilisation, marker is workload "
+           "phase; grey points are samples outside the /slots trace whose "
+           "phase is unknown rather than idle, and the inset magnifies the "
+           "corner the workload occupies. The SM clock sits measured %.0f MHz "
+           "(%.0f%%) below the %.0f MHz maximum SM P-state. Inside that capped "
+           "regime r(board power, SM clock) is %+.2f, not positive: watts are "
+           "not buying clock. Lower panel, same power axis: the memory clock "
+           "holds measured %.0f MHz on %.1f%% of %s samples while its "
+           "controller is busy only measured %.0f%% of the time, and the lower "
            "memory P-states this part uses when idle are never selected under "
            "load. THE PHASE-AWARE CLOCK TRADE THIS SUGGESTS IS AN OPPORTUNITY, "
            "NOT A RESULT: nothing in this run varied the memory clock, and with "
            "no per-rail power on this part the watts at stake are unmeasured. "
            "Part: %s. Workload: %s. %s %s"
-           % (s["n_focus"], s["focus_desc"],
+           % (s["pwr_med"], s["cap_w"], s["pviol_mean"],
+              s["n_focus"], s["focus_desc"],
               int(np.count_nonzero(s["busy"] & ~s["focus"])), dt_med,
-              s["pwr_med"], s["cap_w"], gap,
-              100.0 * gap / max(s["max_sm"], 1.0), s["max_sm"],
-              s["pviol_mean"], s["r_top"], s["mclk_top"], s["mclk_top_pct"],
-              s["focus_name"], s["mem_med"], _PART, _WORKLOAD, _DEFS,
+              gap, 100.0 * gap / max(s["max_sm"], 1.0), s["max_sm"],
+              s["r_top"], s["mclk_top"], s["mclk_top_pct"],
+              s["focus_name"], s["mem_med"], _PART, wl, _DEFS,
               _NOTMEAS))
     return path, cap
 
 
 # --------------------------------------------------------------------------
-def _fig_residency(dmon, s, outdir):
+def _fig_residency(dmon, s, outdir, meta):
     pclk, mclk, mem, dur = dmon["pclk"], dmon["mclk"], dmon["mem"], s["dur"]
     busy = s["busy"]
     tot = float(dur[busy].sum())
@@ -818,7 +824,7 @@ def _fig_residency(dmon, s, outdir):
     fig.suptitle("The two clock domains are run on completely different "
                  "policies under one shared power cap", fontsize=13,
                  fontweight="bold", color=_INK, y=0.985)
-    _footer(fig,
+    _footer(fig, meta,
             "Residency is wall time over busy samples (SM > %g%%), each sample "
             "weighted by its own interval, %.0f s in total. The memory-for-SM "
             "clock trade this contrast suggests was NOT tested: no clock was "
@@ -830,27 +836,29 @@ def _fig_residency(dmon, s, outdir):
     fig.savefig(path, dpi=140, facecolor="white")
     plt.close(fig)
 
+    wl = _workload(meta)
     dt_med = float(np.median(np.diff(dmon["t"]))) if len(dmon["t"]) > 1 else 0.0
-    cap = ("How long each clock domain actually spent at each frequency, over "
-           "%.0f s of busy samples (SM > %g%%), each sample weighted by its own "
-           "%.2f s interval rather than counted. Left: the SM clock is spread "
-           "over %d distinct frequencies on a 15 MHz grid and never reaches the "
-           "%.0f MHz maximum P-state, spending %.0f%% of busy time inside a "
-           "%.0f MHz band around %.0f MHz. Right: the memory clock is a single "
-           "bar, %.0f MHz for %.1f%% of busy time, while the traffic it serves "
-           "over that same interval - inset, same axis of time - is a broad "
-           "distribution centred on %.0f%% of the sample period (5th-95th pct "
-           "%.0f-%.0f%%). The lower memory P-states at the left of that panel "
-           "are real and this part uses them when idle, so the granularity "
-           "exists in silicon and is simply never selected under load. NOTHING "
-           "HERE MEASURES WHAT A DIFFERENT POLICY WOULD COST OR SAVE: no clock "
-           "was locked, offset or varied in this campaign, and NVML on this "
-           "part gives one board-power number with no per-rail split. Part: %s. "
-           "Workload: %s. %s %s"
+    cap = ("The two clock domains run on completely different policies under "
+           "one shared power cap. Over measured %.0f s of busy samples "
+           "(SM > %g%%), each sample weighted by its own %.2f s interval: "
+           "the SM clock is spread over %d distinct frequencies on a 15 MHz "
+           "grid and never reaches the %.0f MHz maximum P-state, spending "
+           "measured %.0f%% of busy time inside a %.0f MHz band around "
+           "measured %.0f MHz. The memory clock is a single bar, measured "
+           "%.0f MHz for %.1f%% of busy time, while the traffic it serves "
+           "over that same interval (inset, same axis of time) is a broad "
+           "distribution centred on measured %.0f%% of the sample period "
+           "(5th-95th pct %.0f-%.0f%%). The lower memory P-states at the "
+           "left of that panel are real and this part uses them when idle, "
+           "so the granularity exists in silicon and is simply never selected "
+           "under load. NOTHING HERE MEASURES WHAT A DIFFERENT POLICY WOULD "
+           "COST OR SAVE: no clock was locked, offset or varied in this "
+           "campaign, and NVML on this part gives one board-power number with "
+           "no per-rail split. Part: %s. Workload: %s. %s %s"
            % (tot, A.BUSY_SM_PCT, dt_med, len(np.unique(v)), s["max_sm"], frac,
               s["pclk_p95"] - s["pclk_p5"], s["pclk_med"], s["mclk_top"],
               100.0 * secs.max() / max(tot, 1e-9), s["mem_med"], s["mem_p5"],
-              s["mem_p95"], _PART, _WORKLOAD, _DEFS, _NOTMEAS))
+              s["mem_p95"], _PART, wl, _DEFS, _NOTMEAS))
     return path, cap
 
 
@@ -878,6 +886,8 @@ def make(ctx, outdir):
         print("  [dvfs] cannot create %s: %s" % (outdir, e))
         return out
 
+    meta = ctx.get("meta")
+
     s = _stats(dmon, ctx.get("slots"))
     if s["n_focus"] < 30:
         print("  [dvfs] only %d usable samples: too few to make a residency "
@@ -885,8 +895,8 @@ def make(ctx, outdir):
         return out
 
     for fn in (lambda: _fig_operating_point(dmon, s, ctx.get("throttle"),
-                                            outdir),
-               lambda: _fig_residency(dmon, s, outdir)):
+                                            outdir, meta),
+               lambda: _fig_residency(dmon, s, outdir, meta)):
         try:
             r = fn()
         except Exception as e:

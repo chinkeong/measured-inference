@@ -135,27 +135,47 @@ _LEVERS = [
     ),
 ]
 
-_FOOT = (
-    "Conditions: one RTX 3090 24 GB (350 W stock cap), i5-13600KF host, "
-    "Windows 11, llama.cpp build 10502, Qwen3.8-27B GGUF, single GPU, "
-    "-ngl 99.\n"
-    "Power is in-band GPU BOARD power as NVML reports it. Wall power, PSU "
-    "loss, CPU, system memory, drives and display are excluded and were "
-    "never measured (no meter on this rig).\n"
-    "Each row was measured in its own arm with its own file, flags and "
-    "prompt. These rows are not a factorial sweep and their effects are not "
-    "shown to compose."
-)
+def _foot(meta):
+    """Conditions block, with the model identity read from the run metadata."""
+    model = A.model_phrase(meta) if meta else "model file not recorded"
+    return (
+        "Conditions: one RTX 3090 24 GB (350 W stock cap), i5-13600KF host, "
+        "Windows 11, llama.cpp build 10502, %s, single GPU, "
+        "-ngl 99.\n"
+        "Power is in-band GPU BOARD power as NVML reports it. Wall power, PSU "
+        "loss, CPU, system memory, drives and display are excluded and were "
+        "never measured (no meter on this rig).\n"
+        "Each row was measured in its own arm with its own file, flags and "
+        "prompt. These rows are not a factorial sweep and their effects are not "
+        "shown to compose." % model
+    )
+
+
+def _spec_note(meta):
+    """Note for the speculation lever, annotated with the arm it was measured on."""
+    label = (meta or {}).get("model_label")
+    if label == "UD-IQ4_XS":
+        arm = "measured on UD-IQ4_XS"
+    else:
+        arm = "measured on UD-IQ4_XS, not this run's file"
+    return (
+        "45.2 -> 99.16 t/s = 2.19x (%s), mean accepted\n"
+        "length 3.55. Energy is a SEPARATE arm: 8.104 -> 3.210\n"
+        "J per decode token (2.52x). Decode watts are flat\n"
+        "(344.6 -> 341.0 W), so the energy win IS the speed win."
+        % arm
+    )
 
 
 # ---------------------------------------------------------------- helpers
-def _live_anchor(ctx):
+def _live_anchor(ctx, meta):
     """One line of live telemetry so the chart is anchored to a real run.
     Returns a string; never raises, whatever is missing or NaN."""
     if not ctx:
         return "Live reference run: no telemetry context was supplied."
     tag = ctx.get("tag") or "(tag not supplied)"
     run = ctx.get("run") or "(run not supplied)"
+    model = A.model_phrase(meta) if meta else "model not recorded"
     bits = []
     present = False          # was ANY telemetry source handed to us at all?
     try:
@@ -190,22 +210,22 @@ def _live_anchor(ctx):
         # The distinction this campaign insists on, applied to the figure's
         # own footer: absent instrument, or present instrument reading idle.
         if not present:
-            return ("Live reference run %s / %s: NO GPU or slots telemetry "
+            return ("Live reference run %s / %s (%s): NO GPU or slots telemetry "
                     "was supplied to this figure, so it carries no live "
                     "anchor. The lever rows above are unaffected - they are "
                     "prior measurements, not readings from this run."
-                    % (tag, run))
-        return ("Live reference run %s / %s: telemetry was supplied but "
+                    % (tag, run, model))
+        return ("Live reference run %s / %s (%s): telemetry was supplied but "
                 "contains no busy samples (SM > %.0f%%) to summarise - the "
                 "GPU was idle across it, which is measured, not missing."
-                % (tag, run, A.BUSY_SM_PCT))
-    return ("Live reference run this figure ships with - %s / %s, drafter ON "
-            "at the stock 350 W cap:\n"
+                % (tag, run, model, A.BUSY_SM_PCT))
+    return ("Live reference run this figure ships with - %s / %s, %s, "
+            "drafter ON at the stock 350 W cap:\n"
             "%s.\n"
             "That is real agentic traffic with prompt processing and decode "
             "interleaved, not the synthetic single-prompt probe the lever "
             "rows above were measured on."
-            % (tag, run, "; ".join(bits)))
+            % (tag, run, model, "; ".join(bits)))
 
 
 def _bar_panel(ax, ys, key, lab_key, xlim, good_is_positive, band, nm_side):
@@ -276,10 +296,15 @@ def make(ctx, outdir):
     exercises (any may be None if that source is absent - degrade gracefully,
     never crash). Returns a list of (png_path, caption_string)."""
     ctx = ctx or {}
+    meta = ctx.get("meta")
     if not os.path.isdir(outdir):
         os.makedirs(outdir, exist_ok=True)
 
     n = len(_LEVERS)
+    # Override the speculation lever's note at draw time so it reflects
+    # whether this run is the same arm (UD-IQ4_XS) the values came from.
+    notes = [lv["note"] for lv in _LEVERS]
+    notes[0] = _spec_note(meta)
     ys = np.arange(n, dtype=float)
 
     fig = plt.figure(figsize=(13.2, 9.0), dpi=140, facecolor="white")
@@ -353,7 +378,7 @@ def make(ctx, outdir):
                     fontsize=8.4, color=_INK, labelpad=7)
 
     for i, lv in enumerate(_LEVERS):
-        ax_n.text(0.005, i, lv["note"], va="center", ha="left", fontsize=6.95,
+        ax_n.text(0.005, i, notes[i], va="center", ha="left", fontsize=6.95,
                   color="#2b2b2b", linespacing=1.26, zorder=5)
     ax_n.set_xticks([])
     ax_n.set_yticks([])
@@ -373,19 +398,20 @@ def make(ctx, outdir):
              fontsize=9.0, color="#444444", ha="left", va="top",
              linespacing=1.5)
 
-    fig.text(0.008, 0.086, _live_anchor(ctx), fontsize=7.6, color="#333333",
+    fig.text(0.008, 0.086, _live_anchor(ctx, meta), fontsize=7.6, color="#333333",
              ha="left", va="bottom", linespacing=1.5)
-    fig.text(0.008, 0.008, _FOOT, fontsize=7.0, color="#555555", ha="left",
+    fig.text(0.008, 0.008, _foot(meta), fontsize=7.0, color="#555555", ha="left",
              va="bottom", linespacing=1.5)
 
     png = os.path.join(outdir, "tornado-levers.png")
     fig.savefig(png, dpi=140, facecolor="white")
     plt.close(fig)
 
+    model_cap = A.model_phrase(meta) if meta else "model not recorded"
     cap = (
-        "Ranked sensitivity of every lever this campaign measured, on one "
-        "RTX 3090 24 GB (stock 350 W cap) with an i5-13600KF host, Windows 11, "
-        "llama.cpp build 10502, Qwen3.8-27B GGUF at -ngl 99. LEFT PANEL is "
+        ("Ranked sensitivity of every lever this campaign measured, on one "
+         "RTX 3090 24 GB (stock 350 W cap) with an i5-13600KF host, Windows 11, "
+         "llama.cpp build 10502, %s at -ngl 99. LEFT PANEL is " % model_cap) +
         "throughput: percent change in decode tokens per second, right is "
         "faster. MIDDLE PANEL is efficiency: percent change in joules per "
         "token, left is more efficient. The two panels are NOT on a shared "

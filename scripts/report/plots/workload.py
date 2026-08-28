@@ -26,6 +26,7 @@ silently ignores its rect, which is how a footer ends up printed across the
 data.
 """
 import os
+import sys
 import textwrap
 
 import numpy as np
@@ -34,6 +35,11 @@ import matplotlib
 matplotlib.use("Agg")            # REQUIRED - never an interactive backend
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
+if os.path.dirname(_HERE) not in sys.path:
+    sys.path.insert(0, os.path.dirname(_HERE))
+import archdata as A                                    # noqa: E402
 
 TITLE = "Workload shape: prompt depth, generated length, KV reuse"
 
@@ -47,14 +53,16 @@ _VERM = "#D55E00"
 _SKY = "#56B4E9"
 _GREY = "#555555"
 
-# The context window the campaign's server was started with (llama-server
-# -c 32768 --parallel 1 -fa on -ctk q8_0 -ctv q8_0). Written down rather than
-# inferred, so the ceiling drawn on the figure is a stated condition and not a
-# magic number; ctx["ctx_tokens"] overrides it for a differently-served run.
+# Campaign-level default for the context window. The q2kxl server log records
+# -c 32768 --parallel 1; other runs in this campaign may not have a committed
+# server log. ctx["ctx_tokens"], set by build-report.py from the run's own
+# server log, takes precedence when available; this constant is a fallback, not
+# a reading from any particular run.
 _SERVER_CTX_TOKENS = 32768
 
-# Measured decode rate for this part and this build. Used only to turn the 1 Hz
-# poll interval into a token count when explaining how short the floor falls.
+# Measured decode rate on the UD-IQ4_XS arm specifically. Used only to turn the
+# 1 Hz poll interval into a token count when explaining how short the floor
+# falls ("up to ~N tokens"). Not representative of other quantisation arms.
 _DECODE_TOK_S = 99.16
 
 _GRID = dict(alpha=0.3, linewidth=0.7)
@@ -105,12 +113,16 @@ def _footer(fig, ctx, extra=""):
     to the figure width so it can never run off the canvas."""
     tag = _ck(ctx, "tag", "?")
     run = _ck(ctx, "run", "?")
+    meta = _ck(ctx, "meta")
+    model = A.model_phrase(meta) if meta else "model not recorded"
+    window = A.window_phrase(meta) if meta else ("-c %d" % _SERVER_CTX_TOKENS)
+    drafter = A.drafter_phrase(meta) if meta else "drafter status not recorded"
     cols = max(60, int(fig.get_figwidth() * 16))
     parts = [
         ("Conditions: RTX 3090, board telemetry only - no system or wall power "
-         "is implied. Qwen3.8-27B UD-IQ4_XS on llama-server -c %d --parallel 1 "
-         "(single slot, no concurrency), -fa on, KV quantised q8_0, MTP "
-         "speculative decoding on." % _SERVER_CTX_TOKENS),
+         "is implied. %s on llama-server %s "
+         "(single slot, no concurrency), -fa on, KV quantised q8_0, %s."
+         % (model, window, drafter)),
         ("Workload: aider polyglot coding benchmark, agentic edit loop. "
          "Requests reconstructed from a 1 Hz /slots poll. Tag %s, run %s."
          % (tag, run)),
@@ -173,8 +185,9 @@ def _fig_request_shape(ctx, rs, outdir):
         return None
 
     ratio = depth.sum() / dec.sum() if dec.sum() > 0 else float("nan")
-    ceil = float(_ck(ctx, "ctx_tokens", _SERVER_CTX_TOKENS) or
-                 _SERVER_CTX_TOKENS)
+    _run_ctx = _ck(ctx, "ctx_tokens")
+    ceil_recorded = _run_ctx is not None and float(_run_ctx) > 0
+    ceil = float(_run_ctx) if ceil_recorded else float(_SERVER_CTX_TOKENS)
     p99_peak = float(np.percentile(peak, 99))
 
     fig = plt.figure(figsize=(12.6, 7.9), dpi=140, facecolor="white")
@@ -210,14 +223,28 @@ def _fig_request_shape(ctx, rs, outdir):
 
     # The ceiling is only worth drawing when the workload is anywhere near it.
     if peak.max() > 0.4 * ceil:
-        axL.axvline(ceil, color=_VERM, linestyle="-.", linewidth=2.0, zorder=7)
-        axL.annotate("server context\nwindow: -c %d" % ceil,
-                     xy=(ceil, 0.62), xycoords=("data", "axes fraction"),
-                     xytext=(-7, 0), textcoords="offset points",
-                     ha="right", va="center", fontsize=8.4, color=_VERM,
-                     fontweight="bold",
-                     bbox=dict(boxstyle="round,pad=0.25", facecolor="white",
-                               edgecolor=_VERM, alpha=0.95))
+        if ceil_recorded:
+            axL.axvline(ceil, color=_VERM, linestyle="-.",
+                        linewidth=2.0, zorder=7)
+            axL.annotate("server context\nwindow: -c %d" % ceil,
+                         xy=(ceil, 0.62), xycoords=("data", "axes fraction"),
+                         xytext=(-7, 0), textcoords="offset points",
+                         ha="right", va="center", fontsize=8.4, color=_VERM,
+                         fontweight="bold",
+                         bbox=dict(boxstyle="round,pad=0.25",
+                                   facecolor="white",
+                                   edgecolor=_VERM, alpha=0.95))
+        else:
+            axL.axvline(ceil, color=_VERM, linestyle=":",
+                        linewidth=1.4, alpha=0.55, zorder=7)
+            axL.annotate("campaign usual\nwindow: %d\n(not recorded\nfor this run)"
+                         % ceil,
+                         xy=(ceil, 0.62), xycoords=("data", "axes fraction"),
+                         xytext=(-7, 0), textcoords="offset points",
+                         ha="right", va="center", fontsize=7.6, color=_VERM,
+                         bbox=dict(boxstyle="round,pad=0.25",
+                                   facecolor="white",
+                                   edgecolor=_VERM, alpha=0.75))
         axL.set_xlim(right=ceil * 1.55)
 
     # Legend below the axes: the panel interior belongs to the data.
@@ -229,13 +256,23 @@ def _fig_request_shape(ctx, rs, outdir):
                   % (med_d, p95_d, p95_d / max(med_d, 1.0)),
                   fontsize=10.8, loc="left", pad=8)
 
+    if ceil_recorded:
+        _ceil_note = ("Peak KV footprint p99 = %.0f tok = %.0f%% of the "
+                      "%d-token window." % (p99_peak,
+                                            100.0 * p99_peak / ceil, ceil))
+    else:
+        _ceil_note = ("Peak KV footprint p99 = %.0f tok. The context window "
+                      "for this run is not recorded; the campaign usually "
+                      "used %d tokens, but the percentage is withheld because "
+                      "the denominator is not a measurement."
+                      % (p99_peak, int(ceil)))
     txtL = ("n = %d requests.  depth = processed + cache-supplied tokens,\n"
             "never the slot's n_prompt_tokens field (that one grows during\n"
             "generation and can hold a previous occupant's context).\n"
-            "Peak KV footprint p99 = %.0f tok = %.0f%% of the %d-token window.\n"
+            "%s\n"
             "Deeper than  8192 tok: %d requests (%.1f%%).\n"
             "Deeper than 16384 tok: %d requests (%.1f%%)."
-            % (n, p99_peak, 100.0 * p99_peak / ceil, ceil,
+            % (n, _ceil_note,
                int((depth > 8192).sum()), 100.0 * float((depth > 8192).mean()),
                int((depth > 16384).sum()),
                100.0 * float((depth > 16384).mean())))
@@ -300,13 +337,24 @@ def _fig_request_shape(ctx, rs, outdir):
     fig.savefig(path, dpi=140, facecolor="white")
     plt.close(fig)
 
+    meta = _ck(ctx, "meta")
+    model_cap = A.model_phrase(meta) if meta else "model not recorded"
+    if ceil_recorded:
+        _cap_ceil = ("the p99 footprint of %.0f tokens is "
+                     "%.0f%% of the %d-token window the server was started "
+                     "with, so this workload runs close to the configured wall."
+                     % (p99_peak, 100.0 * p99_peak / ceil, ceil))
+    else:
+        _cap_ceil = ("the p99 footprint is %.0f tokens; the context window "
+                     "for this run is not recorded — the campaign usually "
+                     "used %d tokens — so a percentage against that window is "
+                     "not stated as a measurement."
+                     % (p99_peak, int(ceil)))
     cap = ("Per-request demand over %d requests of the aider polyglot agentic "
-           "coding loop, on one RTX 3090 running Qwen3.8-27B UD-IQ4_XS. "
+           "coding loop, on one RTX 3090 running %s. "
            "Left: prompt depth (processed + cache-supplied tokens), median %.0f "
            "and p95 %.0f tokens, with the peak KV footprint (prompt + "
-           "generated) as the dashed curve; the p99 footprint of %.0f tokens is "
-           "%.0f%% of the %d-token window the server was started with, so this "
-           "workload runs close to the configured wall. Right: generated "
+           "generated) as the dashed curve; %s Right: generated "
            "tokens, median at least %.0f and p95 at least %.0f. Prompt tokens "
            "outnumber generated tokens %.1f to 1. Generated counts are a floor "
            "- the 1 Hz /slots poll loses the last partial second of every "
@@ -314,8 +362,7 @@ def _fig_request_shape(ctx, rs, outdir):
            "this distribution. Board telemetry only; no system or wall power is "
            "implied. KV bytes per token were not computed: layer and head "
            "geometry is not measured by this harness."
-           % (n, med_d, p95_d, p99_peak, 100.0 * p99_peak / ceil, ceil,
-              med_g, p95_g, ratio))
+           % (n, model_cap, med_d, p95_d, _cap_ceil, med_g, p95_g, ratio))
     return path, cap
 
 
@@ -452,9 +499,12 @@ def _fig_kv_reuse(ctx, rs, outdir):
     fig.savefig(path, dpi=140, facecolor="white")
     plt.close(fig)
 
+    meta = _ck(ctx, "meta")
+    model_cap = A.model_phrase(meta) if meta else "model not recorded"
     cap = ("KV cache reuse per request, %d requests of the aider polyglot "
-           "agentic coding loop on one RTX 3090 running Qwen3.8-27B UD-IQ4_XS "
+           "agentic coding loop on one RTX 3090 running %s "
            "with a single slot (--parallel 1) and q8_0-quantised K and V. Each "
+           % (n_tot, model_cap) +
            "point is one request: prompt depth against the share of that prompt "
            "the server reported as cache-supplied. Across the run the cache "
            "supplied %.1f%% of all %d prompt tokens, but %.1f%% of requests "
@@ -466,7 +516,7 @@ def _fig_kv_reuse(ctx, rs, outdir):
            "cache hit. Cache evictions and the byte size of a cached token were "
            "not measured. Board telemetry only; no system or wall power is "
            "implied."
-           % (n_tot, tokw, int(depth.sum()), 100.0 * n_cold / n_tot,
+           % (tokw, int(depth.sum()), 100.0 * n_cold / n_tot,
               float(np.median(f))))
     return path, cap
 

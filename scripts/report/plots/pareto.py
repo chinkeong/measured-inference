@@ -305,9 +305,22 @@ def _find_sweep(root):
                 arms = []
             if arms:
                 meta = obj if isinstance(obj, dict) else {}
-                # Prefer the widest sweep; break ties toward a file that
-                # names itself a cap sweep.
-                score = (len(arms), 1 if "cap" in fn.lower() else 0)
+                # SATURATION FIRST. An arm that never reached its cap cannot
+                # price what the cap costs, so a sweep whose arms are all
+                # cap-bound outranks a wider sweep that is not. This campaign
+                # has both on disk: the 2026-08-25 sweep averaged 305 W against
+                # a 350 W limit and records no cap residency at all, while the
+                # 2026-08-28 re-measurement gates every arm and reports 99.0%,
+                # 100.0% and 100.0%. Ranking them by filename or by arm count
+                # made the two indistinguishable - they tie at three arms each,
+                # both contain "cap", and the winner fell out of directory
+                # order. The published figure took the superseded curve that
+                # way.
+                bound = [a for a in arms if a.get("cap_bound") is True
+                         or (a.get("pct_power_capped") or 0) >= 80.0]
+                saturating = 1 if bound and len(bound) == len(arms) else 0
+                score = (saturating, len(arms),
+                         1 if "cap" in fn.lower() else 0)
                 hits.append((score, path, meta, arms))
     if not hits:
         return None, {}, []
@@ -318,7 +331,7 @@ def _find_sweep(root):
 
 # ---------------------------------------------------------------- fig (1)
 
-def _fig_cloud(ctx, op, capfrac, outdir):
+def _fig_cloud(ctx, op, capfrac, outdir, meta=None):
     w, tps = op["w"], op["tps"]
     med_w, med_tps = float(np.median(w)), float(np.median(tps))
     # The aggregate is total joules over total tokens. It is NOT the median
@@ -406,10 +419,11 @@ def _fig_cloud(ctx, op, capfrac, outdir):
     fig.savefig(png, dpi=_DPI, facecolor="white")
     plt.close(fig)
 
+    model_id = A.model_phrase(meta) if meta else "model identity not recorded"
     caption = (
         "Part: RTX 3090, 350 W stock board limit, fan pinned at 100%%. Model: "
-        "Qwen3.8-27B UD-IQ4_XS, 14.25 GB resident, MTP speculative decoding "
-        "on. Workload: the live agentic coding benchmark, tag %s, run %s - "
+        "%s. Workload: the live agentic coding benchmark, tag %s, run %s - "
+        % (model_id, ctx.get("tag"), ctx.get("run")) +
         "real multi-turn edit-and-test traffic on one slot, median context "
         "depth %s tokens. Each point is one poll-to-poll decode interval of "
         "about 1 s whose BOTH endpoints are decode samples of the same task "
@@ -425,7 +439,7 @@ def _fig_cloud(ctx, op, capfrac, outdir):
         "decode speed, which is to say by speculative-decoding acceptance. "
         "Run aggregate: %.2f J per decoded token, %s tokens over %.0f s of "
         "decode, %.0f W mean. %s"
-        % (ctx.get("tag"), ctx.get("run"), "{:,}".format(int(med_depth)),
+        % ("{:,}".format(int(med_depth)),
            len(w), _MAX_GAP_S, _JOIN_TOL_S, cv_w, cv_t, agg_j,
            "{:,}".format(int(tok)), secs, agg_w, _NOT_MEASURED))
 
@@ -439,7 +453,8 @@ def _fig_cloud(ctx, op, capfrac, outdir):
 
 # ---------------------------------------------------------------- fig (2)
 
-def _fig_sweep(ctx, arms, meta, sweep_path, op, stats, capfrac, outdir):
+def _fig_sweep(ctx, arms, meta, sweep_path, op, stats, capfrac, outdir,
+               run_meta=None):
     caps = np.array([a["cap"] for a in arms], dtype=float)
     aw = np.array([a["w"] for a in arms], dtype=float)
     at = np.array([a["tps"] for a in arms], dtype=float)
@@ -611,8 +626,10 @@ def _fig_sweep(ctx, arms, meta, sweep_path, op, stats, capfrac, outdir):
         "and %.1f%% less energy per token"
         % (caps[i], -d_tps[k], -d_pwr[k], -d_jpt[k])
         for k, i in enumerate(others))
+    run_model = A.model_phrase(run_meta) if run_meta else "model identity not recorded"
     caption = (
-        "Part: RTX 3090, %.0f W stock board limit. LEFT: the published "
+        "Part: RTX 3090, %.0f W stock board limit. Model: %s. LEFT: the published "
+        % (caps[base], run_model) +
         "power-cap sweep as an arm-level curve, drawn on the same "
         "throughput-against-board-power plane as the operating cloud, with "
         "each arm placed at the power it ACTUALLY drew rather than at the "
@@ -628,8 +645,7 @@ def _fig_sweep(ctx, arms, meta, sweep_path, op, stats, capfrac, outdir):
         "decode. The two power distributions barely overlap, so the published "
         "curve describes a regime the agentic workload is not in and must not "
         "be assumed to transfer. %s"
-        % (caps[base],
-           os.path.relpath(sweep_path, A.ROOT).replace("\\", "/"),
+        % (os.path.relpath(sweep_path, A.ROOT).replace("\\", "/"),
            meta.get("date", "date not recorded"),
            meta.get("card", "the reference part"),
            int(arms[base].get("n_probes") or 0),
@@ -654,6 +670,7 @@ def make(ctx, outdir):
     """
     notes, figs = [], []
     ctx = ctx or {}
+    run_meta = ctx.get("meta")
     try:
         os.makedirs(outdir, exist_ok=True)
     except Exception as exc:
@@ -679,7 +696,7 @@ def make(ctx, outdir):
             "not provide them. Absent, not zero.")
     else:
         try:
-            png, cap, stats = _fig_cloud(ctx, op, capfrac, outdir)
+            png, cap, stats = _fig_cloud(ctx, op, capfrac, outdir, meta=run_meta)
             figs.append((png, cap))
         except Exception as exc:
             notes.append("pareto: the operating cloud failed to draw (%s: %s)."
@@ -708,7 +725,7 @@ def make(ctx, outdir):
     else:
         try:
             png, cap = _fig_sweep(ctx, arms, meta, sweep_path, op, stats,
-                                  capfrac, outdir)
+                                  capfrac, outdir, run_meta=run_meta)
             figs.append((png, cap))
         except Exception as exc:
             notes.append("pareto: the cap-sweep figure failed to draw (%s: %s)."

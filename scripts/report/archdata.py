@@ -343,3 +343,303 @@ def energy(dmon, t0, t1, busy_only=True):
         j += (pa + pb) / 2.0 * (cb - ca)
         bs += cb - ca
     return j, bs
+
+
+# ---------------------------------------------------------------------------
+# Run-metadata loader and phrase builders.
+#
+# Every plot module reads its run conditions through here, so a condition
+# is written down in exactly one place and a run that lacks a server log
+# says so in the same words everywhere.
+# ---------------------------------------------------------------------------
+
+LOGS = os.path.join(ROOT, "results", "qwen38-27b-blind", "logs")
+
+# Cited from campaign.md:1436-1443. These are CITED, not measured on any
+# individual run — the bits-per-weight values come from the quantisation
+# specification, not from a per-run instrument.
+LADDER_BPW = {
+    "UD-IQ4_XS": 4.223, "UD-Q3_K_XL": 3.895, "UD-IQ3_XXS": 3.240,
+    "UD-Q2_K_XL": 2.912, "UD-IQ2_S": 2.481, "UD-IQ2_XXS": 2.153,
+    "UD-IQ1_M": 1.994, "UD-IQ1_S": 1.835,
+}
+
+# On-disk sizes recorded in campaign.md:1232-1235. Only files whose size
+# was explicitly recorded are here; do not invent one.
+# Where campaign.md gives an exact byte count, it goes in LADDER_BYTES.
+# Where campaign.md gives only a GiB figure, it goes in LADDER_GIB.
+LADDER_BYTES = {
+    "UD-IQ4_XS": 14_252_845_984,
+}
+LADDER_GIB = {
+    "UD-Q2_K_XL": 9.154,
+    "UD-IQ1_M":   6.267,
+    "UD-IQ1_S":   5.767,
+}
+
+_TAG_TO_LABEL = {
+    "iq4xs": "UD-IQ4_XS", "q2kxl": "UD-Q2_K_XL", "q3kxl": "UD-Q3_K_XL",
+    "iq3xxs": "UD-IQ3_XXS", "iq2s": "UD-IQ2_S", "iq2xxs": "UD-IQ2_XXS",
+    "iq1m": "UD-IQ1_M", "iq1s": "UD-IQ1_S",
+}
+
+_FLAG_PATTERNS = [
+    ("ngl", "n_gpu_layers", "-ngl"),
+    ("flash_attention", "flash", "-fa"),
+    ("type_k", "type_k", "q8_0"),
+    ("type_v", "type_v", "q8_0"),
+    ("spec_draft_n_max", "spec-draft-n-max", "--spec-draft-n-max"),
+    ("spec_draft_p_min", "spec-draft-p-min", "--spec-draft-p-min"),
+    ("build", "build", "build"),
+]
+
+_FLAG_NAMES = [name for name, _, _ in _FLAG_PATTERNS]
+
+
+def _label_from_filename(basename):
+    """Extract e.g. 'UD-Q2_K_XL' from 'Qwen3.8-27B-UD-Q2_K_XL.gguf'."""
+    stem = basename.replace(".gguf", "")
+    for suffix in LADDER_BPW:
+        if stem.endswith(suffix):
+            return suffix
+    return None
+
+
+def _model_id_from_filename(basename):
+    """Extract e.g. 'Qwen3.8-27B' from 'Qwen3.8-27B-UD-Q2_K_XL.gguf'."""
+    stem = basename.replace(".gguf", "")
+    for suffix in LADDER_BPW:
+        if stem.endswith(suffix):
+            prefix = stem[: -len(suffix)].rstrip("-")
+            return prefix if prefix else None
+    return None
+
+
+def _label_from_tag(tag):
+    """Infer the model label from a run tag string."""
+    tag_lower = tag.lower().replace("-", "").replace("_", "")
+    for key, label in _TAG_TO_LABEL.items():
+        if key.replace("_", "") in tag_lower:
+            return label
+    return None
+
+
+def load_runmeta(tag):
+    """Parse the server log for a run tag if it exists.
+
+    Every field is either a value READ FROM THE LOG or None. There are no
+    defaults. When the log does not exist, the model label is inferred
+    from the tag string and inferred_from_tag is set to True.
+    """
+    import re
+
+    meta = {
+        "model_file": None, "model_label": None, "model_id": None,
+        "bpw": None, "model_bytes": None, "model_gb": None,
+        "model_gib": None, "ctx_tokens": None, "n_slots": None,
+        "drafter": None, "accept_len": None, "accept_len_n": None,
+        "flags_recorded": {}, "flags_missing": list(_FLAG_NAMES),
+        "log": None, "inferred_from_tag": False,
+    }
+
+    logpath = os.path.join(LOGS, "%s-server.log.err" % tag)
+    if not os.path.exists(logpath):
+        label = _label_from_tag(tag)
+        if label:
+            meta["model_label"] = label
+            meta["bpw"] = LADDER_BPW.get(label)
+            if label in LADDER_BYTES:
+                meta["model_bytes"] = LADDER_BYTES[label]
+                meta["model_gb"] = LADDER_BYTES[label] / 1e9
+                meta["model_gib"] = LADDER_BYTES[label] / (1024 ** 3)
+            elif label in LADDER_GIB:
+                meta["model_gib"] = LADDER_GIB[label]
+                meta["model_gb"] = LADDER_GIB[label] * 1.073741824
+            meta["inferred_from_tag"] = True
+        return meta
+
+    meta["log"] = logpath
+    text = io.open(logpath, encoding="utf-8", errors="replace").read()
+    lines = text.splitlines()
+
+    # model_file: "load_model: loading model '<path>'"
+    m = re.search(r"load_model: loading model '([^']+)'", text)
+    if m:
+        fullpath = m.group(1).replace("\\", "/")
+        basename = fullpath.rsplit("/", 1)[-1]
+        meta["model_file"] = basename
+        meta["model_label"] = _label_from_filename(basename)
+        meta["model_id"] = _model_id_from_filename(basename)
+
+    label = meta["model_label"]
+    if label:
+        meta["bpw"] = LADDER_BPW.get(label)
+        if label in LADDER_BYTES:
+            meta["model_bytes"] = LADDER_BYTES[label]
+            meta["model_gb"] = LADDER_BYTES[label] / 1e9
+            meta["model_gib"] = LADDER_BYTES[label] / (1024 ** 3)
+        elif label in LADDER_GIB:
+            meta["model_gib"] = LADDER_GIB[label]
+            meta["model_gb"] = LADDER_GIB[label] * 1.073741824
+
+    # ctx_tokens and n_slots: "n_slots = N, n_ctx_slot = N"
+    m = re.search(r"n_slots\s*=\s*(\d+)", text)
+    if m:
+        meta["n_slots"] = int(m.group(1))
+    m = re.search(r"n_ctx_slot\s*=\s*(\d+)", text)
+    if m:
+        meta["ctx_tokens"] = int(m.group(1))
+
+    # drafter: presence of "common_speculative_init_result"
+    meta["drafter"] = "common_speculative_init_result" in text
+
+    # accept_len: mean of all "mean len = X" values
+    means = re.findall(r"mean len\s*=\s*([\d.]+)", text)
+    if means:
+        vals = [float(v) for v in means]
+        meta["accept_len"] = float(np.mean(vals))
+        meta["accept_len_n"] = len(vals)
+
+    # flags: search for each known flag pattern
+    recorded = {}
+    missing = []
+    for name, *patterns in _FLAG_PATTERNS:
+        found = False
+        for pat in patterns:
+            if pat in text:
+                found = True
+                break
+        if found:
+            recorded[name] = True
+        else:
+            missing.append(name)
+    meta["flags_recorded"] = recorded
+    meta["flags_missing"] = missing
+
+    if not meta["model_label"]:
+        label = _label_from_tag(tag)
+        if label:
+            meta["model_label"] = label
+            meta["bpw"] = LADDER_BPW.get(label)
+            meta["inferred_from_tag"] = True
+
+    return meta
+
+
+# ---------------------------------------------------------------------------
+# Phrase builders. Every plot module calls these so that the same condition
+# is stated in the same words everywhere, and degrades in the same words
+# when a field is absent.
+# ---------------------------------------------------------------------------
+
+def model_phrase(meta):
+    """Human sentence naming the model, its provenance, and its bpw."""
+    if meta is None:
+        return "the model file is not recorded for this run"
+    label = meta.get("model_label")
+    mid = meta.get("model_id")
+    bpw = meta.get("bpw")
+    if not label:
+        return "the model file is not recorded for this run"
+    name = ("%s %s" % (mid, label)) if mid else label
+    bpw_s = " at %.3f bits per weight (cited, campaign.md)" % bpw if bpw else ""
+    if meta.get("inferred_from_tag"):
+        return ("%s%s — inferred from the run tag, because no server log "
+                "for this run is committed" % (name, bpw_s))
+    return ("%s%s, read from this run's own server log" % (name, bpw_s))
+
+
+def resident_phrase(meta):
+    """On-disk size with unit disambiguation, or a statement that it is unknown."""
+    if meta is None:
+        return "no on-disk size is recorded for this model file"
+    b = meta.get("model_bytes")
+    gib_only = meta.get("model_gib")
+    if b is not None:
+        gb = b / 1e9
+        gib = b / (1024 ** 3)
+        return ("%.4f decimal GB (derived: {:,} bytes × 1e−9) and "
+                "%.3f GiB (derived: {:,} bytes ÷ 1024³) on disk "
+                "— the recorded figure is the exact byte count {:,}; "
+                "both human-readable forms are derived from it, and the gap "
+                "between the two units is about 7 percent"
+                .format(b, b, b) % (gb, gib))
+    if gib_only is not None:
+        gb_derived = gib_only * 1.073741824
+        return ("%.3f GiB on disk (recorded in campaign.md at that precision)"
+                "; %.4f decimal GB (derived: %.3f GiB × 1.073741824) "
+                "— the recorded figure is the GiB value; the decimal-GB "
+                "form is derived from it, and the gap between the two units "
+                "is about 7 percent" % (gib_only, gb_derived, gib_only))
+    return "no on-disk size is recorded for this model file"
+
+
+def window_phrase(meta):
+    """Context window and slot count, or a statement that they are unknown."""
+    if meta is None:
+        return "the context window is not recorded for this run"
+    ctx = meta.get("ctx_tokens")
+    ns = meta.get("n_slots")
+    if ctx is None:
+        return "the context window is not recorded for this run"
+    slot_s = ("with %d slot%s (--parallel %d)"
+              % (ns, "s" if ns != 1 else "", ns)) if ns else ""
+    if meta.get("log"):
+        return ("-c {:,}".format(ctx) + (" " + slot_s if slot_s else "")
+                + ", read from the server log")
+    return ("-c {:,}".format(ctx) + (" " + slot_s if slot_s else "")
+            + " — source not recorded")
+
+
+def drafter_phrase(meta):
+    """Drafter status including the run's own mean accepted length."""
+    if meta is None or meta.get("drafter") is None:
+        return ("MTP speculative decoding status is not recorded for this "
+                "run — no server log is committed")
+    if not meta["drafter"]:
+        return "MTP speculative decoding OFF, read from the server log"
+    al = meta.get("accept_len")
+    aln = meta.get("accept_len_n")
+    if al is not None and aln is not None:
+        return ("MTP speculative decoding ON, read from the server log; "
+                "mean accepted length — which is how many tokens of the "
+                "draft head's guess the full model accepted per attempt, "
+                "so a value of 1 would mean speculation bought nothing — "
+                "is %.2f, the mean over %d draft-acceptance lines in this "
+                "run's own log" % (al, aln))
+    return ("MTP speculative decoding ON, read from the server log; "
+            "mean accepted length is not recorded for this run")
+
+
+def conditions(meta, extra=""):
+    """Full CONDITIONS clause for a figure caption or footer.
+
+    Always ends with a NOT RECORDED clause listing missing flags,
+    or a sentence stating that every flag was recorded.
+    """
+    parts = [model_phrase(meta)]
+    if meta:
+        parts.append(resident_phrase(meta))
+        parts.append(window_phrase(meta))
+        parts.append(drafter_phrase(meta))
+    if extra:
+        parts.append(extra)
+
+    missing = meta.get("flags_missing", []) if meta else _FLAG_NAMES
+    if missing:
+        if meta and meta.get("log"):
+            parts.append(
+                "NOT RECORDED FOR THIS RUN: %s — a server log exists "
+                "for this run, but the server was started at a verbosity "
+                "that never dumped its parameter block"
+                % ", ".join(missing))
+        else:
+            parts.append(
+                "NOT RECORDED FOR THIS RUN: %s — nothing about the "
+                "server's parameters is recorded, because no server log "
+                "for this run is committed at all; that is a wider absence "
+                "than a quiet parameter block"
+                % ", ".join(missing))
+    else:
+        parts.append("every server flag checked was recorded in the log")
+    return "CONDITIONS: " + "; ".join(parts) + "."

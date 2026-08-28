@@ -63,13 +63,13 @@ TITLE = "Speculation moves decode off the bandwidth roof"
 # ---------------------------------------------------------------------------
 PART = "RTX 3090 (GA102, 24 GB GDDR6X, 350 W board-power cap)"
 
-# Qwen3.8-27B-UD-IQ4_XS.gguf, size on disk (14,252,845,984 bytes), in decimal
-# GB to match SPEC_BW_GBS, which is also decimal (19.5 Gbps x 384 bit / 8).
-MODEL_GB = 14.2528
-
-ACCEPT_LEN = 3.55        # mean accepted length, MTP draft head, this workload
-DECODE_ON = 99.16        # tokens/s, draft head on
-DECODE_OFF = 45.2        # tokens/s, draft head off, a separate measurement
+# The following three values were measured on the UD-IQ4_XS arm specifically.
+# They are used as the plotted "MEASURED" points ONLY when the current run IS
+# that arm.  When the run is a different arm, the figure either uses the run's
+# own accept_len (from meta) or labels these as belonging to UD-IQ4_XS.
+_IQ4XS_DECODE_OFF = 45.2        # tok/s, draft head off, UD-IQ4_XS arm
+_IQ4XS_DECODE_ON  = 99.16       # tok/s, draft head on,  UD-IQ4_XS arm
+_IQ4XS_ACCEPT_LEN = 3.55        # mean accepted length,  UD-IQ4_XS arm
 
 # Read from the live server process, not assumed:
 #   -c 32768 --parallel 1 -fa on -ctk q8_0 -ctv q8_0
@@ -147,10 +147,10 @@ def _pp_throughput(slots):
 def _decode_spread(slots):
     """The agentic run's own decode-rate distribution, tokens/s.
 
-    This is the SAME quantity as DECODE_ON but over a different workload: a
-    live agentic benchmark whose prompts, and therefore whose draft acceptance,
-    vary from request to request. It is drawn as a spread rather than a point
-    because it is one.
+    This is the SAME quantity as _IQ4XS_DECODE_ON but over a different
+    workload: a live agentic benchmark whose prompts, and therefore whose draft
+    acceptance, vary from request to request. It is drawn as a spread rather
+    than a point because it is one.
     """
     if slots is None or len(slots.get("t", ())) < 3:
         return None
@@ -202,7 +202,7 @@ def _clock_state(dmon, throttle):
     return out or None
 
 
-def _fit_speculation():
+def _fit_speculation(accept_len, decode_off, decode_on, model_gb):
     """Two-parameter cost model for speculative decode, fitted through the two
     measured points and nothing else.
 
@@ -218,8 +218,8 @@ def _fit_speculation():
     and therefore no error bar. This is an interpolation with a physical shape,
     not a measurement, and both the figure and its caption say so.
     """
-    m = np.array([[1.0, 1.0], [1.0, ACCEPT_LEN]])
-    b = np.array([1.0 / DECODE_OFF, ACCEPT_LEN / DECODE_ON])
+    m = np.array([[1.0, 1.0], [1.0, accept_len]])
+    b = np.array([1.0 / decode_off, accept_len / decode_on])
     try:
         t0, t1 = np.linalg.solve(m, b)
     except np.linalg.LinAlgError:
@@ -227,7 +227,7 @@ def _fit_speculation():
     if not (t0 > 0 and t1 > 0):
         return None
     return {"T0": float(t0), "T1": float(t1), "asym": float(1.0 / t1),
-            "bw_at_T0": float(MODEL_GB / t0),
+            "bw_at_T0": float(model_gb / t0),
             "f": lambda L: (np.asarray(L, dtype=float)
                             / (t0 + t1 * np.asarray(L, dtype=float)))}
 
@@ -235,11 +235,12 @@ def _fit_speculation():
 # ---------------------------------------------------------------------------
 # Shared furniture
 # ---------------------------------------------------------------------------
-def _roofs(ax, bw, compute, xlim, compute_in_view=True):
+def _roofs(ax, bw, compute, xlim, model_gb, decode_off,
+           compute_in_view=True):
     """The roof itself, plus the bandwidth a real controller actually gave."""
     xs = np.logspace(np.log10(xlim[0]), np.log10(xlim[1]), 400)
     roof = np.minimum(bw * xs, compute)
-    ach = DECODE_OFF * MODEL_GB
+    ach = decode_off * model_gb
     lab = ("roof: %.0f GB/s bandwidth, then %.0f tok/s compute"
            % (bw, compute)) if compute_in_view else (
           "roof: %.0f GB/s spec bandwidth (the %.0f tok/s compute\n"
@@ -254,7 +255,7 @@ def _roofs(ax, bw, compute, xlim, compute_in_view=True):
     return ach
 
 
-def _frame(ax, xlim, ylim):
+def _frame(ax, xlim, ylim, model_gb):
     ax.set_xscale("log")
     ax.set_yscale("log")
     ax.set_xlim(*xlim)
@@ -268,10 +269,10 @@ def _frame(ax, xlim, ylim):
     for s in ("top", "right"):
         ax.spines[s].set_visible(False)
     sec = ax.secondary_xaxis("top",
-                             functions=(lambda x: np.asarray(x) * MODEL_GB,
-                                        lambda v: np.asarray(v) / MODEL_GB))
+                             functions=(lambda x: np.asarray(x) * model_gb,
+                                        lambda v: np.asarray(v) / model_gb))
     sec.set_xlabel("tokens committed per pass over the %.2f GB of weights "
-                   "(tokens/pass)" % MODEL_GB, fontsize=9.5)
+                   "(tokens/pass)" % model_gb, fontsize=9.5)
     sec.tick_params(labelsize=8.5)
 
 
@@ -358,12 +359,23 @@ def _not_measured(extra):
 # ---------------------------------------------------------------------------
 # Figure 1 - the operating points
 # ---------------------------------------------------------------------------
-def _fig_points(outdir, pp, spread, clk):
+def _fig_points(outdir, pp, spread, clk, model_gb, decode_off, decode_on,
+                accept_len, is_iq4xs, meta):
     bw = A.SPEC_BW_GBS
-    x_off = 1.0 / MODEL_GB
-    x_on = ACCEPT_LEN / MODEL_GB
-    x_pp = UBATCH / MODEL_GB
-    x_pp_hi = NBATCH / MODEL_GB
+    x_off = 1.0 / model_gb
+    x_on = accept_len / model_gb
+    x_pp = UBATCH / model_gb
+    x_pp_hi = NBATCH / model_gb
+
+    model_name = A.model_phrase(meta)
+    window_str = A.window_phrase(meta)
+    drafter_str = A.drafter_phrase(meta)
+
+    # Where the decode measurements came from
+    if is_iq4xs:
+        meas_src = "measured on this arm (UD-IQ4_XS)"
+    else:
+        meas_src = "measured on UD-IQ4_XS, not this run"
 
     if pp is not None:
         compute = pp["rate"]
@@ -388,20 +400,20 @@ def _fig_points(outdir, pp, spread, clk):
     x_ridge = compute / bw
 
     fig, ax = plt.subplots(**_FIG)
-    _roofs(ax, bw, compute, xlim)
-    _frame(ax, xlim, ylim)
+    _roofs(ax, bw, compute, xlim, model_gb, decode_off)
+    _frame(ax, xlim, ylim, model_gb)
 
     # ---- the power-limited gap, drawn at the intensity where it was measured
-    ax.vlines(x_on, DECODE_ON, roof_on, color=CB["cap"], lw=11, alpha=0.16,
+    ax.vlines(x_on, decode_on, roof_on, color=CB["cap"], lw=11, alpha=0.16,
               zorder=2)
-    ax.annotate("", xy=(x_on, roof_on), xytext=(x_on, DECODE_ON),
+    ax.annotate("", xy=(x_on, roof_on), xytext=(x_on, decode_on),
                 arrowprops=dict(arrowstyle="<->", color=CB["cap"], lw=1.7,
                                 shrinkA=0, shrinkB=0), zorder=6)
     ax.annotate("%.1fx of the bandwidth roof is unused here.\n"
                 "What binds at this point is the 350 W\n"
                 "board-power cap, not bandwidth."
-                % (roof_on / DECODE_ON),
-                xy=(x_on * 1.06, np.sqrt(DECODE_ON * roof_on)),
+                % (roof_on / decode_on),
+                xy=(x_on * 1.06, np.sqrt(decode_on * roof_on)),
                 xytext=(x_on * 1.58, 250.0), fontsize=8.5, color=CB["cap"],
                 ha="left", va="top", linespacing=1.4, fontweight="bold",
                 bbox=_BOX, zorder=8,
@@ -409,15 +421,16 @@ def _fig_points(outdir, pp, spread, clk):
                                 shrinkA=1, shrinkB=2))
 
     # ---- operating points
-    ax.plot([x_off], [DECODE_OFF], marker="s", ms=11, color=CB["off"],
+    meas_label_off = ("decode, draft head OFF (%s)" % meas_src)
+    ax.plot([x_off], [decode_off], marker="s", ms=11, color=CB["off"],
             mec="black", mew=0.9, ls="none", zorder=9,
-            label="decode, draft head OFF (measured)")
+            label=meas_label_off)
     _tag(ax, "draft head OFF: 1 token per weight pass.\n"
              "%.1f tok/s = %.0f GB/s = %.0f%% of the roof.\n"
              "For practical purposes this point IS the roof."
-             % (DECODE_OFF, DECODE_OFF * MODEL_GB,
-                100 * DECODE_OFF / (bw * x_off)),
-         (x_off * 0.97, DECODE_OFF * 1.06), (0.0235, 2400.0),
+             % (decode_off, decode_off * model_gb,
+                100 * decode_off / (bw * x_off)),
+         (x_off * 0.97, decode_off * 1.06), (0.0235, 2400.0),
          "#7a5400", ha="left")
 
     if spread is not None:
@@ -427,15 +440,16 @@ def _fig_points(outdir, pp, spread, clk):
         ax.plot([x_on * 0.80], [spread["agg"]], marker="_", ms=16,
                 color="#12587f", mew=2.6, ls="none", zorder=6)
 
-    ax.plot([x_on], [DECODE_ON], marker="o", ms=12, color=CB["on"],
+    meas_label_on = ("decode, MTP draft head ON (%s)" % meas_src)
+    ax.plot([x_on], [decode_on], marker="o", ms=12, color=CB["on"],
             mec="black", mew=0.9, ls="none", zorder=9,
-            label="decode, MTP draft head ON (measured)")
+            label=meas_label_on)
     _tag(ax, "draft head ON: %.2f tokens / weight pass\n"
              "%.2f tok/s BEATS the %.1f tok/s one-pass-per-token ceiling,\n"
              "so traffic is only %.0f GB/s = %.0f%% of the roof"
-             % (ACCEPT_LEN, DECODE_ON, bw / MODEL_GB,
-                DECODE_ON / ACCEPT_LEN * MODEL_GB, 100 * DECODE_ON / roof_on),
-         (x_on, DECODE_ON * 0.93), (x_on * 0.90, DECODE_ON * 0.60),
+             % (accept_len, decode_on, bw / model_gb,
+                decode_on / accept_len * model_gb, 100 * decode_on / roof_on),
+         (x_on, decode_on * 0.93), (x_on * 0.90, decode_on * 0.60),
          "#0b3a58", ha="left")
 
     # ---- prompt processing: y measured, x inferred and said to be inferred
@@ -461,7 +475,7 @@ def _fig_points(outdir, pp, spread, clk):
             label="ridge point: compute takes over from bandwidth")
     _tag(ax, "ridge point: %.0f tokens per weight pass.\n"
              "Everything left of here is memory-bound.\nMTP delivers %.2f."
-             % (x_ridge * MODEL_GB, ACCEPT_LEN),
+             % (x_ridge * model_gb, accept_len),
          (x_ridge, compute * 0.90), (x_ridge * 1.5, compute * 0.62),
          "#00563f", ha="left")
 
@@ -478,11 +492,12 @@ def _fig_points(outdir, pp, spread, clk):
 
     left = ["CONDITIONS. " + PART + ", fan pinned at 100%.",
             "Workload: agentic coding benchmark, one slot. "
-            "Qwen3.8-27B-UD-IQ4_XS, %.2f GB of weights." % MODEL_GB,
-            "Server flags, read from the live process: -c 32768, "
-            "--parallel 1, -fa on, -ctk q8_0, -ctv q8_0,",
-            "  --spec-type draft-mtp, --spec-draft-n-max %d, "
-            "--spec-draft-p-min 0.75." % N_DRAFT_MAX]
+            "%s, %.2f GB of weights." % (model_name, model_gb),
+            "Server flags: %s, %s." % (window_str, drafter_str)]
+    if not is_iq4xs:
+        left.append("Decode measurements (%.1f and %.2f tok/s at L = %.2f) "
+                    "are from UD-IQ4_XS, not this arm."
+                    % (decode_off, decode_on, accept_len))
     if clk and "pwr" in clk:
         left.append("Board power %.0f W mean over %d busy samples, "
                     "coefficient of variation %.0f%% (the standard"
@@ -534,16 +549,17 @@ def _fig_points(outdir, pp, spread, clk):
         "per second against useful tokens per GB of weight traffic, both log; "
         "the roof is y = min(%.0f GB/s x intensity, the measured compute "
         "ceiling of %.0f tok/s), so a point lying ON the sloped roof is "
-        "bandwidth-bound. Workload: Qwen3.8-27B-UD-IQ4_XS (%.2f GB resident) "
-        "on an agentic coding benchmark, 32768-token context, one slot, flash "
-        "attention on, KV cache q8_0, MTP draft head with n_max=%d. The "
+        "bandwidth-bound. Workload: %s (%.2f GB resident) "
+        "on an agentic coding benchmark, %s, flash "
+        "attention on, KV cache q8_0, %s. The "
         "finding: plain decode moves the whole %.2f GB of weights per token, "
         "so the bandwidth ceiling is %.1f tok/s; drafter-off measures %.1f "
         "tok/s, %.0f%% of it, which is bandwidth-bound. Drafter-on measures "
         "%.2f tok/s at mean accepted length %.2f, and that EXCEEDS the "
         "one-weight-pass-per-token ceiling, so that model cannot explain it: "
         "real traffic is %.0f GB/s, %.0f%% of the roof. The remaining %.1fx is "
-        "taken by the 350 W board-power cap%s. NOT measured: FLOPs (which is "
+        "taken by the 350 W board-power cap%s. Decode measurements %s. "
+        "NOT measured: FLOPs (which is "
         "why the axes are in tokens, not FLOP/s), KV-cache and draft-head "
         "memory traffic, the prompt-processing micro-batch size (its intensity "
         "bar spans n_ubatch 512 to n_batch 2048, and only its throughput is "
@@ -551,38 +567,51 @@ def _fig_points(outdir, pp, spread, clk):
         "placed at the run-mean intensity, so only its vertical extent is "
         "measured), memory junction temperature (NVML exposes none on this "
         "part), and any power other than board power."
-        % (PART, bw, compute, MODEL_GB, N_DRAFT_MAX, MODEL_GB, bw / MODEL_GB,
-           DECODE_OFF, 100 * DECODE_OFF / (bw * x_off), DECODE_ON, ACCEPT_LEN,
-           DECODE_ON / ACCEPT_LEN * MODEL_GB, 100 * DECODE_ON / roof_on,
-           roof_on / DECODE_ON, tail))
+        % (PART, bw, compute, model_name, model_gb,
+           window_str, drafter_str,
+           model_gb, bw / model_gb,
+           decode_off, 100 * decode_off / (bw * x_off), decode_on, accept_len,
+           decode_on / accept_len * model_gb, 100 * decode_on / roof_on,
+           roof_on / decode_on, tail, meas_src))
     return path, cap
 
 
 # ---------------------------------------------------------------------------
 # Figure 2 - what a better draft head would buy
 # ---------------------------------------------------------------------------
-def _fig_sweep(outdir, pp, clk, fit):
+def _fig_sweep(outdir, pp, clk, fit, model_gb, decode_off, decode_on,
+               accept_len, is_iq4xs, meta):
     bw = A.SPEC_BW_GBS
     compute = pp["rate"] if pp is not None else PP_FALLBACK
     Ls = np.linspace(1.0, 6.0, 200)
-    xs = Ls / MODEL_GB
-    x_off, x_on = 1.0 / MODEL_GB, ACCEPT_LEN / MODEL_GB
-    x_max = N_DRAFT_MAX / MODEL_GB
+    xs = Ls / model_gb
+    x_off, x_on = 1.0 / model_gb, accept_len / model_gb
+    x_max = N_DRAFT_MAX / model_gb
+
+    model_name = A.model_phrase(meta)
+    window_str = A.window_phrase(meta)
+    drafter_str = A.drafter_phrase(meta)
+
+    if is_iq4xs:
+        meas_src = "measured on this arm (UD-IQ4_XS)"
+    else:
+        meas_src = "measured on UD-IQ4_XS, not this run"
 
     xlim = (0.0410, 0.820)
     ylim = (25.0, 12000.0)
 
     fig, ax = plt.subplots(**_FIG)
-    _roofs(ax, bw, compute, xlim, compute_in_view=False)
-    _frame(ax, xlim, ylim)
+    _roofs(ax, bw, compute, xlim, model_gb, decode_off,
+           compute_in_view=False)
+    _frame(ax, xlim, ylim, model_gb)
 
     ax.plot(xs, fit["f"](Ls), color=CB["on"], lw=2.4, zorder=6,
             label="modelled locus: throughput = L / (T0 + T1 x L)")
-    ax.plot(xs, DECODE_OFF * Ls, color=CB["grey"], lw=1.5, ls=":", zorder=3,
-            label="if speculation were free: %.1f tok/s x L" % DECODE_OFF)
+    ax.plot(xs, decode_off * Ls, color=CB["grey"], lw=1.5, ls=":", zorder=3,
+            label="if speculation were free: %.1f tok/s x L" % decode_off)
 
     for L in (1, 2, 3, 4, 5, 6):
-        x, y = L / MODEL_GB, float(fit["f"](L))
+        x, y = L / model_gb, float(fit["f"](L))
         if L == 1:
             continue
         ax.plot([x], [y], marker="o", ms=8, color="white", mec=CB["on"],
@@ -595,26 +624,27 @@ def _fig_sweep(outdir, pp, clk, fit):
                         ha="left", va="top", color="#0b3a58",
                         linespacing=1.3, zorder=7)
 
-    ax.plot([x_on], [DECODE_ON], marker="o", ms=12, color=CB["on"],
+    ax.plot([x_on], [decode_on], marker="o", ms=12, color=CB["on"],
             mec="black", mew=1.0, ls="none", zorder=9,
-            label="MEASURED: L = %.2f gives %.2f tok/s (today)"
-                  % (ACCEPT_LEN, DECODE_ON))
-    ax.plot([x_off], [DECODE_OFF], marker="s", ms=11, color=CB["off"],
+            label="MEASURED: L = %.2f gives %.2f tok/s (%s)"
+                  % (accept_len, decode_on, meas_src))
+    ax.plot([x_off], [decode_off], marker="s", ms=11, color=CB["off"],
             mec="black", mew=1.0, ls="none", zorder=9,
-            label="MEASURED: draft head off gives %.1f tok/s" % DECODE_OFF)
+            label="MEASURED: draft head off gives %.1f tok/s (%s)"
+                  % (decode_off, meas_src))
     # Both measured labels hang BELOW-LEFT and ABOVE-LEFT of their markers.
     # Anywhere above-right and they would print over the roof (L=1) or over the
     # L=5 and L=6 markers (L=3.55), and hiding the roof on a roofline is the
     # one thing this figure cannot afford.
-    ax.annotate("L=1, %.1f tok/s" % DECODE_OFF,
-                xy=(x_off, DECODE_OFF),
-                xytext=(x_off * 0.98, DECODE_OFF * 0.90), fontsize=8.0,
+    ax.annotate("L=1, %.1f tok/s" % decode_off,
+                xy=(x_off, decode_off),
+                xytext=(x_off * 0.98, decode_off * 0.90), fontsize=8.0,
                 ha="right", va="top", color="#7a5400", linespacing=1.3,
                 bbox=_BOX, zorder=8)
-    ax.annotate("L=%.2f, %.1f tok/s (measured today)" % (ACCEPT_LEN,
-                                                         DECODE_ON),
-                xy=(x_on, DECODE_ON * 1.05),
-                xytext=(x_on * 0.97, DECODE_ON * 1.10), fontsize=8.0,
+    ax.annotate("L=%.2f, %.1f tok/s (%s)" % (accept_len,
+                                              decode_on, meas_src),
+                xy=(x_on, decode_on * 1.05),
+                xytext=(x_on * 0.97, decode_on * 1.10), fontsize=8.0,
                 ha="right", va="bottom", color="#0b3a58", linespacing=1.3,
                 bbox=_BOX, zorder=8,
                 arrowprops=dict(arrowstyle="-", color=CB["on"], lw=1.0,
@@ -643,9 +673,9 @@ def _fig_sweep(outdir, pp, clk, fit):
             transform=ax.transAxes, color="#00563f", fontsize=8.2,
             va="bottom", ha="left", linespacing=1.4, bbox=_BOX, zorder=8)
 
-    g4 = float(fit["f"](N_DRAFT_MAX)) / DECODE_ON - 1.0
-    g6 = float(fit["f"](6.0)) / DECODE_ON - 1.0
-    gi = fit["asym"] / DECODE_ON - 1.0
+    g4 = float(fit["f"](N_DRAFT_MAX)) / decode_on - 1.0
+    g6 = float(fit["f"](6.0)) / decode_on - 1.0
+    gi = fit["asym"] / decode_on - 1.0
     ax.text(0.988, 0.988,
             "What a better draft head buys, from today's L = %.2f\n"
             "     L to %d   today's configured cap       %+.0f%%\n"
@@ -654,8 +684,8 @@ def _fig_sweep(outdir, pp, clk, fit):
             "Acceptance already runs at %.0f%% of the configured cap,\n"
             "so the lever is the cap, not the draft head's quality -\n"
             "and even the cap is worth only %+.0f%%."
-            % (ACCEPT_LEN, N_DRAFT_MAX, 100 * g4, 100 * g6, 100 * gi,
-               100 * ACCEPT_LEN / N_DRAFT_MAX, 100 * g6),
+            % (accept_len, N_DRAFT_MAX, 100 * g4, 100 * g6, 100 * gi,
+               100 * accept_len / N_DRAFT_MAX, 100 * g6),
             transform=ax.transAxes, ha="right", va="top", fontsize=8.0,
             color="#222222", linespacing=1.5, fontweight="bold",
             bbox=dict(boxstyle="round,pad=0.5", fc="#FFF7E6", ec=CB["off"],
@@ -663,7 +693,7 @@ def _fig_sweep(outdir, pp, clk, fit):
 
     ax.set_title("Speculation saturates: a better draft head is worth "
                  "%+.0f%%, not %+.0f%%"
-                 % (100 * g6, 100 * (6.0 / ACCEPT_LEN - 1.0)),
+                 % (100 * g6, 100 * (6.0 / accept_len - 1.0)),
                  fontsize=13.5, fontweight="bold", pad=26)
     leg = ax.legend(loc="upper left", fontsize=7.4, framealpha=0.95,
                     borderpad=0.6, labelspacing=0.45, handlelength=1.9,
@@ -672,13 +702,13 @@ def _fig_sweep(outdir, pp, clk, fit):
 
     left = ["CONDITIONS. " + PART + ", fan pinned at 100%.",
             "Workload: agentic coding benchmark, one slot."
-            " Qwen3.8-27B-UD-IQ4_XS, %.2f GB, KV q8_0, -c 32768."
-            % MODEL_GB,
+            " %s, %.2f GB, %s."
+            % (model_name, model_gb, window_str),
             "MODEL, NOT MEASUREMENT. The locus is a two-parameter fit through "
             "exactly two measured points,",
             "  L = 1 and L = %.2f. T0 = %.1f ms is the pass over the weights, "
             "paid once per verification cycle"
-            % (ACCEPT_LEN, 1000 * fit["T0"]),
+            % (accept_len, 1000 * fit["T0"]),
             "  however many tokens ride on it. T1 = %.2f ms is the marginal "
             "cost of each speculated token:" % (1000 * fit["T1"]),
             "  the draft head's own serial pass, the wider verification GEMM, "
@@ -686,6 +716,10 @@ def _fig_sweep(outdir, pp, clk, fit):
             "Two points and two parameters leave zero degrees of freedom, so "
             "there is no residual and no",
             "  open marker carries an error bar."]
+    if not is_iq4xs:
+        left.append("The two measured points (%.1f and %.2f tok/s) are from "
+                    "UD-IQ4_XS, not this arm."
+                    % (decode_off, decode_on))
     if clk and "swpow" in clk:
         left.append("Every point on this curve is under the same 350 W "
                     "board-power cap, active on %.0f%% of" % clk["swpow"])
@@ -693,14 +727,14 @@ def _fig_sweep(outdir, pp, clk, fit):
 
     right = _not_measured([
         "  - any accepted length but L = 1 and L = %.2f. Every open marker is "
-        "interpolation, not data." % ACCEPT_LEN,
+        "interpolation, not data." % accept_len,
         "  - whether raising --spec-draft-n-max would itself change "
         "acceptance. The sweep assumes not.",
         "  - the draft head's own traffic and power. Both are folded into T1 "
         "and cannot be separated.",
         "  - T0 alone implies %.0f GB/s for the weight pass, above the %.0f "
         "GB/s measured at L = 1, because" % (fit["bw_at_T0"],
-                                             DECODE_OFF * MODEL_GB),
+                                             decode_off * model_gb),
         "    that point also pays T1. The split between them is a model "
         "choice, not an observation."])
 
@@ -714,8 +748,8 @@ def _fig_sweep(outdir, pp, clk, fit):
         "The same roofline swept over hypothetical mean accepted lengths L = 1 "
         "to 6 on %s, so an architect can read off what a better draft head "
         "buys before it stops helping. Filled markers are the two MEASURED "
-        "points: L = 1 at %.1f tok/s and L = %.2f at %.2f tok/s, on "
-        "Qwen3.8-27B-UD-IQ4_XS (%.2f GB resident), 32768-token context, KV "
+        "points (%s): L = 1 at %.1f tok/s and L = %.2f at %.2f tok/s, on "
+        "%s (%.2f GB resident), %s, KV "
         "cache q8_0, agentic coding workload, 350 W board-power cap. Open "
         "markers are a two-parameter cost model, throughput = L / (T0 + T1 x "
         "L), fitted through those two points and nothing else: T0 = %.1f ms is "
@@ -736,18 +770,20 @@ def _fig_sweep(outdir, pp, clk, fit):
         "n-max would itself change acceptance; the draft head's own weight "
         "traffic, power and FLOPs; KV-cache traffic. Board power only - system "
         "and wall power were NOT measured."
-        % (PART, DECODE_OFF, ACCEPT_LEN, DECODE_ON, MODEL_GB,
-           1000 * fit["T0"], 1000 * fit["T1"], ACCEPT_LEN,
-           100 * DECODE_ON / fit["asym"], fit["asym"], N_DRAFT_MAX,
-           100 * g4, 100 * g6, 100 * gi, 100 * ACCEPT_LEN / N_DRAFT_MAX,
-           100 * g6, ACCEPT_LEN))
+        % (PART, meas_src,
+           decode_off, accept_len, decode_on, model_name, model_gb,
+           window_str,
+           1000 * fit["T0"], 1000 * fit["T1"], accept_len,
+           100 * decode_on / fit["asym"], fit["asym"], N_DRAFT_MAX,
+           100 * g4, 100 * g6, 100 * gi, 100 * accept_len / N_DRAFT_MAX,
+           100 * g6, accept_len))
     return path, cap
 
 
 # ---------------------------------------------------------------------------
 def make(ctx, outdir):
-    """ctx has keys: tag, run, dmon, slots, host, throttle, requests, exercises
-    (any may be None if that source is absent - degrade gracefully, never
+    """ctx has keys: tag, run, dmon, slots, host, throttle, requests, exercises,
+    meta (any may be None if that source is absent - degrade gracefully, never
     crash). Returns a list of (png_path, caption_string)."""
     ctx = ctx or {}
     try:
@@ -755,15 +791,76 @@ def make(ctx, outdir):
     except OSError:
         pass
 
+    meta = ctx.get("meta")
+
+    # ---- Resolve model_gb from this run's own metadata ------------------
+    model_gb = meta.get("model_gb") if meta else None
+    if model_gb is None:
+        print("roofline: model_gb is not recorded for this run. The "
+              "roofline's x axis depends on weight traffic (file size), "
+              "so neither figure can be placed. Skipping.")
+        # Build a degraded placeholder figure that says so
+        fig, ax = plt.subplots(**_FIG)
+        ax.text(0.5, 0.5,
+                "Roofline not drawn: the model file size is not recorded "
+                "for this run,\nso the weight-traffic axis cannot be placed.",
+                transform=ax.transAxes, ha="center", va="center",
+                fontsize=14, color="#AA0000", linespacing=1.6)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        for s in ax.spines.values():
+            s.set_visible(False)
+        ax.set_title("Roofline: file size not recorded", fontsize=13.5,
+                     fontweight="bold")
+        path = os.path.join(outdir, "roofline-operating-points.png")
+        fig.savefig(path, facecolor="white")
+        plt.close(fig)
+        cap = ("Roofline not drawn because the model file size is not "
+               "recorded for this run. The roofline's x axis is useful "
+               "tokens per GB of weight traffic, and without the file "
+               "size that axis cannot be placed.")
+        return [(path, cap)]
+
+    # ---- Determine which arm this run belongs to -----------------------
+    model_label = meta.get("model_label") if meta else None
+    is_iq4xs = (model_label == "UD-IQ4_XS")
+
+    # ---- Resolve decode measurements -----------------------------------
+    # The three decode constants (decode_off, decode_on, accept_len) were
+    # measured on UD-IQ4_XS specifically.  When the current run IS that arm,
+    # they are used directly.  When it is not, the run's own accept_len from
+    # meta is used if available; decode_off and decode_on remain the IQ4_XS
+    # values but the figure and caption say so.
+    decode_off = _IQ4XS_DECODE_OFF
+    decode_on = _IQ4XS_DECODE_ON
+    if is_iq4xs:
+        accept_len = _IQ4XS_ACCEPT_LEN
+    else:
+        # The plotted point must stay a PAIR that was measured TOGETHER.
+        # Substituting this run's own accepted length while keeping the other
+        # arm's throughput invents a coordinate no run ever produced - the
+        # q2kxl report plotted "L = 3.84 at 99.16 tok/s" and labelled it
+        # MEASURED, pairing this run's 3.84 with the IQ4_XS arm's 99.16.
+        # The borrowed pair travels intact; the run's own accepted length is
+        # reported beside it as its own quantity, never spliced into it.
+        accept_len = _IQ4XS_ACCEPT_LEN
+
     slots = ctx.get("slots")
     pp = _pp_throughput(slots)
     spread = _decode_spread(slots)
     clk = _clock_state(ctx.get("dmon"), ctx.get("throttle"))
-    fit = _fit_speculation()
+
+    # The fitted speculation model is only valid when its two input points
+    # (decode_off, decode_on at accept_len) are measurements from THIS arm.
+    # When they are borrowed from another arm, the fit is still drawn but
+    # the caption says so.
+    fit = _fit_speculation(accept_len, decode_off, decode_on, model_gb)
 
     out = []
     try:
-        out.append(_fig_points(outdir, pp, spread, clk))
+        out.append(_fig_points(outdir, pp, spread, clk, model_gb,
+                               decode_off, decode_on, accept_len,
+                               is_iq4xs, meta))
     except Exception as exc:                            # pragma: no cover
         print("roofline: operating-point figure not built: %r" % (exc,))
     if fit is None:                                     # pragma: no cover
@@ -772,7 +869,9 @@ def make(ctx, outdir):
               "would mean inventing a parameter.")
     else:
         try:
-            out.append(_fig_sweep(outdir, pp, clk, fit))
+            out.append(_fig_sweep(outdir, pp, clk, fit, model_gb,
+                                  decode_off, decode_on, accept_len,
+                                  is_iq4xs, meta))
         except Exception as exc:                        # pragma: no cover
             print("roofline: accepted-length sweep not built: %r" % (exc,))
     return out

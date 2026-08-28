@@ -24,12 +24,18 @@ from a specification sheet except the lines LABELLED [SPEC]: the board's
 physical ceiling and the link's theoretical rate.
 """
 import os
+import sys
 import textwrap
 
 import matplotlib
 matplotlib.use("Agg")            # REQUIRED - never an interactive backend
 import matplotlib.pyplot as plt
 import numpy as np
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
+if os.path.dirname(_HERE) not in sys.path:
+    sys.path.insert(0, os.path.dirname(_HERE))
+import archdata as A                                    # noqa: E402
 
 TITLE = "Capacity is the constraint; the interconnect is not"
 
@@ -66,7 +72,7 @@ DESKTOP_FENCE_MIB = 1796.0     # 1,669 MiB desktop worst case, measured
                                # showed was read off a board ALREADY
                                # SPILLING - a desktop being evicted, not
                                # one at rest.
-LADDER_TOP_BPW = 4.223         # UD-IQ4_XS, the file in this run
+LADDER_TOP_BPW = 4.223         # UD-IQ4_XS, the top of the ladder
 LADDER_BOT_BPW = 1.835         # UD-IQ1_S, the rung that stops terminating
 LADDER_FLOOR_BPW = 2.481       # UD-IQ2_S, smallest rung whose code EXECUTES
 
@@ -163,7 +169,7 @@ def _save(fig, outdir, name):
 
 
 # ------------------------------------------------------------------ FIGURE 1
-def _vram(ctx, outdir, t0):
+def _vram(ctx, outdir, t0, meta=None):
     """VRAM in use against the physical ceiling, with headroom shaded."""
     dmon = ctx.get("dmon")
     if dmon is None or len(_fin(dmon.get("fb"))) < 2:
@@ -257,38 +263,72 @@ def _vram(ctx, outdir, t0):
     for s in ("left", "bottom"):
         iax.spines[s].set_color("#666666")
 
+    # Orient the ladder argument around whichever rung THIS run is.
+    _label = meta.get("model_label") if meta else None
+    _bpw = meta.get("bpw") if meta else None
+    if _label == "UD-Q2_K_XL":
+        _this_fullwin = FULLWIN_Q2KXL_MIB
+        _this_drafter_note = "WITH speculation"
+        _other_label = "UD-IQ4_XS"
+        _other_fullwin = FULLWIN_IQ4XS_MIB
+        _other_drafter_note = "drafter OFF"
+    else:
+        # Default / UD-IQ4_XS — the original orientation
+        _this_fullwin = FULLWIN_IQ4XS_MIB
+        _this_drafter_note = "speculation OFF because nothing else fits"
+        _other_label = "UD-Q2_K_XL"
+        _other_fullwin = FULLWIN_Q2KXL_MIB
+        _other_drafter_note = "WITH speculation"
+    # An unrecorded model degrades to a NAMED ABSENCE, never to a name.
+    # Defaulting an unknown run to UD-IQ4_XS is exactly the defect this
+    # module is being repaired for: it is how the 2-bit report came to
+    # describe a 4-bit file under every one of its figures.
+    _this_label = _label if _label else "the file this run loaded (NOT RECORDED)"
+    _this_bpw = _bpw if _bpw else None
+
     ax.text(0.015, 0.545,
             "WHY THIS BOARD HAS A QUANTISATION LADDER\n"
-            "This file is UD-IQ4_XS, %.3f bits per weight, run at -c 32,768: "
+            "This file is %s, %s, run at %s: "
             "%.1f GiB resident, %.1f GiB spare.\n"
             "The SAME file at the full native 262,144-token window was "
             "MEASURED at %s MiB - only %s MiB clear of\n"
             "the ceiling, INSIDE the %s MiB desktop reserve, and with "
-            "speculation OFF because nothing else fits.\n"
-            "UD-Q2_K_XL at %.3f bits per weight holds that same window at %s "
-            "MiB WITH speculation. The ladder runs\n"
+            "%s.\n"
+            "%s at %.3f bits per weight holds that same window at %s "
+            "MiB %s. The ladder runs\n"
             "%.3f down to %.3f bits per weight, and every rung down costs "
             "measured accuracy; the smallest rung\n"
             "whose generated code actually EXECUTES is %.3f. Capacity, not "
             "bandwidth, is what decides which\nmodel runs at all."
-            % (LADDER_TOP_BPW, med / 1024.0, head / 1024.0,
-               _n(FULLWIN_IQ4XS_MIB), _n(BOARD_MIB - FULLWIN_IQ4XS_MIB),
-               _n(DESKTOP_FENCE_MIB), FULLWIN_Q2KXL_BPW,
-               _n(FULLWIN_Q2KXL_MIB), LADDER_TOP_BPW, LADDER_BOT_BPW,
-               LADDER_FLOOR_BPW),
+            % (_this_label,
+               ("%.3f bits per weight" % _this_bpw) if _this_bpw
+               else "bits per weight NOT RECORDED for this run",
+               A.window_phrase(meta) if meta else
+               "a context window NOT RECORDED for this run",
+               med / 1024.0, head / 1024.0,
+               _n(_this_fullwin), _n(BOARD_MIB - _this_fullwin),
+               _n(DESKTOP_FENCE_MIB), _this_drafter_note,
+               _other_label, A.LADDER_BPW.get(_other_label, 0.0),
+               _n(_other_fullwin), _other_drafter_note,
+               LADDER_TOP_BPW, LADDER_BOT_BPW, LADDER_FLOOR_BPW),
             transform=ax.transAxes, ha="left", va="top", fontsize=7.6,
             bbox=BOX, linespacing=1.4)
 
+    _model_gb = ("%.2f GB" % meta["model_gb"]) if (meta and meta.get("model_gb")) else "the model file"
     ax.text(0.015, 0.045,
-            "The 14.25 GB model file is not the whole cost. The KV cache "
-            "(32,768 tokens, q8_0 for K and V), the CUDA\n"
+            "The %s is not the whole cost. The KV cache "
+            "(%s, q8_0 for K and V), the CUDA\n"
             "context, the compute buffers and the MTP drafter are all inside "
             "this %.1f GiB as well.\n"
             "NOT MEASURED: which allocation owns which byte. nvidia-smi pmon "
             "reports \"-\" for every process under\n"
             "Windows WDDM, so this rig has no per-process VRAM attribution "
             "and this figure claims none."
-            % (med / 1024.0),
+            % (_model_gb,
+               ("{:,} tokens".format(meta["ctx_tokens"])
+                if (meta and meta.get("ctx_tokens"))
+                else "window size NOT RECORDED for this run"),
+               med / 1024.0),
             transform=ax.transAxes, ha="left", va="bottom", fontsize=7.6,
             bbox=BOX, linespacing=1.4)
 
@@ -296,24 +336,29 @@ def _vram(ctx, outdir, t0):
                     ncol=2, fontsize=8, framealpha=0.95)
     leg.get_frame().set_edgecolor("#AAAAAA")
 
+    _mp = A.model_phrase(meta) if meta else "model not recorded"
+    _wp = A.window_phrase(meta) if meta else "a context window NOT RECORDED for this run"
+    _dp = A.drafter_phrase(meta) if meta else "drafter status not recorded"
     res = _footer(fig,
                   "RTX 3090, 24,576 MiB. Board memory only - never system RAM, "
                   "and no system or wall power is implied anywhere in this "
                   "module. Workload: aider polyglot agentic benchmark, "
-                  "Qwen3.8-27B UD-IQ4_XS, -ngl 99, -c 32,768, --parallel 1, "
-                  "-fa on, KV q8_0 for K and V, MTP speculative decoding "
-                  "(n-max 4, p-min 0.75), deepest request %s prompt tokens. "
+                  "%s, -ngl 99, %s, "
+                  "-fa on, KV q8_0 for K and V, %s, "
+                  "deepest request %s prompt tokens. "
                   "%s dmon samples over %.0f minutes."
-                  % (_n(_deepest(ctx)), _n(good.sum()), mins))
+                  % (_mp, _wp, _dp, _n(_deepest(ctx)),
+                     _n(good.sum()), mins))
     fig.tight_layout(rect=(0, res + 0.062, 1, 1))
 
     p = _save(fig, outdir, "capacity-vram-ceiling.png")
+    _cap_model = A.model_phrase(meta) if meta else "model not recorded"
     cap = (
         "VRAM in use across the whole telemetry window against the RTX 3090's "
         "24,576 MiB physical ceiling, with headroom shaded. CONDITIONS: RTX "
-        "3090, board memory only (dmon 'fb'); Qwen3.8-27B UD-IQ4_XS at 4.223 "
-        "bits per weight, -ngl 99, -c 32,768, --parallel 1, -fa on, KV q8_0 "
-        "for both K and V, MTP speculative decoding on; workload is the aider "
+        "3090, board memory only (dmon 'fb'); %s, -ngl 99, %s, "
+        "--parallel 1, -fa on, KV q8_0 "
+        "for both K and V; workload is the aider "
         "polyglot agentic benchmark. FINDING: the footprint is %s MiB median "
         "(%.2f GiB) and varies by only %.0f MiB across %.0f minutes, which is "
         "%.2f%% of that median footprint. "
@@ -321,20 +366,21 @@ def _vram(ctx, outdir, t0):
         "which is what makes a board ceiling a gate rather than a budget, and "
         "it is why a memory limit here is answered with a quantisation ladder "
         "rather than with a scheduler. %.1f GiB of headroom is left at this "
-        "window. The ladder argument is measured, not arithmetic: the same "
-        "file at the full native 262,144-token window reached %s MiB - %s MiB "
-        "from the ceiling, inside the %s MiB desktop reserve, with "
-        "speculation off - while the 2.912 bits-per-weight file held the same "
-        "window at %s MiB with speculation on. NOT MEASURED: per-process VRAM "
-        "attribution, because nvidia-smi pmon reports '-' for every process "
-        "under Windows WDDM; the split between weights, KV cache, CUDA "
-        "context, compute buffers and the drafter cannot be read off this "
+        "window. The ladder argument is measured, not arithmetic: "
+        "UD-IQ4_XS at the full native 262,144-token window reached %s MiB - "
+        "%s MiB from the ceiling, inside the %s MiB desktop reserve, with "
+        "speculation off - while UD-Q2_K_XL at 2.912 bits per weight held the "
+        "same window at %s MiB with speculation on. NOT MEASURED: per-process "
+        "VRAM attribution, because nvidia-smi pmon reports '-' for every "
+        "process under Windows WDDM; the split between weights, KV cache, "
+        "CUDA context, compute buffers and the drafter cannot be read off this "
         "trace, and the figure says so on its face. The 24,576 MiB ceiling is "
         "specification; every other number on the figure is measured on this "
         "rig."
-        % (_n(med), med / 1024.0, hi - lo, mins, drift_pct, head / 1024.0,
-           _n(FULLWIN_IQ4XS_MIB), _n(BOARD_MIB - FULLWIN_IQ4XS_MIB),
-           _n(DESKTOP_FENCE_MIB), _n(FULLWIN_Q2KXL_MIB)))
+        % (_cap_model, _wp, _n(med), med / 1024.0, hi - lo, mins, drift_pct,
+           head / 1024.0, _n(FULLWIN_IQ4XS_MIB),
+           _n(BOARD_MIB - FULLWIN_IQ4XS_MIB), _n(DESKTOP_FENCE_MIB),
+           _n(FULLWIN_Q2KXL_MIB)))
     return p, cap
 
 
@@ -350,7 +396,7 @@ def _deepest(ctx):
 
 
 # ------------------------------------------------------------------ FIGURE 2
-def _null_paths(ctx, outdir, t0):
+def _null_paths(ctx, outdir, t0, meta=None):
     """PCIe traffic, and host storage, each plotted at the scale of what that
     path could carry. Two deliberate null results."""
     dmon = ctx.get("dmon")
@@ -639,12 +685,15 @@ def _null_paths(ctx, outdir, t0):
                ("%.3f" % r) if np.isfinite(r) else "not computable",
                _n(avail_min)))
 
+    _np_model = A.model_phrase(meta) if meta else "model not recorded"
+    _np_window = A.window_phrase(meta) if meta else "a context window NOT RECORDED for this run"
+    _np_drafter = A.drafter_phrase(meta) if meta else "drafter status not recorded"
     cond = ("RTX 3090; PCIe link negotiated at Gen4 x16 (nvidia-smi, "
             "read-only query). Board telemetry only - no system or wall power "
             "is implied. Workload: aider polyglot agentic benchmark, "
-            "Qwen3.8-27B UD-IQ4_XS at 4.223 bits per weight, -ngl 99, "
-            "-c 32,768, MTP speculative decoding on. The link rate is "
-            "SPECIFICATION; all traffic is measured.")
+            "%s, -ngl 99, %s, %s. The link rate is "
+            "SPECIFICATION; all traffic is measured."
+            % (_np_model, _np_window, _np_drafter))
     if notes:
         cond += "  " + "  ".join(notes)
     res = _footer(fig, cond)
@@ -665,12 +714,13 @@ def make(ctx, outdir):
     exercises (any may be None if that source is absent - degrade gracefully,
     never crash). Returns a list of (png_path, caption_string)."""
     ctx = dict(ctx or {})
+    meta = ctx.get("meta")
     out = []
     t0 = _origin(ctx.get("dmon"), ctx.get("slots"), ctx.get("host"))
 
     for fn in (_vram, _null_paths):
         try:
-            r = fn(ctx, outdir, t0)
+            r = fn(ctx, outdir, t0, meta=meta)
         except Exception as e:                       # never take a run down
             print("capacity: %s could not be built: %s: %s"
                   % (fn.__name__, type(e).__name__, e))
