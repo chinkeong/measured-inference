@@ -1,5 +1,5 @@
 {
-  "date": "2026-08-28 16:18",
+  "date": "2026-08-28 16:23",
   "question": "how wide is ONE speculative-decoding arm's own distribution, and does the published 86.91 t/s fall inside it?",
   "toolchain": {
     "recorded_by": "scripts/bench/provenance.py",
@@ -128,256 +128,256 @@
   "conditions": "UD-IQ4_XS, n-max 10 / p-min 0.5, -c 32768, -ctk/-ctv q8_0, -ngl 99, --parallel 1, -fa on, reasoning off, greedy (temp 0 / top_k 1), 700 predicted tokens, ONE server held up for the whole run, one warmup discarded (rule 12), probes back to back with no cooling gap, quiet machine (rule 27)",
   "prompt": "Write a single self-contained JavaScript module that implements a fixed-window\nrate limiter with a pluggable clock, a per-key limit, and an eviction sweep that\nruns at most once per window. Include JSDoc on every exported symbol and a short\nusage example at the end. Do not explain the code outside the module.",
   "n_probes": 20,
-  "mean_tps": 77.35,
-  "sd_tps": 3.217,
-  "cv_pct": 4.16,
-  "min_tps": 73.44,
-  "max_tps": 84.21,
-  "range_pct": 13.92,
+  "mean_tps": 77.15,
+  "sd_tps": 2.701,
+  "cv_pct": 3.5,
+  "min_tps": 74.7,
+  "max_tps": 83.34,
+  "range_pct": 11.19,
   "published_reference": 86.91,
   "published_inside_range": false,
-  "published_z": 2.97,
+  "published_z": 3.61,
   "reading": "If the published figure lies inside this range, the drafter numbers on this page need a band rather than a point. If it lies outside, something changed that nothing recorded, and that is a separate finding.",
   "probes": [
     {
-      "decode_tps": 78.2527721044518,
-      "predicted_n": 700,
-      "wall_s": 9.21,
-      "clocks": {
-        "sm_mhz": 1815.0,
-        "temp_c": 75.0,
-        "watts": 332.27
-      },
-      "accept_rate": null,
-      "mean_draft_len": null
-    },
-    {
-      "decode_tps": 76.47026371862876,
-      "predicted_n": 700,
-      "wall_s": 9.33,
-      "clocks": {
-        "sm_mhz": 1860.0,
-        "temp_c": 76.0,
-        "watts": 332.69
-      },
-      "accept_rate": null,
-      "mean_draft_len": null
-    },
-    {
-      "decode_tps": 77.82195470740002,
-      "predicted_n": 700,
-      "wall_s": 9.15,
-      "clocks": {
-        "sm_mhz": 1725.0,
-        "temp_c": 78.0,
-        "watts": 333.67
-      },
-      "accept_rate": null,
-      "mean_draft_len": null
-    },
-    {
-      "decode_tps": 77.74091131005875,
-      "predicted_n": 700,
-      "wall_s": 9.33,
-      "clocks": {
-        "sm_mhz": 1710.0,
-        "temp_c": 79.0,
-        "watts": 338.37
-      },
-      "accept_rate": null,
-      "mean_draft_len": null
-    },
-    {
-      "decode_tps": 81.98396510762446,
-      "predicted_n": 700,
-      "wall_s": 8.67,
-      "clocks": {
-        "sm_mhz": 1815.0,
-        "temp_c": 80.0,
-        "watts": 334.92
-      },
-      "accept_rate": null,
-      "mean_draft_len": null
-    },
-    {
-      "decode_tps": 84.20822673474059,
-      "predicted_n": 700,
-      "wall_s": 8.71,
-      "clocks": {
-        "sm_mhz": 1800.0,
-        "temp_c": 80.0,
-        "watts": 337.89
-      },
-      "accept_rate": null,
-      "mean_draft_len": null
-    },
-    {
-      "decode_tps": 81.33029405897305,
-      "predicted_n": 700,
-      "wall_s": 9.03,
-      "clocks": {
-        "sm_mhz": 1725.0,
-        "temp_c": 81.0,
-        "watts": 339.65
-      },
-      "accept_rate": null,
-      "mean_draft_len": null
-    },
-    {
-      "decode_tps": 81.8666053836649,
-      "predicted_n": 700,
-      "wall_s": 8.71,
-      "clocks": {
-        "sm_mhz": 1770.0,
-        "temp_c": 81.0,
-        "watts": 336.64
-      },
-      "accept_rate": null,
-      "mean_draft_len": null
-    },
-    {
-      "decode_tps": 76.67481902552001,
-      "predicted_n": 700,
-      "wall_s": 9.53,
-      "clocks": {
-        "sm_mhz": 1725.0,
-        "temp_c": 82.0,
-        "watts": 334.93
-      },
-      "accept_rate": null,
-      "mean_draft_len": null
-    },
-    {
-      "decode_tps": 73.64464397233318,
-      "predicted_n": 700,
-      "wall_s": 9.67,
-      "clocks": {
-        "sm_mhz": 1770.0,
-        "temp_c": 82.0,
-        "watts": 330.12
-      },
-      "accept_rate": null,
-      "mean_draft_len": null
-    },
-    {
-      "decode_tps": 73.44255360178545,
-      "predicted_n": 700,
-      "wall_s": 9.73,
-      "clocks": {
-        "sm_mhz": 1815.0,
-        "temp_c": 82.0,
-        "watts": 326.69
-      },
-      "accept_rate": null,
-      "mean_draft_len": null
-    },
-    {
-      "decode_tps": 75.02817039840708,
-      "predicted_n": 700,
-      "wall_s": 9.75,
-      "clocks": {
-        "sm_mhz": 1740.0,
-        "temp_c": 82.0,
-        "watts": 332.61
-      },
-      "accept_rate": null,
-      "mean_draft_len": null
-    },
-    {
-      "decode_tps": 80.8807871503076,
-      "predicted_n": 700,
-      "wall_s": 8.83,
-      "clocks": {
-        "sm_mhz": 1800.0,
-        "temp_c": 83.0,
-        "watts": 332.4
-      },
-      "accept_rate": null,
-      "mean_draft_len": null
-    },
-    {
-      "decode_tps": 73.66304209421924,
-      "predicted_n": 700,
-      "wall_s": 9.72,
-      "clocks": {
-        "sm_mhz": 1725.0,
-        "temp_c": 83.0,
-        "watts": 324.94
-      },
-      "accept_rate": null,
-      "mean_draft_len": null
-    },
-    {
-      "decode_tps": 74.50106371554472,
+      "decode_tps": 75.5775311023134,
       "predicted_n": 700,
       "wall_s": 9.55,
       "clocks": {
-        "sm_mhz": 1800.0,
-        "temp_c": 82.0,
-        "watts": 324.75
+        "sm_mhz": 1770.0,
+        "temp_c": 75.0,
+        "watts": 328.83
       },
-      "accept_rate": null,
-      "mean_draft_len": null
+      "accept_rate": 0.6128,
+      "mean_draft_len": 7.792
     },
     {
-      "decode_tps": 75.7544357198181,
+      "decode_tps": 75.98607674550331,
       "predicted_n": 700,
-      "wall_s": 9.41,
+      "wall_s": 9.37,
+      "clocks": {
+        "sm_mhz": 1770.0,
+        "temp_c": 77.0,
+        "watts": 332.04
+      },
+      "accept_rate": 0.6032,
+      "mean_draft_len": 7.683
+    },
+    {
+      "decode_tps": 76.39197639793497,
+      "predicted_n": 700,
+      "wall_s": 9.36,
+      "clocks": {
+        "sm_mhz": 1725.0,
+        "temp_c": 79.0,
+        "watts": 333.41
+      },
+      "accept_rate": 0.6185,
+      "mean_draft_len": 7.603
+    },
+    {
+      "decode_tps": 76.87549859251945,
+      "predicted_n": 700,
+      "wall_s": 9.44,
+      "clocks": {
+        "sm_mhz": 1755.0,
+        "temp_c": 80.0,
+        "watts": 331.8
+      },
+      "accept_rate": 0.6036,
+      "mean_draft_len": 7.754
+    },
+    {
+      "decode_tps": 76.67834660452945,
+      "predicted_n": 700,
+      "wall_s": 9.29,
+      "clocks": {
+        "sm_mhz": 1755.0,
+        "temp_c": 81.0,
+        "watts": 333.19
+      },
+      "accept_rate": 0.6398,
+      "mean_draft_len": 8.08
+    },
+    {
+      "decode_tps": 83.33583340833559,
+      "predicted_n": 700,
+      "wall_s": 8.7,
+      "clocks": {
+        "sm_mhz": 1725.0,
+        "temp_c": 81.0,
+        "watts": 334.83
+      },
+      "accept_rate": 0.6459,
+      "mean_draft_len": 8.117
+    },
+    {
+      "decode_tps": 81.6500399968553,
+      "predicted_n": 700,
+      "wall_s": 8.92,
       "clocks": {
         "sm_mhz": 1710.0,
-        "temp_c": 83.0,
-        "watts": 330.15
+        "temp_c": 81.0,
+        "watts": 337.89
       },
-      "accept_rate": null,
-      "mean_draft_len": null
+      "accept_rate": 0.6332,
+      "mean_draft_len": 8.035
     },
     {
-      "decode_tps": 78.57284769326957,
+      "decode_tps": 81.76481169563867,
       "predicted_n": 700,
-      "wall_s": 9.07,
+      "wall_s": 8.74,
       "clocks": {
-        "sm_mhz": 1815.0,
-        "temp_c": 83.0,
-        "watts": 328.44
+        "sm_mhz": 1680.0,
+        "temp_c": 82.0,
+        "watts": 338.47
       },
-      "accept_rate": null,
-      "mean_draft_len": null
+      "accept_rate": 0.6466,
+      "mean_draft_len": 8.009
     },
     {
-      "decode_tps": 75.96062244738397,
+      "decode_tps": 76.52036955840423,
+      "predicted_n": 700,
+      "wall_s": 9.47,
+      "clocks": {
+        "sm_mhz": 1800.0,
+        "temp_c": 83.0,
+        "watts": 327.86
+      },
+      "accept_rate": 0.6079,
+      "mean_draft_len": 7.842
+    },
+    {
+      "decode_tps": 76.5873633695114,
       "predicted_n": 700,
       "wall_s": 9.4,
       "clocks": {
-        "sm_mhz": 1785.0,
+        "sm_mhz": 1830.0,
         "temp_c": 83.0,
-        "watts": 327.26
+        "watts": 333.58
       },
-      "accept_rate": null,
-      "mean_draft_len": null
+      "accept_rate": 0.6211,
+      "mean_draft_len": 7.675
     },
     {
-      "decode_tps": 74.29401580806842,
+      "decode_tps": 76.27837378429979,
       "predicted_n": 700,
-      "wall_s": 9.59,
+      "wall_s": 9.35,
       "clocks": {
-        "sm_mhz": 1725.0,
-        "temp_c": 82.0,
-        "watts": 340.32
+        "sm_mhz": 1680.0,
+        "temp_c": 83.0,
+        "watts": 332.3
       },
-      "accept_rate": null,
-      "mean_draft_len": null
+      "accept_rate": 0.6051,
+      "mean_draft_len": 7.85
     },
     {
-      "decode_tps": 74.9759354024478,
+      "decode_tps": 74.95757401310858,
+      "predicted_n": 700,
+      "wall_s": 9.67,
+      "clocks": {
+        "sm_mhz": 1755.0,
+        "temp_c": 83.0,
+        "watts": 328.72
+      },
+      "accept_rate": 0.6111,
+      "mean_draft_len": 7.8
+    },
+    {
+      "decode_tps": 80.3883815361209,
+      "predicted_n": 700,
+      "wall_s": 8.87,
+      "clocks": {
+        "sm_mhz": 1695.0,
+        "temp_c": 83.0,
+        "watts": 330.35
+      },
+      "accept_rate": 0.6346,
+      "mean_draft_len": 8.018
+    },
+    {
+      "decode_tps": 75.56296840269708,
+      "predicted_n": 700,
+      "wall_s": 9.44,
+      "clocks": {
+        "sm_mhz": 1755.0,
+        "temp_c": 83.0,
+        "watts": 328.35
+      },
+      "accept_rate": 0.6224,
+      "mean_draft_len": 7.658
+    },
+    {
+      "decode_tps": 74.8679756726139,
       "predicted_n": 700,
       "wall_s": 9.51,
       "clocks": {
-        "sm_mhz": 1740.0,
+        "sm_mhz": 1800.0,
         "temp_c": 82.0,
-        "watts": 327.75
+        "watts": 327.62
       },
-      "accept_rate": null,
-      "mean_draft_len": null
+      "accept_rate": 0.6051,
+      "mean_draft_len": 7.85
+    },
+    {
+      "decode_tps": 75.13946421268332,
+      "predicted_n": 700,
+      "wall_s": 9.48,
+      "clocks": {
+        "sm_mhz": 1725.0,
+        "temp_c": 82.0,
+        "watts": 330.59
+      },
+      "accept_rate": 0.6111,
+      "mean_draft_len": 7.8
+    },
+    {
+      "decode_tps": 80.08594365839456,
+      "predicted_n": 700,
+      "wall_s": 8.92,
+      "clocks": {
+        "sm_mhz": 1695.0,
+        "temp_c": 82.0,
+        "watts": 333.71
+      },
+      "accept_rate": 0.6346,
+      "mean_draft_len": 8.018
+    },
+    {
+      "decode_tps": 74.8055216734038,
+      "predicted_n": 700,
+      "wall_s": 9.52,
+      "clocks": {
+        "sm_mhz": 1800.0,
+        "temp_c": 82.0,
+        "watts": 333.96
+      },
+      "accept_rate": 0.6224,
+      "mean_draft_len": 7.658
+    },
+    {
+      "decode_tps": 74.80910319915787,
+      "predicted_n": 700,
+      "wall_s": 9.5,
+      "clocks": {
+        "sm_mhz": 1755.0,
+        "temp_c": 80.0,
+        "watts": 332.5
+      },
+      "accept_rate": 0.6051,
+      "mean_draft_len": 7.85
+    },
+    {
+      "decode_tps": 74.70255576652507,
+      "predicted_n": 700,
+      "wall_s": 9.54,
+      "clocks": {
+        "sm_mhz": 1815.0,
+        "temp_c": 81.0,
+        "watts": 332.26
+      },
+      "accept_rate": 0.6111,
+      "mean_draft_len": 7.8
     }
   ]
 }

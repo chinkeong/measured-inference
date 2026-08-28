@@ -144,7 +144,13 @@ def spec_counters():
         parts = line.split()
         if len(parts) >= 2 and "spec" in parts[0]:
             try:
-                out[parts[0].split("{")[0]] = float(parts[-1])
+                key = parts[0].split("{")[0]
+                # Strip the exporter prefix. Storing "llamacpp:spec_decode_x"
+                # and reading "spec_decode_x" is how this probe lost its
+                # acceptance column on twenty consecutive probes.
+                if ":" in key:
+                    key = key.split(":", 1)[1]
+                out[key] = float(parts[-1])
             except ValueError:
                 pass
     return out
@@ -173,16 +179,25 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True)
     ap.add_argument("--probes", type=int, default=20)
+    ap.add_argument("--tag", default="",
+                    help="artefact suffix. Without one a second run"
+                         " overwrites the first, and two runs of this"
+                         " probe 15 minutes apart produced"
+                         " non-overlapping distributions - so the second"
+                         " destroying the first is a real loss.")
     a = ap.parse_args()
 
     if cap_ok() is False:
         sys.exit("REFUSING: power.limit != power.default_limit. "
                  "nvidia-smi -pl 350 first.")
 
-    logdir = os.path.dirname(OUT)
+    out_path = (OUT if not a.tag else
+                OUT.replace(".json", "-%s.json" % a.tag))
+    logdir = os.path.dirname(out_path)
     if not os.path.isdir(logdir):
         os.makedirs(logdir)
-    log = os.path.join(logdir, "drafter-variance-server.log")
+    log = os.path.join(logdir, "drafter-variance%s-server.log"
+                       % (("-" + a.tag) if a.tag else ""))
 
     rows = []
     with io.open(log, "w", encoding="utf-8", errors="replace") as lf:
@@ -257,14 +272,14 @@ def main():
                     "nothing recorded, and that is a separate finding."),
         "probes": rows,
     }
-    io.open(OUT, "w", encoding="utf-8").write(
+    io.open(out_path, "w", encoding="utf-8").write(
         json.dumps(out, indent=2, ensure_ascii=False))
     print("\n n=%d  mean %.2f  sd %.3f  cv %.2f%%  range %.2f-%.2f (%.2f%%)"
           % (len(tps), mean, sd, out["cv_pct"], lo, hi, out["range_pct"]))
     print(" published %.2f is %s the observed range%s"
           % (PUBLISHED, "INSIDE" if out["published_inside_range"] else "OUTSIDE",
              ("  (z = %+.2f)" % out["published_z"]) if out["published_z"] else ""))
-    print("wrote %s" % OUT)
+    print("wrote %s" % out_path)
 
 
 if __name__ == "__main__":
