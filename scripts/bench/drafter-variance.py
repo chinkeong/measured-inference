@@ -104,12 +104,19 @@ def cap_ok():
 
 
 def clocks():
-    v = smi("clocks.sm,temperature.gpu,power.draw")
-    if len(v) != 3:
+    # MEMORY clock is recorded alongside the core clock. Decode on this rig is
+    # memory-bandwidth-bound - this campaign measured that directly - so a
+    # session running bit-identical work at a different speed with an unchanged
+    # CORE clock is exactly the case where the memory clock is the thing to
+    # look at. It was missing from every probe here until 2026-08-28, which is
+    # why nine sessions spanning 16.6% could be measured without the obvious
+    # candidate ever being read.
+    v = smi("clocks.sm,clocks.mem,temperature.gpu,power.draw")
+    if len(v) != 4:
         return {}
     try:
-        return {"sm_mhz": float(v[0]), "temp_c": float(v[1]),
-                "watts": float(v[2])}
+        return {"sm_mhz": float(v[0]), "mem_mhz": float(v[1]),
+                "temp_c": float(v[2]), "watts": float(v[3])}
     except ValueError:
         return {}
 
@@ -226,10 +233,10 @@ def main():
                 rows.append(r)
                 c = r.get("clocks") or {}
                 print("  probe %2d: %6.2f t/s  accept %-6s len %-6s "
-                      "%s MHz %s C"
+                      "sm %s mem %s  %s C"
                       % (i + 1, r["decode_tps"] or 0, r["accept_rate"],
                          r["mean_draft_len"], c.get("sm_mhz"),
-                         c.get("temp_c")), flush=True)
+                         c.get("mem_mhz"), c.get("temp_c")), flush=True)
         finally:
             p.terminate()
             try:

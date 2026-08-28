@@ -1,0 +1,55 @@
+=== MEMCLOCK SESSION 1  17:32:29 ===
+  probe  2:  75.46 t/s  accept 0.6032 len 7.683  sm 1770.0 mem 9501.0  77.0 C
+  probe  3:  76.21 t/s  accept 0.6185 len 7.603  sm 1725.0 mem 9501.0  78.0 C
+  probe  4:  76.38 t/s  accept 0.6036 len 7.754  sm 1800.0 mem 9501.0  79.0 C
+  probe  5:  81.49 t/s  accept 0.6398 len 8.08   sm 1845.0 mem 9501.0  79.0 C
+
+ n=5  mean 77.34  sd 2.398  cv 3.10%  range 75.46-81.49 (7.80%)
+ published 86.91 is OUTSIDE the observed range  (z = +3.99)
+wrote E:\AI\measured-inference\results\qwen38-27b-blind\data\followup\drafter-variance-mem-s1.json
+=== MEMCLOCK SESSION 2  17:33:44 ===
+  probe  2:  76.26 t/s  accept 0.6032 len 7.683  sm 1815.0 mem 9501.0  79.0 C
+  probe  3:  77.65 t/s  accept 0.6185 len 7.603  sm 1770.0 mem 9501.0  80.0 C
+  probe  4:  76.50 t/s  accept 0.6036 len 7.754  sm 1755.0 mem 9501.0  80.0 C
+  probe  5:  80.81 t/s  accept 0.6398 len 8.08   sm 1845.0 mem 9501.0  81.0 C
+
+ n=5  mean 77.60  sd 1.868  cv 2.41%  range 76.26-80.81 (5.87%)
+ published 86.91 is OUTSIDE the observed range  (z = +4.98)
+wrote E:\AI\measured-inference\results\qwen38-27b-blind\data\followup\drafter-variance-mem-s2.json
+=== MEMCLOCK SESSION 3  17:34:52 ===
+  probe  2:  76.07 t/s  accept 0.6032 len 7.683  sm 1815.0 mem 9501.0  80.0 C
+  probe  3:  77.83 t/s  accept 0.6185 len 7.603  sm 1740.0 mem 9501.0  81.0 C
+  probe  4:  76.75 t/s  accept 0.6036 len 7.754  sm 1770.0 mem 9501.0  81.0 C
+  probe  5:  81.07 t/s  accept 0.6398 len 8.08   sm 1845.0 mem 9501.0  81.0 C
+
+ n=5  mean 78.03  sd 1.931  cv 2.47%  range 76.07-81.07 (6.41%)
+ published 86.91 is OUTSIDE the observed range  (z = +4.60)
+wrote E:\AI\measured-inference\results\qwen38-27b-blind\data\followup\drafter-variance-mem-s3.json
+=== MEMCLOCK SESSION 4  17:36:00 ===
+  probe  2:  75.70 t/s  accept 0.6032 len 7.683  sm 1770.0 mem 9501.0  81.0 C
+  probe  3:  76.68 t/s  accept 0.6185 len 7.603  sm 1740.0 mem 9501.0  81.0 C
+  probe  4:  75.70 t/s  accept 0.6036 len 7.754  sm 1785.0 mem 9501.0  82.0 C
+  probe  5:  80.57 t/s  accept 0.6398 len 8.08   sm 1770.0 mem 9501.0  81.0 C
+
+ n=5  mean 77.21  sd 2.010  cv 2.60%  range 75.70-80.57 (6.31%)
+ published 86.91 is OUTSIDE the observed range  (z = +4.83)
+wrote E:\AI\measured-inference\results\qwen38-27b-blind\data\followup\drafter-variance-mem-s4.json
+=== MEMCLOCK SESSION 5  17:37:09 ===
+  probe  2:  76.39 t/s  accept 0.6032 len 7.683  sm 1800.0 mem 9501.0  81.0 C
+  probe  3:  77.12 t/s  accept 0.6185 len 7.603  sm 1770.0 mem 9501.0  82.0 C
+  probe  4:  76.53 t/s  accept 0.6036 len 7.754  sm 1725.0 mem 9501.0  82.0 C
+  probe  5:  80.91 t/s  accept 0.6398 len 8.08   sm 1800.0 mem 9501.0  82.0 C
+
+ n=5  mean 77.79  sd 1.852  cv 2.38%  range 76.39-80.91 (5.80%)
+ published 86.91 is OUTSIDE the observed range  (z = +4.93)
+wrote E:\AI\measured-inference\results\qwen38-27b-blind\data\followup\drafter-variance-mem-s5.json
+=== MEMCLOCK SESSION 6  17:38:17 ===
+  probe  2:  75.52 t/s  accept 0.6032 len 7.683  sm 1755.0 mem 9501.0  81.0 C
+  probe  3:  74.92 t/s  accept 0.6185 len 7.603  sm 1755.0 mem 9501.0  82.0 C
+  probe  4:  73.84 t/s  accept 0.6036 len 7.754  sm 1695.0 mem 9501.0  82.0 C
+  probe  5:  77.94 t/s  accept 0.6398 len 8.08   sm 1830.0 mem 9501.0  82.0 C
+
+ n=5  mean 75.92  sd 1.710  cv 2.25%  range 73.84-77.94 (5.40%)
+ published 86.91 is OUTSIDE the observed range  (z = +6.43)
+wrote E:\AI\measured-inference\results\qwen38-27b-blind\data\followup\drafter-variance-mem-s6.json
+ALL DONE

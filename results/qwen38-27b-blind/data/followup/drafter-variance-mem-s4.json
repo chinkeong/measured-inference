@@ -1,0 +1,208 @@
+{
+  "date": "2026-08-28 17:37",
+  "question": "how wide is ONE speculative-decoding arm's own distribution, and does the published 86.91 t/s fall inside it?",
+  "toolchain": {
+    "recorded_by": "scripts/bench/provenance.py",
+    "why": "rule 3 - the conditions travel with the number, and the server binary is a condition. A throughput figure whose build is unrecorded cannot be compared with a later one.",
+    "python": "3.11.9",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "gpu": {
+      "raw": "596.36, NVIDIA GeForce RTX 3090, 350.00, 350.00, 24576, 2130",
+      "driver": "596.36",
+      "name": "NVIDIA GeForce RTX 3090",
+      "power_limit_w": "350.00",
+      "power_default_limit_w": "350.00",
+      "memory_total_mib": "24576",
+      "max_sm_mhz": "2130",
+      "cap_at_stock": true
+    },
+    "llama_cpp": {
+      "raw": "version: 0.1.2-dev (build 10502, commit 0adcc3bb5)\nbuilt with Clang 20.1.8 for Windows x86_64",
+      "binary": {
+        "path": "E:\\AI\\llama.cpp\\llama-server.exe",
+        "bytes": 9216,
+        "mtime": "2026-08-19 12:17:40"
+      },
+      "compute_libraries": [
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-base.dll",
+          "bytes": 773632,
+          "mtime": "2026-08-19 12:14:58"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-cpu-alderlake.dll",
+          "bytes": 1181184,
+          "mtime": "2026-08-19 12:15:10"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-cpu-cannonlake.dll",
+          "bytes": 1395712,
+          "mtime": "2026-08-19 12:15:10"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-cpu-cascadelake.dll",
+          "bytes": 1382400,
+          "mtime": "2026-08-19 12:15:10"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-cpu-cooperlake.dll",
+          "bytes": 1383424,
+          "mtime": "2026-08-19 12:15:10"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-cpu-haswell.dll",
+          "bytes": 1185280,
+          "mtime": "2026-08-19 12:15:10"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-cpu-icelake.dll",
+          "bytes": 1389056,
+          "mtime": "2026-08-19 12:15:10"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-cpu-ivybridge.dll",
+          "bytes": 1074176,
+          "mtime": "2026-08-19 12:15:10"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-cpu-piledriver.dll",
+          "bytes": 1077760,
+          "mtime": "2026-08-19 12:15:10"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-cpu-sandybridge.dll",
+          "bytes": 1054208,
+          "mtime": "2026-08-19 12:15:10"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-cpu-sapphirerapids.dll",
+          "bytes": 1660416,
+          "mtime": "2026-08-19 12:15:10"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-cpu-skylakex.dll",
+          "bytes": 1389568,
+          "mtime": "2026-08-19 12:15:10"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-cpu-sse42.dll",
+          "bytes": 877568,
+          "mtime": "2026-08-19 12:15:10"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-cpu-x64.dll",
+          "bytes": 870400,
+          "mtime": "2026-08-19 12:15:10"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-cpu-zen4.dll",
+          "bytes": 1390080,
+          "mtime": "2026-08-19 12:15:10"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-cuda.dll",
+          "bytes": 141803520,
+          "mtime": "2026-08-19 12:00:42"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-rpc.dll",
+          "bytes": 138752,
+          "mtime": "2026-08-19 12:15:10"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml.dll",
+          "bytes": 86016,
+          "mtime": "2026-08-19 12:15:12"
+        }
+      ],
+      "build": "10502",
+      "commit": "0adcc3bb5",
+      "version": "0.1.2-dev"
+    },
+    "model_file": {
+      "path": "C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf",
+      "bytes": 14252845984,
+      "mtime": "2026-08-22 11:26:19"
+    }
+  },
+  "conditions": "UD-IQ4_XS, n-max 10 / p-min 0.5, -c 32768, -ctk/-ctv q8_0, -ngl 99, --parallel 1, -fa on, reasoning off, greedy (temp 0 / top_k 1), 700 predicted tokens, ONE server held up for the whole run, one warmup discarded (rule 12), probes back to back with no cooling gap, quiet machine (rule 27)",
+  "prompt": "Write a single self-contained JavaScript module that implements a fixed-window\nrate limiter with a pluggable clock, a per-key limit, and an eviction sweep that\nruns at most once per window. Include JSDoc on every exported symbol and a short\nusage example at the end. Do not explain the code outside the module.",
+  "n_probes": 5,
+  "mean_tps": 77.21,
+  "sd_tps": 2.01,
+  "cv_pct": 2.6,
+  "min_tps": 75.7,
+  "max_tps": 80.57,
+  "range_pct": 6.31,
+  "published_reference": 86.91,
+  "published_inside_range": false,
+  "published_z": 4.83,
+  "reading": "If the published figure lies inside this range, the drafter numbers on this page need a band rather than a point. If it lies outside, something changed that nothing recorded, and that is a separate finding.",
+  "probes": [
+    {
+      "decode_tps": 77.3766229746669,
+      "predicted_n": 700,
+      "wall_s": 9.29,
+      "clocks": {
+        "sm_mhz": 1755.0,
+        "mem_mhz": 9501.0,
+        "temp_c": 80.0,
+        "watts": 333.51
+      },
+      "accept_rate": 0.6128,
+      "mean_draft_len": 7.792
+    },
+    {
+      "decode_tps": 75.70219190289356,
+      "predicted_n": 700,
+      "wall_s": 9.38,
+      "clocks": {
+        "sm_mhz": 1770.0,
+        "mem_mhz": 9501.0,
+        "temp_c": 81.0,
+        "watts": 335.94
+      },
+      "accept_rate": 0.6032,
+      "mean_draft_len": 7.683
+    },
+    {
+      "decode_tps": 76.68282373762818,
+      "predicted_n": 700,
+      "wall_s": 9.29,
+      "clocks": {
+        "sm_mhz": 1740.0,
+        "mem_mhz": 9501.0,
+        "temp_c": 81.0,
+        "watts": 333.55
+      },
+      "accept_rate": 0.6185,
+      "mean_draft_len": 7.603
+    },
+    {
+      "decode_tps": 75.70017798193275,
+      "predicted_n": 700,
+      "wall_s": 9.55,
+      "clocks": {
+        "sm_mhz": 1785.0,
+        "mem_mhz": 9501.0,
+        "temp_c": 82.0,
+        "watts": 337.85
+      },
+      "accept_rate": 0.6036,
+      "mean_draft_len": 7.754
+    },
+    {
+      "decode_tps": 80.57213583034823,
+      "predicted_n": 700,
+      "wall_s": 8.83,
+      "clocks": {
+        "sm_mhz": 1770.0,
+        "mem_mhz": 9501.0,
+        "temp_c": 81.0,
+        "watts": 336.98
+      },
+      "accept_rate": 0.6398,
+      "mean_draft_len": 8.08
+    }
+  ]
+}
