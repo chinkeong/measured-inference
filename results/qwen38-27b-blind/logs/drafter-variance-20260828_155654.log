@@ -1,0 +1,24 @@
+  probe  1:  87.75 t/s  accept None   len None   1800.0 MHz 76.0 C
+  probe  2:  86.22 t/s  accept None   len None   1695.0 MHz 76.0 C
+  probe  3:  87.20 t/s  accept None   len None   1755.0 MHz 77.0 C
+  probe  4:  86.71 t/s  accept None   len None   1740.0 MHz 78.0 C
+  probe  5:  91.28 t/s  accept None   len None   1785.0 MHz 78.0 C
+  probe  6:  94.00 t/s  accept None   len None   1725.0 MHz 79.0 C
+  probe  7:  92.54 t/s  accept None   len None   1725.0 MHz 79.0 C
+  probe  8:  93.15 t/s  accept None   len None   1680.0 MHz 79.0 C
+  probe  9:  87.49 t/s  accept None   len None   1695.0 MHz 80.0 C
+  probe 10:  87.49 t/s  accept None   len None   1695.0 MHz 81.0 C
+  probe 11:  86.68 t/s  accept None   len None   1710.0 MHz 81.0 C
+  probe 12:  87.06 t/s  accept None   len None   1755.0 MHz 81.0 C
+  probe 13:  93.05 t/s  accept None   len None   1635.0 MHz 81.0 C
+  probe 14:  87.33 t/s  accept None   len None   1680.0 MHz 81.0 C
+  probe 15:  86.35 t/s  accept None   len None   1725.0 MHz 82.0 C
+  probe 16:  87.03 t/s  accept None   len None   1725.0 MHz 82.0 C
+  probe 17:  93.48 t/s  accept None   len None   1665.0 MHz 82.0 C
+  probe 18:  87.16 t/s  accept None   len None   1740.0 MHz 82.0 C
+  probe 19:  86.22 t/s  accept None   len None   1725.0 MHz 81.0 C
+  probe 20:  87.08 t/s  accept None   len None   1740.0 MHz 81.0 C
+
+ n=20  mean 88.76  sd 2.859  cv 3.22%  range 86.22-94.00 (8.77%)
+ published 86.91 is INSIDE the observed range  (z = -0.65)
+wrote E:\AI\measured-inference\results\qwen38-27b-blind\data\followup\drafter-variance.json
