@@ -1,0 +1,19 @@
+=== think-ON  04:14:17 ===
+  [m2e-think-ON] healthy in 8.1s
+  VRAM think-ON at-load board=20807 ded=19872 shr=382
+  PREFILLPROBE think-ON depth_tok=90894 prefill_tps=829.6 prefill_s=109.56 decode_tps=36.27 accept=0.8951 think_chars=1371 answer_chars=0 gpu_after=83/1650/343.60/94
+  cooling 30 s...
+  PROBE think-ON k=1 decode_tps=36.75 accept=0.8951 predicted_n=300 think_chars=1371 answer_chars=0 gpu_before=59/210/29.22/2
+  PROBE think-ON k=2 decode_tps=36.62 accept=0.8951 predicted_n=300 think_chars=1371 answer_chars=0 gpu_before=75/1695/343.90/88
+  PROBE think-ON k=3 decode_tps=36.52 accept=0.8951 predicted_n=300 think_chars=1371 answer_chars=0 gpu_before=78/1590/342.38/84
+SUMMARY think-ON depth_tok=90894 n=3 median_tps=36.62 mean_tps=36.63 min_tps=36.52 max_tps=36.75 postprefill_tps=36.27
+=== think-OFF  04:17:27 ===
+  [m2e-think-OFF] healthy in 8.1s
+  VRAM think-OFF at-load board=20807 ded=19872 shr=382
+  PREFILLPROBE think-OFF depth_tok=90854 prefill_tps=826.6 prefill_s=109.91 decode_tps=61.04 accept=0.9184 think_chars=0 answer_chars=1048 gpu_after=85/1620/348.08/94
+  cooling 30 s...
+  PROBE think-OFF k=1 decode_tps=62.21 accept=0.9073 predicted_n=300 think_chars=0 answer_chars=1048 gpu_before=60/210/29.82/3
+  PROBE think-OFF k=2 decode_tps=62.02 accept=0.9073 predicted_n=300 think_chars=0 answer_chars=1048 gpu_before=76/1650/344.56/86
+  PROBE think-OFF k=3 decode_tps=62.00 accept=0.9073 predicted_n=300 think_chars=0 answer_chars=1048 gpu_before=77/1695/347.86/94
+SUMMARY think-OFF depth_tok=90854 n=3 median_tps=62.02 mean_tps=62.08 min_tps=62 max_tps=62.21 postprefill_tps=61.04
+M2E DONE

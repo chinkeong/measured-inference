@@ -1,0 +1,441 @@
+{
+  "model": "C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf",
+  "probes_per_arm": 3,
+  "toolchain": {
+    "recorded_by": "scripts/bench/provenance.py",
+    "why": "rule 3 - the conditions travel with the number, and the server binary is a condition. A throughput figure whose build is unrecorded cannot be compared with a later one.",
+    "python": "3.11.9",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "gpu": {
+      "raw": "596.36, NVIDIA GeForce RTX 3090, 350.00, 350.00, 24576, 2130",
+      "driver": "596.36",
+      "name": "NVIDIA GeForce RTX 3090",
+      "power_limit_w": "350.00",
+      "power_default_limit_w": "350.00",
+      "memory_total_mib": "24576",
+      "max_sm_mhz": "2130",
+      "cap_at_stock": true
+    },
+    "llama_cpp": {
+      "raw": "version: 0.1.2-dev (build 10502, commit 0adcc3bb5)\nbuilt with Clang 20.1.8 for Windows x86_64",
+      "binary": {
+        "path": "E:\\AI\\llama.cpp\\llama-server.exe",
+        "bytes": 9216,
+        "mtime": "2026-08-19 12:17:40"
+      },
+      "compute_libraries": [
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-base.dll",
+          "bytes": 773632,
+          "mtime": "2026-08-19 12:14:58"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-cpu-alderlake.dll",
+          "bytes": 1181184,
+          "mtime": "2026-08-19 12:15:10"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-cpu-cannonlake.dll",
+          "bytes": 1395712,
+          "mtime": "2026-08-19 12:15:10"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-cpu-cascadelake.dll",
+          "bytes": 1382400,
+          "mtime": "2026-08-19 12:15:10"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-cpu-cooperlake.dll",
+          "bytes": 1383424,
+          "mtime": "2026-08-19 12:15:10"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-cpu-haswell.dll",
+          "bytes": 1185280,
+          "mtime": "2026-08-19 12:15:10"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-cpu-icelake.dll",
+          "bytes": 1389056,
+          "mtime": "2026-08-19 12:15:10"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-cpu-ivybridge.dll",
+          "bytes": 1074176,
+          "mtime": "2026-08-19 12:15:10"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-cpu-piledriver.dll",
+          "bytes": 1077760,
+          "mtime": "2026-08-19 12:15:10"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-cpu-sandybridge.dll",
+          "bytes": 1054208,
+          "mtime": "2026-08-19 12:15:10"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-cpu-sapphirerapids.dll",
+          "bytes": 1660416,
+          "mtime": "2026-08-19 12:15:10"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-cpu-skylakex.dll",
+          "bytes": 1389568,
+          "mtime": "2026-08-19 12:15:10"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-cpu-sse42.dll",
+          "bytes": 877568,
+          "mtime": "2026-08-19 12:15:10"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-cpu-x64.dll",
+          "bytes": 870400,
+          "mtime": "2026-08-19 12:15:10"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-cpu-zen4.dll",
+          "bytes": 1390080,
+          "mtime": "2026-08-19 12:15:10"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-cuda.dll",
+          "bytes": 141803520,
+          "mtime": "2026-08-19 12:00:42"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml-rpc.dll",
+          "bytes": 138752,
+          "mtime": "2026-08-19 12:15:10"
+        },
+        {
+          "path": "E:\\AI\\llama.cpp\\ggml.dll",
+          "bytes": 86016,
+          "mtime": "2026-08-19 12:15:12"
+        }
+      ],
+      "build": "10502",
+      "commit": "0adcc3bb5",
+      "version": "0.1.2-dev"
+    },
+    "model_file": {
+      "path": "C:\\Users\\chink\\.lmstudio\\models\\unsloth\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf",
+      "bytes": 14252845984,
+      "mtime": "2026-08-22 11:26:19"
+    }
+  },
+  "prompt": "Write a single self-contained JavaScript module that implements a fixed-window rate limiter with a pluggable clock, a per-key limit, and an eviction sweep that runs at most once per window. Include JSDoc on every exported symbol.",
+  "desktop_reserve_mib": 1796,
+  "conditions": "greedy, temp 0 / top_k 1, 400 predicted tokens, -ngl 99, --parallel 1, -fa on, reasoning off, fresh server per arm, one warmup discarded, quiet machine (rule 27)",
+  "arms": [
+    {
+      "arm": "E-32k-n4-p0",
+      "what": "the shipped n-max with llama.cpp's DEFAULT p-min, never tested here",
+      "ctx": 32768,
+      "kv": "q8_0",
+      "spec": "--spec-type draft-mtp --spec-draft-n-max 4 --spec-draft-p-min 0.0",
+      "mean_tps": 76.32,
+      "spread_pct": 2.58,
+      "probes": [
+        {
+          "decode_tps": 76.08768199544238,
+          "prompt_tps": 17.41462480190864,
+          "predicted_n": 400,
+          "prompt_n": 4,
+          "wall_s": 5.6
+        },
+        {
+          "decode_tps": 75.45469966476556,
+          "prompt_tps": 17.156631466977775,
+          "predicted_n": 400,
+          "prompt_n": 4,
+          "wall_s": 5.7
+        },
+        {
+          "decode_tps": 77.42136783182914,
+          "prompt_tps": 17.57044650897191,
+          "predicted_n": 400,
+          "prompt_n": 4,
+          "wall_s": 5.39
+        }
+      ],
+      "vram_after_load_mib": 17772,
+      "vram_after_probes_mib": 17794,
+      "board_total_mib": 24576,
+      "slack_mib": 6782,
+      "clears_desktop_reserve": true,
+      "accept_rate": 0.7049,
+      "mean_accepted_len": 2.803,
+      "per_pos_rate": {
+        "0": 0.9249,
+        "1": 0.7775,
+        "2": 0.5838,
+        "3": 0.5173
+      },
+      "log": "E:\\AI\\measured-inference\\scripts\\bench\\..\\..\\results\\qwen38-27b-blind\\data\\followup\\tspick-E-32k-n4-p0-server.log"
+    },
+    {
+      "arm": "D-32k-ngram",
+      "what": "draft head AND n-gram matcher together",
+      "ctx": 32768,
+      "kv": "q8_0",
+      "spec": "--spec-type draft-mtp,ngram-mod --spec-draft-n-max 10 --spec-draft-p-min 0.5",
+      "mean_tps": 231.28,
+      "spread_pct": 106.43,
+      "probes": [
+        {
+          "decode_tps": 72.34508496739848,
+          "prompt_tps": 17.699115044247787,
+          "predicted_n": 400,
+          "prompt_n": 4,
+          "wall_s": 5.88
+        },
+        {
+          "decode_tps": 318.4916745158767,
+          "prompt_tps": 16.18574763991567,
+          "predicted_n": 400,
+          "prompt_n": 4,
+          "wall_s": 1.67
+        },
+        {
+          "decode_tps": 303.015114302769,
+          "prompt_tps": 17.8284104634941,
+          "predicted_n": 400,
+          "prompt_n": 4,
+          "wall_s": 1.55
+        }
+      ],
+      "vram_after_load_mib": 18670,
+      "vram_after_probes_mib": 18700,
+      "board_total_mib": 24576,
+      "slack_mib": 5876,
+      "clears_desktop_reserve": true,
+      "accept_rate": 0.7784,
+      "mean_accepted_len": 11.224,
+      "per_pos_rate": {
+        "0": 0.9439,
+        "1": 0.7664,
+        "2": 0.6729,
+        "3": 0.5234,
+        "4": 0.4299,
+        "5": 0.3738,
+        "6": 0.3271,
+        "7": 0.271,
+        "8": 0.2523,
+        "9": 0.215,
+        "10": 0.1215,
+        "11": 0.1215,
+        "12": 0.1215,
+        "13": 0.1215,
+        "14": 0.1215,
+        "15": 0.1215,
+        "16": 0.1215,
+        "17": 0.1215,
+        "18": 0.1215,
+        "19": 0.1215,
+        "20": 0.1215,
+        "21": 0.1215,
+        "22": 0.1215,
+        "23": 0.1215,
+        "24": 0.1215,
+        "25": 0.1215,
+        "26": 0.1215,
+        "27": 0.1215,
+        "28": 0.1215,
+        "29": 0.1215,
+        "30": 0.1215,
+        "31": 0.1215,
+        "32": 0.1215,
+        "33": 0.1215,
+        "34": 0.1215,
+        "35": 0.1215,
+        "36": 0.1215,
+        "37": 0.1215,
+        "38": 0.1215,
+        "39": 0.1215,
+        "40": 0.1215,
+        "41": 0.1215,
+        "42": 0.1215,
+        "43": 0.1215,
+        "44": 0.1215,
+        "45": 0.1215,
+        "46": 0.1215,
+        "47": 0.1215,
+        "48": 0.1215,
+        "49": 0.1215,
+        "50": 0.1215,
+        "51": 0.1215,
+        "52": 0.1215,
+        "53": 0.1215,
+        "54": 0.1215,
+        "55": 0.1215,
+        "56": 0.1215,
+        "57": 0.1215,
+        "58": 0.1028,
+        "59": 0.1028,
+        "60": 0.1028,
+        "61": 0.1028,
+        "62": 0.1028,
+        "63": 0.1028
+      },
+      "log": "E:\\AI\\measured-inference\\scripts\\bench\\..\\..\\results\\qwen38-27b-blind\\data\\followup\\tspick-D-32k-ngram-server.log"
+    },
+    {
+      "arm": "C-180k-q8",
+      "what": "pick [2] as shipped, same fill depth as A",
+      "ctx": 180224,
+      "kv": "q8_0",
+      "spec": "--spec-type draft-mtp --spec-draft-n-max 10 --spec-draft-p-min 0.5",
+      "mean_tps": 64.26,
+      "spread_pct": 3.02,
+      "probes": [
+        {
+          "decode_tps": 65.27364955117413,
+          "prompt_tps": 15.157428845344965,
+          "predicted_n": 400,
+          "prompt_n": 4,
+          "wall_s": 6.51
+        },
+        {
+          "decode_tps": 63.3362387576192,
+          "prompt_tps": 18.36075205640423,
+          "predicted_n": 400,
+          "prompt_n": 4,
+          "wall_s": 6.68
+        },
+        {
+          "decode_tps": 64.16166036869315,
+          "prompt_tps": 14.319262271607768,
+          "predicted_n": 400,
+          "prompt_n": 4,
+          "wall_s": 6.73
+        }
+      ],
+      "vram_after_load_mib": 23826,
+      "vram_after_probes_mib": 23896,
+      "board_total_mib": 24576,
+      "slack_mib": 680,
+      "clears_desktop_reserve": false,
+      "accept_rate": 0.5159,
+      "mean_accepted_len": 4.035,
+      "per_pos_rate": {
+        "0": 0.9225,
+        "1": 0.7054,
+        "2": 0.6047,
+        "3": 0.4767,
+        "4": 0.3915,
+        "5": 0.2907,
+        "6": 0.2326,
+        "7": 0.1589,
+        "8": 0.1357,
+        "9": 0.1163
+      },
+      "log": "E:\\AI\\measured-inference\\scripts\\bench\\..\\..\\results\\qwen38-27b-blind\\data\\followup\\tspick-C-180k-q8-server.log"
+    },
+    {
+      "arm": "B-32k-f16",
+      "what": "unquantised KV cache - the untested speed variable",
+      "ctx": 32768,
+      "kv": "f16",
+      "spec": "--spec-type draft-mtp --spec-draft-n-max 10 --spec-draft-p-min 0.5",
+      "mean_tps": 61.88,
+      "spread_pct": 4.83,
+      "probes": [
+        {
+          "decode_tps": 60.16393541499544,
+          "prompt_tps": 17.02316000919251,
+          "predicted_n": 400,
+          "prompt_n": 4,
+          "wall_s": 6.99
+        },
+        {
+          "decode_tps": 62.32409843271294,
+          "prompt_tps": 16.58202922582651,
+          "predicted_n": 400,
+          "prompt_n": 4,
+          "wall_s": 6.81
+        },
+        {
+          "decode_tps": 63.15170701913022,
+          "prompt_tps": 18.088007199026865,
+          "predicted_n": 400,
+          "prompt_n": 4,
+          "wall_s": 6.55
+        }
+      ],
+      "vram_after_load_mib": 18564,
+      "vram_after_probes_mib": 18612,
+      "board_total_mib": 24576,
+      "slack_mib": 5964,
+      "clears_desktop_reserve": true,
+      "accept_rate": 0.465,
+      "mean_accepted_len": 3.471,
+      "per_pos_rate": {
+        "0": 0.8935,
+        "1": 0.6735,
+        "2": 0.5086,
+        "3": 0.3814,
+        "4": 0.2852,
+        "5": 0.2131,
+        "6": 0.1821,
+        "7": 0.134,
+        "8": 0.11,
+        "9": 0.0893
+      },
+      "log": "E:\\AI\\measured-inference\\scripts\\bench\\..\\..\\results\\qwen38-27b-blind\\data\\followup\\tspick-B-32k-f16-server.log"
+    },
+    {
+      "arm": "A-32k-q8",
+      "what": "grid conditions, the baseline",
+      "ctx": 32768,
+      "kv": "q8_0",
+      "spec": "--spec-type draft-mtp --spec-draft-n-max 10 --spec-draft-p-min 0.5",
+      "mean_tps": 67.41,
+      "spread_pct": 5.91,
+      "probes": [
+        {
+          "decode_tps": 69.83411335179241,
+          "prompt_tps": 15.869930053283289,
+          "predicted_n": 400,
+          "prompt_n": 4,
+          "wall_s": 6.08
+        },
+        {
+          "decode_tps": 66.54519527845996,
+          "prompt_tps": 18.48676578654256,
+          "predicted_n": 400,
+          "prompt_n": 4,
+          "wall_s": 6.4
+        },
+        {
+          "decode_tps": 65.85273348259953,
+          "prompt_tps": 18.246427121489273,
+          "predicted_n": 400,
+          "prompt_n": 4,
+          "wall_s": 6.46
+        }
+      ],
+      "vram_after_load_mib": 17708,
+      "vram_after_probes_mib": 17736,
+      "board_total_mib": 24576,
+      "slack_mib": 6840,
+      "clears_desktop_reserve": true,
+      "accept_rate": 0.5159,
+      "mean_accepted_len": 4.035,
+      "per_pos_rate": {
+        "0": 0.9225,
+        "1": 0.7054,
+        "2": 0.6047,
+        "3": 0.4767,
+        "4": 0.3915,
+        "5": 0.2907,
+        "6": 0.2326,
+        "7": 0.1589,
+        "8": 0.1357,
+        "9": 0.1163
+      },
+      "log": "E:\\AI\\measured-inference\\scripts\\bench\\..\\..\\results\\qwen38-27b-blind\\data\\followup\\tspick-A-32k-q8-server.log"
+    }
+  ]
+}
