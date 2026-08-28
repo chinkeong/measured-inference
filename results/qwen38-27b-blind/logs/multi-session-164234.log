@@ -1,0 +1,25 @@
+=== SESSION 1  16:42:34 ===
+ n=6  mean 78.65  sd 4.078  cv 5.18%  range 71.34-83.27 (15.16%)
+ published 86.91 is OUTSIDE the observed range  (z = +2.03)
+wrote E:\AI\measured-inference\results\qwen38-27b-blind\data\followup\drafter-variance-multi-s1.json
+=== SESSION 2  16:43:51 ===
+ n=6  mean 77.53  sd 1.522  cv 1.96%  range 75.74-79.47 (4.81%)
+ published 86.91 is OUTSIDE the observed range  (z = +6.16)
+wrote E:\AI\measured-inference\results\qwen38-27b-blind\data\followup\drafter-variance-multi-s2.json
+=== SESSION 3  16:45:09 ===
+ n=6  mean 77.37  sd 3.845  cv 4.97%  range 74.22-84.48 (13.26%)
+ published 86.91 is OUTSIDE the observed range  (z = +2.48)
+wrote E:\AI\measured-inference\results\qwen38-27b-blind\data\followup\drafter-variance-multi-s3.json
+=== SESSION 4  16:46:30 ===
+ n=6  mean 75.71  sd 3.323  cv 4.39%  range 72.77-81.92 (12.08%)
+ published 86.91 is OUTSIDE the observed range  (z = +3.37)
+wrote E:\AI\measured-inference\results\qwen38-27b-blind\data\followup\drafter-variance-multi-s4.json
+=== SESSION 5  16:47:49 ===
+ n=6  mean 76.27  sd 2.950  cv 3.87%  range 73.53-80.61 (9.28%)
+ published 86.91 is OUTSIDE the observed range  (z = +3.61)
+wrote E:\AI\measured-inference\results\qwen38-27b-blind\data\followup\drafter-variance-multi-s5.json
+=== SESSION 6  16:49:11 ===
+ n=6  mean 78.03  sd 5.341  cv 6.84%  range 71.53-85.82 (18.31%)
+ published 86.91 is OUTSIDE the observed range  (z = +1.66)
+wrote E:\AI\measured-inference\results\qwen38-27b-blind\data\followup\drafter-variance-multi-s6.json
+ALL SESSIONS DONE
