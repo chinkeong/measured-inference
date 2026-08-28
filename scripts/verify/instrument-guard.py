@@ -439,6 +439,18 @@ def main():
                 continue
             if allowed(rel, allow):
                 continue
+            # An EMPTY file cannot be a reading, so nothing can lean on it.
+            # Rule D is the weakest evidence this guard has - it fires on
+            # everything inside a directory some script happens to open, so a
+            # single new script that joins a data path can drag in every stray
+            # byte beside it. Zero-length files are exempted HERE ONLY. Rule A
+            # still fires on them: if something cites an empty file BY NAME,
+            # the citation itself is broken and that is worth the noise.
+            try:
+                if os.path.getsize(os.path.join(repo, rel)) == 0:
+                    continue
+            except OSError:
+                pass
             st, rule = idx.status(rel)
             if st in ("ignored", "untracked"):
                 fail.add("D", rel, st, rule,
