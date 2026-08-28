@@ -53,6 +53,7 @@ import subprocess
 import sys
 import time
 import urllib.request
+import gpu_lock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 try:
@@ -159,7 +160,7 @@ def ask(port, prompt, max_tokens):
 
 def start(model, port, log_path):
     lf = io.open(log_path, "w", encoding="utf-8", errors="replace")
-    p = subprocess.Popen(
+    p = gpu_lock.serve(
         [SERVER, "-m", model] + COMMON +
         ["-c", CTX, "-ctk", "q8_0", "-ctv", "q8_0", "--port", str(port)] + SPEC,
         stdout=lf, stderr=subprocess.STDOUT)

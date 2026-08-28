@@ -47,6 +47,7 @@ from datasets_io import (DATASET_NAMES, DEFAULT_MAX_PROMPT_TOKENS, JUDGED_SETS,
                          load_prompts, load_qa, resolve_name, score_response,
                          scorer_name, unscored_reason)
 import render_table
+import gpu_lock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 RESULTS_DIR = os.path.join(HERE, "results")
@@ -217,7 +218,7 @@ class Server:
         print(f"starting llama-server for {os.path.basename(model_path)} ...")
         self.log = open(os.path.join(RESULTS_DIR, "llama-server.log"), "w",
                         encoding="utf-8", errors="replace")
-        self.proc = subprocess.Popen(cmd, stdout=self.log, stderr=self.log)
+        self.proc = gpu_lock.serve(cmd, stdout=self.log, stderr=self.log)
 
     def wait_ready(self, timeout_s=600):
         t0 = time.time()

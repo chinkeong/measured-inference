@@ -3,6 +3,7 @@
 # Uses serve-qwen.bat (current tuned flags: -ngl 99, MTP n4 p0.75, q8 KV, mmproj).
 # Spill detection: temp-0 code probe t/s dropping >25% below the 122880 reference,
 # or the server failing to load. Run this only when nothing else uses the GPU.
+. (Join-Path $PSScriptRoot "..\gpu-lock.ps1")
 $ErrorActionPreference = 'Stop'
 $dir = 'E:\AI\aider\qwen'
 $probeText = 'Write a single self-contained JavaScript file implementing a red-black tree class with insert, delete, search and an in-order iterator. Code only, no explanation.'
@@ -18,7 +19,7 @@ function Probe-Ctx([int]$ctx) {
     # Write-Host (not Write-Output) inside this function - Output pollutes the return value.
     Stop-Server
     Write-Host "[ctx $ctx] loading..."
-    Start-Process -FilePath 'E:\AI\aider\serve-qwen.bat' -ArgumentList @('low', $ctx) -WindowStyle Minimized
+    Start-GuardedServer -FilePath 'E:\AI\aider\serve-qwen.bat' -ArgumentList @('low', $ctx) -WindowStyle Minimized
     $ok = $false
     for ($i = 0; $i -lt 300; $i++) {
         Start-Sleep -Seconds 2

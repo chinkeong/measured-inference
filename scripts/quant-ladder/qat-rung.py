@@ -74,6 +74,7 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, os.path.join(ROOT, "scripts", "bench"))
+import gpu_lock
 
 MODEL_DIR = r"C:\Users\chink\.lmstudio\models\sdkyuan\qwen3.8-27B-qat-q2_0-gguf"
 MODEL = os.path.join(MODEL_DIR, "qwen38-27b-qat-q2_0.gguf")
@@ -153,7 +154,7 @@ def step_smoke():
             "--parallel", "1", "-fa", "on", "--jinja", "--reasoning", "off",
             "--host", "127.0.0.1", "--port", str(port)]
     log("smoke-loading: %s" % " ".join(args[1:8]))
-    p = subprocess.Popen(args, stdout=lf, stderr=subprocess.STDOUT)
+    p = gpu_lock.serve(args, stdout=lf, stderr=subprocess.STDOUT)
     ok, t0 = False, time.time()
     while time.time() - t0 < 600:
         if p.poll() is not None:
@@ -302,7 +303,7 @@ def step_execute():
             "-c", "8192", "-fa", "on", "--parallel", "1", "--jinja",
             "--reasoning", "off", "--host", "127.0.0.1", "--port", str(port)]
     log("serving under the manifest's detector flags")
-    p = subprocess.Popen(args, stdout=lf, stderr=subprocess.STDOUT)
+    p = gpu_lock.serve(args, stdout=lf, stderr=subprocess.STDOUT)
     ok, t0 = False, time.time()
     while time.time() - t0 < 600:
         if p.poll() is not None:

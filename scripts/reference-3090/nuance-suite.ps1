@@ -1,5 +1,6 @@
 # Nuance suite: (1) depth/prefill series, (2) q8 KV quality PPL, (3) --parallel 2,
 # (4) multi-image vision. Sequential; one log; ~40-50 min.
+. (Join-Path $PSScriptRoot "..\gpu-lock.ps1")
 $ErrorActionPreference = 'Continue'
 $exe = 'E:\AI\llama.cpp\llama-server.exe'
 $iq4 = 'C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF\Qwen3.8-27B-UD-IQ4_XS.gguf'
@@ -22,7 +23,7 @@ function Filler([int]$n) {
 
 Write-Output '===== PART 1: depth/prefill series (IQ4_XS text-only -c 122880) ====='
 Stop-Server
-Start-Process -FilePath $exe -ArgumentList @('-m', $iq4, '--alias', 'q', '-c', '122880', '-ngl', '99',
+Start-GuardedServer -FilePath $exe -ArgumentList @('-m', $iq4, '--alias', 'q', '-c', '122880', '-ngl', '99',
     '--parallel', '1', '--load-mode', 'none', '-ctk', 'q8_0', '-ctv', 'q8_0',
     '--spec-type', 'draft-mtp', '--spec-draft-n-max', '4', '--spec-draft-p-min', '0.75',
     '--jinja', '--host', '127.0.0.1', '--port', '1234') -WindowStyle Hidden
@@ -49,7 +50,7 @@ Write-Output 'fp16 KV (cached): Final estimate: PPL = 6.5348 +/- 0.04382'
 
 Write-Output '===== PART 3: --parallel 2 (IQ4_XS -c 131072 = 65536/slot) ====='
 Stop-Server
-Start-Process -FilePath $exe -ArgumentList @('-m', $iq4, '--alias', 'q', '-c', '131072', '-ngl', '99',
+Start-GuardedServer -FilePath $exe -ArgumentList @('-m', $iq4, '--alias', 'q', '-c', '131072', '-ngl', '99',
     '--parallel', '2', '--load-mode', 'none', '-ctk', 'q8_0', '-ctv', 'q8_0',
     '--spec-type', 'draft-mtp', '--spec-draft-n-max', '4', '--spec-draft-p-min', '0.75',
     '--jinja', '--host', '127.0.0.1', '--port', '1234') -WindowStyle Hidden
@@ -74,7 +75,7 @@ if (-not (Wait-Health)) { Write-Output 'P3 SERVER FAILED' } else {
 
 Write-Output '===== PART 4: multi-image (hi-res vision, 3 different pages) ====='
 Stop-Server
-Start-Process -FilePath $exe -ArgumentList @('-m', $iq4, '--mmproj', $mmproj, '--image-min-tokens', '1024', '--image-max-tokens', '10580',
+Start-GuardedServer -FilePath $exe -ArgumentList @('-m', $iq4, '--mmproj', $mmproj, '--image-min-tokens', '1024', '--image-max-tokens', '10580',
     '--alias', 'q', '-c', '122880', '-ngl', '99', '--parallel', '1', '--load-mode', 'none',
     '-ctk', 'q8_0', '-ctv', 'q8_0', '--spec-type', 'draft-mtp', '--spec-draft-n-max', '4', '--spec-draft-p-min', '0.75',
     '--jinja', '--host', '127.0.0.1', '--port', '1234') -WindowStyle Hidden

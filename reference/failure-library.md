@@ -521,3 +521,53 @@ truncation. The other two stopped by themselves at 3,939 and 7,296 tokens
 against a 16,384 cap. The same three items at the 4.2-bpw anchor all
 scored 100.0 with 701 / 4,152 / 1,829 tokens of real content. The arm
 reported "truncations=1"; the real failure count was three.
+
+---
+
+## Host OOM: the desktop hangs and the campaign dies with it
+
+**SYMPTOM** - the whole machine stops responding, mouse included, and only the
+power button ends it. Afterwards, in the Windows System log: `Kernel-Power 41`
+with **`BugcheckCode = 0`** and **no dump** in `C:\Windows\MEMORY.DMP` or
+`Minidump\`; `EventLog 6008` "the previous system shutdown ... was unexpected";
+`Application Popup 26` **"Out of Virtual Memory"**; `Volsnap 25` shadow copies
+deleted "because the shadow copy storage could not grow in time"; and a run of
+`Resource-Exhaustion-Detector 2004` naming **more than one `llama-server.exe`**:
+
+    llama-server.exe (41604) consumed 19,815,084,032 bytes
+    llama-server.exe (37864) consumed 18,742,063,104 bytes
+    llama-server.exe (41852) consumed 18,741,641,216 bytes
+
+Read them with:
+
+    Get-WinEvent -FilterHashtable @{LogName='System'; Id=41,2004,6008,26} -MaxEvents 40 |
+        Select-Object TimeCreated,Id,Message | Format-List
+
+**CAUSE** - two or more llama-servers resident at once. `BugcheckCode = 0` plus
+no dump rules out a crash, a driver and hardware: this is pure commit
+exhaustion, the host paging itself to death. Rule 20's "one GPU job at a time"
+was prose only, and twenty scripts called `subprocess.Popen` on llama-server
+independently - each correct alone, any two at once fatal. An agent that
+backgrounds a probe and starts another, or a detached run whose parent dies and
+leaves an 18 GB orphan for the next run to start on top of, gets there without
+anyone doing anything obviously wrong.
+
+**FIX** - never launch a server with a bare `subprocess.Popen` or
+`Start-Process`. Use `scripts/bench/gpu_lock.py`'s `serve()` (Python) or
+`scripts/gpu-lock.ps1`'s `Start-GuardedServer` (PowerShell). They share one
+lockfile, so the second job fails in a second with a message naming the first;
+they cap the child's commit; and they put it in a job object that kills it when
+its parent dies, so orphans cannot accumulate. To inspect or clear:
+
+    python scripts/bench/gpu_lock.py status     # holder, live servers, commit
+    python scripts/bench/gpu_lock.py kill       # kill servers, clear the lock
+
+If a legitimate arm genuinely needs more than the cap, raise it with
+`MEASURED_INFERENCE_MEM_CAP_GB` and **record the change** - it is a condition
+the numbers travel with (rule 3), not a config detail.
+
+**EARNED BY** - 2026-08-29 00:25, reference machine (31.8 GB RAM, 28 GB
+pagefile, 59.8 GB commit limit). Four llama-server pids alive; the top three
+wanted ~53 GB. The last log line of any kind was 00:23:38; the power button was
+pressed at 00:31:59, eight minutes into a dead box. First warning had been at
+23:59:11, twenty-four minutes earlier, while the desktop was still usable.

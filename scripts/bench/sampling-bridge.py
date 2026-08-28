@@ -53,6 +53,7 @@ import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import refarm   # the reference arm: Sampler, smi()
+import gpu_lock
 
 SERVER = os.environ.get("LLAMA_SERVER", r"E:\AI\llama.cpp\llama-server.exe")
 LMS = r"C:\Users\chink\.lmstudio\models"
@@ -117,7 +118,7 @@ def start(flags, logpath):
             "-ctk", "q8_0", "-ctv", "q8_0", "--jinja", "--reasoning", "off",
             "--host", "127.0.0.1", "--port", str(PORT)] + flags
     lf = open(logpath, "w", encoding="utf-8", errors="replace")
-    return subprocess.Popen(args, stdout=lf, stderr=subprocess.STDOUT), lf
+    return gpu_lock.serve(args, stdout=lf, stderr=subprocess.STDOUT), lf
 
 
 def wait(p, timeout=900):

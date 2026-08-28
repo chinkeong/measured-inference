@@ -30,7 +30,7 @@ the situation below triggers it.
 17. Effort buys completeness, not easy-task accuracy [17]
 18. Image cost is resolution, not file size [18]
 19. Agents drop images silently unless capability is declared; hallucinated "sight" is the worst outcome and is hunted explicitly [19]
-20. Detach, resumable, parse-check, checkpoint-commit, one GPU job at a time, a campaign log that survives restarts; spot-read long greedy output for repetition loops before trusting its tokens or timings [20]
+20. Detach, resumable, parse-check, checkpoint-commit, ONE GPU job at a time — enforced: launch every server through `gpu_lock.serve()` / `Start-GuardedServer`, never bare Popen/Start-Process; a campaign log that survives restarts; spot-read long greedy output for repetition loops before trusting its tokens or timings [20]
 21. Every effort sweep runs the identical 7-benchmark suite (SEED=42, N=25, 16,384 cap, `-c` above longest prompt + cap); the Mean is a composite index, one cell is a smoke test [21]
 22. The agentic bucket is optional and cost-gated: project the sweep from one task; past ~4 h, cite the published anchor and say so [22]
 23. Frozen inputs, offline-first: frozen file → local cache → network; two reports compare only if their suite hashes match [23]
@@ -59,6 +59,7 @@ Three failures no rule number catches:
 | a probe or a number looks wrong | grep `reference/failure-library.md` for the symptom |
 | platform trouble (PowerShell 5.1, POSIX, WSL) | grep `reference/platform-notes.md` for the exact error |
 | running the benchmark suite | `scripts/bench/README.md` + rule 21 |
+| launching a llama-server from any script | `scripts/bench/gpu_lock.py` header — one job, capped, no orphans |
 | power / energy work | `scripts/power/README.md` + rule 24 |
 | the agentic bucket | `agentic/setup-log.md` + rule 22 |
 | the full text of any invariant above | `methodology/METHODOLOGY.md`, rule N |
@@ -81,8 +82,8 @@ resuming, not starting — do NOT re-interview.
    past it was in flight when the session died.
 3. Re-run the current stage's script — every long script skips work whose log
    already shows a final result, so a re-run costs only the unfinished arms.
-   Confirm the GPU is idle first (a detached llama-server may have outlived the
-   session — kill it).
+   Confirm the GPU is idle first: `python scripts/bench/gpu_lock.py status`,
+   and `... kill` if it names a holder or a live server.
 4. Append a dated "resumed after session loss" line to `campaign.md`, noting any
    old-phase → stage mapping you used, then continue from there.
 5. **Resuming into expensive work? Check the RECIPE LOCK first.** No dated

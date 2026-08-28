@@ -29,6 +29,7 @@ param(
     [switch]$NoDetectors,
     [switch]$Once
 )
+. (Join-Path $PSScriptRoot "..\gpu-lock.ps1")
 
 $ErrorActionPreference = 'Continue'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -108,7 +109,7 @@ function Invoke-Ppl {
     $sw = [Diagnostics.Stopwatch]::StartNew()
     $code = -1
     try {
-        $p = Start-Process -FilePath ([string]$M.ppl.exe) -ArgumentList $a -NoNewWindow -PassThru `
+        $p = Start-GuardedServer -FilePath ([string]$M.ppl.exe) -ArgumentList $a -NoNewWindow -PassThru `
             -RedirectStandardOutput $olog -RedirectStandardError $log
         if (-not $p.WaitForExit(5400000)) {
             Write-Host '  ppl: TIMEOUT (90 min) - killing'

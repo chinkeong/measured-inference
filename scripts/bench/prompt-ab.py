@@ -42,6 +42,7 @@ import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import refarm
+import gpu_lock
 
 PORT = 1249
 BASE = "http://127.0.0.1:%d" % PORT
@@ -82,7 +83,7 @@ def start(logpath):
     args = [refarm.SERVER, "-m", refarm.REF_MODEL, "--alias", "qwen/qwen3.8-27b"] + \
         refarm.REF_FLAGS + ["--host", "127.0.0.1", "--port", str(PORT)]
     lf = open(logpath, "w", encoding="utf-8", errors="replace")
-    return subprocess.Popen(args, stdout=lf, stderr=subprocess.STDOUT), lf
+    return gpu_lock.serve(args, stdout=lf, stderr=subprocess.STDOUT), lf
 
 
 def wait(p, timeout=900):

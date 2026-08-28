@@ -32,6 +32,7 @@ on this rig moves 5.4% under host load while the GPU clock RISES, so a sweep
 run alongside other work measures the other work.
 """
 import argparse, io, json, os, re, subprocess, sys, time, urllib.request
+import gpu_lock
 
 # Provenance, added 2026-08-28. A throughput number whose toolchain is not
 # recorded cannot be compared with a later one - this campaign published four
@@ -152,7 +153,7 @@ if __name__ == "__main__":
         print("\n=== --spec-draft-n-max %d ===" % nmax, flush=True)
         log = os.path.join(OUT, "nmax-%d-server.log" % nmax)
         lf = io.open(log, "w", encoding="utf-8", errors="replace")
-        p = subprocess.Popen(
+        p = gpu_lock.serve(
             [SERVER, "-m", a.model] + BASE_FLAGS +
             ["--port", str(PORT), "--spec-draft-n-max", str(nmax)],
             stdout=lf, stderr=subprocess.STDOUT)

@@ -1,5 +1,6 @@
 # The missing apples-to-apples: DFlash2 on the SAME realistic code probe that
 # measured MTP's 57.9 t/s (n-max 4, p-min 0.75). Uses the PR-27342 build.
+. (Join-Path $PSScriptRoot "..\gpu-lock.ps1")
 $ErrorActionPreference = 'Continue'
 $server = 'E:\AI\llama.cpp-dflash\build\bin\llama-server.exe'
 $model  = 'C:\Users\chink\.lmstudio\models\lmstudio-community\Qwen3.8-27B-GGUF\Qwen3.8-27B-Q4_K_M.gguf'
@@ -24,7 +25,7 @@ foreach ($cfg in $configs) {
         '--parallel', '1', '-ctk', 'q8_0', '-ctv', 'q8_0', '--jinja',
         '--host', '127.0.0.1', '--port', '1234') + $cfg
     $err = "E:\AI\aider\qwen\dflash-$([math]::Abs($label.GetHashCode())).log"
-    Start-Process -FilePath $server -ArgumentList $args_ -WindowStyle Hidden -RedirectStandardError $err
+    Start-GuardedServer -FilePath $server -ArgumentList $args_ -WindowStyle Hidden -RedirectStandardError $err
     $ok = $false
     for ($i = 0; $i -lt 300; $i++) {
         Start-Sleep -Seconds 2

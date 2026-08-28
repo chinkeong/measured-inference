@@ -10,6 +10,7 @@
 # If you invoke this script standalone or adapt it, PASS '-ngl 99' YOURSELF.
 # (Left as-is rather than fixed: this is the file as it ran, and the numbers in
 # the example report were produced by it.)
+. (Join-Path $PSScriptRoot "..\gpu-lock.ps1")
 $ErrorActionPreference = 'Stop'
 $extra = $args
 $log = 'E:\AI\aider\qwen\server-probe-err.txt'
@@ -31,7 +32,7 @@ $args_ = @('-m', $model, '--mmproj', $mmproj, '--alias', 'qwen/qwen3.8-27b',
     '--reasoning-preserve', '--image-min-tokens', '1024',
     '--chat-template-kwargs', '{\"reasoning_effort\":\"low\"}',
     '--jinja', '--host', '127.0.0.1', '--port', '1234') + $extra
-$psi = Start-Process -FilePath $exe -ArgumentList $args_ -WindowStyle Hidden `
+$psi = Start-GuardedServer -FilePath $exe -ArgumentList $args_ -WindowStyle Hidden `
     -RedirectStandardError $log -RedirectStandardOutput $logOut -PassThru
 
 $ok = $false

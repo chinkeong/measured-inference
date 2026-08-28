@@ -46,6 +46,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, HERE)
 import refarm
+import gpu_lock
 
 MODEL = os.path.join(os.environ.get("MODEL_DIR", r"C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF"),
                      "Qwen3.8-27B-UD-Q2_K_XL.gguf")
@@ -120,7 +121,7 @@ def serve(extra, tag):
     os.makedirs(os.path.join(OUT, "ngram-logs"), exist_ok=True)
     lf = io.open(os.path.join(OUT, "ngram-logs", "%s.log" % tag), "a",
                  encoding="utf-8", errors="replace")
-    p = subprocess.Popen(args, stdout=lf, stderr=subprocess.STDOUT)
+    p = gpu_lock.serve(args, stdout=lf, stderr=subprocess.STDOUT)
     t0 = time.time()
     while time.time() - t0 < 900:
         if p.poll() is not None:

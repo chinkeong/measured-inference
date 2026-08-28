@@ -51,6 +51,7 @@ import subprocess
 import sys
 import time
 import urllib.request
+import gpu_lock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 try:
@@ -208,7 +209,7 @@ def main():
 
     rows = []
     with io.open(log, "w", encoding="utf-8", errors="replace") as lf:
-        p = subprocess.Popen(
+        p = gpu_lock.serve(
             [SERVER, "-m", a.model] + COMMON +
             ["-c", CTX, "-ctk", "q8_0", "-ctv", "q8_0",
              "--port", str(PORT)] + SPEC,

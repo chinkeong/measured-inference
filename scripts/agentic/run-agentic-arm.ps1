@@ -35,6 +35,7 @@ param(
     [string]$ServerBin = $(if ($env:LLAMA_SERVER) { $env:LLAMA_SERVER }
                         else { "E:\AI\llama.cpp\llama-server.exe" })
 )
+. (Join-Path $PSScriptRoot "..\gpu-lock.ps1")
 
 $ErrorActionPreference = "Stop"
 $tel = Join-Path $Repo "results\qwen38-27b-blind\data\telemetry"
@@ -45,12 +46,12 @@ if (-not (Test-Path $Model)) { throw "model not found: $Model" }
 
 # Refuse to start on top of a live server: it would serve this arm's requests
 # from the PREVIOUS arm's weights and every number would be attributed wrong.
-$live = Get-Process -Name "llama-server" -ErrorAction SilentlyContinue
-if ($live) {
-    throw ("llama-server is already running (pid $($live.Id)). Stop it first - " +
-           "starting an arm against another arm's weights silently mislabels " +
-           "every result.")
-}
+# Enter-GpuLock does that check AND holds a machine-wide lock for the whole
+# arm, which the bare Get-Process check that used to live here could not: it
+# saw a server that already existed, never a python probe two seconds from
+# starting one. Taken here, not at Start-GuardedServer, so the arm fails before
+# it builds telemetry directories rather than after.
+Enter-GpuLock -Tag "agentic-$Tag"
 
 # AND refuse to start on top of an ORPHANED COLLECTOR. The llama-server guard
 # above catches the loud failure; this catches the quiet one. Collectors are
@@ -110,7 +111,7 @@ Write-Output "starting server -> $srvLog"
 # Redirect BOTH streams to a real file. llama.cpp writes its per-request
 # timings and its speculative-decoding acceptance counts to stderr, and those
 # are the only place acceptance is reported at all.
-$srv = Start-Process -FilePath $ServerBin -ArgumentList $srvArgs `
+$srv = Start-GuardedServer -FilePath $ServerBin -ArgumentList $srvArgs `
     -RedirectStandardOutput $srvLog -RedirectStandardError "$srvLog.err" `
     -WindowStyle Hidden -PassThru
 

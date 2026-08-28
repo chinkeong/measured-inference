@@ -1,6 +1,7 @@
 # Diagnostic: start llama-server with console output captured, run one temp-0
 # probe, then surface the server's own layer-offload / speculative-decoding /
 # timing log lines.
+. (Join-Path $PSScriptRoot "..\gpu-lock.ps1")
 $ErrorActionPreference = 'Stop'
 $log = 'E:\AI\aider\qwen\server-log.txt'
 try { Get-Process llama-server -ErrorAction Stop | Stop-Process -Force -Confirm:$false } catch {}
@@ -8,7 +9,7 @@ Start-Sleep -Seconds 3
 Remove-Item $log -ErrorAction SilentlyContinue
 
 # run the bat through cmd so both stdout+stderr of llama-server land in the log
-Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', 'E:\AI\aider\serve-qwen.bat low 122880 > E:\AI\aider\qwen\server-log.txt 2>&1' -WindowStyle Hidden
+Start-GuardedServer -FilePath 'cmd.exe' -ArgumentList '/c', 'E:\AI\aider\serve-qwen.bat low 122880 > E:\AI\aider\qwen\server-log.txt 2>&1' -WindowStyle Hidden
 
 $ok = $false
 for ($i = 0; $i -lt 600; $i++) {

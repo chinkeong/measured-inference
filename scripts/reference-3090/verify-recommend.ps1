@@ -1,6 +1,7 @@
 # Verify the newly-promoted serve-qwen.bat defaults under CURRENT desktop
 # conditions: [1] IQ4_XS text-only -c 196608 and [3] IQ4_XS + vision -c 147456.
 # Each gets a short temp-0 code probe AND a ~12k-token-deep prompt, plus VRAM sampling.
+. (Join-Path $PSScriptRoot "..\gpu-lock.ps1")
 $ErrorActionPreference = 'Continue'
 $exe = 'E:\AI\llama.cpp\llama-server.exe'
 $model = 'C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF\Qwen3.8-27B-UD-IQ4_XS.gguf'
@@ -42,7 +43,7 @@ for ($c = 0; $c -lt 2; $c++) {
         '--spec-type', 'draft-mtp', '--spec-draft-n-max', '4', '--spec-draft-p-min', '0.75',
         '--jinja', '--host', '127.0.0.1', '--port', '1234')
     if ($c -eq 1) { $args_ += @('--mmproj', $mmproj, '--image-min-tokens', '1024') }
-    Start-Process -FilePath $exe -ArgumentList $args_ -WindowStyle Hidden
+    Start-GuardedServer -FilePath $exe -ArgumentList $args_ -WindowStyle Hidden
     $ok = $false
     for ($i = 0; $i -lt 300; $i++) { Start-Sleep -Seconds 2
         try { $h = Invoke-RestMethod 'http://127.0.0.1:1234/health' -TimeoutSec 2; if ($h.status -eq 'ok') { $ok = $true; break } } catch {} }

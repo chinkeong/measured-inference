@@ -1,5 +1,6 @@
 # Find the LARGEST context (4096-token resolution) that decodes fast under the
 # current desktop VRAM load, then rerun the low/medium/xhigh effort sweep there.
+. (Join-Path $PSScriptRoot "..\gpu-lock.ps1")
 $ErrorActionPreference = 'Stop'
 $dir       = 'E:\AI\aider\qwen'
 $modelName = 'Qwen3.8-27B-Q4_K_M'
@@ -16,7 +17,7 @@ function Stop-Server {
 
 function Start-Server([string]$effort, [int]$ctx) {
     Stop-Server
-    Start-Process -FilePath 'E:\AI\aider\serve-qwen.bat' -ArgumentList @($effort, $ctx) -WindowStyle Minimized
+    Start-GuardedServer -FilePath 'E:\AI\aider\serve-qwen.bat' -ArgumentList @($effort, $ctx) -WindowStyle Minimized
     for ($i = 0; $i -lt 600; $i++) {
         Start-Sleep -Seconds 2
         try {

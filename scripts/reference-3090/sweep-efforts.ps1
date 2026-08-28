@@ -1,5 +1,6 @@
 # Sweep serve-qwen.bat across reasoning efforts low/medium/xhigh with the same
 # prompt, saving all generated tokens (thinking + answer) per effort level.
+. (Join-Path $PSScriptRoot "..\gpu-lock.ps1")
 $ErrorActionPreference = 'Stop'
 $dir       = 'E:\AI\aider\qwen'
 $modelName = 'Qwen3.8-27B-Q4_K_M'
@@ -12,7 +13,7 @@ foreach ($e in $efforts) {
     Start-Sleep -Seconds 3
 
     Write-Output "[$e] starting server..."
-    Start-Process -FilePath 'E:\AI\aider\serve-qwen.bat' -ArgumentList $e -WindowStyle Minimized
+    Start-GuardedServer -FilePath 'E:\AI\aider\serve-qwen.bat' -ArgumentList $e -WindowStyle Minimized
 
     # --load-mode none makes loading slow; poll health up to 20 min
     $ok = $false

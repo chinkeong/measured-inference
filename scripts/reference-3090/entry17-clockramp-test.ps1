@@ -37,6 +37,7 @@
 #
 # Zero interpretation happens in this script. It prints what the server reports.
 
+. (Join-Path $PSScriptRoot "..\gpu-lock.ps1")
 $ErrorActionPreference = 'Continue'
 $exe    = 'E:\AI\llama.cpp\llama-server.exe'
 $model  = 'C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF\Qwen3.8-27B-UD-IQ4_XS.gguf'
@@ -70,7 +71,7 @@ $srvArgs = @('-m', $model, '--alias', 'qwen/qwen3.8-27b', '-c', '131072', '-ngl'
     '--spec-type', 'draft-mtp', '--spec-draft-n-max', '4', '--spec-draft-p-min', '0.75',
     '--jinja', '--host', '127.0.0.1', '--port', '1234')
 Write-Host 'starting server (UD-IQ4_XS, -c 131072, n4/p0.75, q8_0 KV)...'
-Start-Process -FilePath $exe -ArgumentList $srvArgs -WindowStyle Hidden
+Start-GuardedServer -FilePath $exe -ArgumentList $srvArgs -WindowStyle Hidden
 
 $ok = $false
 for ($i = 0; $i -lt 300; $i++) {

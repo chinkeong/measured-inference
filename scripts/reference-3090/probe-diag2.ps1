@@ -1,5 +1,6 @@
 # Same diagnostic probe, but launching llama-server directly with -ngld 99
 # so the MTP draft context is also fully offloaded to GPU.
+. (Join-Path $PSScriptRoot "..\gpu-lock.ps1")
 $ErrorActionPreference = 'Stop'
 $log = 'E:\AI\aider\qwen\server-log2.txt'
 try { Get-Process llama-server -ErrorAction Stop | Stop-Process -Force -Confirm:$false } catch {}
@@ -17,7 +18,7 @@ $args_ = @('-m', $model, '--mmproj', $mmproj, '--alias', 'qwen/qwen3.8-27b',
     '--reasoning-preserve', '--image-min-tokens', '1024',
     '--chat-template-kwargs', '{\"reasoning_effort\":\"low\"}',
     '--jinja', '--host', '127.0.0.1', '--port', '1234')
-$psi = Start-Process -FilePath $exe -ArgumentList $args_ -WindowStyle Hidden `
+$psi = Start-GuardedServer -FilePath $exe -ArgumentList $args_ -WindowStyle Hidden `
     -RedirectStandardError $log -RedirectStandardOutput 'E:\AI\aider\qwen\server-log2-out.txt' -PassThru
 
 $ok = $false

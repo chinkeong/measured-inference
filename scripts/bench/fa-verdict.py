@@ -43,6 +43,7 @@ import subprocess
 import sys
 import time
 import urllib.request
+import gpu_lock
 
 SERVER = os.environ.get("LLAMA_SERVER", r"E:\AI\llama.cpp\llama-server.exe")
 MODEL = os.environ.get(
@@ -112,7 +113,7 @@ def start(fa, ctx, logpath):
     if fa:
         args += ["-fa", fa]
     lf = open(logpath, "w", encoding="utf-8", errors="replace")
-    p = subprocess.Popen(args, stdout=lf, stderr=subprocess.STDOUT)
+    p = gpu_lock.serve(args, stdout=lf, stderr=subprocess.STDOUT)
     return p, lf
 
 

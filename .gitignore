@@ -74,3 +74,5 @@ node_modules/
 
 # offline transfer bundle (built by scripts/make-offline-bundle.ps1)
 offline-bundle/
+# the machine-wide GPU mutex (scripts/bench/gpu_lock.py) - runtime state
+.gpu-lock.json

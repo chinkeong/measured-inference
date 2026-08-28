@@ -17,6 +17,7 @@
 # (~40 s) - enough, because chunk [1] alone separates healthy from broken.
 #
 #   powershell -NoProfile -ExecutionPolicy Bypass -File gemma-ppl-diag.ps1
+. (Join-Path $PSScriptRoot "..\gpu-lock.ps1")
 $ErrorActionPreference = 'Continue'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 . (Join-Path $here 'ladder-lib.ps1')
@@ -77,7 +78,7 @@ foreach ($a in $arms) {
     $args1 = @('-m', $a.m, '-f', $CORPUS) + [string[]]$a.f + @('--chunks', "$($a.c)")
     Write-Log ("=== {0} :: {1}" -f $tag, (($a.f + @('--chunks', "$($a.c)")) -join ' '))
     $sw = [Diagnostics.Stopwatch]::StartNew()
-    $p = Start-Process -FilePath $PPL -ArgumentList $args1 -NoNewWindow -PassThru `
+    $p = Start-GuardedServer -FilePath $PPL -ArgumentList $args1 -NoNewWindow -PassThru `
         -RedirectStandardOutput $olog -RedirectStandardError $log
     if (-not $p.WaitForExit(1800000)) { try { $p.Kill() } catch {} }
     $sw.Stop()

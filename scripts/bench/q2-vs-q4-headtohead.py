@@ -44,6 +44,7 @@ import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import refarm   # Sampler, smi(), quiet_report()
+import gpu_lock
 
 # Provenance, added 2026-08-28. A throughput number whose toolchain is not
 # recorded cannot be compared with a later one - this campaign published four
@@ -111,7 +112,7 @@ def start(model_path, drafter):
     else:
         args += ["--spec-type", "none"]
     args += ["--host", "127.0.0.1", "--port", str(PORT)]
-    return subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return gpu_lock.serve(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def wait(proc, timeout=600):

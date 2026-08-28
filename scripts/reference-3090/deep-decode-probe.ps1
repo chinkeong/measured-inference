@@ -1,5 +1,6 @@
 # Corrected deep probe: report the SERVER's own timing split (prefill vs decode)
 # at ~27k-token depth for the promoted config [1] (IQ4_XS text-only -c 196608).
+. (Join-Path $PSScriptRoot "..\gpu-lock.ps1")
 $ErrorActionPreference = 'Continue'
 $exe = 'E:\AI\llama.cpp\llama-server.exe'
 $model = 'C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF\Qwen3.8-27B-UD-IQ4_XS.gguf'
@@ -20,7 +21,7 @@ $args_ = @('-m', $model, '--alias', 'qwen/qwen3.8-27b', '-c', '196608', '-ngl', 
     '--parallel', '1', '--load-mode', 'none', '-ctk', 'q8_0', '-ctv', 'q8_0',
     '--spec-type', 'draft-mtp', '--spec-draft-n-max', '4', '--spec-draft-p-min', '0.75',
     '--jinja', '--host', '127.0.0.1', '--port', '1234')
-Start-Process -FilePath $exe -ArgumentList $args_ -WindowStyle Hidden
+Start-GuardedServer -FilePath $exe -ArgumentList $args_ -WindowStyle Hidden
 $ok = $false
 for ($i = 0; $i -lt 300; $i++) { Start-Sleep -Seconds 2
     try { $h = Invoke-RestMethod 'http://127.0.0.1:1234/health' -TimeoutSec 2; if ($h.status -eq 'ok') { $ok = $true; break } } catch {} }

@@ -49,6 +49,7 @@ import subprocess
 import sys
 import time
 import urllib.request
+import gpu_lock
 
 SERVER = os.environ.get("LLAMA_SERVER", r"E:\AI\llama.cpp\llama-server.exe")
 LMS = r"C:\Users\chink\.lmstudio\models"
@@ -137,7 +138,7 @@ def main():
     os.makedirs(logdir, exist_ok=True)
     lf = open(os.path.join(logdir, "needle%s.log" % (a.tag or "")), "w",
               encoding="utf-8", errors="replace")
-    proc = subprocess.Popen(args, stdout=lf, stderr=subprocess.STDOUT)
+    proc = gpu_lock.serve(args, stdout=lf, stderr=subprocess.STDOUT)
     t0 = time.time()
     up = False
     while time.time() - t0 < 1200:

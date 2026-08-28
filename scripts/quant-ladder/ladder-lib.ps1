@@ -10,6 +10,7 @@
 #   - No variable named $base.
 #   - Callers parse-check with [scriptblock]::Create before detaching.
 
+. (Join-Path $PSScriptRoot "..\gpu-lock.ps1")
 $ErrorActionPreference = 'Continue'
 
 function Write-Log {
@@ -175,7 +176,7 @@ function Start-Srv {
     Remove-Item $errLog, $outLog -ErrorAction SilentlyContinue
     $a = @('-m', $ModelPath, '--alias', 'ladder', '--host', '127.0.0.1', '--port', "$Port") + $Flags
     $sw = [Diagnostics.Stopwatch]::StartNew()
-    $proc = Start-Process -FilePath 'E:\AI\llama.cpp\llama-server.exe' -ArgumentList $a `
+    $proc = Start-GuardedServer -FilePath 'E:\AI\llama.cpp\llama-server.exe' -ArgumentList $a `
         -WindowStyle Hidden -RedirectStandardError $errLog -RedirectStandardOutput $outLog -PassThru
     $ok = $false
     $url = "http://127.0.0.1:$Port"

@@ -43,6 +43,7 @@ import subprocess
 import sys
 import time
 import urllib.request
+import gpu_lock
 
 SERVER = os.environ.get("LLAMA_SERVER", r"E:\AI\llama.cpp\llama-server.exe")
 LMS = r"C:\Users\chink\.lmstudio\models"
@@ -108,7 +109,7 @@ def start(nmax, pmin, logpath):
             "--jinja", "--reasoning", "off",
             "--host", "127.0.0.1", "--port", str(PORT)]
     lf = open(logpath, "w", encoding="utf-8", errors="replace")
-    return subprocess.Popen(args, stdout=lf, stderr=subprocess.STDOUT), lf
+    return gpu_lock.serve(args, stdout=lf, stderr=subprocess.STDOUT), lf
 
 
 def wait(p, timeout=900):

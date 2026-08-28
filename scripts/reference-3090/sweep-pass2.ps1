@@ -1,6 +1,7 @@
 # Second pass of the reasoning-effort sweep: same prompt.md, same tuned config,
 # fresh temp-1.0 sampling. Outputs '... - <effort> - pass2.txt/html' so pass 1
 # stays intact. Gives two independent samples per effort for quality judging.
+. (Join-Path $PSScriptRoot "..\gpu-lock.ps1")
 $ErrorActionPreference = 'Stop'
 $dir       = 'E:\AI\aider\qwen'
 $modelName = 'Qwen3.8-27B-Q4_K_M'
@@ -15,7 +16,7 @@ function Stop-Server {
 foreach ($e in @('low', 'medium', 'xhigh')) {
     Stop-Server
     Write-Output "[$e pass2] starting server..."
-    Start-Process -FilePath 'E:\AI\aider\serve-qwen.bat' -ArgumentList @($e, 122880) -WindowStyle Minimized
+    Start-GuardedServer -FilePath 'E:\AI\aider\serve-qwen.bat' -ArgumentList @($e, 122880) -WindowStyle Minimized
     $ok = $false
     for ($i = 0; $i -lt 600; $i++) {
         Start-Sleep -Seconds 2

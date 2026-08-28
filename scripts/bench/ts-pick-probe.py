@@ -91,6 +91,7 @@ import subprocess
 import sys
 import time
 import urllib.request
+import gpu_lock
 
 # Provenance, added 2026-08-28. A throughput number whose toolchain is not
 # recorded cannot be compared with a later one - this campaign published four
@@ -280,7 +281,7 @@ if __name__ == "__main__":
                                         " ".join(arm["spec"])), flush=True)
         log = os.path.join(OUT, "tspick-%s-server.log" % arm["id"])
         lf = io.open(log, "w", encoding="utf-8", errors="replace")
-        p = subprocess.Popen(
+        p = gpu_lock.serve(
             [SERVER, "-m", a.model] + COMMON +
             ["-c", arm["ctx"], "-ctk", arm["kv"], "-ctv", arm["kv"],
              "--port", str(PORT)] + arm["spec"],

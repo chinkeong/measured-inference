@@ -46,6 +46,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, os.path.join(ROOT, "scripts", "bench"))
 import refarm
+import gpu_lock
 
 MODEL = r"C:\Users\chink\.lmstudio\models\sdkyuan\qwen3.8-27B-qat-q2_0-gguf\qwen38-27b-qat-q2_0.gguf"
 SRV = refarm.SERVER
@@ -123,7 +124,7 @@ def main():
                 "--host", "127.0.0.1", "--port", str(PORT)] + extra
         lf = open(os.path.join(OUT, "fit-%s.log" % ctx), "a", encoding="utf-8",
                   errors="replace")
-        p = subprocess.Popen(args, stdout=lf, stderr=subprocess.STDOUT)
+        p = gpu_lock.serve(args, stdout=lf, stderr=subprocess.STDOUT)
         if not wait(p):
             print("%-20s SERVER FAILED TO LOAD" % label)
             rows.append({"label": label, "ctx": ctx, "loaded": False})

@@ -1,11 +1,12 @@
 # xhigh GSM8K n=200 rerun with max_tokens 16384 (removes the 4096 budget artifact).
 # low/medium need no rerun: greedy + zero truncations = byte-identical under any cap.
+. (Join-Path $PSScriptRoot "..\gpu-lock.ps1")
 $ErrorActionPreference = 'Continue'
 $exe = 'E:\AI\llama.cpp\llama-server.exe'
 $model = 'C:\Users\chink\.lmstudio\models\lmstudio-community\Qwen3.8-27B-GGUF\Qwen3.8-27B-Q4_K_M.gguf'
 try { Get-Process llama-server -ErrorAction Stop | Stop-Process -Force -Confirm:$false } catch {}
 Start-Sleep -Seconds 3
-Start-Process -FilePath $exe -ArgumentList @('-m', $model, '--alias', 'qwen/qwen3.8-27b', '-c', '32768', '-ngl', '99',
+Start-GuardedServer -FilePath $exe -ArgumentList @('-m', $model, '--alias', 'qwen/qwen3.8-27b', '-c', '32768', '-ngl', '99',
     '--parallel', '1', '--load-mode', 'none', '-ctk', 'q8_0', '-ctv', 'q8_0',
     '--spec-type', 'draft-mtp', '--spec-draft-n-max', '4', '--spec-draft-p-min', '0.75',
     '--jinja', '--chat-template-kwargs', '{\"reasoning_effort\":\"xhigh\"}',

@@ -49,6 +49,10 @@ import time
 import urllib.error
 import urllib.request
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "..", "bench"))
+import gpu_lock
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 PNG = os.path.join(HERE, "detail-target.png")
 TRUTH = os.path.join(HERE, "detail-target.json")
@@ -96,7 +100,7 @@ def start(server, model, mmproj, max_image_tokens):
             "--image-min-tokens", "64",
             "--image-max-tokens", str(max_image_tokens),
             "--jinja", "--host", "127.0.0.1", "--port", str(PORT)]
-    p = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    p = gpu_lock.serve(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return p
 
 
