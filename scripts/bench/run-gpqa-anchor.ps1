@@ -45,9 +45,12 @@ param(
     [int]$MaxTokens = 30000,
     [string]$Effort = "xhigh",
     [int]$Port = 1291,
-    [string]$Model = "C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF\Qwen3.8-27B-UD-IQ4_XS.gguf",
-    [string]$ServerBin = "E:\AI\llama.cpp\llama-server.exe",
-    [string]$Repo = "E:\AI\measured-inference",
+    [string]$Model = $(if ($env:MODEL_DIR)
+                     { $env:MODEL_DIR.TrimEnd([char]92) + [char]92 + "Qwen3.8-27B-UD-IQ4_XS.gguf" }
+                   else { "C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF\Qwen3.8-27B-UD-IQ4_XS.gguf" }),
+    [string]$ServerBin = $(if ($env:LLAMA_SERVER) { $env:LLAMA_SERVER }
+                        else { "E:\AI\llama.cpp\llama-server.exe" }),
+    [string]$Repo = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path,
     [switch]$Wait
 )
 

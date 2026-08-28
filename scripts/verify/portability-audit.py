@@ -56,11 +56,26 @@ EXTERNAL = (
 INTERNAL_HINTS = ("measured-inference",)
 
 
-def env_aware(line):
-    return "os.environ" in line or "getenv" in line
+def env_aware(line, window=""):
+    """Is this path overridable from the environment?
+
+    The override is often NOT on the same line as the literal. PowerShell in
+    this repo writes the default first and the override immediately after:
+
+        $model = 'C:\\...\\Qwen3.8-27B-Q4_K_M.gguf'
+        if ($env:PROBE_MODEL) { $model = $env:PROBE_MODEL }
+
+    Checking only the literal's own line called that a blocker when it is
+    already portable. A portability audit that cries wolf gets ignored, and an
+    ignored audit is worse than none - so the check reads a few lines either
+    side, which is where an override realistically lives.
+    """
+    hay = line + "\n" + window
+    return ("os.environ" in hay or "getenv" in hay or "$env:" in hay
+            or "${env:" in hay)
 
 
-def classify(path_literal, line):
+def classify(path_literal, line, window=""):
     low = path_literal.lower()
     for needle in INTERNAL_HINTS:
         if needle in low:
@@ -70,13 +85,13 @@ def classify(path_literal, line):
                     "os.path.dirname(os.path.abspath(__file__))")
     for needle, what, var in EXTERNAL:
         if needle in low:
-            if env_aware(line):
+            if env_aware(line, window):
                 return ("OK", "already overridable by %s" % var)
             return ("BLOCKER",
                     "names %s this repository does not ship. Read it from "
                     "the %s environment variable, keeping this value as the "
                     "documented default." % (what, var))
-    if env_aware(line):
+    if env_aware(line, window):
         return ("OK", "environment-overridable")
     return ("FRAGILE",
             "absolute path with no environment override; a second machine "
@@ -107,12 +122,15 @@ def main():
         except Exception:
             continue
         scanned += 1
-        for i, line in enumerate(src.split("\n"), 1):
+        lines = src.split(chr(10))
+        for i, line in enumerate(lines, 1):
             if line.lstrip().startswith("#"):
                 continue
+            # An override can sit a line or two either side of a default.
+            window = chr(10).join(lines[max(0, i - 4):i + 3])
             for m in ABS.finditer(line):
                 lit = m.group(2)
-                kind, fix = classify(lit, line)
+                kind, fix = classify(lit, line, window)
                 findings[kind].append((rel, i, lit, fix))
 
     print("=" * 78)

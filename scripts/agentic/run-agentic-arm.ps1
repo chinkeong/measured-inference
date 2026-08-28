@@ -31,8 +31,9 @@ param(
     [int]$Port = 1283,
     [int]$NumTests = -1,
     [string]$EditFormat = "whole",
-    [string]$Repo = "E:\AI\measured-inference",
-    [string]$ServerBin = "E:\AI\llama.cpp\llama-server.exe"
+    [string]$Repo = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path,
+    [string]$ServerBin = $(if ($env:LLAMA_SERVER) { $env:LLAMA_SERVER }
+                        else { "E:\AI\llama.cpp\llama-server.exe" })
 )
 
 $ErrorActionPreference = "Stop"
