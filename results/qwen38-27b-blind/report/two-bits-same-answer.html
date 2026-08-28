@@ -423,13 +423,46 @@ this campaign ran against its own work.</p>
   <p><s>The two files succeed on materially different tasks: 60 of 225 exercises went to
   exactly one of them.</s></p>
   <p><b>The count is right; the attribution is not.</b> Nothing measured here separates a
-  quantisation effect from run-to-run variation, because the benchmark has never been run
-  twice with the same weights on this rig. Since 69% and 80% respectively of passes arrive only on a second
-  attempt, and decoding here is already known not to be bit-reproducible run to run, the
-  baseline flip rate is certainly above zero and its size is unknown. 60 discordant
-  exercises is an upper bound on what quantisation explains. A same-file repeat of one arm —
-  about three and a half hours — would settle it, and is the single most valuable
-  measurement this campaign has not made.</p>
+  quantisation effect from run-to-run variation, because 69% and 80% respectively of passes
+  arrive only on a second attempt, and decoding here is already known not to be
+  bit-reproducible run to run. <b>The baseline flip rate has now been measured</b>
+  (2026-08-27, UD-IQ4_XS, aider polyglot benchmark, whole edit format, reasoning off,
+  <code>-c 32768</code>, n-max&nbsp;4 / p-min&nbsp;0.75, greedy, 113 exercises paired by
+  case and language): both runs scored <b>43.4%</b>, identical, while
+  <b>18 of 113 exercises flipped verdict&nbsp;&mdash; a flip rate of 15.9%</b>
+  (95% interval 10.3&ndash;23.8), split exactly 9 pass&rarr;fail and 9 fail&rarr;pass.
+  This page predicted the flip rate was &ldquo;certainly above zero&rdquo; because greedy
+  decoding reproduces byte-for-byte only when the batch is shaped identically, which an
+  agentic run does not do. That prediction is now confirmed: a sixth of the individual
+  verdicts moved underneath a pass rate that did not move at all. At that noise floor,
+  comparing one run of each file across 225 exercises would produce roughly
+  <b>36 disagreements</b> (interval 23&ndash;54) even if the files were identical in
+  capability. The observed cross-file count is <b>60 of 225&nbsp;=&nbsp;26.7%</b>
+  (95% interval 21.3&ndash;32.8). Whether the gap above that floor is real depends on
+  which file&rsquo;s noise it is tested against&nbsp;&mdash; a p-value (the probability of
+  seeing a gap this wide from noise alone) below 0.05 is the conventional line for
+  &ldquo;probably real.&rdquo; Against the 4-bit file&rsquo;s floor of 15.9% the gap clears
+  the line (z&nbsp;=&nbsp;2.21, p&nbsp;=&nbsp;0.027), but that was the quieter of the two
+  files. Against the 2-bit file&rsquo;s noisier floor of 22.1% (25 of 113, 95% interval
+  15.5&ndash;30.6, measured 2026-08-28), the same 60 is easily explained by chance
+  (z&nbsp;=&nbsp;0.91, p&nbsp;=&nbsp;0.364). Pooling both retests&nbsp;&mdash; 43 flips out
+  of the 226 exercises both retests covered, a combined floor of 19.0% (interval
+  14.4&ndash;24.6)&nbsp;&mdash; gives z&nbsp;=&nbsp;1.93, p&nbsp;=&nbsp;0.053, which does
+  not clear the line either. <b>No quantisation effect is demonstrated.</b> 60 discordant
+  exercises remains an upper bound on what quantisation explains, and most of
+  it&nbsp;&mdash; possibly all of it&nbsp;&mdash; is the benchmark talking to itself.</p>
+  <p><b>Open mechanism.</b> Aider shuffles its exercise list <b>unseeded</b>, so the order
+  differs between runs, and the server&rsquo;s KV cache carries state across
+  requests&nbsp;&mdash; different cache-reuse paths give different numerics. Nothing here
+  isolates which factor dominates.</p>
+  <p><b>Limitations on the retest itself.</b> Run&nbsp;1 was launched by hand and without
+  <code>--metrics</code>; the retest used the script and has it. <code>--metrics</code>
+  only exposes a Prometheus endpoint and does not touch sampling, the cache or generation,
+  so it cannot flip an exercise, but run&nbsp;1&rsquo;s server flags were never recorded
+  anywhere&nbsp;&mdash; its configuration is known from the recipe rather than from a log of
+  that run. The retest drew a random 113 of the 225 (aider shuffles unseeded before
+  truncating), so it is an unbiased subsample, not a prefix, and pairing is by name.
+  Projecting its rate onto 225 is a projection.</p>
 </div>
 
 <div class="retraction">
@@ -600,10 +633,16 @@ Its absolute level is a measurement of a configuration, not of a model.</p>
   <li><b>Reasoning is off throughout.</b> Other people's work finds the gap between
   quantisations <em>widens</em> at higher reasoning effort, so this is one corner of that
   surface. A full sweep is four more arms and fourteen hours of exclusive machine time.</li>
-  <li><b>No test-retest baseline.</b> Neither arm was ever repeated with its own weights,
-  so the benchmark's own run-to-run flip rate on this rig is unmeasured — and it is not zero,
-  since decoding here is not bit-reproducible at temperature 0. Every statement about
-  <em>which</em> exercises differ is bounded by that gap.</li>
+  <li><b>Test-retest baseline now measured.</b> Both arms have been repeated with their own
+  weights (UD-IQ4_XS 2026-08-27, UD-Q2_K_XL 2026-08-28; whole edit format, reasoning off,
+  <code>-c 32768</code>, n-max&nbsp;4 / p-min&nbsp;0.75, greedy, 113 exercises paired by
+  case and language). The 4-bit file flipped <b>18 of 113&nbsp;=&nbsp;15.9%</b> (95% interval
+  10.3&ndash;23.8), the 2-bit file flipped <b>25 of 113&nbsp;=&nbsp;22.1%</b> (95% interval
+  15.5&ndash;30.6). The cross-file disagreement of 60 out of 225 (26.7%) does not clear the
+  noise floor on two of three tests (p&nbsp;=&nbsp;0.364 against the 2-bit floor,
+  p&nbsp;=&nbsp;0.053 pooled), so no quantisation effect is demonstrated. Every statement
+  about <em>which</em> exercises differ is still bounded by that noise, and most of the 60 is
+  consistent with the benchmark talking to itself.</li>
   <li><b>One machine, one runtime, one context length.</b> No second GPU vendor, no second
   inference engine, and 32k rather than the ~98k an agentic benchmark can demand.</li>
   <li><b>Per-process GPU attribution is impossible here.</b> <code>nvidia-smi pmon</code>
