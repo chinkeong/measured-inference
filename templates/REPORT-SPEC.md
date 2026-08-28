@@ -69,6 +69,13 @@ copies its way around.
 
 ## The two-voice writing law (non-negotiable)
 
+> This section says what the prose must BE. `methodology/WRITING.md` says how
+> it gets written: Opus 4.6 is preferred for prose whenever it is available
+> (write it in whatever model you have if it is not — never leave a
+> measurement unpublished waiting for a writer), how to invoke it without the
+> quoting trap that silently swallows the prompt, what a brief must contain,
+> and what must be verified before the result is committed.
+
 Every section is written in two voices, in this order, without exception.
 
 **Voice 1 — the surface. It comes first, always.** Every section opens with
