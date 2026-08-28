@@ -118,7 +118,19 @@
   .specs { display: flex; flex-wrap: wrap; gap: 0 32px; padding: 18px 0; border-bottom: 1px solid var(--line); }
   .spec { font-family: var(--mono); font-size: 13px; padding: 6px 0; max-width: 46ch; }
   .spec b { display: block; font-weight: 400; color: var(--muted); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; }
-  section { margin-top: 52px; scroll-margin-top: 24px; }
+  section { margin-top: 52px; scroll-margin-top: 58px; }
+  /* WHERE AM I. The page is long and the contents list, sticky though it is,
+     never says which entry you are currently inside. The chapter heading pins
+     itself to the top of the column while you are in that chapter and is
+     pushed off by the next one, so the answer is always on screen. No script:
+     this is position:sticky and nothing else. scroll-margin-top matches the
+     bar height so an anchor link does not land underneath it. */
+  .chapbar { position: sticky; top: 0; z-index: 4; background: var(--ground);
+             border-bottom: 1px solid var(--line); margin: 0 0 16px;
+             padding: 9px 0 7px; display: flex; align-items: baseline;
+             gap: 10px; flex-wrap: wrap; }
+  .chapbar .fno { margin: 0; flex: none; }
+  .chapbar h2 { margin: 0; font-size: 17px; }
   .fno { font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
   .fno::before { content: "§ "; color: var(--accent); }
   .rt { font-family: var(--mono); font-size: 14.5px; font-weight: 600; letter-spacing: 0.06em; color: var(--ink); margin: 30px 0 8px; padding-left: 10px; border-left: 3px solid var(--accent); }
@@ -515,8 +527,11 @@
 </div>
 
 <section id="s01">
+  <div class="chapbar">
   <p class="fno">01</p>
   <h2>What this page is, and what it measured</h2>
+  </div>
+
   <p>This page tells you how to run one model — Qwen3.8-27B — on one graphics card, a 24&nbsp;GB RTX 3090, and what to expect when you do. Every setting it recommends was measured on that machine, and the measurement that decides each recommendation is printed beside it. It also carries settings for other cards, marked clearly as calculated rather than measured. It is not a review, not a comparison between models, and not a set of numbers you should expect to match exactly on different hardware. If all you want is a working configuration, go to <a href="#s03">§03</a> and copy the block for your card.</p>
   <p>The limits, stated plainly: <em>one</em> machine, <em>one</em> model family, <em>one</em> operating system. Every measured row on this page is the same RTX 3090 on Windows 11 with driver 596.36. Nothing here has been checked on Linux, on AMD, on Apple silicon, or on a second copy of the same card. Where a number was calculated instead of measured, it says so in the cell.</p>
 
@@ -567,8 +582,11 @@
 </section>
 
 <section id="s02">
+  <div class="chapbar">
   <p class="fno">02</p>
   <h2>Plain words: every term used here</h2>
+  </div>
+
   <p>These are the technical words this page uses without stopping to explain them again. Each is defined once, here, with one of this campaign's own numbers attached wherever a number makes it concrete. Every later section links back to this box instead of defining anything again.</p>
   <div class="callout">
   <dl class="glossary">
@@ -704,8 +722,11 @@
   </figure>
 </section>
 <section id="s03">
+  <div class="chapbar">
   <p class="fno">03</p>
   <h2>The recipes — copy one for your card</h2>
+  </div>
+
   <p>One recipe per class of card. Find yours below, copy the block. The reasoning behind every flag is in <a href="#s04">§04</a> to <a href="#s09">§09</a>.</p>
   <div class="tablebox">
   <table class="wide-table" style="min-width:540px">
@@ -1451,8 +1472,11 @@ llama-server.exe -m Qwen3.8-27B-Q4_K_M.gguf  --alias qwen/qwen3.8-27b
   </figure>
 </section>
 <section id="s04">
+  <div class="chapbar">
   <p class="fno">04</p>
   <h2>Five model facts that decide every setting</h2>
+  </div>
+
   <p>Five things about how this model is built explain almost every recommendation in <a href="#s03">§03</a>. It stores far less memory per token of context than its size suggests, so long contexts are cheap. Its context limit is 262,144 tokens, and what you will actually run out of is card memory, not model capability. It thinks before answering by default, and that thinking comes out of the same pool as your prompt. Vision is optional at start-up and costs memory rather than speed. And it wants a specific sampling setup that some clients quietly override, which causes the model to repeat itself. Everything below is those five facts with their numbers.</p>
   <p>One more fact governs speed rather than settings, and it is worth having in plain words before the arithmetic: <strong>with speculation off, a bigger file is a slower file.</strong> To write each token, the card has to read the whole model out of its memory once. A file that is 2&nbsp;GiB larger takes proportionally longer to read, every single token, forever.</p>
   <p style="font-size:14px"><strong>The drafter breaks that rule, and it is why this page no longer simply recommends the smallest file that holds its quality.</strong> <span class="chip m">meas</span> Turn speculation on and the ordering can <em>invert</em>: <code>UD-IQ4_XS</code> goes 42.34&nbsp;&rarr;&nbsp;<b>86.91&nbsp;t/s</b> (2.05&times;) while the smaller <code>UD-Q2_K_XL</code> goes 45.66&nbsp;&rarr;&nbsp;<b>77.01</b> (1.69&times;) &mdash; so the file that is <em>faster</em> drafter-off is <b>slower</b> drafter-on, by 12.9%. The draft head is quantized along with the model, so a more damaged file drafts worse and gets less back from speculation. <b>The window moves the ordering too</b> (<a href="#s08-fastest">§08</a>). Since every recipe here ships with the drafter on, &ldquo;smallest that holds its quality&rdquo; is the right rule for <em>memory</em> and the wrong one for <em>speed</em>.</p>
@@ -1558,8 +1582,11 @@ llama-server.exe -m Qwen3.8-27B-Q4_K_M.gguf  --alias qwen/qwen3.8-27b
 </section>
 
 <section id="s05">
+  <div class="chapbar">
   <p class="fno">05</p>
   <h2>What fits in 24 GB, and where speed collapses</h2>
+  </div>
+
   <p>A 24&nbsp;GB card has two ceilings, not one, and the difference between them is the most expensive misunderstanding on this page. The first ceiling is how large a window you can set and still have every byte of it live on the card — <em>fully resident</em>, in the words of <a href="#s02">§02</a>: about 131,000 tokens for the reference configuration. The second is how large a window you can set before the server refuses to start at all: about 213,000. Between those two numbers the server starts happily, answers a short prompt at full speed, and then collapses to a fifth of that speed the first time somebody actually fills the window. <strong>Set your window under the first ceiling, not the second, and never trust a ceiling that was checked with a short prompt.</strong> The rest of this section is the memory arithmetic that tells you where your own first ceiling is.</p>
   <p>The second law of this section: speed against context is a <strong>cliff, not a curve</strong>. It is flat while the weights and the cache fit in VRAM, and it collapses once anything spills across the PCIe bus — with the magnitude set by how much spilled: about 10× when the weights file itself lands in system memory; 1.1–2× from a 1.9&nbsp;GB spill of weights answering a <em>short</em> prompt (<a href="#s11">§11</a>); and 2.5–3.8× once the spilled pages are cache that a deep prompt actually reads (the table below). What decides the size is not how much spilled but how often the spilled pages are touched. Measured on the reference 3090:</p>
   <figure>
@@ -1662,8 +1689,11 @@ llama-server.exe -m Qwen3.8-27B-Q4_K_M.gguf  --alias qwen/qwen3.8-27b
   <div class="callout"><span class="tag">Prefill is free — until you work at agent depth, when it is the whole bill</span><p>With a short prompt and a long answer, reading the prompt costs almost nothing: measured at 0.12–0.18&nbsp;J per prompt token against 4.3–6.6&nbsp;J per generated token, which is <strong>0.06–0.38% of an answer's energy</strong>. That flips completely at depth. At a 91,000-token fill, <strong>90.7% of the whole request's joules are prefill</strong>, and the same 700-token answer costs <span class="num">0.83</span>&nbsp;Wh at 1.5k of depth against <span class="num">11.71</span>&nbsp;Wh at 91k — <strong>fourteen times more</strong> for identical output. The energy per prompt token itself climbs 0.164 → 0.306 → 0.421&nbsp;J across those three depths, which is attention's quadratic term showing up as electricity. Practical consequence for anyone running agents: <strong>reusing a cached prefix — starting a follow-up request with exactly the same opening text, so the server does not have to read it again (<a href="#s02">§02</a>) — is not a speed optimization, it is an energy one</strong>, and it is the largest single saving available at depth. (All figures 2026-08-23, in-band board power; the 91k arm decoded 10.4% slower than the cooled reference ladder at the same depth, so treat its level as soft and its shape as solid.)</p></div>
 </section>
 <section id="s06">
+  <div class="chapbar">
   <p class="fno">06</p>
   <h2>Speed: which flags to set, and what the drafter buys</h2>
+  </div>
+
   <p>Six flags belong on every card, and each one is here because a measurement put it here. Put <em>every</em> layer on the graphics card with <code>-ngl 99</code>: writing <code>-ngl 64</code> looks complete and is not, and it costs about 30% of your speed with no warning anywhere. Serve <strong>one request at a time</strong> with <code>--parallel 1</code>. Store the memory of the conversation in 8-bit with <code>-ctk q8_0 -ctv q8_0</code>: it halves that memory and costs 0.3% of perplexity. Turn the built-in drafter on with <code>--spec-type draft-mtp</code>: it roughly doubles your speed, changes nothing about what the model writes, and cuts the electricity per token by two and a half times. Choose <code>--load-mode none</code> if system memory is tight and <code>--load-mode mmap</code> if you restart the server often. And whatever number you end up quoting, say which kind of token you counted, because on this model that alone is worth a factor of 1.7.</p>
   <ul>
     <li><strong>All layers on the GPU, or accept the cliff — <code>-ngl 99</code>.</strong> llama.cpp counts the output layer as one more layer than the model has transformer layers, so on this 64-layer model <code>-ngl 64</code> reads as complete and leaves that output layer — a 5120&nbsp;×&nbsp;~151k-vocabulary matrix multiplication — on the processor, running for every generated token. Measured cost: 25.7 against 39.7&nbsp;t/s on Q4_K_M, and independently 29.84 against 42.31 on UD-IQ4_XS — <strong>−29.5%</strong> — with no memory signature at all (<a href="#s11">§11</a>). Partial offload is set by system memory bandwidth, not by the graphics card, so a 5080 and a 4060&nbsp;Ti are <em>predicted</em> to offload at nearly the same <b>8–12&nbsp;t/s</b> <span class="chip d">der</span> &mdash; that band is <a href="#s04-bandwidth">§04</a>'s formula run at system-memory bandwidth, not a measurement: <b>neither of those cards has ever been in this machine</b>, and the only offload figure measured here is the 25.7&nbsp;t/s above, on this 3090. And this is a dense model — every part of it runs on every token — so the trick of parking a model's rarely-used parts on the processor has nothing to target here.</li>
@@ -2037,8 +2067,11 @@ llama-server -c 32768 -ngl 99 --parallel 1 -ctk q8_0 -ctv q8_0 --jinja --port 12
   <div class="callout"><span class="tag">Reading anyone's acceptance tables</span><p>Published speculative-decoding tables — like the DFlash2 blog's "mean acceptance length" — are <strong>speed numbers, not quality scores</strong>. The verification step guarantees every configuration writes exactly what the base model would have written; a higher acceptance number just means more tokens got through per check. Quality only changes when the <em>weights</em> change (a different quantization); speed only changes when the <em>drafter</em> changes.</p></div>
 </section>
 <section id="s07">
+  <div class="chapbar">
   <p class="fno">07</p>
   <h2>What the same run costs on other cards</h2>
+  </div>
+
   <p>Only one row of this section was measured: the RTX 3090. Every other card's number is the same arithmetic from <a href="#s04-bandwidth">§04</a> — bandwidth divided by file size, times the efficiency constant for that file's format — applied to the card's published bandwidth. That arithmetic predicted the measured 3090 row correctly, which is the only reason to trust it elsewhere, and it is still a prediction. The pattern that matters more than any individual number: <strong>how much memory a card has decides which strategy you can use; how fast that memory is decides how long you wait.</strong> A card with enormous bandwidth and too little memory loses to a slower card that fits the model, because the moment one layer lands on the processor the whole calculation changes to the processor's memory speed.</p>
   <p>The figures below are for the reference run: about 2,000 tokens of prompt and about 100,000 tokens of thinking and output, with each card using the settings that keep quality highest. All of them exclude speculative decoding, which varies per system but helps a lot: on the reference 3090 it moved this run to roughly 34 minutes from 45. Treat the drafter as moving a card up this chart — furthest on predictable content — rather than as a new baseline.</p>
   <figure>
@@ -2108,8 +2141,11 @@ llama-server -c 32768 -ngl 99 --parallel 1 -ctk q8_0 -ctv q8_0 --jinja --port 12
 </section>
 
 <section id="s08">
+  <div class="chapbar">
   <p class="fno">08</p>
   <h2>Which file to download</h2>
+  </div>
+
   <p>On a 24&nbsp;GB card, download <strong>UD-IQ4_XS</strong> from unsloth for everyday use, or <strong>Q4_K_M</strong> from lmstudio-community if you want the highest measured quality and can accept that it leaves only about 0.3&nbsp;GiB of the card for your desktop. Two files of the same size from different quantizers really can differ in quality, so the choice is not arbitrary — but between these two the measured difference is 0.9% of perplexity, which is smaller than the uncertainty of the measurement itself, while the size difference is 2.1&nbsp;GiB and buys you either the vision projector or about 50,000 more tokens of window. If you have a 16&nbsp;GB card, take <strong>UD-Q2_K_XL</strong> — the memory each file and window needs is now measured rather than estimated, and it is the 2.9-bit file, not the 3-bit one, that fits a 65,536-token window with its drafter still switched on (<a href="#s08-requirement">the requirement table below</a>); if you have 32&nbsp;GB, <strong>Q6_K</strong>; and if you have a Blackwell card and can run vLLM, the NVFP4 build is the one that runs natively there. <strong>If you have 12&nbsp;GB, the answer is no</strong> — not a smaller quantization of this model, but a smaller model. <strong>And the 24&nbsp;GB answer is the interesting result of this revision: the right file now depends on how big a window you want, and there are three answers rather than one.</strong> Up to about 98,000 tokens, stay on UD-IQ4_XS. At about 131,000, <strong>UD-Q3_K_XL</strong> decodes 20% faster on this page's fill and ties the reference file on accuracy. At the full native 262,144, <strong>UD-Q2_K_XL</strong> is the faster one and the only one that can still speculate. All three are measured; the ladder that settles the quality half starts at <a href="#s08-ladder">the eight-rung table below</a>, the memory and speed each configuration needs is in <a href="#s08-requirement">the requirement table</a>, and the card-by-card verdicts are in <a href="#s08-cards">the last part of this section</a>. <strong>And there is now a coding-benchmark answer to the 2-bit question, which is new in this revision: on 225 programming exercises the 2-bit file finishes with exactly the same score as the 4-bit one and pays 20 to 45% more tokens, 20 to 36% more time and about 32% more energy for every exercise it solves</strong> (<a href="#s08-coding">the coding-benchmark part below</a>). Take the 2-bit file when you need the 4.4&nbsp;GB of VRAM it saves; otherwise take the 4-bit one.</p>
   <div class="callout"><span class="tag">How far down can you go? The short answer, measured 2026-08-24 and 2026-08-25</span><p><strong>The advice has not changed: stop at about 9&nbsp;GiB. The reason it was given has, and the old reason was wrong.</strong> Earlier editions of this page said that quality falls about 1% of perplexity per gigabyte saved down to roughly 2.9 bits per weight and about five times that below it, and inferred "stop at 9&nbsp;GiB" from the shape of that curve. The per-gigabyte figures were right. The inference was not. <strong>2.9 bits per weight is not the point after which quality starts to degrade — it is the last size that still <em>performs</em> like the full-quality file.</strong></p><p>Four instruments now sit beside every rung, and they have different sensitivities. <strong>Perplexity</strong> falls with every step from the very top, so it never had a flat stretch that could mark a beginning. <strong>Task accuracy is flat</strong> from 4.22 bits per weight down through 2.91 — the same 75 questions score 97.30, 96.00, 93.30 and 96.00 — and one rung further down, at 2.48, it is still a statistical tie with the 4-bit file. <strong>Empty answers</strong>, the failure a reader actually notices, number <em>exactly zero</em> at every rung down to and including 2.91, then rise 2, 3, 5, 28 below it (<a href="#s08-empty">the full table</a>). Take the second and third together and 2.9 bits is where "still behaves like the big file" ends, not where quality begins to fall.</p><p><strong>Where it stops <em>working</em> is lower still, and it fails in a way no quality curve predicted.</strong> The smallest file measured, at 1.835 bits per weight, does not merely answer badly: it loses the ability to stop. Twenty of its 75 answers ran into the token cap, its median answer is 932 tokens against 424 at the top of the ladder, and one arm took two and a half hours where the next longest took thirty-six minutes.</p><p><strong>The fourth instrument settles where &ldquo;stops working&rdquo; actually begins, and it is two rungs higher than that.</strong> <span class="chip m">meas</span> On 2026-08-25 the JavaScript each file had written was rebuilt and <em>run</em>. Everything down to <strong>2.481</strong> bits per weight executes and prints its answer; at <strong>2.153</strong> and below <em>none</em> of it does &mdash; one throws a <code>TypeError</code>, two do not even parse &mdash; while the prose around the code still reads perfectly well (<a href="#s08-execute">the execute probe</a>). <strong>The working floor is at 2.481, not 1.835</strong><sup class="cref"><a href="#corr-16">C16</a></sup> &mdash; the earlier estimate used detectors that only read output. Note what this does to the four answers: the two instruments that examine <em>text</em> disagree with each other, and the two that ask whether the model <em>works</em> &mdash; a paired accuracy test and a parser, sharing no machinery at all &mdash; break at the same rung. Four instruments, and the agreement is as informative as the disagreement.</p><p><span class="hint">This is the summary. The eight-rung table and the paired tests behind the word "tie" are in <a href="#s08-ladder">the part below</a>, the empty-answer audit in full is in <a href="#s08-empty">the one after it</a>, what each file and window needs in memory is in <a href="#s08-requirement">the requirement table</a>, which file is fastest at which window is in <a href="#s08-fastest">the part after that</a>, and what to download for a 24, 16 or 12&nbsp;GB card is in <a href="#s08-cards">the last part of this section</a>. <a href="#s15-runs">§15</a> still lists what is measured and what is not — including the two things this ladder does <em>not</em> establish: speed and fit on any card that is not this 24&nbsp;GB 3090.</span></p></div>
   <div class="tablebox">
@@ -2618,8 +2654,11 @@ llama-server -c 32768 -ngl 99 --parallel 1 -ctk q8_0 -ctv q8_0 --jinja --port 12
   <p><strong>What to take from it.</strong> If you are running chat, single-file coding, or web work, the recommendations above stand and now have independent support. <strong>If you are running an agent, the 2.9-bit file is no longer untested &mdash; it is measured over two turns and unmeasured beyond them.</strong> Two full 225-exercise arms have now been run, one per file, and on that benchmark the 2.9-bit file matches the 4-bit one&rsquo;s final score while spending 20 to 45% more tokens to reach it (<a href="#s08-coding">the part above</a>). What that does <em>not</em> establish is a loop of dozens of tool calls, and the caution that survives is a specific one rather than a blanket one: <b>one machine, one benchmark, one arm per file, reasoning off</b>. The files below 4 bits that were <em>not</em> in that run remain untested for this kind of work. Try any of them on your own workflow before trusting it, and watch specifically for a loop that never terminates rather than for wrong answers. That tester also went above 4 bits, to Q5, Q6 and Q8, and reports those needed for the hardest visual and game-logic work; <strong>this page measured nothing above 4.4 bits per weight</strong> and has no opinion there at all.</p></div>
 </section>
 <section id="s09">
+  <div class="chapbar">
   <p class="fno">09</p>
   <h2>Reasoning effort: what each level costs and buys</h2>
+  </div>
+
   <p>This model has a dial that decides how long it thinks before it answers, and the honest finding is that <strong>the dial moves hours, not scores</strong>. On a 175-prompt benchmark suite run on this machine — <b>all seven sets now scored</b>, the last two by the blind judge panel added on 2026-08-24 (<a href="#s09-judge">§09</a>) — the three levels scored 80.2, 80.3 and 79.7 out of 100, a spread of 0.6 points at a sample size where a single benchmark cell is worth about ±16 points, which is a tie — while the wall clock went from 1.0 to 1.5 to 2.7 hours and the average answer grew from 830 to 2,217 tokens. So: <strong>use <code>medium</code> when you are waiting at the keyboard, and <code>xhigh</code> when you are not.</strong> This page ships <code>xhigh</code> as the default in every recipe whose window can hold it <em>and</em> whose speed makes the wait sane — the 12&nbsp;GB recipe's window holds it and still ships <code>medium</code>, because at 6–8&nbsp;t/s an answer takes three hours — for one reason that the benchmark suite cannot measure and the smaller judged tests could: on complex single-file tasks, <code>xhigh</code> was the only level that delivered 100% of the specification with no fatal defect, twice out of two. Buy it as insurance against an incomplete answer, not as a higher score. <strong>And not for prose:</strong> the two open-ended sets, once judged, are the only place in this whole campaign where the levels separate at all, and they separate against <code>xhigh</code> — it lost to <code>medium</code> on 14 of 25 MT-Bench prompts and won on 3 (<a href="#s09-judge">§09</a>). For writing, <code>medium</code>.</p>
 
   <h3 id="s09-suite">The strongest evidence: a 175-prompt suite, three levels, a tie</h3>
@@ -2733,8 +2772,11 @@ llama-server -c 32768 -ngl 99 --parallel 1 -ctk q8_0 -ctv q8_0 --jinja --port 12
   </div>
 </section>
 <section id="s10">
+  <div class="chapbar">
   <p class="fno">10</p>
   <h2>How many benchmark questions are enough?</h2>
+  </div>
+
   <p>Enough for what? That is the whole question, and it has an arithmetic answer. A 25-question benchmark can tell you a model file is broken and nothing finer. A 25-question benchmark can tell you a setting has not collapsed. Telling two healthy 4-bit files apart, where the real difference is one to three points, needs thousands of questions and days of machine time — which is why nobody ranks healthy files by accuracy scores, and why this page ranks them by perplexity instead. <strong>Before you believe any benchmark number, including the ones on this page, ask three things: how many questions, what was the token budget, and how many answers were cut off.</strong> The rest of this section is those three questions with numbers on them.</p>
   <p>A worked example from this page's own data. A GSM8K score of <span class="num">85%</span> at <span class="num">20</span> questions carries a 95% confidence interval of roughly <span class="num">64–95%</span> — a thirty-point window around a table where every score sits within ten points of every other. One flipped question moves that score 5 points. Healthy 4-bit files differ by perhaps <span class="num">1–3</span> <em>true</em> points; inside that window, such a gap is invisible.</p>
   <p>The arithmetic is unforgiving because sampling noise shrinks with the <em>square root</em> of the sample count: <strong>halve the gap you want to detect and you need four times the samples.</strong> What that costs on this 3090 — paired evaluation on the same questions, temperature 0, about 80% base accuracy, 95% confidence at 80% power, about <span class="num">1,200</span> tokens per sample at about <span class="num">55&nbsp;t/s</span> with the drafter on:</p>
@@ -2788,8 +2830,11 @@ llama-server -c 32768 -ngl 99 --parallel 1 -ctk q8_0 -ctv q8_0 --jinja --port 12
 </section>
 
 <section id="s11">
+  <div class="chapbar">
   <p class="fno">11</p>
   <h2>Why it sometimes runs at half speed</h2>
+  </div>
+
   <p>Four things on this machine produce the same complaint — the command that did 40 tokens per second yesterday does 25 today — and the server starts cleanly and reports nothing wrong in all four cases. Two are real slowdowns you can fix: the card quietly ran out of memory and spilled part of the model into system memory, or the command left one layer on the processor. One is not a slowdown at all but a client that never delivered your request. And the fourth does not slow anything down at all: it makes your own <em>measurement</em> read up to 25% low, so the server is fine and the number is wrong. Before any of them, though, comes a class of problem whose fix is never in the server command at all, so it is stated first.</p>
 
   <h3 id="s11-client">Failure class 0 · the client contract</h3>
@@ -2855,8 +2900,11 @@ nvidia-smi --query-gpu=memory.used,memory.total,utilization.gpu --format=csv
   </ul>
 </section>
 <section id="s12">
+  <div class="chapbar">
   <p class="fno">12</p>
   <h2>Vision: sending screenshots to the model</h2>
+  </div>
+
   <p>This model can look at images if you start the server with the optional projector file, and on a 24&nbsp;GB card that is a real option rather than a compromise: it costs 1,138&nbsp;MiB of memory and, measured carefully, <strong>nothing at all in speed</strong>. What it does cost is context. A 1440p screenshot occupies about 3,600 tokens of your window and a 4K one about 8,244, so a feedback loop that keeps ten screenshots around has spent 36,000 tokens before the model writes anything. <strong>Use 1440p, set <code>--image-min-tokens 1024</code> and <code>--image-max-tokens 10580</code>, send each picture as base64 data inside an ordinary request (that is the standard way to put an image into a text request), budget <code>max_tokens</code> generously, and clear old screenshots between iterations.</strong> One honest limit up front: everything in this section is a single demonstration each, and the control that would prove the model is actually using the image was never run.</p>
   <div class="callout warn"><span class="tag">The missing control, stated before the demonstration</span><p>The end-to-end run below is real and is reported exactly as it happened, but it is <strong>not evidence of a critique loop</strong>, because the experiment that would make it evidence was never done: <strong>ask the same question with the image withheld and see whether the answer is as good.</strong> A model that has been told "this is an animated aquarium page" can produce plausible criticism of an aquarium page without seeing one. Until that withheld-image control is run, treat this section as proof that images reach the model and cost what the arithmetic says, and treat the quality of the critique as unverified. The control is listed in <a href="#s15">§15</a>'s register of what was not measured.</p></div>
   <p>What was demonstrated end to end on the reference 3090, 2026-08-22: Chrome captured a 4K screenshot (<span class="num">3840×2160</span>, a 2.3&nbsp;MB PNG) of a test page — an animated canvas aquarium — and the model, served with the configuration below, named the visible creatures individually, identified the weakest visual element (kelp drawn as wire-thin lines), and wrote working replacement drawing code with tapered, phase-offset swaying blades. Round trip: about <span class="num">39</span>&nbsp;s, of which the 4K image cost <span class="num">8,244</span> prompt tokens. <span class="chip u">n=1</span></p>
@@ -2916,8 +2964,11 @@ chrome --headless --disable-gpu --window-size=2560,1440 ^
 </section>
 
 <section id="s13">
+  <div class="chapbar">
   <p class="fno">13</p>
   <h2>When 27B is enough, and when it is not</h2>
+  </div>
+
   <p>A well-tuned local 27B is genuinely good at bounded work: answering factual questions, writing and explaining ordinary code, summarizing, and completing a self-contained task you can check when it finishes. It gets less reliable as a task gets longer, as the knowledge gets rarer, as the number of simultaneous requirements grows, and as the number of unchecked steps between you and the result increases. The decline is gradual rather than sudden, and much larger models are further along the same decline rather than free of it. <strong>The practical rule: give this model work you will look at, and escalate work that has to be right without you looking.</strong> This section is the evidence for that rule — and unlike the rest of this page, most of it is argued from published literature rather than measured here.</p>
   <p>What this page did measure about capability: a five-set, 175-prompt benchmark suite at three effort levels, composite index <strong>82.1 / 80.5 / 81.3</strong> with GSM8K saturated at 100 and code execution pass rates of 92–100% on HumanEval and 84–92% on MBPP (<a href="#s09-suite">§09</a>). That is a real capability measurement on this file and this machine, and it is <em>not</em> comparable to the vendor's published figures for this model: different precision (4-bit against full), different harness, different sampling, different prompt formatting. Nor does it speak to the five territories below, all of which are about behaviour over long horizons that a 25-question set cannot reach. One agentic pipeline was also built and validated end to end on this machine — 22 model calls, 9 minutes 36 seconds of wall clock on one sandboxed repair task against real code — and it is worth reporting its outcome rather than only its existence: <strong>0 of 96 target tests turned green</strong>, while all 561 previously-passing tests kept passing. The harness worked; the fix did not. That is one sample, and it proved the plumbing and the cost rather than the capability; the 10-task, three-effort sweep that would have measured capability was cut against a four-hour time gate on an eight-and-a-half-hour projection.</p>
   <p>A model does not need trillions of parameters to act as an encyclopedia. High-frequency knowledge — geography, mainstream history, standard biology, common coding syntax — compresses comfortably into 27B (a model stores <a href="https://arxiv.org/abs/2404.05405">on the order of 2 bits of factual knowledge per parameter</a>), which is why local factual question-answering feels frontier-grade. What frontier models buy with their scale looks like a difference in kind but is built from differences in degree: per-step reliability <a href="https://arxiv.org/abs/2304.15004">improves smoothly with capability</a>, and because a long task succeeds only if every step does, those smooth gains compound into cliff-like gaps on exactly the work below — as <em>reasoning engines, software architects, and autonomous agents</em>. The boundary runs through five territories:</p>
@@ -2942,8 +2993,11 @@ chrome --headless --disable-gpu --window-size=2560,1440 ^
   <div class="callout"><span class="tag">The honest division of labour</span><p>A well-tuned local 27B is a fast, private, tireless colleague for the bounded work that fills most of a day — and this page exists to make it as good at that as the hardware allows. Frontier models exist for the multi-step, high-stakes cognitive work where accuracy must decay as slowly as possible — and even they decay. The two compose: route the bounded work locally and escalate the architecture, which the planner-and-executor split in <a href="#s14-dsh">§14</a>'s DeepSeek Harness setup expresses as a configuration file. Knowing which task you are holding is itself a setting — the one no flag can fix.</p></div>
 </section>
 <section id="s14">
+  <div class="chapbar">
   <p class="fno">14</p>
   <h2>Coding agent setups</h2>
+  </div>
+
   <p>Every recipe in <a href="#s03">§03</a> ends with an OpenAI-compatible server, so any OpenAI-compatible agent can connect with the same three facts: the address <code>http://localhost:1234/v1</code>, the model name the server reports (<code>qwen/qwen3.8-27b</code>, set by <code>--alias</code>), and the context and output limits from your <code>-c</code> setting. Two things go wrong often enough to state once for all five agents below. <strong>Tell the client the model's real limits</strong> — if its context setting and the server's <code>-c</code> drift apart, generations get cut off silently. <strong>And override the temperature</strong> — several clients send 0 by default, which puts this model into repetition loops; it wants 1.0 with top-p 0.95. The five setups below are ordered by popularity, and each was installed, configured exactly as printed, and run through a live request against the reference server on 2026-08-22.</p>
 
   <h3 id="s14-opencode"><a href="https://opencode.ai/docs/providers/">OpenCode</a> · the most-starred coding agent</h3>
@@ -3085,8 +3139,11 @@ llm-pi-ai:
 </section>
 
 <section id="s16">
+  <div class="chapbar">
   <p class="fno">16</p>
   <h2>Power and performance: the figures</h2>
+  </div>
+
   <p>Everything below is from one instrumented run of the aider polyglot agentic coding benchmark on one RTX 3090 (GA102, 24&nbsp;GB GDDR6X, 350&nbsp;W enforced board limit), running Qwen3.8-27B UD-IQ4_XS at 14.25&nbsp;GB resident with MTP speculative decoding on (mean accepted length 3.55). Board power and clocks were logged by NVML at roughly 0.5&nbsp;s; the server&rsquo;s own per-request split was polled at 1&nbsp;Hz; host CPU counters were sampled at 3&nbsp;s. Run tag <code>iq4xs-agentic</code>, 2026-08-26.</p>
 
   <div class="callout"><span class="tag">What is NOT measured anywhere in this section</span>
@@ -3353,8 +3410,11 @@ llm-pi-ai:
 </section>
 
 <section id="s15">
+  <div class="chapbar">
   <p class="fno">15</p>
   <h2>Sources, instruments, and what was not measured</h2>
+  </div>
+
   <p>This section exists so that a reader who distrusts one number can find out exactly what produced it. It has four parts: which instrument read each class of number; where every external fact came from and how strongly it is sourced; a numbered list of the places this page corrected itself; and a register of what it never measured at all, so that nobody mistakes an omission for a result. It ends with one command you can run to check whether your own setup matches this machine.</p>
 
   <h3 id="s15-instruments">Which instrument produced which number</h3>
