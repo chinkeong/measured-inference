@@ -60,18 +60,20 @@ import urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, os.path.join(ROOT, "scripts", "bench"))
+sys.path.insert(0, os.path.join(ROOT, "scripts", "lib"))
 import refarm
 import gpu_lock
+import paths
 
-UNS = os.environ.get("MODEL_DIR", r"C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF")
-QAT = r"C:\Users\chink\.lmstudio\models\sdkyuan\qwen3.8-27B-qat-q2_0-gguf\qwen38-27b-qat-q2_0.gguf"
+# Rung -> FILE NAME. Where the file lives is a property of the
+# machine, so it is resolved in serve(), through paths.model_path.
 FILES = {
-    "UD-Q2_K_XL": os.path.join(UNS, "Qwen3.8-27B-UD-Q2_K_XL.gguf"),
-    "QAT-Q2_0": QAT,
-    "UD-IQ2_S": os.path.join(UNS, "Qwen3.8-27B-UD-IQ2_S.gguf"),
-    "UD-IQ2_XXS": os.path.join(UNS, "Qwen3.8-27B-UD-IQ2_XXS.gguf"),
-    "UD-IQ1_M": os.path.join(UNS, "Qwen3.8-27B-UD-IQ1_M.gguf"),
-    "UD-IQ1_S": os.path.join(UNS, "Qwen3.8-27B-UD-IQ1_S.gguf"),
+    "UD-Q2_K_XL": "Qwen3.8-27B-UD-Q2_K_XL.gguf",
+    "QAT-Q2_0": "qwen38-27b-qat-q2_0.gguf",
+    "UD-IQ2_S": "Qwen3.8-27B-UD-IQ2_S.gguf",
+    "UD-IQ2_XXS": "Qwen3.8-27B-UD-IQ2_XXS.gguf",
+    "UD-IQ1_M": "Qwen3.8-27B-UD-IQ1_M.gguf",
+    "UD-IQ1_S": "Qwen3.8-27B-UD-IQ1_S.gguf",
 }
 # which files task_empties walks; overridable so the lower rungs can be run
 # separately. The first pass covered only the three 2-bit-class files, which
@@ -128,8 +130,10 @@ def post(payload, timeout=2400):
         return json.loads(r.read().decode("utf-8"))
 
 
-def serve(path, ctx, extra, tag):
-    args = [refarm.SERVER, "-m", path, "--alias", "m", "-ngl", "99",
+def serve(name, ctx, extra, tag):
+    """Start a server on `name`, a .gguf FILE NAME from FILES."""
+    args = [refarm.server_bin(), "-m", paths.model_path(name),
+            "--alias", "m", "-ngl", "99",
             "-c", str(ctx), "--parallel", "1", "-fa", "on",
             "--jinja", "--reasoning", "off",
             "--host", "127.0.0.1", "--port", str(PORT)] + extra
@@ -225,10 +229,10 @@ def task_ngram():
                        "--spec-draft-p-min", "0.75"]),
     ]
     rows = []
-    for fname, path in FILES.items():
+    for fname, gguf in FILES.items():
         for dlabel, extra in drafters:
             q = refarm.quiet_report()
-            p, lf = serve(path, 32768, ["-ctk", "q8_0", "-ctv", "q8_0"] + extra,
+            p, lf = serve(gguf, 32768, ["-ctk", "q8_0", "-ctv", "q8_0"] + extra,
                           "ngram-%s-%s" % (fname, dlabel.split()[0]))
             if not p:
                 log("  %-12s %-24s NOT SUPPORTED (server refused)" % (fname, dlabel))

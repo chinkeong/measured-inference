@@ -46,6 +46,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import refarm   # Sampler, smi(), quiet_report()
 import gpu_lock
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), "lib"))
+import paths
+
 # Provenance, added 2026-08-28. A throughput number whose toolchain is not
 # recorded cannot be compared with a later one - this campaign published four
 # readings of one configuration spanning 80.0 to 106.2 t/s and could not test
@@ -57,7 +61,16 @@ try:
 except Exception:                                    # pragma: no cover
     _prov = None
 
-SERVER = os.environ.get("LLAMA_SERVER", r"E:\AI\llama.cpp\llama-server.exe")
+def server_bin():
+    """llama-server, resolved when a run needs it - never at import.
+
+    $LLAMA_SERVER still overrides; paths.llama_bin honours it and exits with
+    an actionable message when nothing resolves. Deliberately not a module
+    constant: --help must not require a toolchain to be installed.
+    """
+    return paths.llama_bin("llama-server")
+
+
 MODELS = os.environ.get(
     "QWEN_DIR", os.environ.get("MODEL_DIR", r"C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF"))
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -103,7 +116,7 @@ def start(model_path, drafter):
     # Attention was already on in the runs that read low. The whole gap is
     # `--reasoning off`, which changes what the model emits and therefore what
     # the drafter has to guess: acceptance moved 0.523 -> 0.611.
-    args = [SERVER, "-m", model_path, "--alias", "qwen/qwen3.8-27b",
+    args = [server_bin(), "-m", model_path, "--alias", "qwen/qwen3.8-27b",
             "-ngl", "99", "-c", str(CTX), "-fa", "on", "--parallel", "1",
             "-ctk", "q8_0", "-ctv", "q8_0", "--jinja", "--reasoning", "off"]
     if drafter:
@@ -240,8 +253,6 @@ def main():
     print("drafter setting: n-max %d / p-min %s" % (NMAX, PMIN))
     print("flags: -ngl 99 -c %d -fa on --parallel 1 -ctk q8_0 -ctv q8_0 "
           "--jinja --reasoning off" % CTX)
-    if not os.path.exists(SERVER):
-        sys.exit("no llama-server at %s" % SERVER)
 
     arms = []
     for label, fn, gib in FILES:
@@ -283,7 +294,7 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     out = os.path.join(OUT, "q2-vs-q4-headtohead%s.json" % (opts.tag or ""))
     json.dump({"date": time.strftime("%Y-%m-%d %H:%M"), "ctx": CTX,
-        "toolchain": (_prov.toolchain(SERVER) if _prov else
+        "toolchain": (_prov.toolchain(server_bin()) if _prov else
                       "NOT RECORDED: provenance module unavailable"),
                "spec_n_max": NMAX, "spec_p_min": PMIN,
                "replicates": "results/qwen38-27b-blind/work/drafter-at-2bit.ps1",

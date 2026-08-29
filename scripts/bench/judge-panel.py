@@ -40,8 +40,10 @@ import random
 import statistics
 import sys
 
-R21 = r"E:\AI\measured-inference\results\qwen38-27b-blind\data\rule21"
-OUT = r"E:\AI\measured-inference\results\qwen38-27b-blind\data\judge"
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(os.path.dirname(HERE))
+R21 = os.path.join(ROOT, "results", "qwen38-27b-blind", "data", "rule21")
+OUT = os.path.join(ROOT, "results", "qwen38-27b-blind", "data", "judge")
 PACKETS = os.path.join(OUT, "packets")
 KEYFILE = os.path.join(OUT, "key-SEALED.json")
 RATINGS = os.path.join(OUT, "ratings")

@@ -45,7 +45,21 @@ import time
 import urllib.request
 import gpu_lock
 
-SERVER = os.environ.get("LLAMA_SERVER", r"E:\AI\llama.cpp\llama-server.exe")
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), "lib"))
+import paths
+
+
+def server_bin():
+    """llama-server, resolved when a run needs it - never at import.
+
+    $LLAMA_SERVER still overrides; paths.llama_bin honours it and exits with
+    an actionable message when nothing resolves. Deliberately not a module
+    constant: --help must not require a toolchain to be installed.
+    """
+    return paths.llama_bin("llama-server")
+
+
 MODEL = os.environ.get(
     "QWEN_MODEL",
     r"C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF\Qwen3.8-27B-UD-IQ4_XS.gguf")
@@ -103,7 +117,7 @@ def vram():
 def start(fa, ctx, logpath):
     # The SHIPPED recipe's flags, plus the drafter setting the published pair
     # used. -fa is the only thing that varies.
-    args = [SERVER, "-m", MODEL, "--alias", "qwen/qwen3.8-27b",
+    args = [server_bin(), "-m", MODEL, "--alias", "qwen/qwen3.8-27b",
             "-ngl", "99", "-c", str(ctx), "--parallel", "1",
             "-ctk", "q8_0", "-ctv", "q8_0",
             "--spec-type", "draft-mtp", "--spec-draft-n-max", "10",
@@ -224,8 +238,6 @@ def main():
     ap.add_argument("--deep-lines", type=int, default=380)
     ap.add_argument("--tag", default="")
     a = ap.parse_args()
-    if not os.path.exists(SERVER):
-        sys.exit("no llama-server at %s" % SERVER)
     if not os.path.exists(MODEL):
         sys.exit("no model at %s" % MODEL)
 

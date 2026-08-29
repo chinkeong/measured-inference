@@ -121,9 +121,14 @@ from matplotlib.patches import Rectangle
 from scipy.stats import binomtest, fisher_exact
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = r"E:\AI\measured-inference\results\qwen38-27b-blind"
+REPO = os.path.dirname(os.path.dirname(HERE))
+ROOT = os.path.join(REPO, "results", "qwen38-27b-blind")
 QL   = os.path.join(ROOT, "data", "quant-ladder")
-OUT  = r"E:\chinkeong.github.io\qwen-27b\quant-ladder.png"
+# The published PNG lands in the site repo, which is NOT this repository and is
+# not on every machine. $LADDER_PNG_OUT names it; without one the figure is
+# written beside the campaign's other figures, where it can always be written.
+OUT  = os.environ.get("LADDER_PNG_OUT",
+                      os.path.join(ROOT, "figures", "quant-ladder.png"))
 
 REFERENCE = "UD-IQ4_XS"
 N_ITEMS   = 75
@@ -758,6 +763,7 @@ fig.text(L - 0.046, 0.043,
 fig.text(0.972, 0.043, "chinkeong.github.io/qwen-27b",
          ha='right', va='center', fontname=SANS, fontsize=10, color=MUTED)
 
+os.makedirs(os.path.dirname(OUT), exist_ok=True)
 fig.savefig(OUT, facecolor='white')
 print("wrote %s" % OUT)
 print("  9 files, reference %s = %d/%d, PPL %.4f" % (REFERENCE, REF_PASS, N_ITEMS, REF_PPL))

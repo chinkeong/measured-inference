@@ -43,10 +43,12 @@ import urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, os.path.join(ROOT, "scripts", "bench"))
+sys.path.insert(0, os.path.join(ROOT, "scripts", "lib"))
 import refarm
 import gpu_lock
+import paths
 
-MODEL = r"C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF\Qwen3.8-27B-UD-Q2_K_XL.gguf"
+MODEL_NAME = "Qwen3.8-27B-UD-Q2_K_XL.gguf"
 PORT = 1262
 BASE = "http://127.0.0.1:%d" % PORT
 OUT = os.path.join(ROOT, "results", "qwen38-27b-blind", "data", "overnight")
@@ -67,6 +69,17 @@ DRAFTERS = [
 ]
 
 
+def model_file():
+    """The rung under test.
+
+    paths.model_path searches campaign.json's models/model_dir,
+    $MODEL_DIR and <repo>/models/, and exits naming all of them when
+    the file is on none. Resolved at call time so --help needs no
+    weights on disk.
+    """
+    return paths.model_path(MODEL_NAME)
+
+
 def post(payload, timeout=2400):
     req = urllib.request.Request(BASE + "/v1/chat/completions",
                                  data=json.dumps(payload).encode(),
@@ -76,7 +89,7 @@ def post(payload, timeout=2400):
 
 
 def serve(extra, tag):
-    args = [refarm.SERVER, "-m", MODEL, "--alias", "m", "-ngl", "99",
+    args = [refarm.server_bin(), "-m", model_file(), "--alias", "m", "-ngl", "99",
             "-c", "32768", "--parallel", "1", "-fa", "on",
             "-ctk", "q8_0", "-ctv", "q8_0", "--jinja", "--reasoning", "off",
             "--host", "127.0.0.1", "--port", str(PORT)] + extra

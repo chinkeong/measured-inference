@@ -54,11 +54,12 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
 import gpu_lock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(os.path.dirname(HERE), "lib"))
+import paths
 PNG = os.path.join(HERE, "detail-target.png")
 TRUTH = os.path.join(HERE, "detail-target.json")
 OUTDIR = os.path.join(HERE, "..", "..", "results", "qwen38-27b-blind", "data", "register")
 
-D_SERVER = os.environ.get("LLAMA_SERVER", r"E:\AI\llama.cpp\llama-server.exe")
 D_MODEL = os.environ.get(
     "QWEN_MODEL",
     r"C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF\Qwen3.8-27B-UD-IQ4_XS.gguf")
@@ -200,12 +201,16 @@ def summarise(rows):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--server", default=D_SERVER)
+    # No default: paths.llama_bin resolves $LLAMA_SERVER, $LLAMA_DIR,
+    # PATH and <repo>/bin/llama.cpp, and says what to run when none of
+    # them has it. A literal default here would name one machine.
+    ap.add_argument("--server", help="llama-server; resolved if omitted")
     ap.add_argument("--model", default=D_MODEL)
     ap.add_argument("--mmproj", default=D_MMPROJ)
     a = ap.parse_args()
+    a.server = paths.llama_bin("llama-server", a.server)
 
-    for path, what in ((a.server, "llama-server"), (a.model, "model"),
+    for path, what in ((a.model, "model"),
                        (a.mmproj, "mmproj"), (PNG, "target image"),
                        (TRUTH, "ground truth")):
         if not os.path.exists(path):

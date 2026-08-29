@@ -55,13 +55,26 @@ import time
 import urllib.request
 import gpu_lock
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), "lib"))
+import paths
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 try:
     import provenance as _prov
 except Exception:                                        # pragma: no cover
     _prov = None
 
-SERVER = os.environ.get("LLAMA_SERVER", r"E:\AI\llama.cpp\llama-server.exe")
+def server_bin():
+    """llama-server, resolved when a run needs it - never at import.
+
+    $LLAMA_SERVER still overrides; paths.llama_bin honours it and exits with
+    an actionable message when nothing resolves. Deliberately not a module
+    constant: --help must not require a toolchain to be installed.
+    """
+    return paths.llama_bin("llama-server")
+
+
 PORT = 1296
 BURN_PORT = 1297
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -161,7 +174,7 @@ def ask(port, prompt, max_tokens):
 def start(model, port, log_path):
     lf = io.open(log_path, "w", encoding="utf-8", errors="replace")
     p = gpu_lock.serve(
-        [SERVER, "-m", model] + COMMON +
+        [server_bin(), "-m", model] + COMMON +
         ["-c", CTX, "-ctk", "q8_0", "-ctv", "q8_0", "--port", str(port)] + SPEC,
         stdout=lf, stderr=subprocess.STDOUT)
     return p, lf
@@ -269,7 +282,7 @@ def main():
         "question": "does sustained prior load raise a session's throughput? "
                     "The one session in fifteen that reached the published "
                     "86.91 t/s followed a heavy run; every other followed idle.",
-        "toolchain": (_prov.toolchain(SERVER, a.model) if _prov else
+        "toolchain": (_prov.toolchain(server_bin(), a.model) if _prov else
                       "NOT RECORDED: provenance module unavailable"),
         "conditions": "UD-IQ4_XS, n-max 10 / p-min 0.5, -c 32768, "
                       "-ctk/-ctv q8_0, -ngl 99, --parallel 1, -fa on, "

@@ -4,6 +4,10 @@
   2560,
   1440
  ],
+ "fonts": {
+  "mono": "C:\\Windows\\Fonts\\consola.ttf",
+  "sans": "C:\\Windows\\Fonts\\segoeui.ttf"
+ },
  "questions": [
   {
    "id": "coarse_headline",

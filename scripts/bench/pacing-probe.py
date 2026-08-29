@@ -75,10 +75,10 @@ try:
 except Exception:                                    # pragma: no cover
     _prov = None
 
-SERVER = os.environ.get("LLAMA_SERVER",
-                              r"E:\AI\llama.cpp\llama-server.exe")
 PORT = 1294
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.join(REPO, "scripts", "lib"))
+import paths
 OUT = os.path.join(REPO, "results", "qwen38-27b-blind", "data", "followup",
                    "pacing-probe.json")
 
@@ -110,6 +110,16 @@ ARMS = [
      "cooldown_s": 0, "npredict": 700,
      "what": "board burned to steady state first; the 2026-08-21 regime"},
 ]
+
+
+def server_bin():
+    """llama-server, resolved when a run needs it - never at import.
+
+    $LLAMA_SERVER still overrides; paths.llama_bin honours it and exits with
+    an actionable message when nothing resolves. Deliberately not a module
+    constant: --help must not require a toolchain to be installed.
+    """
+    return paths.llama_bin("llama-server")
 
 
 def smi(q):
@@ -219,7 +229,7 @@ def main():
         log = os.path.join(logdir, "pacing-%s-server.log" % arm["id"])
         with io.open(log, "w", encoding="utf-8", errors="replace") as lf:
             p = gpu_lock.serve(
-                [SERVER, "-m", a.model] + COMMON +
+                [server_bin(), "-m", a.model] + COMMON +
                 ["-c", CTX, "-ctk", "q8_0", "-ctv", "q8_0",
                  "--port", str(PORT)] + SPEC_PEAK,
                 stdout=lf, stderr=subprocess.STDOUT)
@@ -283,7 +293,7 @@ def main():
     best = max(ok_rows, key=lambda r: r["mean_tps"]) if ok_rows else None
     out = {
         "date": time.strftime("%Y-%m-%d %H:%M"),
-        "toolchain": (_prov.toolchain(SERVER, a.model) if _prov else
+        "toolchain": (_prov.toolchain(server_bin(), a.model) if _prov else
                       "NOT RECORDED: provenance module unavailable"),
         "question": "does probe pacing explain the 39% spread on one "
                     "configuration (93.9 / 106.2 / 76.3 t/s)?",

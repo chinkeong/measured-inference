@@ -48,9 +48,11 @@ import sys
 import zlib
 from collections import Counter
 
-R21 = r"E:\AI\measured-inference\results\qwen38-27b-blind\data\rule21"
-LADDER = (r"E:\AI\measured-inference\results\qwen38-27b-blind"
-          r"\data\quant-ladder\bench")
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(os.path.dirname(HERE))
+R21 = os.path.join(ROOT, "results", "qwen38-27b-blind", "data", "rule21")
+LADDER = os.path.join(ROOT, "results", "qwen38-27b-blind",
+                      "data", "quant-ladder", "bench")
 
 _DIGITS = re.compile(r"\d+")
 # The first validation run caught a real miss: N1 normalised DIGITS only, and

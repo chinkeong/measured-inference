@@ -36,10 +36,14 @@ import shutil
 import sys
 import time
 
-BENCH = r"E:\AI\measured-inference\scripts\bench"
-OUT = r"E:\AI\measured-inference\results\qwen38-27b-blind\data\quant-ladder\bench"
-SRV = os.environ.get("LLAMA_SERVER",
-                              r"E:\AI\llama.cpp\llama-server.exe")
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(os.path.dirname(HERE))
+sys.path.insert(0, os.path.join(ROOT, "scripts", "lib"))
+import paths
+
+SLUG = os.environ.get("MEASURED_INFERENCE_SLUG", "qwen38-27b-blind")
+BENCH = os.path.join(ROOT, "scripts", "bench")
+OUT = os.path.join(ROOT, "results", SLUG, "data", "quant-ladder", "bench")
 PORT = "1236"
 DATASETS = "GSM8K,HumanEval,MBPP"
 
@@ -50,8 +54,8 @@ DATASETS = "GSM8K,HumanEval,MBPP"
 # max_tokens differs. This is the same pair the published effort sweep used.
 SUITES = {
     "16384": (os.path.join(BENCH, "suites", "rule21-n25.json"), "32768"),
-    "32768": (r"E:\AI\measured-inference\results\qwen38-27b-blind\work"
-              r"\rule21-n25-cap32768.json", "65536"),
+    "32768": (os.path.join(ROOT, "results", SLUG, "work",
+                           "rule21-n25-cap32768.json"), "65536"),
 }
 
 try:
@@ -91,7 +95,7 @@ def main():
 
     sys.argv = ["bench.py",
                 "--model", model,
-                "--server-bin", SRV,
+                "--server-bin", paths.llama_bin("llama-server"),
                 "--suite", suite,
                 "--datasets", DATASETS,
                 "--ctx", ctx,

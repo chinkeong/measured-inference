@@ -45,11 +45,12 @@ import urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, os.path.join(ROOT, "scripts", "bench"))
+sys.path.insert(0, os.path.join(ROOT, "scripts", "lib"))
 import refarm
 import gpu_lock
+import paths
 
-MODEL = r"C:\Users\chink\.lmstudio\models\sdkyuan\qwen3.8-27B-qat-q2_0-gguf\qwen38-27b-qat-q2_0.gguf"
-SRV = refarm.SERVER
+MODEL_NAME = "qwen38-27b-qat-q2_0.gguf"
 PORT = 1254
 BASE = "http://127.0.0.1:%d" % PORT
 OUT = os.path.join(ROOT, "results", "qwen38-27b-blind", "data", "quant-ladder",
@@ -77,6 +78,17 @@ ARMS = [
                                 "--spec-ngram-mod-n-min", "48",
                                 "--spec-ngram-mod-n-max", "64"]),
 ]
+
+
+def model_file():
+    """The QAT rung's weights.
+
+    paths.model_path searches campaign.json's models/model_dir,
+    $MODEL_DIR and <repo>/models/, and exits naming all of them when
+    the file is on none. Resolved at call time so --help needs no
+    weights on disk.
+    """
+    return paths.model_path(MODEL_NAME)
 
 
 def smi():
@@ -118,7 +130,7 @@ def main():
 
     rows = []
     for label, ctx, extra in ARMS:
-        args = [SRV, "-m", MODEL, "--alias", "qat", "-ngl", "99",
+        args = [refarm.server_bin(), "-m", model_file(), "--alias", "qat", "-ngl", "99",
                 "-c", str(ctx), "--parallel", "1", "-fa", "on",
                 "-ctk", "q8_0", "-ctv", "q8_0", "--jinja", "--reasoning", "off",
                 "--host", "127.0.0.1", "--port", str(PORT)] + extra

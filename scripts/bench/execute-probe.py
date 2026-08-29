@@ -39,8 +39,10 @@ import subprocess
 import sys
 import tempfile
 
-D = r"E:\AI\measured-inference\results\qwen38-27b-blind\data\quant-ladder"
-SCRIPTS = r"E:\AI\measured-inference\scripts\quant-ladder\detectors.ps1"
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(os.path.dirname(HERE))
+D = os.path.join(ROOT, "results", "qwen38-27b-blind", "data", "quant-ladder")
+SCRIPTS = os.path.join(ROOT, "scripts", "quant-ladder", "detectors.ps1")
 TIMEOUT = 15
 
 ORDER = ["UD-IQ4_XS", "UD-Q3_K_XL", "UD-IQ3_XXS", "UD-Q2_K_XL", "QAT-Q2_0",

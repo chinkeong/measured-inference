@@ -47,9 +47,9 @@ except Exception:                                    # pragma: no cover
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(HERE, "..", "..")
+sys.path.insert(0, os.path.join(ROOT, "scripts", "lib"))
+import paths
 OUT = os.path.join(ROOT, "results", "qwen38-27b-blind", "data", "followup")
-SERVER = os.environ.get("LLAMA_SERVER",
-                              r"E:\AI\llama.cpp\llama-server.exe")
 PORT = 1291
 
 BASE_FLAGS = ["--alias", "qwen", "--host", "127.0.0.1", "-ngl", "99",
@@ -62,6 +62,16 @@ PROMPT = ("Write a complete, self-contained Python implementation of a "
           "priority queue backed by a binary heap. Include push, pop, peek, "
           "and a heapify classmethod, with docstrings and type hints. Then "
           "write a short main() that demonstrates each operation.")
+
+
+def server_bin():
+    """llama-server, resolved when a run needs it - never at import.
+
+    $LLAMA_SERVER still overrides; paths.llama_bin honours it and exits with
+    an actionable message when nothing resolves. Deliberately not a module
+    constant: --help must not require a toolchain to be installed.
+    """
+    return paths.llama_bin("llama-server")
 
 
 def wait_ready(proc, timeout=420):
@@ -154,7 +164,7 @@ if __name__ == "__main__":
         log = os.path.join(OUT, "nmax-%d-server.log" % nmax)
         lf = io.open(log, "w", encoding="utf-8", errors="replace")
         p = gpu_lock.serve(
-            [SERVER, "-m", a.model] + BASE_FLAGS +
+            [server_bin(), "-m", a.model] + BASE_FLAGS +
             ["--port", str(PORT), "--spec-draft-n-max", str(nmax)],
             stdout=lf, stderr=subprocess.STDOUT)
         try:
@@ -215,7 +225,7 @@ if __name__ == "__main__":
               % (r["nmax"], r["mean_tps"], rel,
                  100 * (r["accept_rate"] or 0), r["mean_accepted_len"] or 0))
     json.dump({"date": time.strftime("%Y-%m-%d %H:%M"),
-        "toolchain": (_prov.toolchain(SERVER) if _prov else
+        "toolchain": (_prov.toolchain(server_bin()) if _prov else
                       "NOT RECORDED: provenance module unavailable"),
                "model": os.path.basename(a.model),
                "note": "shipped recipe; only --spec-draft-n-max varies; "

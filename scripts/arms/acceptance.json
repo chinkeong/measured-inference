@@ -1,0 +1,154 @@
+{
+  "name": "acceptance demonstration — novel generation vs verbatim copying",
+  "stage": 3,
+  "derived_from": [
+    {
+      "script": "scripts/reference-3090/accept-demo.ps1",
+      "launcher": "none — it shells out to probe-config.ps1 twice, once per probe text, with -ngl 99 --spec-type draft-mtp --spec-draft-n-max 10 --spec-draft-p-min 0.5",
+      "arms": "acceptance-demo"
+    }
+  ],
+  "models": [
+    "Q4_K_M",
+    "mmproj"
+  ],
+  "notes": [
+    "TWO ARMS, NOT ONE ARM WITH TWO PROBES: accept-demo.ps1 invokes probe-config.ps1 once per probe text, so each probe met a freshly loaded server. Same flags in both — the ONLY difference is the prompt, which is the whole point of the demonstration.",
+    "The verbatim prompt is the instruction line, two newlines, then the JavaScript sample copied byte-for-byte out of accept-demo.ps1's here-string (LF newlines — the .ps1 is LF, and .gitattributes '* -text' keeps it that way; CRLF would change the token count and therefore the acceptance).",
+    "Every arm's flags are COMPLETE and self-contained: nothing is inherited from \"defaults\", so a runner that ignores \"defaults\" still launches the exact server the reference campaign launched.",
+    "\"mmproj\" after --mmproj is a LOGICAL model name, resolved through paths.model_path() exactly like server.model (arms.py MODEL_FLAGS resolves it into the argv and leaves the arm's flag list logical, so the resume hash does not depend on where this machine keeps its weights). No absolute path appears in this file — erasing the author-machine lmstudio/models paths is the point of the port. Stage 0 must map every name in \"models\" below into campaign.json.",
+    "GREEDY IS THE MEASUREMENT: every probe in these .ps1 files posted temperature=0 and top_k=1 in the request body and nothing else, so that is what each probe here declares. arms.py sends exactly the sampler a probe names and injects no default of its own; a probe that named none would inherit the server's --temp 1.0 and stop being a comparison. The values are repeated in \"defaults\" as well, but every probe carries its own — an arm read in isolation still states the conditions it was measured under (rule 3).",
+    "Dropped from every flag list, deliberately and identically: --api-key dummy (access control, not measurement — scripts/probe-config.sh, this repo's POSIX seed, drops it too) and --host 127.0.0.1 --port 1234 (the runner owns the transport, exactly as scripts/bench/bench.py's Server injects them). Nothing else was dropped, reordered or retyped.",
+    "rule 12: these arms carry repeat=1 / discard_first=false because that is what ran. A rerun that wants the clock-ramp protocol raises repeat and sets discard_first — and is then a NEW sweep, not comparable arm-by-arm with the published numbers (rule 30).",
+    "rule 11: publish acceptance AND mean draft length for both arms. The SPREAD between them is the speed story; either number alone is unfalsifiable (rule 3)."
+  ],
+  "record": [
+    "per probe: completion tokens, wall seconds, server timings (prompt_n, prompt_per_second, prompt_ms, predicted_n, predicted_per_second)",
+    "per probe: draft_n and draft_n_accepted -> acceptance AND mean draft length (rule 11 — publish both)",
+    "per arm: dedicated VRAM MiB, sampled while the probe runs (nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits)",
+    "per arm: regime (thinking/answer), depth, cap, desktop state, RAM channels (rule 3) — written the moment it exists, never buffered (rule 28)"
+  ],
+  "defaults": {
+    "repeat": 1,
+    "discard_first": false,
+    "n_predict": 700,
+    "temperature": 0,
+    "top_k": 1
+  },
+  "arms": [
+    {
+      "id": "accept-novel-code",
+      "sweep": "acceptance-demo",
+      "derived_from": "accept-demo.ps1 'NOVEL code generation' -> probe-config.ps1",
+      "server": {
+        "model": "Q4_K_M",
+        "flags": [
+          "--mmproj",
+          "mmproj",
+          "--alias",
+          "qwen/qwen3.8-27b",
+          "-c",
+          "122880",
+          "-ngl",
+          "99",
+          "--parallel",
+          "1",
+          "--load-mode",
+          "none",
+          "-ctk",
+          "q8_0",
+          "-ctv",
+          "q8_0",
+          "--temp",
+          "1.0",
+          "--top-p",
+          "0.95",
+          "--top-k",
+          "20",
+          "--min-p",
+          "0.0",
+          "--reasoning-preserve",
+          "--image-min-tokens",
+          "1024",
+          "--chat-template-kwargs",
+          "{\"reasoning_effort\":\"low\"}",
+          "--jinja",
+          "--spec-type",
+          "draft-mtp",
+          "--spec-draft-n-max",
+          "10",
+          "--spec-draft-p-min",
+          "0.5"
+        ]
+      },
+      "probes": [
+        {
+          "id": "novel-rbtree-code",
+          "prompt": "Write a single self-contained JavaScript file implementing a red-black tree class with insert, delete, search and an in-order iterator. Code only, no explanation.",
+          "n_predict": 700,
+          "temperature": 0,
+          "top_k": 1
+        }
+      ],
+      "repeat": 1,
+      "discard_first": false
+    },
+    {
+      "id": "accept-verbatim-copy",
+      "sweep": "acceptance-demo",
+      "derived_from": "accept-demo.ps1 'VERBATIM copying' -> probe-config.ps1",
+      "server": {
+        "model": "Q4_K_M",
+        "flags": [
+          "--mmproj",
+          "mmproj",
+          "--alias",
+          "qwen/qwen3.8-27b",
+          "-c",
+          "122880",
+          "-ngl",
+          "99",
+          "--parallel",
+          "1",
+          "--load-mode",
+          "none",
+          "-ctk",
+          "q8_0",
+          "-ctv",
+          "q8_0",
+          "--temp",
+          "1.0",
+          "--top-p",
+          "0.95",
+          "--top-k",
+          "20",
+          "--min-p",
+          "0.0",
+          "--reasoning-preserve",
+          "--image-min-tokens",
+          "1024",
+          "--chat-template-kwargs",
+          "{\"reasoning_effort\":\"low\"}",
+          "--jinja",
+          "--spec-type",
+          "draft-mtp",
+          "--spec-draft-n-max",
+          "10",
+          "--spec-draft-p-min",
+          "0.5"
+        ]
+      },
+      "probes": [
+        {
+          "id": "verbatim-fibonacci-x3",
+          "prompt": "Repeat the following code verbatim, exactly as written, 3 times in a row. Output only the code, no commentary:\n\nfunction fibonacci(n) {\n    if (n <= 1) return n;\n    let a = 0, b = 1;\n    for (let i = 2; i <= n; i++) {\n        const t = a + b; a = b; b = t;\n    }\n    return b;\n}\nconst memo = new Map();\nfunction fibMemo(n) {\n    if (n <= 1) return n;\n    if (memo.has(n)) return memo.get(n);\n    const v = fibMemo(n - 1) + fibMemo(n - 2);\n    memo.set(n, v);\n    return v;\n}\nfor (let i = 0; i < 30; i++) console.log(i, fibonacci(i), fibMemo(i));",
+          "n_predict": 700,
+          "temperature": 0,
+          "top_k": 1
+        }
+      ],
+      "repeat": 1,
+      "discard_first": false
+    }
+  ]
+}

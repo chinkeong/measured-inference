@@ -55,7 +55,8 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
-PPL = r"E:\AI\llama.cpp\llama-perplexity.exe"
+sys.path.insert(0, os.path.join(ROOT, "scripts", "lib"))
+import paths
 UNS = os.environ.get("MODEL_DIR", r"C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF")
 CORPUS = os.path.join(ROOT, "corpora", "wikitext-2-raw-test.raw")
 OUT = os.path.join(ROOT, "results", "qwen38-27b-blind", "data", "quant-ladder")
@@ -67,12 +68,20 @@ RUNGS = [
     ("UD-IQ2_S", 2.481), ("UD-IQ2_XXS", 2.153), ("UD-IQ1_M", 1.994),
     ("UD-IQ1_S", 1.835),
 ]
-QAT = ("QAT-Q2_0", 2.595,
-       r"C:\Users\chink\.lmstudio\models\sdkyuan\qwen3.8-27B-qat-q2_0-gguf\qwen38-27b-qat-q2_0.gguf")
+QAT = ("QAT-Q2_0", 2.595, "qwen38-27b-qat-q2_0.gguf")
 
 FLAGS = ["-ngl", "99", "-c", "512", "-fa", "on", "--load-mode", "mmap"]
 DISK_BUDGET_GIB = 40.0
 
+
+def ppl_bin():
+    """llama-perplexity, resolved when a run needs it - never at import.
+
+    $LLAMA_DIR overrides; paths.llama_bin honours it and exits with an
+    actionable message when nothing resolves. Deliberately not a module
+    constant: --help must not require a toolchain to be installed.
+    """
+    return paths.llama_bin("llama-perplexity")
 
 def log(m):
     print("[%s] %s" % (time.strftime("%H:%M:%S"), m), flush=True)
@@ -113,7 +122,7 @@ def probe():
             os.remove(f)
     log("disk probe: 5 chunks of %s" % ANCHOR[0])
     t0 = time.time()
-    txt, rc = run([PPL, "-m", ANCHOR[1], "-f", CORPUS] + FLAGS +
+    txt, rc = run([ppl_bin(), "-m", ANCHOR[1], "-f", CORPUS] + FLAGS +
                   ["--chunks", "5", "--save-all-logits", tmp], timeout=3600)
     el = time.time() - t0
     if not os.path.exists(tmp):
@@ -170,7 +179,7 @@ def main():
     log("base: %s over %d chunks" % (ANCHOR[0], chunks))
     if not os.path.exists(BASEFILE):
         t0 = time.time()
-        txt, rc = run([PPL, "-m", ANCHOR[1], "-f", CORPUS] + FLAGS +
+        txt, rc = run([ppl_bin(), "-m", ANCHOR[1], "-f", CORPUS] + FLAGS +
                       ["--chunks", str(chunks), "--save-all-logits", BASEFILE])
         log("  base saved in %.0f s, %.1f GiB, exit %d"
             % (time.time() - t0, os.path.getsize(BASEFILE) / 1024 ** 3, rc))
@@ -179,14 +188,16 @@ def main():
             % (os.path.getsize(BASEFILE) / 1024 ** 3))
 
     rows = []
-    todo = [(n, b, os.path.join(UNS, "Qwen3.8-27B-%s.gguf" % n)) for n, b in RUNGS]
+    todo = [(n, b, "Qwen3.8-27B-%s.gguf" % n) for n, b in RUNGS]
     todo.append(QAT)
-    for name, bpw, path in todo:
-        if not os.path.exists(path):
+    for name, bpw, fname in todo:
+        try:
+            path = paths.model_path(fname)
+        except SystemExit:
             log("  %-12s MISSING" % name)
             continue
         t0 = time.time()
-        txt, rc = run([PPL, "-m", path, "-f", CORPUS] + FLAGS +
+        txt, rc = run([ppl_bin(), "-m", path, "-f", CORPUS] + FLAGS +
                       ["--chunks", str(chunks),
                        "--kl-divergence-base", BASEFILE, "--kl-divergence"])
         io.open(os.path.join(OUT, "kld-%s.log" % name), "w",

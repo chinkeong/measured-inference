@@ -22,9 +22,13 @@ cd measured-inference
 ```
 
 Everything heavy is self-contained and gitignored: `scripts/setup.*` downloads a
-llama.cpp build into `bin/`, models download into `models/`, and the accuracy
-harness's two Python dependencies go into a repo-local `.venv/` — nothing
-installs globally, because the machine may be borrowed.
+llama.cpp build into `bin/`, creates the repo-local `.venv/` from
+`requirements-min.txt`, and records what it installed in
+`bin/llama.cpp/INSTALL.json`; models download into `models/` — nothing installs
+globally, because the machine may be borrowed. On Linux + NVIDIA there is no
+official CUDA binary, so `./scripts/setup.sh --cuda` builds one from source;
+setup refuses to install a Vulkan build there rather than silently changing
+every number it is about to measure.
 
 ## The pledge
 Every number in a report is **measured on that machine, cited to a live source,

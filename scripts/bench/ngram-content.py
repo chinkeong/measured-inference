@@ -114,7 +114,7 @@ def post(payload, timeout=1800):
 
 
 def serve(extra, tag):
-    args = [refarm.SERVER, "-m", MODEL, "--alias", "m", "-ngl", "99",
+    args = [refarm.server_bin(), "-m", MODEL, "--alias", "m", "-ngl", "99",
             "-c", "32768", "--parallel", "1", "-fa", "on",
             "-ctk", "q8_0", "-ctv", "q8_0", "--jinja", "--reasoning", "off",
             "--host", "127.0.0.1", "--port", str(PORT)] + extra

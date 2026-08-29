@@ -47,8 +47,45 @@ OUT = os.path.dirname(os.path.abspath(__file__))
 PNG = os.path.join(OUT, "detail-target.png")
 TRUTH = os.path.join(OUT, "detail-target.json")
 
-MONO = r"C:\Windows\Fonts\consola.ttf"
-SANS = r"C:\Windows\Fonts\segoeui.ttf"
+# THE FONT IS A MEASUREMENT INPUT. This script renders the target that the
+# resolution probes read text off, so a different face is a different image and
+# a different legibility floor. detail-target.png and .json are committed
+# precisely so nobody has to re-render to run a probe (rule 23: frozen file
+# first) - but when someone does re-render, on Linux or on a machine without
+# these faces, they must not get a silently different target.
+#
+# So: the Windows faces the published PNG was rendered with come first, each
+# platform's usual equivalents follow, and whatever was actually used is
+# recorded in the truth JSON. A target rendered from different fonts is then
+# visible in the artefact rather than hiding in the pixels.
+MONO_CANDIDATES = [
+    r"C:\Windows\Fonts\consola.ttf",                             # published
+    "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",       # Debian/Ubuntu
+    "/usr/share/fonts/dejavu/DejaVuSansMono.ttf",                # Fedora/Arch
+    "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
+    "/System/Library/Fonts/Menlo.ttc",                           # macOS
+]
+SANS_CANDIDATES = [
+    r"C:\Windows\Fonts\segoeui.ttf",                             # published
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+    "/System/Library/Fonts/Helvetica.ttc",
+]
+
+
+def pick_font(candidates, what):
+    """First candidate present, or exit naming every path that was tried."""
+    for c in candidates:
+        if os.path.exists(c):
+            return c
+    raise SystemExit(
+        "no %s font found. Install one, or edit %s_CANDIDATES in this file.\n"
+        "Tried:\n  %s" % (what, what.upper(), "\n  ".join(candidates)))
+
+
+MONO = pick_font(MONO_CANDIDATES, "mono")
+SANS = pick_font(SANS_CANDIDATES, "sans")
 
 BG, INK, MUTED, LINE = (18, 20, 24), (238, 240, 244), (150, 156, 166), (52, 57, 66)
 GOOD, BAD, WARN = (72, 190, 120), (232, 86, 76), (226, 170, 60)
@@ -122,6 +159,10 @@ def main():
     target = rows[6]                              # SHARD-07
     truth = {
         "image": PNG, "size": [W, H],
+        # rule 3: the faces travel with the target. A probe result read off a
+        # target rendered from other fonts is not comparable to the published
+        # one, and this is the only place that fact can be recorded.
+        "fonts": {"mono": MONO, "sans": SANS},
         "questions": [
             {"id": "coarse_headline", "class": "coarse",
              "q": "In the screenshot, what number is printed in large type under the "

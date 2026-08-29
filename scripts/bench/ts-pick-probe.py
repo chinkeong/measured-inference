@@ -106,15 +106,11 @@ except Exception:                                    # pragma: no cover
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(HERE, "..", "..")
-OUT = os.path.join(ROOT, "results", "qwen38-27b-blind", "data", "followup")
-SERVER = os.environ.get("LLAMA_SERVER",
-                              r"E:\AI\llama.cpp\llama-server.exe")
-PORT = 1293
+sys.path.insert(0, os.path.join(ROOT, "scripts", "lib"))
+import paths
 
-# The desktop's own share of the board with no server loaded, measured directly
-# 2026-08-25 (1,669 MiB observed + 127 load-to-load variation). An arm that
-# leaves less than this cannot hold a graphical session.
-DESKTOP_RESERVE_MIB = 1796
+OUT = os.path.join(ROOT, "results", "qwen38-27b-blind", "data", "followup")
+PORT = 1293
 
 COMMON = ["--alias", "qwen", "--host", "127.0.0.1", "-ngl", "99",
           "--parallel", "1", "-fa", "on", "--jinja", "--reasoning", "off",
@@ -159,6 +155,29 @@ PROMPT = ("Write a single self-contained JavaScript module that implements a "
           "fixed-window rate limiter with a pluggable clock, a per-key limit, "
           "and an eviction sweep that runs at most once per window. Include "
           "JSDoc on every exported symbol.")
+
+
+def server_bin():
+    """llama-server, resolved when a run needs it - never at import.
+
+    $LLAMA_SERVER still overrides; paths.llama_bin honours it and exits with
+    an actionable message when nothing resolves. Deliberately not a module
+    constant: --help must not require a toolchain to be installed.
+    """
+    return paths.llama_bin("llama-server")
+
+
+def desktop_fence_mib():
+    """The desktop's own share of the board, MiB - measured, from machine.json.
+
+    Was `DESKTOP_RESERVE_MIB = 1796`: this rig's desktop, 1,669 MiB observed
+    with no server loaded on 2026-08-25 plus 127 MiB of load-to-load
+    variation. Another machine's desktop is a different size, and an arm
+    judged against the wrong fence is reported as clearing when it is not
+    (rule 14). Returns the whole measured record so the sweep can write the
+    sample size and date beside every verdict it draws (rule 3).
+    """
+    return paths.desktop_reserve_mib()
 
 
 def vram_used_mib():
@@ -254,6 +273,8 @@ if __name__ == "__main__":
                          "the forward one it is being compared against.")
     a = ap.parse_args()
 
+    desktop_reserve = desktop_fence_mib()
+    fence = desktop_reserve["max"]
     if not os.path.exists(a.model):
         sys.exit("model not found: %s" % a.model)
     os.makedirs(OUT, exist_ok=True)
@@ -282,7 +303,7 @@ if __name__ == "__main__":
         log = os.path.join(OUT, "tspick-%s-server.log" % arm["id"])
         lf = io.open(log, "w", encoding="utf-8", errors="replace")
         p = gpu_lock.serve(
-            [SERVER, "-m", a.model] + COMMON +
+            [server_bin(), "-m", a.model] + COMMON +
             ["-c", arm["ctx"], "-ctk", arm["kv"], "-ctv", arm["kv"],
              "--port", str(PORT)] + arm["spec"],
             stdout=lf, stderr=subprocess.STDOUT)
@@ -330,7 +351,7 @@ if __name__ == "__main__":
                 "vram_after_load_mib": used, "vram_after_probes_mib": peak_used,
                 "board_total_mib": total, "slack_mib": slack,
                 "clears_desktop_reserve":
-                    (slack >= DESKTOP_RESERVE_MIB) if slack is not None else None,
+                    (slack >= fence) if slack is not None else None,
                 "accept_rate": round(acc / dr, 4) if dr else None,
                 "mean_accepted_len": round(acc / drafts, 3) if drafts else None,
                 "per_pos_rate": {k: round(v / drafts, 4)
@@ -338,8 +359,8 @@ if __name__ == "__main__":
                 if drafts else {},
                 "log": log,
             })
-            warn = ("" if slack is None or slack >= DESKTOP_RESERVE_MIB
-                    else "  <- UNDER the %d MiB reserve" % DESKTOP_RESERVE_MIB)
+            warn = ("" if slack is None or slack >= fence
+                    else "  <- UNDER the %d MiB reserve" % fence)
             print("  mean %.2f t/s (spread %.2f%%) | accept %s | slack %s MiB%s"
                   % (mean or 0, spread or 0,
                      ("%.1f%%" % (100 * acc / dr)) if dr else "n/a",
@@ -357,10 +378,11 @@ if __name__ == "__main__":
     path = os.path.join(OUT, "ts-pick-probe%s.json" % suffix)
     with io.open(path, "w", encoding="utf-8") as f:
         json.dump({"model": a.model, "probes_per_arm": a.probes,
-                   "toolchain": (_prov.toolchain(SERVER, a.model) if _prov
+                   "toolchain": (_prov.toolchain(server_bin(), a.model) if _prov
                                  else "NOT RECORDED: provenance module unavailable"),
                    "prompt": PROMPT,
-                   "desktop_reserve_mib": DESKTOP_RESERVE_MIB,
+                   "desktop_reserve_mib": fence,
+                   "desktop_reserve": desktop_reserve,
                    "conditions": ("greedy, temp 0 / top_k 1, 400 predicted "
                                   "tokens, -ngl 99, --parallel 1, -fa on, "
                                   "reasoning off, fresh server per arm, one "

@@ -45,10 +45,40 @@ import time
 import urllib.request
 import gpu_lock
 
-SERVER = os.environ.get("LLAMA_SERVER", r"E:\AI\llama.cpp\llama-server.exe")
-LMS = r"C:\Users\chink\.lmstudio\models"
-MODEL = os.path.join(LMS, r"unsloth\Qwen3.8-27B-GGUF\Qwen3.8-27B-UD-IQ4_XS.gguf")
-MMPROJ = os.path.join(LMS, r"lmstudio-community\Qwen3.8-27B-GGUF\mmproj-Qwen3.8-27B-BF16.gguf")
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), "lib"))
+import paths
+
+
+MODEL_NAME = "Qwen3.8-27B-UD-IQ4_XS.gguf"
+MMPROJ_NAME = "mmproj-Qwen3.8-27B-BF16.gguf"
+
+
+def model_file():
+    """The weights, resolved when a run needs them - never at import.
+
+    paths.model_path searches campaign.json's models/model_dir, $MODEL_DIR and
+    <repo>/models/, and exits naming all four when the file is on none of
+    them. The literal it replaces was one user's LM Studio directory.
+    """
+    return paths.model_path(MODEL_NAME)
+
+
+def mmproj_file():
+    """The vision projector, resolved the same way and at the same time."""
+    return paths.model_path(MMPROJ_NAME)
+
+
+def server_bin():
+    """llama-server, resolved when a run needs it - never at import.
+
+    $LLAMA_SERVER still overrides; paths.llama_bin honours it and exits with
+    an actionable message when nothing resolves. Deliberately not a module
+    constant: --help must not require a toolchain to be installed.
+    """
+    return paths.llama_bin("llama-server")
+
+
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                    "..", "..", "results", "qwen38-27b-blind", "data", "register")
 PORT = 1240
@@ -56,7 +86,6 @@ BASE = "http://127.0.0.1:%d" % PORT
 
 CTX = 122880
 TARGET_FILL = int(CTX * 0.90)          # rule 13b: ~90% of the window, real tokens
-BOARD, RESERVE = 24576, 1796
 NPREDICT, SETTLED = 400, 2
 
 ARMS = [("A shipped  n4/p0.75", 4, 0.75), ("B wide     n10/p0.5", 10, 0.5)]
@@ -64,6 +93,22 @@ ARMS = [("A shipped  n4/p0.75", 4, 0.75), ("B wide     n10/p0.5", 10, 0.5)]
 TASK = ("TASK: Write a single self-contained JavaScript module implementing a "
         "fixed-window rate limiter with a pluggable clock and a per-key limit. "
         "Code only, no explanation.")
+
+
+def card():
+    """(board_total_mib, desktop_reserve) for THIS machine, from machine.json.
+
+    Not a constant. It used to be `BOARD, RESERVE = 24576, 1796` - the
+    reference 3090 - and that is the one wrong value this probe cannot
+    survive: on a smaller card `BOARD - used` still returns comfortable
+    positive slack, so the deep-fill check below stamps PASS on a window that
+    is spilling to host RAM. Nothing crashes and the number gets published.
+
+    desktop_reserve is the measured {"min","max","n","date"}; its "max" is the
+    anti-spill fence (rule 14). Called from main(), never at import, so
+    --help works on a machine that has no machine.json yet.
+    """
+    return paths.board_total_mib(), paths.desktop_reserve_mib()
 
 
 def filler(lines):
@@ -99,10 +144,10 @@ def vram():
 
 
 def start(nmax, pmin, logpath):
-    args = [SERVER, "-m", MODEL, "--alias", "qwen/qwen3.8-27b",
+    args = [server_bin(), "-m", model_file(), "--alias", "qwen/qwen3.8-27b",
             "-ngl", "99", "-c", str(CTX), "--parallel", "1",
             "-ctk", "q8_0", "-ctv", "q8_0",
-            "--mmproj", MMPROJ, "--image-min-tokens", "1024",
+            "--mmproj", mmproj_file(), "--image-min-tokens", "1024",
             "--image-max-tokens", "10580",
             "--spec-type", "draft-mtp",
             "--spec-draft-n-max", str(nmax), "--spec-draft-p-min", str(pmin),
@@ -154,9 +199,8 @@ def probe(prompt):
 
 
 def main():
-    for path, what in ((SERVER, "llama-server"), (MODEL, "model"), (MMPROJ, "mmproj")):
-        if not os.path.exists(path):
-            sys.exit("missing %s: %s" % (what, path))
+    board, reserve = card()
+    fence = reserve["max"]
     logdir = os.path.join(OUT, "drafter-window-logs")
     os.makedirs(logdir, exist_ok=True)
 
@@ -176,12 +220,12 @@ def main():
             rows.append({"arm": label, "failed": True})
             continue
         at_load = vram()
-        print("  VRAM at load : %s MiB  (slack %s)" % (at_load, BOARD - at_load))
+        print("  VRAM at load : %s MiB  (slack %s)" % (at_load, board - at_load))
         try:
             w = probe(prompt)          # this one does the deep fill; rule 12 discards it
             at_depth = vram()
             print("  filled %s tokens in %ss -> VRAM at DEPTH: %s MiB  (slack %s)"
-                  % (w["prompt_n"], w["prefill_s"], at_depth, BOARD - at_depth))
+                  % (w["prompt_n"], w["prefill_s"], at_depth, board - at_depth))
             got = []
             for i in range(SETTLED):
                 time.sleep(3)
@@ -194,10 +238,10 @@ def main():
             stop(p, lf)
         tps = [r["decode_tps"] for r in got]
         mean = sum(tps) / len(tps) if tps else 0
-        slack = BOARD - max(at_depth or 0, peak or 0)
+        slack = board - max(at_depth or 0, peak or 0)
         rows.append({"arm": label, "nmax": nmax, "ctx": CTX,
                      "vram_load": at_load, "vram_depth": at_depth, "vram_peak": peak,
-                     "slack_depth": slack, "clears_reserve": slack >= RESERVE,
+                     "slack_depth": slack, "clears_reserve": slack >= fence,
                      "filled_tokens": w["prompt_n"], "prefill_s": w["prefill_s"],
                      "mean_tps_at_depth": round(mean, 2),
                      "acceptance": got[0]["acceptance"] if got else None,
@@ -220,15 +264,16 @@ def main():
         print("  wide drafter is %+.1f%% at depth (shallow said +33.2%%)" % d)
         print("  slack collapse from load to depth: %s MiB (A), %s MiB (B)"
               % (a["vram_depth"] - a["vram_load"], b["vram_depth"] - b["vram_load"]))
-        print("  wide drafter clears the 1,308 MiB desktop reserve at depth: %s"
-              % ("YES - the card should offer it" if b["clears_reserve"]
+        print("  wide drafter clears the %d MiB desktop reserve at depth: %s"
+              % (fence, "YES - the card should offer it" if b["clears_reserve"]
                  else "NO - the card is right, and depth is the reason"))
 
     os.makedirs(OUT, exist_ok=True)
     out = os.path.join(OUT, "drafter-deepfill.json")
     json.dump({"date": time.strftime("%Y-%m-%d %H:%M"), "ctx": CTX,
-               "target_fill": TARGET_FILL, "board_mib": BOARD,
-               "desktop_reserve_mib": RESERVE, "vision": True, "arms": rows},
+               "target_fill": TARGET_FILL, "board_mib": board,
+               "desktop_reserve_mib": fence, "desktop_reserve": reserve,
+               "vision": True, "arms": rows},
               open(out, "w", encoding="utf-8"), indent=1)
     print("\n-> %s" % out)
 

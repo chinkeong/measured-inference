@@ -488,6 +488,39 @@ def _cap_child(proc, cap):
     return True
 
 
+RLIMIT_ENV = "MEASURED_INFERENCE_RLIMIT_AS"
+_rlimit_note_printed = [False]
+
+
+def _posix_rlimit_wanted():
+    """Should a POSIX child get RLIMIT_AS? By default no, and that is deliberate.
+
+    RLIMIT_AS caps VIRTUAL ADDRESS SPACE, not committed memory. A CUDA process
+    reserves tens of gigabytes of address space for unified memory whatever it
+    actually uses, so ANY RLIMIT_AS a GPU job would tolerate is larger than the
+    cap is meant to be, and any cap worth setting kills the job at model load.
+
+    Measured 2026-08-29 under WSL2 Ubuntu 24.04 on an RTX 3090: a 3.6 GB model
+    that loads fine unguarded aborts with SIGABRT under a 12.5 GB RLIMIT_AS,
+    inside common_init_from_params. The Windows path is unaffected — a job
+    object's commit limit counts committed pages, which is the thing we mean.
+
+    So on POSIX the memory guard is preflight() plus the one-job lock, and the
+    rlimit is opt-in for CPU-only runs where it does express the right thing.
+    """
+    import os as _os
+    if _os.environ.get(RLIMIT_ENV):
+        return True
+    if not _rlimit_note_printed[0]:
+        _rlimit_note_printed[0] = True
+        sys.stderr.write(
+            "[gpu_lock] POSIX: no RLIMIT_AS on the child (it caps address "
+            "space, which CUDA reserves in bulk and would abort at model "
+            "load). preflight() and the one-job lock still apply. Set %s=1 "
+            "to force it on a CPU-only run." % RLIMIT_ENV + os.linesep)
+    return False
+
+
 def _rlimit_preexec(cap):
     def _apply():
         import resource
@@ -515,7 +548,7 @@ def serve(args, tag=None, cap=None, require_lock=True, **kw):
         acquire(tag or os.path.basename(sys.argv[0] or "gpu-job"))
     cap = mem_cap_bytes() if cap is None else cap
     preflight(cap)
-    if not _WINDOWS and cap:
+    if not _WINDOWS and cap and _posix_rlimit_wanted():
         kw.setdefault("preexec_fn", _rlimit_preexec(cap))
     proc = subprocess.Popen(args, **kw)
     if not _cap_child(proc, cap):

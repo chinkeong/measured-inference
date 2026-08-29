@@ -41,7 +41,8 @@ import argparse, io, json, os, re, subprocess, sys, time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
-PPL = r"E:\AI\llama.cpp\llama-perplexity.exe"
+sys.path.insert(0, os.path.join(ROOT, "scripts", "lib"))
+import paths
 UNS = os.environ.get("MODEL_DIR", r"C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF")
 CORPUS = os.path.join(ROOT, "corpora", "wikitext-2-raw-test.raw")
 OUT = os.path.join(ROOT, "results", "qwen38-27b-blind", "data", "quant-ladder")
@@ -75,6 +76,15 @@ METRICS = {
 }
 
 
+def ppl_bin():
+    """llama-perplexity, resolved when a run needs it - never at import.
+
+    $LLAMA_DIR overrides; paths.llama_bin honours it and exits with an
+    actionable message when nothing resolves. Deliberately not a module
+    constant: --help must not require a toolchain to be installed.
+    """
+    return paths.llama_bin("llama-perplexity")
+
 def log(m):
     print("[%s] %s" % (time.strftime("%H:%M:%S"), m), flush=True)
 
@@ -89,14 +99,14 @@ def shard(nblocks):
     os.makedirs(WORK, exist_ok=True)
     lines = io.open(CORPUS, encoding="utf-8", errors="replace").readlines()
     per = len(lines) // nblocks
-    paths = []
+    out = []
     for b in range(nblocks):
         lo = b * per
         hi = len(lines) if b == nblocks - 1 else (b + 1) * per
         p = os.path.join(WORK, "block-%d.raw" % b)
         io.open(p, "w", encoding="utf-8").writelines(lines[lo:hi])
-        paths.append(p)
-    return paths
+        out.append(p)
+    return out
 
 
 def run(args, timeout=14400):
@@ -146,32 +156,30 @@ if __name__ == "__main__":
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
 
-    if not os.path.exists(PPL):
-        sys.exit("llama-perplexity not found at %s" % PPL)
     if not os.path.exists(CORPUS):
         sys.exit("corpus not found at %s" % CORPUS)
     os.makedirs(OUT, exist_ok=True)
 
-    paths = shard(a.blocks)
+    blocks = shard(a.blocks)
     log("corpus split into %d blocks of ~%d lines each"
-        % (a.blocks, sum(1 for _ in io.open(paths[0], encoding='utf-8',
+        % (a.blocks, sum(1 for _ in io.open(blocks[0], encoding='utf-8',
                                             errors='replace'))))
     log("%d chunks per block x %d blocks = %d chunks total (the single-pass "
         "ladder used 200)" % (a.chunks_per_block, a.blocks,
                               a.chunks_per_block * a.blocks))
     if a.dry_run:
-        for p in paths:
+        for p in blocks:
             log("  %s  %.1f MiB" % (os.path.basename(p),
                                     os.path.getsize(p) / 1048576.0))
         log("dry run - nothing measured")
         sys.exit(0)
 
     per_rung = {name: [] for name, _ in RUNGS}
-    for b, cpath in enumerate(paths):
+    for b, cpath in enumerate(blocks):
         base = os.path.join(WORK, "base-block-%d.dat" % b)
         log("=== block %d/%d ===" % (b + 1, a.blocks))
         log("  generating anchor logits (%s)" % ANCHOR[0])
-        txt, rc = run([PPL, "-m", ANCHOR[1], "-f", cpath] + FLAGS +
+        txt, rc = run([ppl_bin(), "-m", ANCHOR[1], "-f", cpath] + FLAGS +
                       ["--chunks", str(a.chunks_per_block),
                        "--save-all-logits", base])
         if rc != 0 or not os.path.exists(base):
@@ -186,7 +194,7 @@ if __name__ == "__main__":
                     log("  %-12s file missing - skipped" % name)
                     continue
                 t0 = time.time()
-                txt, rc = run([PPL, "-m", f, "-f", cpath] + FLAGS +
+                txt, rc = run([ppl_bin(), "-m", f, "-f", cpath] + FLAGS +
                               ["--chunks", str(a.chunks_per_block),
                                "--kl-divergence-base", base, "--kl-divergence"])
                 io.open(os.path.join(WORK, "block%d-%s.log" % (b, name)), "w",
@@ -239,7 +247,7 @@ if __name__ == "__main__":
               io.open(os.path.join(OUT, "kld-blocks.json"), "w",
                       encoding="utf-8"), indent=1)
     log("wrote %s" % os.path.join(OUT, "kld-blocks.json"))
-    for p in paths:
+    for p in blocks:
         try:
             os.remove(p)
         except OSError:

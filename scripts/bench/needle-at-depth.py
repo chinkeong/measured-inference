@@ -51,9 +51,27 @@ import time
 import urllib.request
 import gpu_lock
 
-SERVER = os.environ.get("LLAMA_SERVER", r"E:\AI\llama.cpp\llama-server.exe")
-LMS = r"C:\Users\chink\.lmstudio\models"
-DEFAULT_MODEL = os.path.join(LMS, r"unsloth\Qwen3.8-27B-GGUF\Qwen3.8-27B-UD-Q2_K_XL.gguf")
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), "lib"))
+import paths
+
+
+def default_model():
+    """The default weights, resolved only when --model is not given."""
+    return paths.model_path(DEFAULT_MODEL_NAME)
+
+
+def server_bin():
+    """llama-server, resolved when a run needs it - never at import.
+
+    $LLAMA_SERVER still overrides; paths.llama_bin honours it and exits with
+    an actionable message when nothing resolves. Deliberately not a module
+    constant: --help must not require a toolchain to be installed.
+    """
+    return paths.llama_bin("llama-server")
+
+
+DEFAULT_MODEL_NAME = "Qwen3.8-27B-UD-Q2_K_XL.gguf"
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                    "..", "..", "results", "qwen38-27b-blind", "data", "register")
 PORT = 1242
@@ -115,13 +133,14 @@ def norm(s):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--ctx", type=int, default=262144)
-    ap.add_argument("--model", default=DEFAULT_MODEL)
+    ap.add_argument("--model", help="GGUF to serve; the %s "
+                    "default is resolved if omitted"
+                    % DEFAULT_MODEL_NAME)
     ap.add_argument("--fill-frac", type=float, default=0.90)
     ap.add_argument("--tag", default="")
     a = ap.parse_args()
-    for p, w in ((SERVER, "llama-server"), (a.model, "model")):
-        if not os.path.exists(p):
-            sys.exit("missing %s: %s" % (w, p))
+    a.model = (paths.model_path(a.model) if a.model
+               else default_model())
 
     fill = int(a.ctx * a.fill_frac)
     print("model %s | -c %d | filling to ~%d tokens (%.0f%%)"
@@ -129,7 +148,7 @@ def main():
     print("needles at %s%% of the fill, same sentence frame as the filler"
           % "/".join(str(d) for d in DEPTHS))
 
-    args = [SERVER, "-m", a.model, "--alias", "qwen/qwen3.8-27b",
+    args = [server_bin(), "-m", a.model, "--alias", "qwen/qwen3.8-27b",
             "-ngl", "99", "-c", str(a.ctx), "--parallel", "1",
             "-ctk", "q8_0", "-ctv", "q8_0", "--spec-type", "none",
             "--jinja", "--reasoning", "off",

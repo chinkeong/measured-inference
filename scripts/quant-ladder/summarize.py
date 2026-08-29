@@ -29,9 +29,11 @@ import os
 import re
 import sys
 
-OUTDIR = (r"E:\AI\measured-inference\results\qwen38-27b-blind"
-          r"\data\quant-ladder")
-MANIFEST = r"E:\AI\measured-inference\scripts\quant-ladder\ladder-manifest.json"
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(os.path.dirname(HERE))
+OUTDIR = os.path.join(ROOT, "results", "qwen38-27b-blind",
+                      "data", "quant-ladder")
+MANIFEST = os.path.join(HERE, "ladder-manifest.json")
 KNEE_FACTOR = 2.0
 
 

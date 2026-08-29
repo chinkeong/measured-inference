@@ -55,9 +55,34 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import refarm   # the reference arm: Sampler, smi()
 import gpu_lock
 
-SERVER = os.environ.get("LLAMA_SERVER", r"E:\AI\llama.cpp\llama-server.exe")
-LMS = r"C:\Users\chink\.lmstudio\models"
-MODEL = os.path.join(LMS, r"unsloth\Qwen3.8-27B-GGUF\Qwen3.8-27B-UD-IQ4_XS.gguf")
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), "lib"))
+import paths
+
+
+MODEL_NAME = "Qwen3.8-27B-UD-IQ4_XS.gguf"
+
+
+def model_file():
+    """The weights, resolved when a run needs them - never at import.
+
+    paths.model_path searches campaign.json's models/model_dir, $MODEL_DIR and
+    <repo>/models/, and exits naming all four when the file is on none of
+    them. The literal it replaces was one user's LM Studio directory.
+    """
+    return paths.model_path(MODEL_NAME)
+
+
+def server_bin():
+    """llama-server, resolved when a run needs it - never at import.
+
+    $LLAMA_SERVER still overrides; paths.llama_bin honours it and exits with
+    an actionable message when nothing resolves. Deliberately not a module
+    constant: --help must not require a toolchain to be installed.
+    """
+    return paths.llama_bin("llama-server")
+
+
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                    "..", "..", "results", "qwen38-27b-blind", "data", "register")
 PORT = 1244
@@ -113,7 +138,7 @@ def post(payload, timeout=1800):
 
 
 def start(flags, logpath):
-    args = [SERVER, "-m", MODEL, "--alias", "qwen/qwen3.8-27b",
+    args = [server_bin(), "-m", model_file(), "--alias", "qwen/qwen3.8-27b",
             "-ngl", "99", "-c", str(CTX), "--parallel", "1",
             "-ctk", "q8_0", "-ctv", "q8_0", "--jinja", "--reasoning", "off",
             "--host", "127.0.0.1", "--port", str(PORT)] + flags
@@ -272,8 +297,6 @@ def main():
     global GPU
     GPU = refarm.Sampler()
     GPU.start()
-    if not os.path.exists(MODEL):
-        sys.exit("missing model")
     os.makedirs(OUT, exist_ok=True)
     logdir = os.path.join(OUT, "sampling-logs")
     os.makedirs(logdir, exist_ok=True)

@@ -74,16 +74,13 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, os.path.join(ROOT, "scripts", "bench"))
+sys.path.insert(0, os.path.join(ROOT, "scripts", "lib"))
 import gpu_lock
+import paths
 
-MODEL_DIR = r"C:\Users\chink\.lmstudio\models\sdkyuan\qwen3.8-27B-qat-q2_0-gguf"
-MODEL = os.path.join(MODEL_DIR, "qwen38-27b-qat-q2_0.gguf")
+MODEL_NAME = "qwen38-27b-qat-q2_0.gguf"
 EXPECT_BYTES = 8759266208
 
-LLAMA = r"E:\AI\llama.cpp"
-PPL_EXE = os.path.join(LLAMA, "llama-perplexity.exe")
-TOK_EXE = os.path.join(LLAMA, "llama-tokenize.exe")
-SRV_EXE = os.path.join(LLAMA, "llama-server.exe")
 CORPUS = os.path.join(ROOT, "corpora", "wikitext-2-raw-test.raw")
 CORPUS_MD5 = "7c0137fc034ddbc56a296bce31b4f7fb"
 
@@ -94,6 +91,37 @@ LADDER_PARAMS = 27000000000            # the ladder's fixed convention
 
 # what the chart needs, and where each column comes from
 COLUMNS = ["bpw", "PPL", "accuracy/75", "empty/75", "executes"]
+
+
+def model_file():
+    """The QAT rung's weights.
+
+    paths.model_path searches campaign.json's models/model_dir,
+    $MODEL_DIR and <repo>/models/, and exits naming all of them when
+    the file is on none. Resolved at call time so --help needs no
+    weights on disk.
+    """
+    return paths.model_path(MODEL_NAME)
+
+
+def ppl_bin():
+    """llama-perplexity, resolved when a run needs it - never at import."""
+    return paths.llama_bin("llama-perplexity")
+
+
+def tok_bin():
+    """llama-tokenize, resolved when a run needs it - never at import."""
+    return paths.llama_bin("llama-tokenize")
+
+
+def srv_bin():
+    """llama-server, resolved when a run needs it - never at import.
+
+    $LLAMA_SERVER and $LLAMA_DIR both override; paths.llama_bin honours them
+    and exits with an actionable message when nothing resolves. Deliberately
+    not module constants: --help must not require a toolchain.
+    """
+    return paths.llama_bin("llama-server")
 
 
 def log(m):
@@ -117,9 +145,7 @@ def save(name, obj):
 
 
 def step_verify():
-    if not os.path.exists(MODEL):
-        sys.exit("model not present: %s\n  download it first" % MODEL)
-    n = os.path.getsize(MODEL)
+    n = os.path.getsize(model_file())
     ok = (n == EXPECT_BYTES)
     log("file %d bytes (%.2f GiB) expected %d  %s"
         % (n, n / 1024 ** 3, EXPECT_BYTES, "OK" if ok else "*** MISMATCH ***"))
@@ -131,7 +157,7 @@ def step_verify():
     log("corpus md5 %s  %s" % (md5, "OK" if md5 == CORPUS_MD5 else "*** MISMATCH ***"))
     if md5 != CORPUS_MD5:
         sys.exit("corpus does not match the manifest - PPL would not be comparable")
-    r = subprocess.run([sys.executable, os.path.join(HERE, "gguf-inspect.py"), MODEL],
+    r = subprocess.run([sys.executable, os.path.join(HERE, "gguf-inspect.py"), model_file()],
                        capture_output=True, text=True)
     print(r.stdout)
     bpw_chart = n * 8.0 / LADDER_PARAMS
@@ -150,7 +176,7 @@ def step_smoke():
     logp = os.path.join(OUT, "smoke.log")
     os.makedirs(OUT, exist_ok=True)
     lf = open(logp, "w", encoding="utf-8", errors="replace")
-    args = [SRV_EXE, "-m", MODEL, "--alias", "qat", "-ngl", "99", "-c", "8192",
+    args = [srv_bin(), "-m", model_file(), "--alias", "qat", "-ngl", "99", "-c", "8192",
             "--parallel", "1", "-fa", "on", "--jinja", "--reasoning", "off",
             "--host", "127.0.0.1", "--port", str(port)]
     log("smoke-loading: %s" % " ".join(args[1:8]))
@@ -209,7 +235,7 @@ def step_smoke():
 
 def step_ppl():
     os.makedirs(OUT, exist_ok=True)
-    args = [PPL_EXE, "-m", MODEL, "-f", CORPUS, "-ngl", "99", "-c", "8192",
+    args = [ppl_bin(), "-m", model_file(), "-f", CORPUS, "-ngl", "99", "-c", "8192",
             "-fa", "on", "--load-mode", "mmap"]
     log("perplexity (manifest conditions): %s" % " ".join(args[3:]))
     t0 = time.time()
@@ -234,7 +260,7 @@ def step_ppl():
 
 
 def step_tokens():
-    args = [TOK_EXE, "-m", MODEL, "-f", CORPUS, "--show-count"]
+    args = [tok_bin(), "-m", model_file(), "-f", CORPUS, "--show-count"]
     log("tokenizing the corpus with this model's OWN tokenizer (rule 6)")
     # encoding= is not optional on Windows: text=True decodes as cp1252, and
     # llama-tokenize dumps 297k tokens containing bytes cp1252 cannot map. The
@@ -260,7 +286,7 @@ def step_tokens():
 
 def step_accuracy():
     ps = os.path.join(HERE, "decisive-arm.ps1")
-    arm = "%s|%s|qwen" % (TAG, MODEL)
+    arm = "%s|%s|qwen" % (TAG, model_file())
     cmd = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ps,
            "-Arms", arm, "-DeadlineMinutes", "120"]
     log("accuracy, frozen suite, via decisive-arm.ps1")
@@ -299,7 +325,7 @@ def step_execute():
     os.makedirs(OUT, exist_ok=True)
     lf = open(os.path.join(OUT, "detector.log"), "w", encoding="utf-8",
               errors="replace")
-    args = [SRV_EXE, "-m", MODEL, "--alias", "ladder", "-ngl", "99",
+    args = [srv_bin(), "-m", model_file(), "--alias", "ladder", "-ngl", "99",
             "-c", "8192", "-fa", "on", "--parallel", "1", "--jinja",
             "--reasoning", "off", "--host", "127.0.0.1", "--port", str(port)]
     log("serving under the manifest's detector flags")

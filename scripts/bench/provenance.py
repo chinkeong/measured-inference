@@ -146,8 +146,24 @@ def toolchain(server_path=None, model_path=None):
     return block
 
 
+USAGE = """print this machine's toolchain block, the way a probe records it
+
+    python provenance.py [llama-server] [model.gguf]
+
+Both arguments are optional: the server is resolved through scripts/lib/paths
+($LLAMA_SERVER, $LLAMA_DIR, PATH, <repo>/bin/llama.cpp) when it is omitted."""
+
 if __name__ == "__main__":
     import json
-    sp = sys.argv[1] if len(sys.argv) > 1 else r"E:\AI\llama.cpp\llama-server.exe"
+    # --help must answer without resolving anything: a help request that needs
+    # a toolchain installed is a help request nobody can read on a fresh clone.
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(USAGE)
+        sys.exit(0)
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__))), "lib"))
+    import paths
+    sp = paths.llama_bin("llama-server",
+                         sys.argv[1] if len(sys.argv) > 1 else None)
     mp = sys.argv[2] if len(sys.argv) > 2 else None
     print(json.dumps(toolchain(sp, mp), indent=2))

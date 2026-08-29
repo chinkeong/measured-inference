@@ -1,0 +1,18 @@
+# Line endings are DATA here, not formatting.
+#
+# Git-for-Windows installs with core.autocrlf=true, so a default clone rewrites
+# every LF to CRLF on checkout. corpora/wikitext-2-raw-test.raw is 1,290,590
+# bytes with 4,358 LF and 0 CR: rewritten, it is 1,294,948 bytes and every
+# perplexity in the quant ranking (METHODOLOGY rule 6, 294,912 token positions)
+# is computed over a different file than the published numbers were. The frozen
+# datasets under scripts/bench/ carry the same risk for rule 23's suite hashes.
+#
+# '* -text' turns the conversion off repo-wide: what was committed is what is
+# checked out, on every platform. The two 'binary' lines additionally mark the
+# measurement inputs as non-diffable so no tool touches their bytes.
+#
+# scripts/setup.sh and scripts/setup.ps1 re-check this at bootstrap time and
+# fail loudly if a clone made BEFORE this file was added is already mangled.
+* -text
+corpora/** binary
+scripts/bench/datasets-frozen/** binary

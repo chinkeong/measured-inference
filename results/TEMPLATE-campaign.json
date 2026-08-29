@@ -1,0 +1,65 @@
+{
+  "_schema": "measured-inference/campaign.json v1",
+
+  "_readme": [
+    "Copy this file to results/<slug>/campaign.json and fill it in. Stage 0",
+    "owns it (skills/field-guide/stages/stage-0.md); after the interview",
+    "closes, nothing here is asked again -- the campaign runs to the end on",
+    "what this file says (the interview rule).",
+    "",
+    "Every key is documented in _comments at the bottom. Keys whose name",
+    "starts with an underscore are documentation: no script reads them, so",
+    "keep them in the working file or delete them, as you prefer.",
+    "",
+    "This file describes the CAMPAIGN: where its toolchain, weights and",
+    "outputs live. It says nothing about the BOX. results/<slug>/machine.json",
+    "describes the box -- board VRAM, desktop reserve, RAM channels, backend --",
+    "and is MEASURED, never written by hand:",
+    "    python scripts/detect-machine.py --slug <slug>",
+    "The two are separate on purpose. A campaign moves between machines; a",
+    "machine profile never does (rules 3 and 14).",
+    "",
+    "Read it from Python -- never re-derive these paths yourself:",
+    "    sys.path.insert(0, os.path.join(REPO, 'scripts', 'lib'))",
+    "    import paths",
+    "    camp   = paths.load_campaign()",
+    "    server = paths.llama_bin('llama-server')",
+    "    gguf   = paths.model_path(camp['models'][0])"
+  ],
+
+  "repo_root": "",
+  "slug": "",
+  "port": 1234,
+  "llama_dir": "",
+  "model_dir": "",
+  "models": [],
+  "work_dir": "work",
+  "data_dir": "data",
+  "corpus": "corpora/wikitext-2-raw-test.raw",
+  "mem_cap_frac": 0.75,
+  "commit_refuse_frac": 0.55,
+
+  "_comments": {
+    "repo_root": "Informational only: the absolute path of the clone this campaign was created in, so an artefact can say where it was produced. NOTHING reads it back as a path. scripts/lib/paths.py derives the root from __file__, which is what lets the same campaign.json work in a clone at a different path, on a different OS. Leave it empty if you do not care.",
+
+    "slug": "This campaign's id, and the name of its directory under results/. The model repo name, lowercased, as a SINGLE path component with -GGUF/-gguf dropped: .../unsloth/SomeNew-32B-GGUF becomes somenew-32b. Chosen once in Stage 0, written into campaign.md, and reused verbatim after every restart (AGENTS.md LAYOUT). It must match the directory this file sits in.",
+
+    "port": "TCP port for llama-server on 127.0.0.1. Rule 20 allows exactly one GPU job at a time, so one port is enough for a whole campaign; change it only when something else on this box already owns that port. Every launcher goes through gpu_lock.serve(), which is what enforces the one-at-a-time part.",
+
+    "llama_dir": "Directory holding the llama.cpp tools: llama-server, llama-perplexity, llama-bench, llama-tokenize. paths.llama_bin() looks here FIRST -- ahead of $LLAMA_SERVER, $LLAMA_DIR and PATH -- because which binary decoded the tokens is a condition of every number (rule 3; scripts/bench/provenance.py records the 25-point throughput gap that a swapped build was the last surviving explanation for). A shell variable exported in one terminal must not silently re-point a campaign that recorded its own build. Both <dir>/llama-server and <dir>/build/bin/llama-server are checked, so a cmake source build works unchanged. Leave \"\" to fall back to the environment, PATH, and <repo>/bin/llama.cpp/ -- which is what scripts/setup.sh (or scripts/setup.ps1) installs into.",
+
+    "model_dir": "Directory holding the .gguf files. Searched by name, one level of subdirectories included, because <dir>/<org-or-repo>/<file>.gguf is the normal download layout. Falls back to $MODEL_DIR and then <repo>/models/ (gitignored -- weights never enter git, rule 29). Leave \"\" to use those fallbacks only.",
+
+    "models": "The GGUF files this campaign measures, as a list: bare file names resolved against model_dir, or absolute paths. Put them in the order the ladder runs (rule 6 ranks quants by perplexity, so the ladder order is the comparison order). A {\"short-alias\": \"/full/path.gguf\"} object is accepted instead when a long path needs a short name. paths.model_path() resolves either shape and refuses an ambiguous name rather than picking a quantisation for you.",
+
+    "work_dir": "Scratch for this campaign: server logs, partial output, anything re-creatable. Relative to results/<slug>/ unless absolute. Safe to lose -- rule 29 permits ignoring a directory only when it is pure bulk, and this one is.",
+
+    "data_dir": "Where MEASURED artefacts land: the JSON the report cites. Relative to results/<slug>/ unless absolute. This is not scratch. Rule 28: the run is the scarce thing, and a field not written down DURING the run cannot be recovered at any price -- so every probe writes here the moment a record exists, never buffered to the end of a sweep.",
+
+    "corpus": "Frozen text for perplexity and KLD ranking. Relative to the repo root unless absolute. Rule 6 ranks quants over 294,912 token positions, and rule 23 is offline-first: frozen file, then local cache, then the network -- in that order, so two reports stay comparable. The reference campaign used corpora/wikitext-2-raw-test.raw (wikitext-2 raw test split).",
+
+    "mem_cap_frac": "The per-job HOST-RAM commit cap, as a fraction of physical RAM, applied by gpu_lock.serve() through a Windows job object or POSIX RLIMIT_AS. A runaway then dies with a clean allocation failure in its own log instead of taking the desktop down -- which is what four concurrent llama-servers did to this machine on 2026-08-29. gpu_lock's own default is 0.75 (MEM_CAP_FRAC). Setting a different value here is a CONDITION of every number the campaign produces: say so in the report (rule 3). For a single run, the env override is MEASURED_INFERENCE_MEM_CAP_GB.",
+
+    "commit_refuse_frac": "Refuse to launch anything when system commit is ALREADY this fraction of the commit limit. gpu_lock.preflight() defaults to 0.55 (COMMIT_REFUSE_FRAC) -- the guard that would have tripped at 23:59 on 2026-08-29, twenty-four minutes before the host hung, while the desktop was still responsive. Raise it only if you enjoy hard reboots."
+  }
+}

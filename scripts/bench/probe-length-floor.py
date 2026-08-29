@@ -67,7 +67,7 @@ def post(payload, timeout=1800):
 
 
 def start(logpath):
-    args = [refarm.SERVER, "-m", refarm.REF_MODEL, "--alias", "qwen/qwen3.8-27b"] + \
+    args = [refarm.server_bin(), "-m", refarm.ref_model(), "--alias", "qwen/qwen3.8-27b"] + \
         refarm.REF_FLAGS + ["--host", "127.0.0.1", "--port", str(PORT)]
     lf = open(logpath, "w", encoding="utf-8", errors="replace")
     return gpu_lock.serve(args, stdout=lf, stderr=subprocess.STDOUT), lf

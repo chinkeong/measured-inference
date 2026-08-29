@@ -198,7 +198,7 @@ def main():
         # which looks exactly like a measurement of nothing rather than a
         # failure to start.
         cmd = [sys.executable, "-u", BENCH, "--model", MODEL,
-               "--server-bin", refarm.SERVER,
+               "--server-bin", refarm.server_bin(),
                "--datasets", name, "--samples", str(a.samples),
                "--greedy", "--seed", "42", "--max-tokens", "16384",
                "--ctx", "32768", "--transcripts",

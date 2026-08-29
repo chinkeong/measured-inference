@@ -1,0 +1,882 @@
+{
+  "name": "reasoning-effort sweep — two samples per level, plus the accuracy arms",
+  "stage": 6,
+  "derived_from": [
+    {
+      "script": "scripts/reference-3090/sweep-efforts.ps1",
+      "launcher": "serve-menu-example.bat entry [4], args: <effort>  (no context argument, so the menu's own default 122880 applied)",
+      "arms": "effort-pass1"
+    },
+    {
+      "script": "scripts/reference-3090/sweep-pass2.ps1",
+      "launcher": "serve-menu-example.bat entry [4], args: <effort> 122880",
+      "arms": "effort-pass2"
+    },
+    {
+      "script": "scripts/reference-3090/sweep-tune.ps1 (phase 1 only)",
+      "launcher": "serve-menu-example.bat entry [4], args: low <ctx>",
+      "arms": "tune-ctx-probe"
+    },
+    {
+      "script": "scripts/reference-3090/effort-gsm8k.ps1",
+      "launcher": "none — the .ps1 builds the llama-server argv itself",
+      "arms": "effort-gsm8k (bench_arms)"
+    },
+    {
+      "script": "scripts/reference-3090/xhigh-16k.ps1",
+      "launcher": "none — the .ps1 builds the llama-server argv itself",
+      "arms": "effort-gsm8k (bench_arms)"
+    }
+  ],
+  "models": [
+    "Q4_K_M",
+    "mmproj"
+  ],
+  "notes": [
+    "RECONSTRUCTION (read this before trusting a number from these arms). ctx-limit-sweep.ps1, sweep-efforts.ps1, sweep-pass2.ps1 and sweep-tune.ps1 call serve-qwen.bat WITHOUT the model argument, so they took whatever the menu's default was on the day. The shipped stand-in scripts/reference-3090/serve-menu-example.bat defaults to entry [1] (UD-IQ4_XS), but it was re-measured at the END of the campaign; four independent sources say the default these scripts actually took was entry [4] (Q4_K_M + projector, -c 122880, 'quality champion, reference config'): (a) reference-3090/README.md maps ctx-limit-sweep.ps1 to Q4_K_M and iq4-ctx-sweep.ps1 to IQ4_XS; (b) iq4-ctx-sweep.ps1's own header treats Q4_K_M's ceiling as ALREADY measured ('Q4_K_M measured ~131k resident / ~213k shallow'); (c) sweep-efforts.ps1 and sweep-tune.ps1 hardcode $modelName = 'Qwen3.8-27B-Q4_K_M' for their output files; (d) templates/example-report.html publishes the Q4_K_M ceiling as '~131k resident, about 213,000 before the server refuses to start' with the projector loaded — and 212,992 is exactly rung 11 of this file's +8192 ladder. Entry [4] is therefore reconstructed, not read off the .bat.",
+    "THE EFFORT KNOB IS A SERVER FLAG, NOT A REQUEST FIELD: llama-server ignores per-request reasoning_effort, so each level is its own server launch via --chat-template-kwargs. That is why these are arms and not probes on one arm.",
+    "NO SAMPLER, NO CAP, ON THE EFFORT PROBES — BOTH DELIBERATE: sweep-efforts.ps1 and sweep-pass2.ps1 send neither temperature nor max_tokens; the request body is the prompt and nothing else. So these probes name no sampler (the server's own --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0.0 apply, which IS the measurement) and carry n_predict -1, which arms.py sends by omitting max_tokens — generation runs until the window ends. Pass 2 exists because that sampling is stochastic: two independent samples per level for blind judging (rule 8), which a greedy default would collapse into one.",
+    "The tune-ctx-probe arms DO name a sampler (temperature 0, top_k 1, 700 tokens) — they are spill probes, not effort samples, and sweep-tune.ps1 fires a 16-token 'Say OK.' warm-up before each timed one. That warm-up is rule 12's discard-first in its original hand-rolled form; keep it, and do not time it.",
+    "Every arm's flags are COMPLETE and self-contained: nothing is inherited from \"defaults\", so a runner that ignores \"defaults\" still launches the exact server the reference campaign launched.",
+    "\"mmproj\" after --mmproj is a LOGICAL model name, resolved through paths.model_path() exactly like server.model (arms.py MODEL_FLAGS resolves it into the argv and leaves the arm's flag list logical, so the resume hash does not depend on where this machine keeps its weights). No absolute path appears in this file — erasing the author-machine lmstudio/models paths is the point of the port. Stage 0 must map every name in \"models\" below into campaign.json.",
+    "Dropped from every flag list, deliberately and identically: --api-key dummy (access control, not measurement — scripts/probe-config.sh, this repo's POSIX seed, drops it too) and --host 127.0.0.1 --port 1234 (the runner owns the transport, exactly as scripts/bench/bench.py's Server injects them). Nothing else was dropped, reordered or retyped.",
+    "rule 30, UNMET BY THESE ARMS AS WRITTEN: both passes ran low, medium, xhigh in the SAME order. Preserved as it ran. A rerun should alternate the order between passes.",
+    "rule 16/7: the effort probes are uncapped by design — a level whose appetite exceeds the window truncates rather than degrading. Record finish_reason for every probe; a 'length' finish is a truncation and invalidates that arm's completeness comparison.",
+    "OUTPUT IS THE MEASUREMENT: save reasoning_content and content separately (the .ps1 writes '===== THINKING =====' / '===== ANSWER =====' into one file), plus completion_tokens, prompt_tokens, wall time, t/s and finish_reason. The blind judges in stage-6 read the ANSWER only.",
+    "bench_arms are NOT probe arms and arms.py should not run them: they are llama-server configurations that scripts/bench/bench.py drives with --no-spawn against the already-running server (or reproduces on its own with --server-args). They are recorded here so the exact flag set behind the published per-effort GSM8K scores survives the port."
+  ],
+  "record": [
+    "per probe: completion tokens, wall seconds, server timings (prompt_n, prompt_per_second, prompt_ms, predicted_n, predicted_per_second)",
+    "per probe: draft_n and draft_n_accepted -> acceptance AND mean draft length (rule 11 — publish both)",
+    "per arm: dedicated VRAM MiB, sampled while the probe runs (nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits)",
+    "per arm: regime (thinking/answer), depth, cap, desktop state, RAM channels (rule 3) — written the moment it exists, never buffered (rule 28)",
+    "per effort probe: completion_tokens, prompt_tokens, wall, t/s, finish_reason, and the thinking/answer split written to its own file"
+  ],
+  "defaults": {
+    "repeat": 1,
+    "discard_first": false
+  },
+  "arms": [
+    {
+      "id": "effort-pass1-low",
+      "sweep": "effort-pass1",
+      "derived_from": "sweep-efforts.ps1 (pass 1) via serve-menu-example.bat [4], args: low  (no context argument — the menu default, 122880)",
+      "server": {
+        "model": "Q4_K_M",
+        "flags": [
+          "--mmproj",
+          "mmproj",
+          "--image-min-tokens",
+          "1024",
+          "--alias",
+          "qwen/qwen3.8-27b",
+          "-c",
+          "122880",
+          "-ngl",
+          "99",
+          "--parallel",
+          "1",
+          "--load-mode",
+          "none",
+          "-ctk",
+          "q8_0",
+          "-ctv",
+          "q8_0",
+          "--spec-type",
+          "draft-mtp",
+          "--spec-draft-n-max",
+          "4",
+          "--spec-draft-p-min",
+          "0.75",
+          "--temp",
+          "1.0",
+          "--top-p",
+          "0.95",
+          "--top-k",
+          "20",
+          "--min-p",
+          "0.0",
+          "--reasoning-preserve",
+          "--chat-template-kwargs",
+          "{\"reasoning_effort\":\"low\"}",
+          "--jinja"
+        ]
+      },
+      "probes": [
+        {
+          "id": "aquarium-task",
+          "prompt_file": "templates/effort-task-example.md",
+          "n_predict": -1,
+          "note": "UNCAPPED, and no sampler keys: the .ps1 request body was the prompt and nothing else. n_predict -1 is sent by omitting max_tokens, so generation runs until the window ends; the absent sampler keys mean the server's own --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0.0 apply. Both are the measurement - a greedy default here would silently replace a creative sample with a deterministic one."
+        }
+      ],
+      "repeat": 1,
+      "discard_first": false
+    },
+    {
+      "id": "effort-pass1-medium",
+      "sweep": "effort-pass1",
+      "derived_from": "sweep-efforts.ps1 (pass 1) via serve-menu-example.bat [4], args: medium  (no context argument — the menu default, 122880)",
+      "server": {
+        "model": "Q4_K_M",
+        "flags": [
+          "--mmproj",
+          "mmproj",
+          "--image-min-tokens",
+          "1024",
+          "--alias",
+          "qwen/qwen3.8-27b",
+          "-c",
+          "122880",
+          "-ngl",
+          "99",
+          "--parallel",
+          "1",
+          "--load-mode",
+          "none",
+          "-ctk",
+          "q8_0",
+          "-ctv",
+          "q8_0",
+          "--spec-type",
+          "draft-mtp",
+          "--spec-draft-n-max",
+          "4",
+          "--spec-draft-p-min",
+          "0.75",
+          "--temp",
+          "1.0",
+          "--top-p",
+          "0.95",
+          "--top-k",
+          "20",
+          "--min-p",
+          "0.0",
+          "--reasoning-preserve",
+          "--chat-template-kwargs",
+          "{\"reasoning_effort\":\"medium\"}",
+          "--jinja"
+        ]
+      },
+      "probes": [
+        {
+          "id": "aquarium-task",
+          "prompt_file": "templates/effort-task-example.md",
+          "n_predict": -1,
+          "note": "UNCAPPED, and no sampler keys: the .ps1 request body was the prompt and nothing else. n_predict -1 is sent by omitting max_tokens, so generation runs until the window ends; the absent sampler keys mean the server's own --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0.0 apply. Both are the measurement - a greedy default here would silently replace a creative sample with a deterministic one."
+        }
+      ],
+      "repeat": 1,
+      "discard_first": false
+    },
+    {
+      "id": "effort-pass1-xhigh",
+      "sweep": "effort-pass1",
+      "derived_from": "sweep-efforts.ps1 (pass 1) via serve-menu-example.bat [4], args: xhigh  (no context argument — the menu default, 122880)",
+      "server": {
+        "model": "Q4_K_M",
+        "flags": [
+          "--mmproj",
+          "mmproj",
+          "--image-min-tokens",
+          "1024",
+          "--alias",
+          "qwen/qwen3.8-27b",
+          "-c",
+          "122880",
+          "-ngl",
+          "99",
+          "--parallel",
+          "1",
+          "--load-mode",
+          "none",
+          "-ctk",
+          "q8_0",
+          "-ctv",
+          "q8_0",
+          "--spec-type",
+          "draft-mtp",
+          "--spec-draft-n-max",
+          "4",
+          "--spec-draft-p-min",
+          "0.75",
+          "--temp",
+          "1.0",
+          "--top-p",
+          "0.95",
+          "--top-k",
+          "20",
+          "--min-p",
+          "0.0",
+          "--reasoning-preserve",
+          "--chat-template-kwargs",
+          "{\"reasoning_effort\":\"xhigh\"}",
+          "--jinja"
+        ]
+      },
+      "probes": [
+        {
+          "id": "aquarium-task",
+          "prompt_file": "templates/effort-task-example.md",
+          "n_predict": -1,
+          "note": "UNCAPPED, and no sampler keys: the .ps1 request body was the prompt and nothing else. n_predict -1 is sent by omitting max_tokens, so generation runs until the window ends; the absent sampler keys mean the server's own --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0.0 apply. Both are the measurement - a greedy default here would silently replace a creative sample with a deterministic one."
+        }
+      ],
+      "repeat": 1,
+      "discard_first": false
+    },
+    {
+      "id": "effort-pass2-low",
+      "sweep": "effort-pass2",
+      "derived_from": "sweep-pass2.ps1 (pass 2, fresh temp-1.0 sample) via serve-menu-example.bat [4], args: low 122880",
+      "server": {
+        "model": "Q4_K_M",
+        "flags": [
+          "--mmproj",
+          "mmproj",
+          "--image-min-tokens",
+          "1024",
+          "--alias",
+          "qwen/qwen3.8-27b",
+          "-c",
+          "122880",
+          "-ngl",
+          "99",
+          "--parallel",
+          "1",
+          "--load-mode",
+          "none",
+          "-ctk",
+          "q8_0",
+          "-ctv",
+          "q8_0",
+          "--spec-type",
+          "draft-mtp",
+          "--spec-draft-n-max",
+          "4",
+          "--spec-draft-p-min",
+          "0.75",
+          "--temp",
+          "1.0",
+          "--top-p",
+          "0.95",
+          "--top-k",
+          "20",
+          "--min-p",
+          "0.0",
+          "--reasoning-preserve",
+          "--chat-template-kwargs",
+          "{\"reasoning_effort\":\"low\"}",
+          "--jinja"
+        ]
+      },
+      "probes": [
+        {
+          "id": "aquarium-task",
+          "prompt_file": "templates/effort-task-example.md",
+          "n_predict": -1,
+          "note": "UNCAPPED, and no sampler keys: the .ps1 request body was the prompt and nothing else. n_predict -1 is sent by omitting max_tokens, so generation runs until the window ends; the absent sampler keys mean the server's own --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0.0 apply. Both are the measurement - a greedy default here would silently replace a creative sample with a deterministic one."
+        }
+      ],
+      "repeat": 1,
+      "discard_first": false
+    },
+    {
+      "id": "effort-pass2-medium",
+      "sweep": "effort-pass2",
+      "derived_from": "sweep-pass2.ps1 (pass 2, fresh temp-1.0 sample) via serve-menu-example.bat [4], args: medium 122880",
+      "server": {
+        "model": "Q4_K_M",
+        "flags": [
+          "--mmproj",
+          "mmproj",
+          "--image-min-tokens",
+          "1024",
+          "--alias",
+          "qwen/qwen3.8-27b",
+          "-c",
+          "122880",
+          "-ngl",
+          "99",
+          "--parallel",
+          "1",
+          "--load-mode",
+          "none",
+          "-ctk",
+          "q8_0",
+          "-ctv",
+          "q8_0",
+          "--spec-type",
+          "draft-mtp",
+          "--spec-draft-n-max",
+          "4",
+          "--spec-draft-p-min",
+          "0.75",
+          "--temp",
+          "1.0",
+          "--top-p",
+          "0.95",
+          "--top-k",
+          "20",
+          "--min-p",
+          "0.0",
+          "--reasoning-preserve",
+          "--chat-template-kwargs",
+          "{\"reasoning_effort\":\"medium\"}",
+          "--jinja"
+        ]
+      },
+      "probes": [
+        {
+          "id": "aquarium-task",
+          "prompt_file": "templates/effort-task-example.md",
+          "n_predict": -1,
+          "note": "UNCAPPED, and no sampler keys: the .ps1 request body was the prompt and nothing else. n_predict -1 is sent by omitting max_tokens, so generation runs until the window ends; the absent sampler keys mean the server's own --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0.0 apply. Both are the measurement - a greedy default here would silently replace a creative sample with a deterministic one."
+        }
+      ],
+      "repeat": 1,
+      "discard_first": false
+    },
+    {
+      "id": "effort-pass2-xhigh",
+      "sweep": "effort-pass2",
+      "derived_from": "sweep-pass2.ps1 (pass 2, fresh temp-1.0 sample) via serve-menu-example.bat [4], args: xhigh 122880",
+      "server": {
+        "model": "Q4_K_M",
+        "flags": [
+          "--mmproj",
+          "mmproj",
+          "--image-min-tokens",
+          "1024",
+          "--alias",
+          "qwen/qwen3.8-27b",
+          "-c",
+          "122880",
+          "-ngl",
+          "99",
+          "--parallel",
+          "1",
+          "--load-mode",
+          "none",
+          "-ctk",
+          "q8_0",
+          "-ctv",
+          "q8_0",
+          "--spec-type",
+          "draft-mtp",
+          "--spec-draft-n-max",
+          "4",
+          "--spec-draft-p-min",
+          "0.75",
+          "--temp",
+          "1.0",
+          "--top-p",
+          "0.95",
+          "--top-k",
+          "20",
+          "--min-p",
+          "0.0",
+          "--reasoning-preserve",
+          "--chat-template-kwargs",
+          "{\"reasoning_effort\":\"xhigh\"}",
+          "--jinja"
+        ]
+      },
+      "probes": [
+        {
+          "id": "aquarium-task",
+          "prompt_file": "templates/effort-task-example.md",
+          "n_predict": -1,
+          "note": "UNCAPPED, and no sampler keys: the .ps1 request body was the prompt and nothing else. n_predict -1 is sent by omitting max_tokens, so generation runs until the window ends; the absent sampler keys mean the server's own --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0.0 apply. Both are the measurement - a greedy default here would silently replace a creative sample with a deterministic one."
+        }
+      ],
+      "repeat": 1,
+      "discard_first": false
+    },
+    {
+      "id": "tune-ctx-probe-c122880",
+      "sweep": "tune-ctx-probe",
+      "derived_from": "sweep-tune.ps1 phase 1 (largest fast context) via serve-menu-example.bat [4], args: low 122880",
+      "server": {
+        "model": "Q4_K_M",
+        "flags": [
+          "--mmproj",
+          "mmproj",
+          "--image-min-tokens",
+          "1024",
+          "--alias",
+          "qwen/qwen3.8-27b",
+          "-c",
+          "122880",
+          "-ngl",
+          "99",
+          "--parallel",
+          "1",
+          "--load-mode",
+          "none",
+          "-ctk",
+          "q8_0",
+          "-ctv",
+          "q8_0",
+          "--spec-type",
+          "draft-mtp",
+          "--spec-draft-n-max",
+          "4",
+          "--spec-draft-p-min",
+          "0.75",
+          "--temp",
+          "1.0",
+          "--top-p",
+          "0.95",
+          "--top-k",
+          "20",
+          "--min-p",
+          "0.0",
+          "--reasoning-preserve",
+          "--chat-template-kwargs",
+          "{\"reasoning_effort\":\"low\"}",
+          "--jinja"
+        ]
+      },
+      "probes": [
+        {
+          "id": "warmup-say-ok",
+          "prompt": "Say OK.",
+          "n_predict": 16,
+          "note": "sweep-tune.ps1 fires this untimed warm-up before every timed probe: [void](Send-Chat 'Say OK.' 16 $null). It is probe 0, so discard_first=true drops it from the summary and still ledgers it - rule 12, exactly as it ran."
+        },
+        {
+          "id": "nitrogen-cycle-essay",
+          "prompt": "Write a detailed 500-word technical explanation of how a marine aquarium nitrogen cycle works.",
+          "n_predict": 700,
+          "temperature": 0,
+          "top_k": 1
+        }
+      ],
+      "repeat": 1,
+      "discard_first": true
+    },
+    {
+      "id": "tune-ctx-probe-c98304",
+      "sweep": "tune-ctx-probe",
+      "derived_from": "sweep-tune.ps1 phase 1 (largest fast context) via serve-menu-example.bat [4], args: low 98304",
+      "server": {
+        "model": "Q4_K_M",
+        "flags": [
+          "--mmproj",
+          "mmproj",
+          "--image-min-tokens",
+          "1024",
+          "--alias",
+          "qwen/qwen3.8-27b",
+          "-c",
+          "98304",
+          "-ngl",
+          "99",
+          "--parallel",
+          "1",
+          "--load-mode",
+          "none",
+          "-ctk",
+          "q8_0",
+          "-ctv",
+          "q8_0",
+          "--spec-type",
+          "draft-mtp",
+          "--spec-draft-n-max",
+          "4",
+          "--spec-draft-p-min",
+          "0.75",
+          "--temp",
+          "1.0",
+          "--top-p",
+          "0.95",
+          "--top-k",
+          "20",
+          "--min-p",
+          "0.0",
+          "--reasoning-preserve",
+          "--chat-template-kwargs",
+          "{\"reasoning_effort\":\"low\"}",
+          "--jinja"
+        ]
+      },
+      "probes": [
+        {
+          "id": "warmup-say-ok",
+          "prompt": "Say OK.",
+          "n_predict": 16,
+          "note": "sweep-tune.ps1 fires this untimed warm-up before every timed probe: [void](Send-Chat 'Say OK.' 16 $null). It is probe 0, so discard_first=true drops it from the summary and still ledgers it - rule 12, exactly as it ran."
+        },
+        {
+          "id": "nitrogen-cycle-essay",
+          "prompt": "Write a detailed 500-word technical explanation of how a marine aquarium nitrogen cycle works.",
+          "n_predict": 700,
+          "temperature": 0,
+          "top_k": 1
+        }
+      ],
+      "repeat": 1,
+      "discard_first": true
+    },
+    {
+      "id": "tune-ctx-probe-c81920",
+      "sweep": "tune-ctx-probe",
+      "derived_from": "sweep-tune.ps1 phase 1 (largest fast context) via serve-menu-example.bat [4], args: low 81920",
+      "server": {
+        "model": "Q4_K_M",
+        "flags": [
+          "--mmproj",
+          "mmproj",
+          "--image-min-tokens",
+          "1024",
+          "--alias",
+          "qwen/qwen3.8-27b",
+          "-c",
+          "81920",
+          "-ngl",
+          "99",
+          "--parallel",
+          "1",
+          "--load-mode",
+          "none",
+          "-ctk",
+          "q8_0",
+          "-ctv",
+          "q8_0",
+          "--spec-type",
+          "draft-mtp",
+          "--spec-draft-n-max",
+          "4",
+          "--spec-draft-p-min",
+          "0.75",
+          "--temp",
+          "1.0",
+          "--top-p",
+          "0.95",
+          "--top-k",
+          "20",
+          "--min-p",
+          "0.0",
+          "--reasoning-preserve",
+          "--chat-template-kwargs",
+          "{\"reasoning_effort\":\"low\"}",
+          "--jinja"
+        ]
+      },
+      "probes": [
+        {
+          "id": "warmup-say-ok",
+          "prompt": "Say OK.",
+          "n_predict": 16,
+          "note": "sweep-tune.ps1 fires this untimed warm-up before every timed probe: [void](Send-Chat 'Say OK.' 16 $null). It is probe 0, so discard_first=true drops it from the summary and still ledgers it - rule 12, exactly as it ran."
+        },
+        {
+          "id": "nitrogen-cycle-essay",
+          "prompt": "Write a detailed 500-word technical explanation of how a marine aquarium nitrogen cycle works.",
+          "n_predict": 700,
+          "temperature": 0,
+          "top_k": 1
+        }
+      ],
+      "repeat": 1,
+      "discard_first": true
+    },
+    {
+      "id": "tune-ctx-probe-c65536",
+      "sweep": "tune-ctx-probe",
+      "derived_from": "sweep-tune.ps1 phase 1 (largest fast context) via serve-menu-example.bat [4], args: low 65536",
+      "server": {
+        "model": "Q4_K_M",
+        "flags": [
+          "--mmproj",
+          "mmproj",
+          "--image-min-tokens",
+          "1024",
+          "--alias",
+          "qwen/qwen3.8-27b",
+          "-c",
+          "65536",
+          "-ngl",
+          "99",
+          "--parallel",
+          "1",
+          "--load-mode",
+          "none",
+          "-ctk",
+          "q8_0",
+          "-ctv",
+          "q8_0",
+          "--spec-type",
+          "draft-mtp",
+          "--spec-draft-n-max",
+          "4",
+          "--spec-draft-p-min",
+          "0.75",
+          "--temp",
+          "1.0",
+          "--top-p",
+          "0.95",
+          "--top-k",
+          "20",
+          "--min-p",
+          "0.0",
+          "--reasoning-preserve",
+          "--chat-template-kwargs",
+          "{\"reasoning_effort\":\"low\"}",
+          "--jinja"
+        ]
+      },
+      "probes": [
+        {
+          "id": "warmup-say-ok",
+          "prompt": "Say OK.",
+          "n_predict": 16,
+          "note": "sweep-tune.ps1 fires this untimed warm-up before every timed probe: [void](Send-Chat 'Say OK.' 16 $null). It is probe 0, so discard_first=true drops it from the summary and still ledgers it - rule 12, exactly as it ran."
+        },
+        {
+          "id": "nitrogen-cycle-essay",
+          "prompt": "Write a detailed 500-word technical explanation of how a marine aquarium nitrogen cycle works.",
+          "n_predict": 700,
+          "temperature": 0,
+          "top_k": 1
+        }
+      ],
+      "repeat": 1,
+      "discard_first": true
+    },
+    {
+      "id": "tune-ctx-probe-c49152",
+      "sweep": "tune-ctx-probe",
+      "derived_from": "sweep-tune.ps1 phase 1 (largest fast context) via serve-menu-example.bat [4], args: low 49152",
+      "server": {
+        "model": "Q4_K_M",
+        "flags": [
+          "--mmproj",
+          "mmproj",
+          "--image-min-tokens",
+          "1024",
+          "--alias",
+          "qwen/qwen3.8-27b",
+          "-c",
+          "49152",
+          "-ngl",
+          "99",
+          "--parallel",
+          "1",
+          "--load-mode",
+          "none",
+          "-ctk",
+          "q8_0",
+          "-ctv",
+          "q8_0",
+          "--spec-type",
+          "draft-mtp",
+          "--spec-draft-n-max",
+          "4",
+          "--spec-draft-p-min",
+          "0.75",
+          "--temp",
+          "1.0",
+          "--top-p",
+          "0.95",
+          "--top-k",
+          "20",
+          "--min-p",
+          "0.0",
+          "--reasoning-preserve",
+          "--chat-template-kwargs",
+          "{\"reasoning_effort\":\"low\"}",
+          "--jinja"
+        ]
+      },
+      "probes": [
+        {
+          "id": "warmup-say-ok",
+          "prompt": "Say OK.",
+          "n_predict": 16,
+          "note": "sweep-tune.ps1 fires this untimed warm-up before every timed probe: [void](Send-Chat 'Say OK.' 16 $null). It is probe 0, so discard_first=true drops it from the summary and still ledgers it - rule 12, exactly as it ran."
+        },
+        {
+          "id": "nitrogen-cycle-essay",
+          "prompt": "Write a detailed 500-word technical explanation of how a marine aquarium nitrogen cycle works.",
+          "n_predict": 700,
+          "temperature": 0,
+          "top_k": 1
+        }
+      ],
+      "repeat": 1,
+      "discard_first": true
+    }
+  ],
+  "bench_arms": [
+    {
+      "id": "gsm8k200-low",
+      "sweep": "effort-gsm8k",
+      "derived_from": "effort-gsm8k.ps1 (low) — direct llama-server launch, no .bat",
+      "server": {
+        "model": "Q4_K_M",
+        "flags": [
+          "--alias",
+          "qwen/qwen3.8-27b",
+          "-c",
+          "32768",
+          "-ngl",
+          "99",
+          "--parallel",
+          "1",
+          "--load-mode",
+          "none",
+          "-ctk",
+          "q8_0",
+          "-ctv",
+          "q8_0",
+          "--spec-type",
+          "draft-mtp",
+          "--spec-draft-n-max",
+          "4",
+          "--spec-draft-p-min",
+          "0.75",
+          "--jinja",
+          "--chat-template-kwargs",
+          "{\"reasoning_effort\":\"low\"}"
+        ]
+      },
+      "bench": {
+        "command": "python scripts/bench/bench.py --model <resolved Q4_K_M> --no-spawn --port <arm port> --datasets GSM8K --samples 200 --max-tokens 4096 --greedy --score",
+        "dataset": "GSM8K",
+        "samples": 200,
+        "max_tokens": 4096,
+        "greedy": true,
+        "score": true,
+        "result": "results/<slug>/data/gsm8k200-low.json"
+      }
+    },
+    {
+      "id": "gsm8k200-medium",
+      "sweep": "effort-gsm8k",
+      "derived_from": "effort-gsm8k.ps1 (medium) — direct llama-server launch, no .bat",
+      "server": {
+        "model": "Q4_K_M",
+        "flags": [
+          "--alias",
+          "qwen/qwen3.8-27b",
+          "-c",
+          "32768",
+          "-ngl",
+          "99",
+          "--parallel",
+          "1",
+          "--load-mode",
+          "none",
+          "-ctk",
+          "q8_0",
+          "-ctv",
+          "q8_0",
+          "--spec-type",
+          "draft-mtp",
+          "--spec-draft-n-max",
+          "4",
+          "--spec-draft-p-min",
+          "0.75",
+          "--jinja",
+          "--chat-template-kwargs",
+          "{\"reasoning_effort\":\"medium\"}"
+        ]
+      },
+      "bench": {
+        "command": "python scripts/bench/bench.py --model <resolved Q4_K_M> --no-spawn --port <arm port> --datasets GSM8K --samples 200 --max-tokens 4096 --greedy --score",
+        "dataset": "GSM8K",
+        "samples": 200,
+        "max_tokens": 4096,
+        "greedy": true,
+        "score": true,
+        "result": "results/<slug>/data/gsm8k200-medium.json"
+      }
+    },
+    {
+      "id": "gsm8k200-xhigh",
+      "sweep": "effort-gsm8k",
+      "derived_from": "effort-gsm8k.ps1 (xhigh) — direct llama-server launch, no .bat",
+      "server": {
+        "model": "Q4_K_M",
+        "flags": [
+          "--alias",
+          "qwen/qwen3.8-27b",
+          "-c",
+          "32768",
+          "-ngl",
+          "99",
+          "--parallel",
+          "1",
+          "--load-mode",
+          "none",
+          "-ctk",
+          "q8_0",
+          "-ctv",
+          "q8_0",
+          "--spec-type",
+          "draft-mtp",
+          "--spec-draft-n-max",
+          "4",
+          "--spec-draft-p-min",
+          "0.75",
+          "--jinja",
+          "--chat-template-kwargs",
+          "{\"reasoning_effort\":\"xhigh\"}"
+        ]
+      },
+      "bench": {
+        "command": "python scripts/bench/bench.py --model <resolved Q4_K_M> --no-spawn --port <arm port> --datasets GSM8K --samples 200 --max-tokens 4096 --greedy --score",
+        "dataset": "GSM8K",
+        "samples": 200,
+        "max_tokens": 4096,
+        "greedy": true,
+        "score": true,
+        "result": "results/<slug>/data/gsm8k200-xhigh.json"
+      }
+    },
+    {
+      "id": "gsm8k200-xhigh-16k",
+      "sweep": "effort-gsm8k",
+      "derived_from": "xhigh-16k.ps1 — the truncation-artifact rerun (rule 7: raise the cap and rerun THAT ARM only; low/medium need no rerun because greedy + zero truncations is byte-identical under any cap)",
+      "server": {
+        "model": "Q4_K_M",
+        "flags": [
+          "--alias",
+          "qwen/qwen3.8-27b",
+          "-c",
+          "32768",
+          "-ngl",
+          "99",
+          "--parallel",
+          "1",
+          "--load-mode",
+          "none",
+          "-ctk",
+          "q8_0",
+          "-ctv",
+          "q8_0",
+          "--spec-type",
+          "draft-mtp",
+          "--spec-draft-n-max",
+          "4",
+          "--spec-draft-p-min",
+          "0.75",
+          "--jinja",
+          "--chat-template-kwargs",
+          "{\"reasoning_effort\":\"xhigh\"}"
+        ]
+      },
+      "bench": {
+        "command": "python scripts/bench/bench.py --model <resolved Q4_K_M> --no-spawn --port <arm port> --datasets GSM8K --samples 200 --max-tokens 16384 --greedy --score",
+        "dataset": "GSM8K",
+        "samples": 200,
+        "max_tokens": 16384,
+        "greedy": true,
+        "score": true,
+        "result": "results/<slug>/data/gsm8k200-xhigh-16k.json"
+      }
+    }
+  ]
+}

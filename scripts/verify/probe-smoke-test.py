@@ -51,7 +51,12 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 # those are archived scripts kept as the record of a past run, not tools anyone
 # is expected to launch again.
 ROOTS = ("scripts/bench", "scripts/power", "scripts/verify", "scripts/agentic",
-         "scripts/vision", "scripts/quant-ladder", "scripts/report")
+         "scripts/vision", "scripts/quant-ladder", "scripts/report",
+         # scripts/lib is not a probe directory, but every probe now imports
+         # from it to find the server, the weights and the card. A library that
+         # fails to import takes every probe down with it, so it is checked
+         # here rather than discovered one probe at a time.
+         "scripts/lib")
 
 # A probe is a script with a main() or an argparse call. A library module has
 # neither and is exercised by the import check alone.

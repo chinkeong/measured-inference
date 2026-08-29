@@ -115,6 +115,46 @@ Every reference script is PowerShell. **`scripts/probe-config.sh` is the ported
 seed to adapt from** — it also defaults `-ngl` correctly, which
 `probe-config.ps1` does not.
 
+### SYMPTOM: `setup.sh` exits 3 — "the backend on offer is 'vulkan', not CUDA"
+
+Working as designed. There are no official Linux CUDA binaries at any arch, so
+the only NVIDIA-on-Linux options are a source build or a different backend, and
+a backend swap moves every throughput, acceptance and VRAM number for a reason
+that has nothing to do with the model (rule 3; rule 30 — never compare across).
+The script refuses rather than installing a Vulkan build quietly, as it used to.
+
+```bash
+sudo apt-get install -y nvidia-cuda-toolkit cmake build-essential git
+./scripts/setup.sh --cuda            # shallow-clones the pinned tag, builds, ~10-25 min
+./scripts/setup.sh --cuda --cuda-arch 121   # DGX Spark GB10, when 'native' is unsupported
+MEASURED_INFERENCE_ALLOW_VULKAN=1 ./scripts/setup.sh   # deliberate, non-comparable
+```
+
+`--dry-run` prints the whole plan (flavor, assets or cmake line, venv) and
+changes nothing. `--tag bNNNNN` pins the llama.cpp release so an Ubuntu rerun
+matches the Windows campaign it is being compared against.
+
+### SYMPTOM: perplexity or a suite hash disagrees with the published one
+
+Check the bytes before the model: `setup.sh`/`setup.ps1` compare every file
+under `corpora/` and `scripts/bench/datasets-frozen/` against its committed blob
+size and exit 5 on a mismatch. Git-for-Windows defaults to `core.autocrlf=true`,
+which rewrites `corpora/wikitext-2-raw-test.raw` from 1,290,590 bytes to
+1,294,948 — a different file under rule 6's whole quant ranking. The repo's
+`.gitattributes` (`* -text`) prevents it; clones made before it existed need
+`git config core.autocrlf false && git rm --cached -r . && git reset --hard`.
+Note `meetingbank_test.jsonl` is legitimately CRLF **in git** — matching the
+commit is the test, not the absence of CR bytes.
+
+### The build's own record: `bin/llama.cpp/INSTALL.json`
+
+Both setup scripts write it: `tag, flavor, arch, os, os_version, host, assets,
+urls, installed_utc, built_from_source, cuda_arch`, plus gpu/driver, the
+`llama-server --version` line, `source_commit` for a source build, and which
+tools exist. `scripts/detect-machine.py` reads `flavor` from it as the measured
+backend (and `os` as a token — `linux`/`windows`/`macos`). Copy flavor + tag
+into `campaign.md` and the report's conditions block.
+
 - **Detach**: `setsid nohup ./run.sh > run.log 2>&1 &` (or `nohup … &`); poll
   the log for a DONE marker, same as the Windows path.
 - **Parse-check before detaching**: `bash -n script.sh` (the `[scriptblock]`
@@ -180,8 +220,12 @@ bare IP literal — no hostname or `dst` ACL needed.
 - **Intel iGPU (unified memory)**: the window is borrowed RAM, not a wall —
   document the Shared GPU Memory Override path; the effort ceiling is patience,
   not memory. State RAM speed/channels with every number.
-- **DGX Spark / GB10 (Ubuntu ARM)**: llama-server ARM build; note the
-  vendor-native alternative (vLLM/NVFP4) with what switching buys.
+- **DGX Spark / GB10 (Ubuntu ARM)**: `setup.sh --cuda --cuda-arch 121` when
+  `native` is unsupported; without `--cuda` it takes the `ubuntu-vulkan-arm64`
+  asset and falls back to the CPU one only if that is absent. (Until 2026-08-29
+  this box got a CPU-only build silently: the aarch64 branch tested for
+  `vulkan-capable`, which `nvidia-smi` never sets.) Note the vendor-native
+  alternative (vLLM/NVFP4) with what switching buys.
 - **Apple Silicon (Metal)**: in scope — `setup.sh` fetches the official
   `macos-arm64` release (Metal built in; no `-ngl` spill risk, unified memory).
   The "VRAM" ceiling is the Metal working-set limit

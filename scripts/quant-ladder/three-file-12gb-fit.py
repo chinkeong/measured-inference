@@ -42,14 +42,17 @@ import urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, os.path.join(ROOT, "scripts", "bench"))
+sys.path.insert(0, os.path.join(ROOT, "scripts", "lib"))
 import refarm
 import gpu_lock
+import paths
 
-UNSLOTH = os.environ.get("MODEL_DIR", r"C:\Users\chink\.lmstudio\models\unsloth\Qwen3.8-27B-GGUF")
+# (label, FILE NAME, bpw). paths.model_path turns the name into a path
+# where the loop below needs one, so no row names a machine.
 FILES = [
-    ("UD-Q2_K_XL", os.path.join(UNSLOTH, "Qwen3.8-27B-UD-Q2_K_XL.gguf"), 2.912),
-    ("QAT-Q2_0", r"C:\Users\chink\.lmstudio\models\sdkyuan\qwen3.8-27B-qat-q2_0-gguf\qwen38-27b-qat-q2_0.gguf", 2.595),
-    ("UD-IQ2_S", os.path.join(UNSLOTH, "Qwen3.8-27B-UD-IQ2_S.gguf"), 2.481),
+    ("UD-Q2_K_XL", "Qwen3.8-27B-UD-Q2_K_XL.gguf", 2.912),
+    ("QAT-Q2_0", "qwen38-27b-qat-q2_0.gguf", 2.595),
+    ("UD-IQ2_S", "Qwen3.8-27B-UD-IQ2_S.gguf", 2.481),
 ]
 
 # the published 12 GB block's configuration, and the two questions around it
@@ -104,6 +107,17 @@ def wait(p, timeout=600):
 
 
 def main():
+    # This probe takes no options, but it must still ANSWER --help rather than
+    # treat it as noise and start measuring. It did the second thing, and
+    # scripts/verify/probe-smoke-test.py runs `--help` on every tracked script:
+    # the smoke test was therefore starting this run, and the run ended by
+    # overwriting three-file-12gb-fit.json with an empty one. A help request
+    # must never start work, and it must certainly never destroy a result.
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(__doc__.strip().splitlines()[0])
+        print("\n    python three-file-12gb-fit.py\n\nNo options. "
+              "Writes %s." % os.path.join(OUT, "three-file-12gb-fit.json"))
+        return
     os.makedirs(OUT, exist_ok=True)
     print("host: %s" % refarm.quiet_report()["status"])
     base = smi()
@@ -114,11 +128,13 @@ def main():
     rows = []
     for label, ctx, extra in CONFIGS:
         print("=== %s ===" % label)
-        for name, path, bpw in FILES:
-            if not os.path.exists(path):
+        for name, gguf, bpw in FILES:
+            try:
+                path = paths.model_path(gguf)
+            except SystemExit:
                 print("  %-12s MISSING" % name)
                 continue
-            args = [refarm.SERVER, "-m", path, "--alias", "m", "-ngl", "99",
+            args = [refarm.server_bin(), "-m", path, "--alias", "m", "-ngl", "99",
                     "-c", str(ctx), "--parallel", "1", "-fa", "on",
                     "--load-mode", "none", "-ctk", "q8_0", "-ctv", "q8_0",
                     "--jinja", "--reasoning", "off",
@@ -191,13 +207,19 @@ def main():
     print("\nSpeed on a 3060 is DERIVED by bandwidth (%.3f) and is an estimate."
           % (BW_3060 / BW_3090))
 
+    artefact = os.path.join(OUT, "three-file-12gb-fit.json")
+    if not rows:
+        # Rule 28: a measurement that exists cannot be recovered once gone. A
+        # run that measured nothing has nothing to say about the last run that
+        # did, so it does not get to speak over it.
+        print("\nno arm produced a row - leaving %s as it is." % artefact)
+        return
     json.dump({"date": time.strftime("%Y-%m-%d %H:%M"), "baseline_mib": base,
                "card_mib": CARD, "desktop_mib": [DESKTOP_LIGHT, DESKTOP_HEAVY],
                "bandwidth": {"rtx3090": BW_3090, "rtx3060": BW_3060},
                "rows": rows},
-              open(os.path.join(OUT, "three-file-12gb-fit.json"), "w",
-                   encoding="utf-8"), indent=1)
-    print("\n-> %s" % os.path.join(OUT, "three-file-12gb-fit.json"))
+              open(artefact, "w", encoding="utf-8"), indent=1)
+    print("\n-> %s" % artefact)
 
 
 if __name__ == "__main__":

@@ -46,10 +46,40 @@ import time
 import urllib.request
 import gpu_lock
 
-SERVER = os.environ.get("LLAMA_SERVER", r"E:\AI\llama.cpp\llama-server.exe")
-LMS = r"C:\Users\chink\.lmstudio\models"
-MODEL = os.path.join(LMS, r"unsloth\Qwen3.8-27B-GGUF\Qwen3.8-27B-UD-IQ4_XS.gguf")
-MMPROJ = os.path.join(LMS, r"lmstudio-community\Qwen3.8-27B-GGUF\mmproj-Qwen3.8-27B-BF16.gguf")
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), "lib"))
+import paths
+
+
+MODEL_NAME = "Qwen3.8-27B-UD-IQ4_XS.gguf"
+MMPROJ_NAME = "mmproj-Qwen3.8-27B-BF16.gguf"
+
+
+def model_file():
+    """The weights, resolved when a run needs them - never at import.
+
+    paths.model_path searches campaign.json's models/model_dir, $MODEL_DIR and
+    <repo>/models/, and exits naming all four when the file is on none of
+    them. The literal it replaces was one user's LM Studio directory.
+    """
+    return paths.model_path(MODEL_NAME)
+
+
+def mmproj_file():
+    """The vision projector, resolved the same way and at the same time."""
+    return paths.model_path(MMPROJ_NAME)
+
+
+def server_bin():
+    """llama-server, resolved when a run needs it - never at import.
+
+    $LLAMA_SERVER still overrides; paths.llama_bin honours it and exits with
+    an actionable message when nothing resolves. Deliberately not a module
+    constant: --help must not require a toolchain to be installed.
+    """
+    return paths.llama_bin("llama-server")
+
+
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                    "..", "..", "results", "qwen38-27b-blind", "data", "register")
 PORT = 1239
@@ -68,8 +98,20 @@ ARMS = [
     ("B wide      n10/p0.5  @122880", 10, 0.5, 122880),
     ("C wide+trim n10/p0.5  @98304", 10, 0.5, 98304),
 ]
-DESKTOP_RESERVE = 1796      # this page's own reserve, MiB
-BOARD = 24576
+
+
+def card():
+    """(board_total_mib, desktop_reserve) for THIS machine, from machine.json.
+
+    Not a constant. `DESKTOP_RESERVE = 1796` / `BOARD = 24576` is the
+    reference 3090, and on a smaller card `board - loaded` still reads as
+    comfortable slack - so the desktop_ok column below would say "yes" for an
+    arm that is spilling to host RAM (rule 13b). desktop_reserve is the
+    measured {"min","max","n","date"}; its "max" is the anti-spill fence
+    (rule 14). Called from main(), never at import, so --help needs no
+    machine.json.
+    """
+    return paths.board_total_mib(), paths.desktop_reserve_mib()
 
 
 def post(payload, timeout=1800):
@@ -91,10 +133,10 @@ def vram():
 
 
 def start(nmax, pmin, ctx, logpath):
-    args = [SERVER, "-m", MODEL, "--alias", "qwen/qwen3.8-27b",
+    args = [server_bin(), "-m", model_file(), "--alias", "qwen/qwen3.8-27b",
             "-ngl", "99", "-c", str(ctx), "--parallel", "1",
             "-ctk", "q8_0", "-ctv", "q8_0",
-            "--mmproj", MMPROJ, "--image-min-tokens", "1024",
+            "--mmproj", mmproj_file(), "--image-min-tokens", "1024",
             "--image-max-tokens", "10580",
             "--spec-type", "draft-mtp",
             "--spec-draft-n-max", str(nmax), "--spec-draft-p-min", str(pmin),
@@ -145,9 +187,8 @@ def probe():
 
 
 def main():
-    for path, what in ((SERVER, "llama-server"), (MODEL, "model"), (MMPROJ, "mmproj")):
-        if not os.path.exists(path):
-            sys.exit("missing %s: %s" % (what, path))
+    board, reserve = card()
+    fence = reserve["max"]
     os.makedirs(OUT, exist_ok=True)
     logdir = os.path.join(OUT, "drafter-window-logs")
     os.makedirs(logdir, exist_ok=True)
@@ -174,7 +215,7 @@ def main():
         try:
             w = probe()
             print("  VRAM at load: %s MiB   slack %s MiB   warmup %.2f t/s (discarded)"
-                  % (loaded, (BOARD - loaded) if loaded else "?", w["decode_tps"]))
+                  % (loaded, (board - loaded) if loaded else "?", w["decode_tps"]))
             time.sleep(5)
             got = []
             for i in range(SETTLED):
@@ -189,8 +230,8 @@ def main():
         acc = [r["acceptance"] for r in got if r["acceptance"] is not None]
         mean = sum(tps) / len(tps)
         rows.append({"arm": label, "nmax": nmax, "pmin": pmin, "ctx": ctx,
-                     "vram_mib": loaded, "slack_mib": (BOARD - loaded) if loaded else None,
-                     "desktop_ok": (BOARD - loaded) >= DESKTOP_RESERVE if loaded else None,
+                     "vram_mib": loaded, "slack_mib": (board - loaded) if loaded else None,
+                     "desktop_ok": (board - loaded) >= fence if loaded else None,
                      "mean_tps": round(mean, 2),
                      "spread_pct": round((max(tps) - min(tps)) / mean * 100, 1),
                      "acceptance": round(sum(acc) / len(acc), 3) if acc else None,
@@ -204,7 +245,7 @@ def main():
             continue
         print("%-30s %-9s %-10s %-11s %-9s %s"
               % (r["arm"], r["vram_mib"], r["slack_mib"],
-                 "yes" if r["desktop_ok"] else "NO (<%d)" % DESKTOP_RESERVE,
+                 "yes" if r["desktop_ok"] else "NO (<%d)" % fence,
                  r["mean_tps"], r["acceptance"]))
 
     ok = [r for r in rows if not r.get("failed")]
@@ -220,8 +261,9 @@ def main():
                   % (r["arm"], d, dc, r["slack_mib"]))
 
     out = os.path.join(OUT, "drafter-vs-window.json")
-    json.dump({"date": time.strftime("%Y-%m-%d %H:%M"), "board_mib": BOARD,
-               "desktop_reserve_mib": DESKTOP_RESERVE, "prompt": PROMPT,
+    json.dump({"date": time.strftime("%Y-%m-%d %H:%M"), "board_mib": board,
+               "desktop_reserve_mib": fence, "desktop_reserve": reserve,
+               "prompt": PROMPT,
                "vision": True, "arms": rows}, open(out, "w", encoding="utf-8"), indent=1)
     print("\n-> %s" % out)
 

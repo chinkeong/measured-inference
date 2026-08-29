@@ -68,15 +68,39 @@ import time
 import urllib.request
 import gpu_lock
 
-SERVER = os.environ.get("LLAMA_SERVER", r"E:\AI\llama.cpp\llama-server.exe")
-LMS = r"C:\Users\chink\.lmstudio\models"
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), "lib"))
+import paths
+
+
+def ref_model():
+    """The reference weights, resolved when a run needs them.
+
+    REF_MODEL_NAME is part of THE STANDARD below and does not drift. WHERE
+    that file sits is a property of the machine, not of the standard, so it
+    is resolved through paths.model_path ($MODEL_DIR, campaign.json's
+    model_dir/models, <repo>/models/) instead of being written down here.
+    """
+    return paths.model_path(REF_MODEL_NAME)
+
+
+def server_bin():
+    """llama-server, resolved when a run needs it - never at import.
+
+    $LLAMA_SERVER still overrides; paths.llama_bin honours it and exits with
+    an actionable message when nothing resolves. Deliberately not a module
+    constant: --help must not require a toolchain to be installed.
+    """
+    return paths.llama_bin("llama-server")
+
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "..", "..", "results", "qwen38-27b-blind", "data", "register")
 
 # ---------------------------------------------------------------------------
 # THE STANDARD. Do not edit. See "THE STANDARD MUST NOT DRIFT" above.
 # ---------------------------------------------------------------------------
-REF_MODEL = os.path.join(LMS, r"unsloth\Qwen3.8-27B-GGUF\Qwen3.8-27B-UD-IQ4_XS.gguf")
+REF_MODEL_NAME = "Qwen3.8-27B-UD-IQ4_XS.gguf"
 REF_CTX = 32768
 REF_PORT = 1247
 REF_NPREDICT = 700
@@ -243,7 +267,7 @@ def post(payload, timeout=1800):
 
 
 def start(logpath):
-    args = [SERVER, "-m", REF_MODEL, "--alias", "qwen/qwen3.8-27b"] + REF_FLAGS + \
+    args = [server_bin(), "-m", ref_model(), "--alias", "qwen/qwen3.8-27b"] + REF_FLAGS + \
            ["--host", "127.0.0.1", "--port", str(REF_PORT)]
     lf = open(logpath, "w", encoding="utf-8", errors="replace")
     return gpu_lock.serve(args, stdout=lf, stderr=subprocess.STDOUT), lf
@@ -534,7 +558,7 @@ def calibrate(n):
               "here. Not yet explained." % st["n"])
 
     rep = {"date": time.strftime("%Y-%m-%d %H:%M"),
-           "arm": {"model": os.path.basename(REF_MODEL), "ctx": REF_CTX,
+           "arm": {"model": REF_MODEL_NAME, "ctx": REF_CTX,
                    "flags": REF_FLAGS, "prompt": REF_PROMPT,
                    "probes": REF_PROBES, "warmup_discarded": REF_WARMUP,
                    "npredict": REF_NPREDICT},
@@ -558,8 +582,6 @@ def main():
     ap.add_argument("--calibrate", type=int, metavar="N",
                     help="run the reference in N separate loads and measure the band")
     a = ap.parse_args()
-    if not os.path.exists(REF_MODEL):
-        sys.exit("missing reference model: %s" % REF_MODEL)
     if a.calibrate:
         calibrate(a.calibrate)
     else:

@@ -36,18 +36,61 @@ import time
 import urllib.request
 import gpu_lock
 
-SERVER = os.environ.get("LLAMA_SERVER", r"E:\AI\llama.cpp\llama-server.exe")
-LMS = r"C:\Users\chink\.lmstudio\models"
-MODEL = os.path.join(LMS, r"unsloth\Qwen3.8-27B-GGUF\Qwen3.8-27B-UD-IQ4_XS.gguf")
-MMPROJ = os.path.join(LMS, r"lmstudio-community\Qwen3.8-27B-GGUF\mmproj-Qwen3.8-27B-BF16.gguf")
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), "lib"))
+import paths
+
+
+MODEL_NAME = "Qwen3.8-27B-UD-IQ4_XS.gguf"
+MMPROJ_NAME = "mmproj-Qwen3.8-27B-BF16.gguf"
+
+
+def model_file():
+    """The weights, resolved when a run needs them - never at import.
+
+    paths.model_path searches campaign.json's models/model_dir, $MODEL_DIR and
+    <repo>/models/, and exits naming all four when the file is on none of
+    them. The literal it replaces was one user's LM Studio directory.
+    """
+    return paths.model_path(MODEL_NAME)
+
+
+def mmproj_file():
+    """The vision projector, resolved the same way and at the same time."""
+    return paths.model_path(MMPROJ_NAME)
+
+
+def server_bin():
+    """llama-server, resolved when a run needs it - never at import.
+
+    $LLAMA_SERVER still overrides; paths.llama_bin honours it and exits with
+    an actionable message when nothing resolves. Deliberately not a module
+    constant: --help must not require a toolchain to be installed.
+    """
+    return paths.llama_bin("llama-server")
+
+
 IMG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "vision", "detail-target.png")
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                    "..", "..", "results", "qwen38-27b-blind", "data", "register")
 PORT = 1241
 BASE = "http://127.0.0.1:%d" % PORT
-CTX, BOARD, RESERVE = 122880, 24576, 1796
+CTX = 122880
 FILL_TOKENS = 100000          # leave room for the image's ~10.5k on top
 TAG = ""
+
+
+def card():
+    """(board_total_mib, desktop_reserve) for THIS machine, from machine.json.
+
+    Not a constant. `BOARD, RESERVE = 24576, 1796` is the reference 3090, and
+    on a smaller card `board - peak` still reads as comfortable slack - so this
+    probe would print "clears the reserve: YES" for a window that is spilling
+    to host RAM (rule 13b). desktop_reserve is the measured
+    {"min","max","n","date"}; its "max" is the anti-spill fence (rule 14).
+    Called from main(), never at import, so --help needs no machine.json.
+    """
+    return paths.board_total_mib(), paths.desktop_reserve_mib()
 
 
 def filler(lines):
@@ -89,32 +132,34 @@ class Sampler(threading.Thread):
 def main():
     global CTX, FILL_TOKENS, TAG
     DRAFT_KV = ""
-    MODEL_PATH = MODEL
+    MODEL_PATH = None
     SPEC = "n10p05"
     ap = argparse.ArgumentParser()
     ap.add_argument("--ctx", type=int, default=CTX)
     ap.add_argument("--tag", default="")
     ap.add_argument("--ctkd", default="", help="quantise the DRAFT cache too")
-    ap.add_argument("--model", default=MODEL, help="which GGUF to serve")
+    ap.add_argument("--model", help="which GGUF to serve; resolved if omitted")
     ap.add_argument("--spec", default="n10p05",
                     choices=["n10p05", "n4p075", "none"],
                     help="drafter setting, or none")
     ap.add_argument("--fill-frac", type=float, default=0.85)
     o = ap.parse_args()
+    board, reserve = card()
+    fence = reserve["max"]
     CTX, TAG = o.ctx, o.tag
     DRAFT_KV = o.ctkd
-    MODEL_PATH = o.model
+    MODEL_PATH = paths.model_path(o.model) if o.model else model_file()
     SPEC = o.spec
     # fill to ~85% of whatever window is under test, leaving room for the image
     FILL_TOKENS = int(CTX * o.fill_frac) - 11000
-    for p, w in ((SERVER, "llama-server"), (MODEL_PATH, "model"), (MMPROJ, "mmproj"), (IMG, "image")):
+    for p, w in ((IMG, "image"),):
         if not os.path.exists(p):
             sys.exit("missing %s: %s" % (w, p))
 
-    args = [SERVER, "-m", MODEL_PATH, "--alias", "qwen/qwen3.8-27b",
+    args = [server_bin(), "-m", MODEL_PATH, "--alias", "qwen/qwen3.8-27b",
             "-ngl", "99", "-c", str(CTX), "--parallel", "1",
             "-ctk", "q8_0", "-ctv", "q8_0",
-            "--mmproj", MMPROJ, "--image-min-tokens", "1024", "--image-max-tokens", "10580",
+            "--mmproj", mmproj_file(), "--image-min-tokens", "1024", "--image-max-tokens", "10580",
             "--jinja", "--reasoning", "off", "--host", "127.0.0.1", "--port", str(PORT)]
     if SPEC == "n10p05":
         args += ["--spec-type", "draft-mtp", "--spec-draft-n-max", "10", "--spec-draft-p-min", "0.5"]
@@ -151,7 +196,7 @@ def main():
 
     at_load = vram()
     print("vision + n10/p0.5 @ -c %d" % CTX)
-    print("  VRAM at load: %d MiB   slack %d" % (at_load, BOARD - at_load))
+    print("  VRAM at load: %d MiB   slack %d" % (at_load, board - at_load))
 
     b64 = base64.b64encode(open(IMG, "rb").read()).decode("ascii")
     text = filler(int(FILL_TOKENS / 58.7)) + (
@@ -181,14 +226,14 @@ def main():
     tm = resp.get("timings", {})
     ans = (resp["choices"][0]["message"].get("content") or "").strip()
     peak = max(s.samples) if s.samples else at_load
-    slack = BOARD - peak
+    slack = board - peak
     print("  prompt_n %s (image + fill)   %.0fs wall   decode %.2f t/s"
           % (tm.get("prompt_n"), wall, tm.get("predicted_per_second", 0)))
     print("  answer: %r   (ground truth 207)" % ans[:40])
     print("  VRAM samples: %d   PEAK %d MiB   slack at peak %d MiB"
           % (len(s.samples), peak, slack))
     print("  clears the %d MiB desktop reserve at peak: %s"
-          % (RESERVE, "YES" if slack >= RESERVE else "NO"))
+          % (fence, "YES" if slack >= fence else "NO"))
 
     proc.terminate()
     try:
@@ -198,10 +243,11 @@ def main():
     lf.close()
 
     os.makedirs(OUT, exist_ok=True)
-    json.dump({"date": time.strftime("%Y-%m-%d %H:%M"), "ctx": CTX, "board": BOARD,
+    json.dump({"date": time.strftime("%Y-%m-%d %H:%M"), "ctx": CTX, "board": board,
                "model": os.path.basename(MODEL_PATH), "spec": SPEC,
-               "reserve": RESERVE, "vram_load": at_load, "vram_peak": peak,
-               "slack_at_peak": slack, "clears": slack >= RESERVE,
+               "reserve": fence, "desktop_reserve": reserve,
+               "vram_load": at_load, "vram_peak": peak,
+               "slack_at_peak": slack, "clears": slack >= fence,
                "prompt_n": tm.get("prompt_n"), "decode_tps": tm.get("predicted_per_second"),
                "answer": ans[:80], "truth": "207", "samples": len(s.samples)},
               open(os.path.join(OUT, "drafter-vision-peak%s.json" % (TAG or "")), "w", encoding="utf-8"), indent=1)

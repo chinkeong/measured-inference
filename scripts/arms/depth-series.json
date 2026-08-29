@@ -1,0 +1,204 @@
+{
+  "name": "depth series — decode and prefill vs prompt depth",
+  "stage": 3,
+  "derived_from": [
+    {
+      "script": "scripts/reference-3090/nuance-suite.ps1 (PART 1 only)",
+      "launcher": "none — the .ps1 builds the llama-server argv itself",
+      "arms": "nuance-depth-ladder"
+    },
+    {
+      "script": "scripts/reference-3090/deep-decode-probe.ps1",
+      "launcher": "none — the .ps1 builds the llama-server argv itself",
+      "arms": "deep-decode"
+    }
+  ],
+  "models": [
+    "UD-IQ4_XS"
+  ],
+  "filler_spec": {
+    "what": "The deterministic synthetic filler both .ps1 files generate inline. It defines the prompt lengths the published depth numbers were measured at, so it must be reproduced EXACTLY — byte for byte.",
+    "prompt": "prefix + '\\n'.join(note(i) for i in 1..n) + suffix, concatenated with NO separator of the runner's own — which is why the prefix ends in a newline and the suffix begins with one. i is 1-BASED. The result is the PowerShell [string]::Join(\"`n\", @(header) + notes + @(task)) byte for byte, and the prompt_sha256 on every probe is the proof.",
+    "note_python": "f\"Note {i}: subsystem alpha-{(i*7)%97} reported latency {(17*i)%993} ms on shard {i%13}, retry budget {(3*i)%29}, digest fragment {(i*48271)%1048573:x}, remark: threshold crossed only when the moving median over window {(5*i)%47} exceeded baseline by {(11*i)%83} percent.\"",
+    "digest_fragment": "lowercase hexadecimal of (i*48271) % 1048573, no 0x prefix, no zero padding — PowerShell [Convert]::ToString(x, 16), which Python's ':x' matches exactly for the non-negative values this produces",
+    "checks": {
+      "i=1": "Note 1: subsystem alpha-7 reported latency 17 ms on shard 1, retry budget 3, digest fragment bc8f, remark: threshold crossed only when the moving median over window 5 exceeded baseline by 11 percent.",
+      "i=460": "Note 460: subsystem alpha-19 reported latency 869 ms on shard 5, retry budget 17, digest fragment 2d133, remark: threshold crossed only when the moving median over window 44 exceeded baseline by 80 percent.",
+      "n=460 total prompt": "~27k tokens with the deep-decode prefix/suffix — the depth the published prefill/decode split was measured at"
+    },
+    "verified": "every prompt_sha256 in this file was reproduced by running the PowerShell original itself (Windows PowerShell 5.1, 2026-08-29) and hashing its $longPrompt / $prompt — 7/7 identical",
+    "source": "deep-decode-probe.ps1 lines 9-14 and nuance-suite.ps1's Filler() — identical generators, verified character by character"
+  },
+  "notes": [
+    "TWO SWEEPS, ONE FILE, DIFFERENT PARITY — they are NOT one curve (stage-3: 'two series with mismatched parity are different experiments'). nuance-depth-ladder: -c 122880, --alias q, six depths on ONE server, n_predict 400, prefix 'Read these notes, then do the task at the end.'. deep-decode: -c 196608, --alias qwen/qwen3.8-27b, one depth, n_predict 700, prefix 'Reference notes for the task below. Read them, then do the task at the end.'. Same model, same drafter, same q8 KV, no projector in either. rule 30: arms are only comparable INSIDE one sweep. The \"sweep\" field on each arm names which sweep it belongs to; never put an absolute t/s from one sweep beside one from another.",
+    "The six ladder probes ran BACK TO BACK ON ONE SERVER, in the file's order (60, 220, 460, 925, 1400, 1850 notes) — that ordering is the measurement: each rung's KV cache state follows the one before it.",
+    "Every arm's flags are COMPLETE and self-contained: nothing is inherited from \"defaults\", so a runner that ignores \"defaults\" still launches the exact server the reference campaign launched.",
+    "GREEDY IS THE MEASUREMENT: every probe in these .ps1 files posted temperature=0 and top_k=1 in the request body and nothing else, so that is what each probe here declares. arms.py sends exactly the sampler a probe names and injects no default of its own; a probe that named none would inherit the server's --temp 1.0 and stop being a comparison. The values are repeated in \"defaults\" as well, but every probe carries its own — an arm read in isolation still states the conditions it was measured under (rule 3).",
+    "Dropped from every flag list, deliberately and identically: --api-key dummy (access control, not measurement — scripts/probe-config.sh, this repo's POSIX seed, drops it too) and --host 127.0.0.1 --port 1234 (the runner owns the transport, exactly as scripts/bench/bench.py's Server injects them). Nothing else was dropped, reordered or retyped.",
+    "rule 12, UNMET BY THESE ARMS AS WRITTEN: the originals fired one probe per rung with no warm-up and no discard, so a rung taken right after a long prefill can read up to 45% low on ramping clocks. repeat=1 / discard_first=false is preserved because it is what produced the published numbers. A cooled rerun sets repeat=2, discard_first=true — and is a NEW sweep, not a rung-by-rung comparison against these.",
+    "Use the SERVER's timings, never wall clock: prompt_n, prompt_per_second, prompt_ms for prefill; predicted_per_second, predicted_n for decode; draft_n_accepted/draft_n for acceptance. Wall clock here includes prefill and is a different measurement.",
+    "This is also the deep-fill probe rule 13 demands before any window from ctx-ceiling.json is labeled resident or safe."
+  ],
+  "record": [
+    "per probe: completion tokens, wall seconds, server timings (prompt_n, prompt_per_second, prompt_ms, predicted_n, predicted_per_second)",
+    "per probe: draft_n and draft_n_accepted -> acceptance AND mean draft length (rule 11 — publish both)",
+    "per arm: dedicated VRAM MiB, sampled while the probe runs (nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits)",
+    "per arm: regime (thinking/answer), depth, cap, desktop state, RAM channels (rule 3) — written the moment it exists, never buffered (rule 28)",
+    "per probe: the depth actually reached (server prompt_n), not the note count — the note count is the input, prompt_n is the condition"
+  ],
+  "defaults": {
+    "repeat": 1,
+    "discard_first": false,
+    "temperature": 0,
+    "top_k": 1
+  },
+  "arms": [
+    {
+      "id": "iq4xs-c122880-depth-ladder",
+      "sweep": "nuance-depth-ladder",
+      "derived_from": "nuance-suite.ps1 PART 1 (depth/prefill series, IQ4_XS text-only -c 122880)",
+      "server": {
+        "model": "UD-IQ4_XS",
+        "flags": [
+          "--alias",
+          "q",
+          "-c",
+          "122880",
+          "-ngl",
+          "99",
+          "--parallel",
+          "1",
+          "--load-mode",
+          "none",
+          "-ctk",
+          "q8_0",
+          "-ctv",
+          "q8_0",
+          "--spec-type",
+          "draft-mtp",
+          "--spec-draft-n-max",
+          "4",
+          "--spec-draft-p-min",
+          "0.75",
+          "--jinja"
+        ]
+      },
+      "probes": [
+        {
+          "id": "depth-60-notes",
+          "filler_notes": 60,
+          "prefix": "Read these notes, then do the task at the end.\n",
+          "suffix": "\nTASK: Write a single self-contained JavaScript file implementing a red-black tree class with insert, delete, search and an in-order iterator. Code only, no explanation.",
+          "n_predict": 400,
+          "temperature": 0,
+          "top_k": 1,
+          "prompt_chars": 12519,
+          "prompt_sha256": "a72f59d9c682debbaff186f445df724fd8ab23e2330a76dced1dea615fb2a990"
+        },
+        {
+          "id": "depth-220-notes",
+          "filler_notes": 220,
+          "prefix": "Read these notes, then do the task at the end.\n",
+          "suffix": "\nTASK: Write a single self-contained JavaScript file implementing a red-black tree class with insert, delete, search and an in-order iterator. Code only, no explanation.",
+          "n_predict": 400,
+          "temperature": 0,
+          "top_k": 1,
+          "prompt_chars": 45488,
+          "prompt_sha256": "fab7329b03993a3d670d3e917a4c426bef095bb96fc308df898975ccbe801b6a"
+        },
+        {
+          "id": "depth-460-notes",
+          "filler_notes": 460,
+          "prefix": "Read these notes, then do the task at the end.\n",
+          "suffix": "\nTASK: Write a single self-contained JavaScript file implementing a red-black tree class with insert, delete, search and an in-order iterator. Code only, no explanation.",
+          "n_predict": 400,
+          "temperature": 0,
+          "top_k": 1,
+          "prompt_chars": 94994,
+          "prompt_sha256": "24d7396d78ee9077bdda217e8f46cf76b7c628c421c3d18a39b46f9a59f68f68"
+        },
+        {
+          "id": "depth-925-notes",
+          "filler_notes": 925,
+          "prefix": "Read these notes, then do the task at the end.\n",
+          "suffix": "\nTASK: Write a single self-contained JavaScript file implementing a red-black tree class with insert, delete, search and an in-order iterator. Code only, no explanation.",
+          "n_predict": 400,
+          "temperature": 0,
+          "top_k": 1,
+          "prompt_chars": 190912,
+          "prompt_sha256": "75935058d14638d04531efc631afb4565ce3eafb6961d38c6ecdec6e20c52c33"
+        },
+        {
+          "id": "depth-1400-notes",
+          "filler_notes": 1400,
+          "prefix": "Read these notes, then do the task at the end.\n",
+          "suffix": "\nTASK: Write a single self-contained JavaScript file implementing a red-black tree class with insert, delete, search and an in-order iterator. Code only, no explanation.",
+          "n_predict": 400,
+          "temperature": 0,
+          "top_k": 1,
+          "prompt_chars": 289293,
+          "prompt_sha256": "d258c34df42a92c5fb040e32f6142e0aae21aa43d4f0fbd92c2bc3d00ec8840c"
+        },
+        {
+          "id": "depth-1850-notes",
+          "filler_notes": 1850,
+          "prefix": "Read these notes, then do the task at the end.\n",
+          "suffix": "\nTASK: Write a single self-contained JavaScript file implementing a red-black tree class with insert, delete, search and an in-order iterator. Code only, no explanation.",
+          "n_predict": 400,
+          "temperature": 0,
+          "top_k": 1,
+          "prompt_chars": 382562,
+          "prompt_sha256": "c43d7fcf8687d56e8b97654a2e7b00cfcb15b8c865f8065caef0737f1c7c4b60"
+        }
+      ],
+      "repeat": 1,
+      "discard_first": false
+    },
+    {
+      "id": "iq4xs-c196608-deep-decode-460",
+      "sweep": "deep-decode",
+      "derived_from": "deep-decode-probe.ps1 (server timing split at ~27k depth, promoted config: IQ4_XS text-only -c 196608)",
+      "server": {
+        "model": "UD-IQ4_XS",
+        "flags": [
+          "--alias",
+          "qwen/qwen3.8-27b",
+          "-c",
+          "196608",
+          "-ngl",
+          "99",
+          "--parallel",
+          "1",
+          "--load-mode",
+          "none",
+          "-ctk",
+          "q8_0",
+          "-ctv",
+          "q8_0",
+          "--spec-type",
+          "draft-mtp",
+          "--spec-draft-n-max",
+          "4",
+          "--spec-draft-p-min",
+          "0.75",
+          "--jinja"
+        ]
+      },
+      "probes": [
+        {
+          "id": "deep-460-notes",
+          "filler_notes": 460,
+          "prefix": "Reference notes for the task below. Read them, then do the task at the end.\n",
+          "suffix": "\nTASK: Write a single self-contained JavaScript file implementing a red-black tree class with insert, delete, search and an in-order iterator. Code only, no explanation.",
+          "n_predict": 700,
+          "temperature": 0,
+          "top_k": 1,
+          "prompt_chars": 95023,
+          "prompt_sha256": "d12aada1e4c374ae8420dcd74c03f810358dcc78d8f19265a1bd407d4a563b35"
+        }
+      ],
+      "repeat": 1,
+      "discard_first": false
+    }
+  ]
+}
