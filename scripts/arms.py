@@ -1307,6 +1307,7 @@ def main():
                         "sweep": unit["group"], "ledger": ledger_path,
                         "state": "running"})
                     t0 = time.time()
+                    t_start_iso = _iso()
                     try:
                         with VramSampler() as vram:
                             resp = run_probe(base_url, body,
@@ -1360,6 +1361,14 @@ def main():
                     finish = choice.get("finish_reason")
                     rec = dict(
                         common, kind="probe", ts=_iso(), probe=p["id"],
+                        # The energy join needs the request's START, and rule 28
+                        # says a field not written during the run cannot be
+                        # recovered at any price. With t_start_iso and label
+                        # present, scripts/power/attribute-power.py consumes this
+                        # ledger directly (--events), so every arm sweep is an
+                        # energy arm for free and Stage 6e needs no PowerShell.
+                        t_start_iso=t_start_iso,
+                        label="%s/%s" % (arm["id"], p["id"]),
                         probe_index=j, discarded=discarded,
                         n_predict=p["n_predict"], prompt_source=src,
                         prompt_chars=len(text),

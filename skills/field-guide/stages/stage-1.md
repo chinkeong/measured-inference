@@ -9,9 +9,16 @@ and files on disk, the KV arithmetic, a verified `-ngl`, one floor number per
 candidate quant, and a candidate roster that has already been pruned.
 
 **Acquire** (network, parallel with nothing). `scripts/setup.ps1|sh` fetches a
-llama.cpp build into `bin/` for this platform. Download the chosen quants +
-mmproj into `models/` (curl, resumable, verify byte sizes against the HF
-listing). Download nothing you won't measure.
+llama.cpp build into `bin/` for this platform, creates `.venv` from
+`requirements-min.txt`, and records what it installed in
+`bin/llama.cpp/INSTALL.json` — `flavor` (cuda/vulkan/metal/cpu), tag, driver.
+Copy that flavor and tag into `campaign.md` now; it is a condition of every
+number that follows (rule 3). **On Linux + NVIDIA there is no official CUDA
+binary, so `setup.sh` refuses to install a Vulkan one and exits 3: run
+`./scripts/setup.sh --cuda` (needs `nvidia-cuda-toolkit cmake build-essential
+git`, 10–25 min) — a Vulkan campaign is not comparable to a CUDA one.** Download
+the chosen quants + mmproj into `models/` (curl, resumable, verify byte sizes
+against the HF listing). Download nothing you won't measure.
 
 **Foundation & sanity**
 - Read the model's `config.json`: layer count, full-attention pattern, KV

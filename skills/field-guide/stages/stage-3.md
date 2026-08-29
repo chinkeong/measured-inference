@@ -16,16 +16,20 @@ within 1.6 pts), but it does NOT transfer across token regimes.
 - Discover drafting options (built-in MTP head? companion draft model?
   DFlash-style heads?). **Name every mechanism available and mark each
   measured or unmeasured** — an omitted alternative reads as nonexistent.
-  Sweep n-max × p-min on a realistic code probe (~10 configs; reference:
-  `spec-sweep.ps1`). Expect high p-min to win at real acceptance rates.
+  Sweep n-max × p-min on a realistic code probe (~10 configs; run: `python
+  scripts/arms.py --arms scripts/arms/spec-sweep.json`; the Windows original is
+  archived in scripts/reference-3090/). Expect high p-min to win at real
+  acceptance rates.
 - **Declare the token regime with every speed**: thinking tokens and answer
   tokens decode at different rates under speculation (blind reproduction:
   same file, same depth, 39 vs ~70 t/s across regimes; verbatim-copy answers
   hit 148.7). A t/s number without its regime is a different measurement in
   disguise.
 - **The acceptance demonstration**: same flags, novel-code probe vs
-  copy-this-text-verbatim probe (reference: `accept-demo.ps1`). The spread IS the
-  speed story; any published speedup without its acceptance rate is unfalsifiable.
+  copy-this-text-verbatim probe (run: `python scripts/arms.py --arms
+  scripts/arms/acceptance.json`; the Windows original is archived in
+  scripts/reference-3090/). The spread IS the speed story; any published
+  speedup without its acceptance rate is unfalsifiable.
 - **Report mean draft length beside every acceptance rate** (rule 11): the p-min
   gate truncates the draft tree on uncertain tokens, so acceptance can sit
   identical while throughput differs 1.69× (reasoning stream: accept 0.895,
@@ -36,14 +40,23 @@ within 1.6 pts), but it does NOT transfer across token regimes.
   and for the Stage-5 recipe cards — every band labeled with the regime, depth
   and desktop state that produced it.
 
-**The cooled depth ladder** (reference: `nuance-suite.ps1` part 1,
-`deep-decode-probe.ps1`). Fixed probes at increasing prompt depths; report decode
-and prefill vs depth with acceptance shown steady (or not). Use server timings,
-never wall-clock-including-prefill. Declare the series' parity (drafter on/off,
-projector on/off, token regime) — two series with mismatched parity are different
-experiments, not one curve. **Run it cooled, to rule 12's clock-ramp protocol**:
-a probe fired right after a long prefill reads up to 45% low because the board's
-clocks are still ramping (prefill itself may only reach ~65% of settled clocks) —
-discard the first post-prefill probe at every rung and time only settled probes,
-or the ladder measures thermodynamics instead of depth. Run the ladder on the
-windows Stage 2 proved safe; a rung above a proven ceiling measures spill.
+**The cooled depth ladder** (run: `python scripts/arms.py --arms
+scripts/arms/depth-series.json`; the Windows originals are archived in
+scripts/reference-3090/). Fixed probes at increasing prompt depths; report
+decode and prefill vs depth with acceptance shown steady (or not). Use server
+timings, never wall-clock-including-prefill. Declare the series' parity (drafter
+on/off, projector on/off, token regime) — two series with mismatched parity are
+different experiments, not one curve; depth-series.json holds two of them, the
+ladder and the deep-decode probe, flagged in its own notes, and each arm's
+`sweep` field names which, so no absolute t/s crosses between them. **Run it
+cooled, to rule 12's clock-ramp protocol**: a probe fired right after a long
+prefill reads up to 45% low because the board's clocks are still ramping
+(prefill itself may only reach ~65% of settled clocks) — discard the first
+post-prefill probe at every rung and time only settled probes, or the ladder
+measures thermodynamics instead of depth. The runner enforces that discard
+rather than the operator's memory: `discard_first` drops the first probe from
+the summary and still writes it to the ledger marked discarded. The shipped arms
+carry `discard_first false` because that is what produced the published numbers,
+so a cooled run sets it true and is a NEW sweep, not a rung-by-rung comparison
+against them. Run the ladder on the windows Stage 2 proved safe; a rung above a
+proven ceiling measures spill.

@@ -10,13 +10,22 @@ at a Stage-5 cap, inside a Stage-5 window. Checkpoint-commit each sub-stage.
 ## Stage 6a — quality: rank with perplexity, smoke-test with accuracy
 - **Perplexity ranks quants — the survivors of the Stage-1 gate only**
   (METHODOLOGY rule 6 — the wikitext-2-raw test split, 294,912 token positions
-  = 36 × 8,192-token chunks; reference: `ppl-compare.ps1`, resumable, one model
-  per invocation if the platform kills long tasks). The report's ranking table
-  lists the screened-out files too, marked "screened out at the Stage-1 gate"
-  with their screen numbers, so no reader mistakes a pruned file for an untested
-  one. Verify the KV-quant claim while here (fp16 vs q8_0 cache). **q4_0
-  K-cache is not a free next step** — never recommend it without its own
-  measured PPL check; absent the check, say "unverified here".
+  = 36 × 8,192-token chunks). This is NOT an arm sweep: perplexity runs
+  `llama-perplexity`, a different tool, which `scripts/arms.py` does not drive.
+  The runner is `powershell -NoProfile -ExecutionPolicy Bypass -File
+  scripts/quant-ladder/run-ladder.ps1 -Manifest <manifest>`, one rung per quant
+  file on the model of `scripts/quant-ladder/ladder-manifest.json`; it is
+  resumable (a rung whose RESULT or FAILED line is already in the ledger is
+  skipped) and `-Once` does one rung per invocation if the platform kills long
+  tasks. **That runner is Windows PowerShell and this repo ships no POSIX
+  equivalent** — a Linux campaign drives `llama-perplexity` itself at the
+  manifest's conditions (`-ngl 99 -c 8192 -fa on --load-mode mmap`, f16 KV, the
+  md5-pinned corpus), and budgets that port before the hours. The report's
+  ranking table lists the screened-out files too, marked "screened out at the
+  Stage-1 gate" with their screen numbers, so no reader mistakes a pruned file
+  for an untested one. Verify the KV-quant claim while here (fp16 vs q8_0
+  cache). **q4_0 K-cache is not a free next step** — never recommend it without
+  its own measured PPL check; absent the check, say "unverified here".
 - **Size ladder (optional, when the use case asks "how small can this model
   go")**: `scripts/quant-ladder/` is the reusable runner — manifest-driven,
   streamed (test a rung only when its file is on disk AND byte-stable),
@@ -43,13 +52,21 @@ Runs at each level's best-fit locked recipe, at the Stage-5 cap. A level Stage 5
 listed "not offered" is not run here — it is reported as not offered, with its
 measured appetite.
 
-References: `sweep-efforts.ps1` (pass 1: one run per level, saves thinking +
-answer), `sweep-pass2.ps1` (pass 2 at fresh sampling → the second independent
-sample per level), `sweep-tune.ps1` (finds the largest fast context first, then
-sweeps there — Stage 2's map now answers that question without the search),
-`extract-html.ps1` (pulls the HTML answer out of each sweep output),
-`effort-gsm8k.ps1` + `xhigh-16k.ps1` (accuracy per level, and the rerun that
-removes a truncation artifact — the artifact Stage 5 exists to prevent).
+Run: `python scripts/arms.py --arms scripts/arms/effort-sweep.json` — eleven
+arms merging three of the originals: `effort-pass1-*` (one run per level,
+thinking and answer saved separately), `effort-pass2-*` (the same levels at
+fresh sampling → the second independent sample per level that blind judging
+needs), and `tune-ctx-probe-*` (the largest-fast-context search — Stage 2's map
+now answers that question without the search). Accuracy per level, and the
+xhigh rerun that removes a truncation artifact — the artifact Stage 5 exists to
+prevent — ride in the same file as `bench_arms`, which arms.py does not run:
+`scripts/bench/bench.py --no-spawn` scores them against the launched server.
+Pulling the HTML answer out of each sweep output has NO runner equivalent
+(`extract-html.ps1`: post-processing, no GPU). **effort-sweep.json is
+RECONSTRUCTED** — its flag sets were derived from `serve-menu-example.bat`, not
+read off the launcher the originals called, so check them before publishing a
+number from these arms. The Windows originals are archived in
+`scripts/reference-3090/`.
 
 - Cost: 2 runs per level on a hard generative task — tokens, wall, t/s. The
   reference task ships as `templates/effort-task-example.md` (the aquarium
@@ -166,10 +183,21 @@ measured request, record the request's start timestamp alongside the server's
   **tokens/kWh**; `J_decode × decode-seconds` = **EDP (J·s)**.
 - **Wh/answer = (J_prefill + J_decode)/3600**, reported twice: gross, and
   idle-subtracted (subtract loaded-idle W over the same windows).
-Drop the first post-idle request from every arm and say so. Reference
-integrator to adapt: `results/qwen38-27b-blind/work/power-integrate.py` —
-**use the Python one**; the PowerShell version tripped over 5.1's
-`TryParseExact` overload resolution.
+Drop the first post-idle request from every arm and say so — that is
+`attribute-power.py --drop-first`. The tooling is `scripts/power/`, documented
+in its README: `capture-request.ps1` stamps `t_start` before the POST and
+appends the request-event JSONL carrying `prompt_ms` / `predicted_ms` — the
+join point — and `python scripts/power/attribute-power.py --power <power.csv>
+--events <events.jsonl> --idle-w <Step 1 loaded idle> --drop-first --json
+<out.json>` integrates the windows and emits the metrics (`--selftest` checks
+its arithmetic with no GPU). Any JSONL carrying `t_start_iso`, `prompt_ms`,
+`predicted_ms`, `prompt_n`, `predicted_n` and `label` works, so a harness
+already recording those needs no PowerShell — and `scripts/arms.py`'s
+per-probe ledger carries all six, verified on Linux 2026-08-29. Pass
+`--events results/<slug>/data/arms/<stem>.jsonl` and every arm sweep is
+already an energy arm; only the power CSV still needs a sampler. The integrator
+is Python because the PowerShell one tripped over 5.1's `TryParseExact` overload
+resolution.
 
 **Step 3 — the per-axis J/token matrix** (rule 24's axis clause; this is the
 sub-stage's real product). One row per arm, columns: mean W · J/token decode ·

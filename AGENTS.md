@@ -59,6 +59,7 @@ Three failures no rule number catches:
 | a probe or a number looks wrong | grep `reference/failure-library.md` for the symptom |
 | platform trouble (PowerShell 5.1, POSIX, WSL) | grep `reference/platform-notes.md` for the exact error |
 | running the benchmark suite | `scripts/bench/README.md` + rule 21 |
+| running a sweep, or resuming one after a crash | `scripts/arms.py --help` — arm files, per-probe ledger, heartbeat, `--resume` |
 | launching a llama-server from any script | `scripts/bench/gpu_lock.py` header — one job, capped, no orphans |
 | power / energy work | `scripts/power/README.md` + rule 24 |
 | the agentic bucket | `agentic/setup-log.md` + rule 22 |
@@ -80,10 +81,11 @@ resuming, not starting — do NOT re-interview.
 2. Compare against `git log --oneline`: each completed stage left a checkpoint
    commit, the highest one is ground truth, and anything `campaign.md` claims
    past it was in flight when the session died.
-3. Re-run the current stage's script — every long script skips work whose log
-   already shows a final result, so a re-run costs only the unfinished arms.
-   Confirm the GPU is idle first: `python scripts/bench/gpu_lock.py status`,
-   and `... kill` if it names a holder or a live server.
+3. Read `results/<slug>/work/heartbeat.json`: it names the arm in flight, its
+   ledger and its pid. Re-run the same command with `--resume` — a sweep skips
+   every unit its ledger records, so it costs only that arm. Anything outside
+   `arms.py` may not resume; check. Confirm the GPU is idle first:
+   `python scripts/bench/gpu_lock.py status`, `... kill` if it names a holder.
 4. Append a dated "resumed after session loss" line to `campaign.md`, noting any
    old-phase → stage mapping you used, then continue from there.
 5. **Resuming into expensive work? Check the RECIPE LOCK first.** No dated
@@ -98,9 +100,10 @@ skills/field-guide/stages/   stage-0..7.md — load exactly one
 methodology/                 METHODOLOGY.md (the law) · REASONING.md (how to think)
 templates/                   REPORT-SPEC.md + example-report.html (worked example)
 reference/                   platform-notes.md · failure-library.md — grep, never read whole
-scripts/                     reference-3090/ (proven probes) · bench/ · power/ · setup.*
+scripts/                     arms.py + arms/ (sweeps as data) · lib/paths.py · bench/
+                             power/ · detect-machine.py · setup.* · reference-3090/ (archive)
 bin/ models/                 gitignored: runtimes and weights live here
-results/<slug>/              campaign.md · work/ · data/ · the final index.html
+results/<slug>/              campaign.md · campaign.json · machine.json · work/ · data/ · index.html
 ```
 `<slug>` = the model repo name, lowercased, as a **single path component** (no
 slashes), `-GGUF`/`-gguf` dropped: `.../unsloth/SomeNew-32B-GGUF` →
