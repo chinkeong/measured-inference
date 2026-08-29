@@ -376,4 +376,5 @@ def main():
     print("the chart will imply the x-axis explains it.")
 
 
-main()
+if __name__ == "__main__":
+    main()

@@ -429,4 +429,5 @@ def main():
     log("OVERNIGHT QUEUE COMPLETE")
 
 
-main()
+if __name__ == "__main__":
+    main()

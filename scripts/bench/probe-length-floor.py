@@ -198,4 +198,5 @@ def main():
     print("\n-> %s" % f)
 
 
-main()
+if __name__ == "__main__":
+    main()

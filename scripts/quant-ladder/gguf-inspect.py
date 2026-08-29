@@ -302,4 +302,5 @@ def main():
         print("  -> %s" % a.out)
 
 
-main()
+if __name__ == "__main__":
+    main()

@@ -204,4 +204,5 @@ def main():
     print("\n-> %s" % os.path.join(OUT, "qat-3060-fit.json"))
 
 
-main()
+if __name__ == "__main__":
+    main()

@@ -175,4 +175,5 @@ def main():
     print("%d of %d produced a working program." % (ran, len(rows)))
 
 
-main()
+if __name__ == "__main__":
+    main()

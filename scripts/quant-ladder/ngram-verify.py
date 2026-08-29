@@ -205,4 +205,5 @@ def main():
             print(r["text"][:400])
 
 
-main()
+if __name__ == "__main__":
+    main()

@@ -245,4 +245,5 @@ def main():
     log("-> %s" % os.path.join(OUT, "ngram-content.json"))
 
 
-main()
+if __name__ == "__main__":
+    main()

@@ -207,4 +207,5 @@ def main():
               open(os.path.join(OUT, "drafter-vision-peak%s.json" % (TAG or "")), "w", encoding="utf-8"), indent=1)
 
 
-main()
+if __name__ == "__main__":
+    main()

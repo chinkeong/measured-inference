@@ -239,4 +239,5 @@ def main():
                                           "detectors": det}, indent=1) + "\nJSON-->")
 
 
-main()
+if __name__ == "__main__":
+    main()

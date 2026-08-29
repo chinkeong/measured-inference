@@ -1,0 +1,12 @@
+# COLLECTION ONLY - what a borrowed machine needs to measure.
+# bench.py imports requests (bench.py:42) and render_table (bench.py:49),
+# and render_table imports PIL (render_table.py:14), so both are on the
+# collection path even for a text-only campaign.
+#
+#   python -m venv .venv && .venv/Scripts/python -m pip install -r requirements-min.txt   # Windows
+#   python3 -m venv .venv && ./.venv/bin/python -m pip install -r requirements-min.txt    # POSIX
+#
+# ROUGE-L, the pass@1 runner and the judge client are implemented in this repo,
+# so nothing else is installed to collect data.
+requests>=2.28
+Pillow>=9.0

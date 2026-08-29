@@ -66,6 +66,39 @@ def tracked_py():
     return sorted(f for f in out.stdout.splitlines() if f.strip())
 
 
+def _calls(node):
+    """Names invoked by a top-level expression, unwrapping print()/sys.exit()."""
+    out = []
+    if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
+        stack = [node.value]
+        while stack:
+            c = stack.pop()
+            f = c.func
+            if isinstance(f, ast.Name):
+                out.append(f.id)
+            elif isinstance(f, ast.Attribute):
+                out.append(f.attr)
+            for a in c.args:
+                if isinstance(a, ast.Call):
+                    stack.append(a)
+    return out
+
+
+def _runs_on_import(tree):
+    """(lineno, source-ish) of a module-level call to main()/run(), else None."""
+    defined = {n.name for n in tree.body
+               if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
+    guarded = any(isinstance(n, ast.If) and "__name__" in ast.dump(n.test)
+                  for n in tree.body)
+    if guarded:
+        return None
+    for n in tree.body:
+        for name in _calls(n):
+            if name in defined and name in ("main", "run"):
+                return (n.lineno, "%s()" % name)
+    return None
+
+
 def check(rel):
     """Return (ok, stage, detail). Stops at the first failing stage."""
     path = os.path.join(REPO, rel)
@@ -79,6 +112,17 @@ def check(rel):
     except SyntaxError as exc:
         return False, "parse", "line %s: %s" % (exc.lineno, exc.msg)
 
+    # A probe must not DO anything when imported. This check exists because the
+    # smoke test loads every module's top level: a bare main() at module level
+    # turns the cheap pre-check into a real GPU job, and once left an orphaned
+    # llama-perplexity holding 13.79 GB of the card.
+    bad = _runs_on_import(ast.parse(src, path))
+    if bad:
+        return (False, "guard",
+                'line %d: `%s` runs at module level. Wrap it as '
+                'if __name__ == "__main__": %s'
+                % (bad[0], bad[1], bad[1]))
+
     # Import the module's top level in a SUBPROCESS. In-process would let a
     # probe's imports and globals leak into the next check, and one that calls
     # sys.exit at import time would kill the checker.
@@ -89,7 +133,11 @@ def check(rel):
         "m=importlib.util.module_from_spec(spec);"
         "spec.loader.exec_module(m)" % (path, path))
     try:
-        p = subprocess.run([sys.executable, "-c", loader],
+        # MEASURED_INFERENCE_DRY_RUN makes gpu_lock refuse to take the card.
+        # The __main__ guards should mean nothing tries; this is the net for
+        # when one regresses, so a smoke test can never launch a real job.
+        env = dict(os.environ, MEASURED_INFERENCE_DRY_RUN="1")
+        p = subprocess.run([sys.executable, "-c", loader], env=env,
                            capture_output=True, text=True, timeout=25)
     except subprocess.TimeoutExpired:
         return (False, "import",

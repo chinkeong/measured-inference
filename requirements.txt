@@ -1,0 +1,11 @@
+# EVERYTHING - collection plus publishing (figures, tables, significance tests).
+# Install this on the machine that renders the report. On a machine that only
+# collects, requirements-min.txt is enough and installs two packages instead of five.
+#
+# The publish-side three are imported by twelve tracked files: every
+# scripts/report/plots/*.py, scripts/report/archdata.py and
+# scripts/quant-ladder/make-ladder-png.py.
+-r requirements-min.txt
+numpy>=1.24
+matplotlib>=3.6
+scipy>=1.10

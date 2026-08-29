@@ -168,4 +168,5 @@ def main():
              sum(1 for q in truth["questions"] if q["class"] == "fine")))
 
 
-main()
+if __name__ == "__main__":
+    main()

@@ -88,7 +88,12 @@ LOCK_PATH = os.environ.get(
                                               "..", "..")),
                  ".gpu-lock.json"))
 
-SERVER_NAMES = ("llama-server.exe", "llama-server")
+# Every llama.cpp tool that can hold the card. A lock that only knows
+# llama-server reports "servers: none" while llama-perplexity holds 13 GB,
+# and AGENTS.md's crash-recovery step 3 tells a resuming agent to trust it.
+SERVER_TOOLS = ("llama-server", "llama-perplexity", "llama-cli", "llama-bench",
+                "llama-tokenize", "llama-mtmd-cli", "llama-completion")
+SERVER_NAMES = tuple(n + e for n in SERVER_TOOLS for e in ("", ".exe"))
 
 _held = None      # our lock payload, once acquired
 _jobs = []        # job-object handles kept alive for the life of this process
@@ -300,6 +305,29 @@ def holder():
     return rec
 
 
+DRY_RUN_ENV = "MEASURED_INFERENCE_DRY_RUN"
+
+
+class DryRunViolation(RuntimeError):
+    """A dry run tried to take the GPU.
+
+    scripts/verify/probe-smoke-test.py imports every probe's top level to check
+    that it parses and loads. A probe whose module level calls main() launches a
+    real job under that import. The `if __name__ == "__main__":` guards are the
+    first defence; this is the second, because a guard can regress and an
+    orphaned server holding the card is what this module exists to prevent.
+    """
+
+
+def _refuse_if_dry_run(what):
+    if os.environ.get(DRY_RUN_ENV):
+        raise DryRunViolation(
+            "%s called while %s=1. Real work ran under a dry run - almost always "
+            "a probe missing its `if __name__ == \"__main__\":` guard, so "
+            "importing it executed main(). Add the guard; do not unset the "
+            "variable." % (what, DRY_RUN_ENV))
+
+
 def acquire(tag, wait_s=0, allow_foreign=False):
     """Take the machine-wide GPU lock. Raises GpuBusy if someone else has it.
 
@@ -309,6 +337,7 @@ def acquire(tag, wait_s=0, allow_foreign=False):
                   (only for callers that deliberately attach to one, e.g.
                   bench.py --no-serve)
     """
+    _refuse_if_dry_run("gpu_lock.acquire()")
     global _held
     if _held is not None:
         return _held
@@ -481,6 +510,7 @@ def serve(args, tag=None, cap=None, require_lock=True, **kw):
     because a probe that starts a second server after stopping the first is
     still one GPU job and should not race anyone in between.
     """
+    _refuse_if_dry_run("gpu_lock.serve()")
     if require_lock and _held is None:
         acquire(tag or os.path.basename(sys.argv[0] or "gpu-job"))
     cap = mem_cap_bytes() if cap is None else cap

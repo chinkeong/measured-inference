@@ -132,4 +132,5 @@ def main():
     return "\n".join(o)
 
 
-print(main())
+if __name__ == "__main__":
+    print(main())

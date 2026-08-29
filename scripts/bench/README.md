@@ -15,17 +15,20 @@ external server or management app involved.
 - A llama.cpp build with `llama-server` — found via `--server-bin`, the
   `LLAMA_SERVER` env var, or PATH (`scripts/setup.*` installs one into
   `bin/llama.cpp/`, which the runner finds automatically).
-- Python 3.10+ with `requests` and `Pillow`. That is the whole dependency list:
-  ROUGE-L, the pass@1 runner and the judge client are implemented here, so
-  nothing else is ever installed on a borrowed machine.
+- Python 3.10+ with `requests` and `Pillow` — that is the whole dependency list
+  *for collection*, because ROUGE-L, the pass@1 runner and the judge client are
+  implemented here. Publishing needs three more (`numpy`, `matplotlib`, `scipy`,
+  imported by twelve files under `scripts/report/` and `scripts/quant-ladder/`).
+  Install `requirements-min.txt` on a machine that only measures and
+  `requirements.txt` on the one that renders the report.
 
 **Install those two into a repo-local venv, never globally** — the machine may
 be borrowed. From the repo root (`.venv/` is gitignored):
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install requests Pillow    # Windows
-# POSIX: python3 -m venv .venv && ./.venv/bin/python -m pip install requests Pillow
+.\.venv\Scripts\python.exe -m pip install -r requirements-min.txt    # Windows
+# POSIX: python3 -m venv .venv && ./.venv/bin/python -m pip install -r requirements-min.txt
 ```
 
 Then run every `python bench.py …` / `python render_table.py …` below with that

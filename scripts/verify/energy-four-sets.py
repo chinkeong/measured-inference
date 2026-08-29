@@ -297,4 +297,5 @@ def main():
     log("DONE" if not bad else "DONE WITH FAILURES")
 
 
-main()
+if __name__ == "__main__":
+    main()

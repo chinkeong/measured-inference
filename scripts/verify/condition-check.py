@@ -264,4 +264,5 @@ def main():
         report(p, io.open(p, encoding="utf-8", errors="replace").read())
 
 
-main()
+if __name__ == "__main__":
+    main()

@@ -233,4 +233,5 @@ def main():
     print("\n-> %s" % out)
 
 
-main()
+if __name__ == "__main__":
+    main()

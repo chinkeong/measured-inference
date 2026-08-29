@@ -294,4 +294,5 @@ def main():
         print("  Nothing on the page changes.")
 
 
-main()
+if __name__ == "__main__":
+    main()

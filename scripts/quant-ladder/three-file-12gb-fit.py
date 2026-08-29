@@ -200,4 +200,5 @@ def main():
     print("\n-> %s" % os.path.join(OUT, "three-file-12gb-fit.json"))
 
 
-main()
+if __name__ == "__main__":
+    main()
