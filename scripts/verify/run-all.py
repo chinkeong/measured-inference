@@ -133,7 +133,24 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 # `scripts/setup.sh` on POSIX, `scripts/setup.ps1` on Windows -- the two write
 # the same bin/llama.cpp/INSTALL.json, and naming the wrong one is a dead end
 # for whoever reads it. Picked the way scripts/lib/paths.py already picks it.
-SETUP_HINT = ("scripts\setup.ps1" if os.name == "nt" else "./scripts/setup.sh")
+SETUP_HINT = (r"scripts\setup.ps1" if os.name == "nt" else "./scripts/setup.sh")
+
+
+# requirements-min.txt is COLLECTION ONLY and is what plain setup.sh installs;
+# requirements.txt adds the publishing three and needs --publish. A borrowed
+# box that only collects is CORRECTLY configured without matplotlib, so a check
+# that needs one must not be able to turn this gate red on it. See MIN_PKGS.
+MIN_PKGS = ("requests", "PIL", "Pillow")
+PUBLISH_PKGS = ("numpy", "matplotlib", "scipy")
+
+
+def _installs(mod):
+    """The command that would supply `mod`, or None if we do not ship it."""
+    if mod in MIN_PKGS:
+        return "%s            (requirements-min.txt)" % SETUP_HINT
+    if mod in PUBLISH_PKGS:
+        return "%s --publish  (requirements.txt)" % SETUP_HINT
+    return None
 
 
 def _missing_module(out):
@@ -294,7 +311,28 @@ def main():
                   % (len(chosen) - len(results)))
             break
 
-    failed = [r for r in results if not r[2]]
+    # A check that died importing something never ran, so it found nothing.
+    # Counting it as a failure would make this gate permanently red on exactly
+    # the machine it exists for: a borrowed box that collects and never
+    # publishes. It is reported loudly and separately, and it does not vote.
+    skipped = [r for r in results
+               if not r[2] and _missing_module(r[5]) and
+               _missing_module(r[5]) not in MIN_PKGS]
+    skipped_names = set(r[0] for r in skipped)
+    failed = [r for r in results if not r[2] and r[0] not in skipped_names]
+
+    if skipped:
+        print("")
+        print("-" * 78)
+        print("SKIPPED - a dependency this box does not have. Not a defect.")
+        for name, rel, ok, secs, rc, out, why in skipped:
+            mod = _missing_module(out)
+            print("  %-17s no %s" % (name, mod))
+            fix = _installs(mod)
+            if fix:
+                print("  %-17s install: %s" % ("", fix))
+        print("-" * 78)
+
     if failed and not a.verbose:
         for name, rel, ok, secs, rc, out, why in failed:
             print("")
@@ -321,13 +359,20 @@ def main():
 
     print("")
     print("=" * 78)
+    tail = ""
+    if skipped:
+        # Say it in the headline. A green line over a silently skipped check is
+        # how a gate stops meaning anything.
+        tail = ", %d skipped for a missing dependency (%s)" % (
+            len(skipped), ", ".join(sorted(skipped_names)))
     if failed:
-        print("%d of %d FAILED in %.0f s: %s"
+        print("%d of %d FAILED in %.0f s: %s%s"
               % (len(failed), len(results), time.time() - t_all,
-                 ", ".join(r[0] for r in failed)))
+                 ", ".join(r[0] for r in failed), tail))
     else:
-        print("all %d passed in %.0f s. No GPU, no weights, no network."
-              % (len(results), time.time() - t_all))
+        print("%d of %d passed in %.0f s%s. No GPU, no weights, no network."
+              % (len(results) - len(skipped), len(results),
+                 time.time() - t_all, tail))
     print("=" * 78)
     return 1 if failed else 0
 
