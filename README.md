@@ -12,30 +12,72 @@ reasoning-effort economics, vision loops, and coding-agent compatibility. This
 repo packages that methodology so it can be replayed against any model on any
 machine.
 
-## Use
-```
-git clone https://github.com/chinkeong/measured-inference.git
-cd measured-inference
-./scripts/setup.sh --cuda          # POSIX + NVIDIA; .\scripts\setup.ps1 on Windows
-python scripts/lib/paths.py        # says what resolves and what is missing
-# start your coding agent (Claude Code, opencode, Pi), then paste a prompt.
+## Getting started
+
+Four steps. The first is the only one that needs you rather than the agent.
+
+### 1 — Give the machine a runtime
+
+On an **NVIDIA box** the CUDA toolchain has to be installed first, and no agent can
+`sudo` for you:
+
+```bash
+sudo apt-get install -y nvidia-cuda-toolkit cmake build-essential git
+./scripts/setup.sh --cuda        # builds llama.cpp with CUDA; ~4 min on an RTX 3090
 ```
 
-**[PROMPTS.md](PROMPTS.md) is the copy-paste library** — 22 templates covering a
-single-model field guide, a quant ladder, a multi-model shootout, benchmarks
-without sweeps, a hard stop on a rented machine, a shift handover, and resuming
-after a crash. Start with its [fill-in form](PROMPTS.md#the-fill-in-form): it is
-the Stage 0 interview as an answer sheet, so you fill it in one pass, paste it
-once, and the campaign runs to the end without stopping to ask (rule 27).
+Windows: `.\scripts\setup.ps1`. Apple Silicon and CPU-only: plain `./scripts/setup.sh`.
 
-Everything heavy is self-contained and gitignored: `scripts/setup.*` downloads a
-llama.cpp build into `bin/`, creates the repo-local `.venv/` from
-`requirements-min.txt`, and records what it installed in
-`bin/llama.cpp/INSTALL.json`; models download into `models/` — nothing installs
-globally, because the machine may be borrowed. On Linux + NVIDIA there is no
-official CUDA binary, so `./scripts/setup.sh --cuda` builds one from source;
-setup refuses to install a Vulkan build there rather than silently changing
-every number it is about to measure.
+`setup.sh` **exits 3 rather than installing a Vulkan build on an NVIDIA box.** That is
+deliberate: there is no official Linux CUDA binary, and a campaign measured on Vulkan is
+not comparable to one measured on CUDA, so a silent fallback would quietly invalidate every
+number. `MEASURED_INFERENCE_ALLOW_VULKAN=1` overrides it, and the backend then travels with
+the results as one of their conditions.
+
+### 2 — Check it is ready, before any GPU time
+
+```bash
+python scripts/lib/paths.py                   # what resolves, and what is missing
+python scripts/verify/probe-smoke-test.py     # every probe still starts (no GPU, seconds)
+```
+
+`paths.py` prints each candidate it tried and why it rejected it, so "not found" comes with
+the fix attached. It never returns a default that merely happens to exist.
+
+### 3 — Get the weights
+
+There is **no downloader in this repo**. The agent fetches the quants you agree on during
+the interview with resumable `curl` into `models/`. If the HuggingFace repo is **gated**,
+say so in the interview and hand over a token *then* — a 401 discovered at download time
+lands after the interview has closed, and rule 27 has by then made asking illegal.
+
+### 4 — Tell the agent what you want
+
+Start your coding agent in the repo (Claude Code, opencode, Pi) and paste a prompt from
+**[PROMPTS.md](PROMPTS.md)** — 23 templates covering a single-model field guide, a quant
+ladder, a multi-model shootout, benchmarks without sweeps, a hard stop on a rented machine,
+a shift handover, and resuming after a crash.
+
+The shortest path is [ask for the form pre-filled](PROMPTS.md#ask-for-the-form-pre-filled--the-shortest-path):
+the agent resolves the model listing, detects the machine, derives the slug and finds your
+installed coding agents, then hands you the Stage-0 answer sheet already filled in. You
+correct three things it cannot know — what you will use the model for, how many hours it
+gets, and quality-first or latency-first — paste it back, and the campaign runs to the end
+without stopping to ask again (rule 27).
+
+Every prompt in that file opens with `Read AGENTS.md, then skills/field-guide/SKILL.md.`
+Keep that line: Claude Code loads `CLAUDE.md` on its own and opencode loads `AGENTS.md`, but
+Pi loads neither.
+
+### What it leaves behind
+
+`results/<slug>/` — `index.html` (the field guide), `campaign.md` (the log, and the recovery
+point after any crash), `campaign.json` and `machine.json` (what every later stage resolves
+against), and `data/` (every measurement, including the per-probe ledger a sweep can resume
+from).
+
+Everything heavy is self-contained and gitignored: runtimes in `bin/`, weights in `models/`,
+a repo-local `.venv/`. Nothing installs globally, because the machine may be borrowed.
 
 ## The pledge
 Every number in a report is **measured on that machine, cited to a live source,
@@ -44,8 +86,14 @@ the report promised. The rules that enforce this are in
 [`methodology/METHODOLOGY.md`](methodology/METHODOLOGY.md).
 
 ## Status
-- v1: NVIDIA/Windows reference implementation (RTX 3090 proven end-to-end).
-- Portable targets: DGX Spark (GB10/Ubuntu-ARM), Intel Arc dGPU (Vulkan),
+- **Windows + NVIDIA** — the reference implementation, RTX 3090 proven end-to-end
+  (the shipped worked example is a full campaign on one).
+- **Linux + NVIDIA** — the runner, the resolver, the machine profile and the CUDA
+  source build are proven on Ubuntu 24.04 against the same 3090. One gap is
+  documented rather than hidden: the perplexity ladder's runner is still Windows
+  PowerShell, so a Linux campaign drives `llama-perplexity` itself at the
+  manifest's conditions (`skills/field-guide/stages/stage-6.md` gives them).
+- **Portable targets** — DGX Spark (GB10/Ubuntu-ARM), Intel Arc dGPU (Vulkan),
   Intel Core Ultra iGPU. OpenVINO support planned.
 
 ## Map
@@ -57,7 +105,13 @@ the report promised. The rules that enforce this are in
 | `methodology/` | the measurement law (`METHODOLOGY.md`) and how to apply it (`REASONING.md`) |
 | `reference/` | `platform-notes.md`, `failure-library.md` — grepped by symptom, never read whole |
 | `templates/` | report spec + complete worked example |
-| `scripts/reference-3090/` | proven probe/sweep scripts |
+| `PROMPTS.md` | the copy-paste prompt library, and the Stage-0 answer sheet |
+| `methodology/VOICE.md` | the report's register as rules, so any writer can match it |
+| `scripts/arms.py` + `scripts/arms/` | the sweep runner, and sweeps written as data |
+| `scripts/lib/paths.py` | resolves the server, the weights and the card — never a bad default |
+| `scripts/detect-machine.py` | writes `machine.json`; every field measured, derived, cited, or null with its reason |
 | `scripts/bench/` | accuracy harness |
 | `scripts/power/` | energy attribution toolkit |
-| `results/<model>/` | campaign logs and finished reports |
+| `scripts/verify/` | the no-GPU checks: smoke test, portability audit, instrument guard |
+| `scripts/reference-3090/` | the original Windows probes, archived — read, never run |
+| `results/<slug>/` | campaign logs, machine profile, measurements and the finished report |
