@@ -52,11 +52,79 @@ $LN2 = [math]::Log(2)
 $CORPUS = [string]$M.corpus
 $CORPUS_BYTES = [double]$M.corpus_bytes
 
+# The bits-per-weight denominator is MEASURED, not typed. measure-bpw.py reads
+# the file's own tensor table out of its header (~11 MiB of a 13 GiB file, no
+# GPU, no load) and hands back one JSON line. The arithmetic lives in Python
+# rather than here because this runner is PowerShell 5.1 and Windows-only,
+# and a correct denominator must not be a Windows-only privilege.
+$MEASURE_BPW = Join-Path $here 'measure-bpw.py'
+$PY = $null
+foreach ($cand in @('python', 'python3', 'py')) {
+    if (Get-Command $cand -ErrorAction SilentlyContinue) { $PY = $cand; break }
+}
+if (-not $PY) {
+    Write-Log 'WARNING: no python on PATH - bpw will fall back to the manifest''s declared parameter count and every RESULT line will say params_src=manifest-declared (rule 1: that number is DERIVED, not measured).'
+}
+
 Write-Log ('=== quant-ladder runner up. deadline {0}. manifest {1} ===' -f $DEADLINE.ToString('MM-dd HH:mm'), $Manifest)
 Write-Log ('corpus {0} ({1:N0} bytes)' -f $CORPUS, $CORPUS_BYTES)
 if (-not (Test-Path -LiteralPath $CORPUS)) { Write-Log 'FATAL: frozen corpus missing'; exit 1 }
 
 # --------------------------------------------------------------- one rung ----
+
+function Get-HeaderParams {
+    # The file's OWN parameter count, summed over every tensor in its header.
+    #
+    # This replaces $R.params, a number typed into ladder-manifest.json. That
+    # number was 27000000000 for every Qwen rung, and the files do not agree
+    # with it - measured 2026-08-29: the IQ4_XS/Q3_K_XL/IQ3_XXS/Q2_K_XL group
+    # sums to 27,320,697,856 elements and the IQ2_S/IQ2_XXS/IQ1_M/IQ1_S group
+    # to 26,895,998,464. One typed denominator across both therefore inflates
+    # the top of the ladder by 1.19% and understates the bottom by 0.39%: a
+    # 1.57-point error that does NOT cancel between rungs, which is exactly
+    # what a ladder compares. Returns $null on any failure; the caller then
+    # falls back and LABELS the line, because rule 1 has three categories -
+    # measured, cited, labeled-derived - and no fourth.
+    param([string]$ModelPath, [string]$Name)
+    if (-not $PY) { return $null }
+    if (-not (Test-Path -LiteralPath $MEASURE_BPW)) {
+        Write-Log ('  bpw: {0} is missing' -f $MEASURE_BPW); return $null
+    }
+    $out = Join-Path $SCRATCH ('bpw-{0}.json' -f $Name)
+    $errf = Join-Path $SCRATCH ('bpw-{0}.err' -f $Name)
+    try {
+        $p = Start-Process -FilePath $PY -ArgumentList @($MEASURE_BPW, $ModelPath, '--json') `
+            -NoNewWindow -PassThru -RedirectStandardOutput $out -RedirectStandardError $errf
+        # PS 5.1: a -PassThru process only exposes ExitCode once its handle has
+        # been cached, and reading it before that yields $null - which is why
+        # Invoke-Ppl below wraps the same access in a try/catch. Cache it here,
+        # and then take the VERDICT from the output rather than the code: what
+        # this function owes its caller is a parameter count, and a JSON object
+        # carrying a positive one is the only thing that counts as having got it.
+        $null = $p.Handle
+        if (-not $p.WaitForExit(300000)) {
+            Write-Log '  bpw: header read TIMEOUT (300s) - killing'
+            try { $p.Kill() } catch {}
+            return $null
+        }
+        $code = -1
+        try { $code = $p.ExitCode } catch { $code = -1 }
+        $j = $null
+        if (Test-Path -LiteralPath $out) {
+            $raw = Get-Content -LiteralPath $out -Raw -ErrorAction SilentlyContinue
+            if ($raw) { try { $j = $raw | ConvertFrom-Json } catch { $j = $null } }
+        }
+        if (-not $j -or -not $j.params -or [int64]$j.params -le 0) {
+            Write-Log ('  bpw: measure-bpw.py gave no parameter count (exit={0}): {1}' -f $code,
+                (Get-Content -LiteralPath $errf -Raw -ErrorAction SilentlyContinue))
+            return $null
+        }
+        return $j
+    } catch {
+        Write-Log ('  bpw: header read failed: {0}' -f "$_")
+        return $null
+    }
+}
 
 function Invoke-Tokenize {
     # Each model's OWN token count for the corpus - rule 6 needs it for
@@ -152,6 +220,32 @@ function Invoke-Ppl {
 function Invoke-Rung {
     param($R, [int64]$Bytes)
     Write-Log ('--- RUNG {0} ({1}) {2:N3} GiB ---' -f $R.name, $R.role, ($Bytes / 1GB))
+
+    # Denominator first: it is cheap, it needs no GPU, and if it is going to
+    # fail this rung's operator should learn that now and not after an hour
+    # of perplexity.
+    $hp = Get-HeaderParams -ModelPath ([string]$R.path) -Name ([string]$R.name)
+    if ($hp) {
+        $params = [int64]$hp.params
+        $paramSrc = 'gguf-header'
+        $bpwTensors = [double]$hp.bpw_from_tensors
+        if ([int64]$hp.size_bytes -ne $Bytes) {
+            # The file gate stabilised $Bytes; the header read saw something
+            # else. That is a file changing underneath the run, and it is a
+            # condition, not a footnote (rule 3).
+            Write-Log ('  bpw: WARNING file size moved between the gate ({0}) and the header read ({1})' -f $Bytes, $hp.size_bytes)
+        }
+        Write-Log ('  bpw: params={0} from the file''s own header (manifest declared {1}, {2:N3}% off); tensor-table cross-check {3:N4} bpw' -f `
+            $params, [int64]$R.params, (100.0 * ([double]$R.params - $params) / $params), $bpwTensors)
+    } else {
+        $params = [int64]$R.params
+        $paramSrc = 'manifest-declared'
+        # 'na', not 0: a zero in a bits-per-weight column is a number, and a
+        # number nobody measured is the whole failure this change exists to fix.
+        $bpwTensors = 'na'
+        Write-Log ('  bpw: FALLBACK to the manifest''s declared {0} - this rung''s bpw is DERIVED, not measured (rule 1), and the ledger says so' -f $params)
+    }
+
     $ntok = Invoke-Tokenize -ModelPath ([string]$R.path) -Name ([string]$R.name)
     $res = Invoke-Ppl -ModelPath ([string]$R.path) -Name ([string]$R.name) -Chunks $R.chunks
     if (-not $res.ok) { return $res }
@@ -159,13 +253,20 @@ function Invoke-Rung {
     $evalTok = [double]$res.chunks * [double]$res.n_ctx
     $tokSrc = 'tokenize'
     if (-not $ntok) { $ntok = [int64]$evalTok; $tokSrc = 'eval' }
-    $bpw = ([double]$Bytes * 8.0) / [double]$R.params
+    $bpw = ([double]$Bytes * 8.0) / [double]$params
     $bpb = ([math]::Log([double]$res.ppl) * [double]$ntok) / ($LN2 * $CORPUS_BYTES)
     $cmp = 'yes'
     if ($R.PSObject.Properties.Name -contains 'ppl_comparable' -and $R.ppl_comparable -eq $false) { $cmp = 'NO-different-tokenizer' }
 
-    $line = ('RESULT {0} | role={1} | file={2} | bytes={3} | GiB={4:N3} | params={5} | bpw={6:N4} | PPL={7:N4} | err={8:N5} | chunks={9} | n_ctx={10} | eval_tokens={11} | tokens={12} | tok_src={13} | bpb={14:N4} | ppl_comparable={15} | wall_s={16} | ts={17}' -f `
-        $R.name, $R.role, (Split-Path -Leaf ([string]$R.path)), $Bytes, ($Bytes / 1GB), $R.params, $bpw,
+    # params= is the denominator actually used; params_src= says which of rule
+    # 1's three categories the bpw beside it belongs to; params_declared= keeps
+    # the manifest's number so the correction stays auditable after the fact,
+    # and bpw_tensors= is the independent second measurement (rule 4). Every
+    # one of them is written now because rule 28 says a field not written down
+    # during the run cannot be recovered at any price.
+    $line = ('RESULT {0} | role={1} | file={2} | bytes={3} | GiB={4:N3} | params={5} | params_src={6} | params_declared={7} | bpw={8:N4} | bpw_tensors={9:N4} | PPL={10:N4} | err={11:N5} | chunks={12} | n_ctx={13} | eval_tokens={14} | tokens={15} | tok_src={16} | bpb={17:N4} | ppl_comparable={18} | wall_s={19} | ts={20}' -f `
+        $R.name, $R.role, (Split-Path -Leaf ([string]$R.path)), $Bytes, ($Bytes / 1GB),
+        $params, $paramSrc, [int64]$R.params, $bpw, $bpwTensors,
         $res.ppl, $res.err, $res.chunks, $res.n_ctx, [int64]$evalTok, $ntok, $tokSrc, $bpb, $cmp,
         $res.wall_s, (Get-Date -Format 's'))
     Write-Ledger $LEDGER $line

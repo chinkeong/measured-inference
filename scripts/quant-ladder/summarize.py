@@ -64,6 +64,35 @@ def load_ledger(path, tag):
     return rows
 
 
+def bpw_cell(r):
+    """The bits-per-weight cell, marked when its denominator was TYPED.
+
+    rule 1 has three categories - measured, cited, labeled-derived - and a
+    bits-per-weight computed against a parameter count somebody typed into
+    ladder-manifest.json is the third. run-ladder.ps1 now measures the
+    denominator from the file's own tensor table and writes params_src on
+    every RESULT line; a line WITHOUT that field predates the fix, and
+    absence of the field is not evidence of measurement, so it is marked too.
+    """
+    v = fnum(r, "bpw")
+    if v is None:
+        return "?"
+    return "%.3f%s" % (v, "" if r.get("params_src") == "gguf-header" else " *")
+
+
+DERIVED_BPW_NOTE = (
+    "\n\\* **DERIVED, not measured (rule 1).** The bits-per-weight denominator "
+    "for this row was a parameter count typed into `ladder-manifest.json`, not "
+    "the count summed from the file's own GGUF tensor table. The two differ, "
+    "and not by a constant: measured 2026-08-29, the declared 27,000,000,000 "
+    "is 1.17% below the 27,320,697,856 of the IQ4_XS/Q3_K_XL/IQ3_XXS/Q2_K_XL "
+    "files and 0.39% above the 26,895,998,464 of the IQ2_S/IQ2_XXS/IQ1_M/IQ1_S "
+    "files, so a starred column is stretched at the top and squeezed at the "
+    "bottom - the one error shape a ladder cannot absorb. Re-run the rung to "
+    "replace it, or price the error with\n"
+    "`python scripts/quant-ladder/measure-bpw.py <file.gguf> --declared <n>`.")
+
+
 def fnum(d, k, default=None):
     v = d.get(k)
     if v is None:
@@ -151,9 +180,14 @@ def main():
         if dtxt not in ("-", "PASS"):
             dtxt = "%s (rep=%s json=%s fence=%s)" % (dtxt, dv.get("rep", "?"),
                                                     dv.get("json", "?"), dv.get("fence", "?"))
-        print("| %s | %s | %.3f | %.3f | %.4f +/- %.5f | %s | %.4f | %s | %s | %s |"
-              % (r["name"], r["role"], gib, bpw, ppl, err, vs, bpb, saved, slope, dtxt))
+        print("| %s | %s | %.3f | %s | %.4f +/- %.5f | %s | %.4f | %s | %s | %s |"
+              % (r["name"], r["role"], gib, bpw_cell(r), ppl, err, vs, bpb,
+                 saved, slope, dtxt))
         prev = r
+    derived_note_shown = False
+    if any(r.get("params_src") != "gguf-header" for r in ladder):
+        print(DERIVED_BPW_NOTE)
+        derived_note_shown = True
 
     if cross:
         print("\n## Cross-model row (rule 6: PPL is NOT comparable here)\n")
@@ -161,10 +195,14 @@ def main():
         print("|" + "---|" * 7)
         for r in cross:
             dv = det.get(r["name"], {})
-            print("| %s | %.3f | %.3f | (%.4f +/- %.5f) | %s | %.4f | %s |"
-                  % (r["name"], fnum(r, "GiB"), fnum(r, "bpw"), fnum(r, "PPL"),
+            print("| %s | %.3f | %s | (%.4f +/- %.5f) | %s | %.4f | %s |"
+                  % (r["name"], fnum(r, "GiB"), bpw_cell(r), fnum(r, "PPL"),
                      fnum(r, "err"), r.get("tokens", "?"), fnum(r, "bpb"),
                      dv.get("verdict", "-")))
+        if not derived_note_shown and any(
+                r.get("params_src") != "gguf-header" for r in cross):
+            print(DERIVED_BPW_NOTE)
+            derived_note_shown = True
         if anchor:
             print("\nbits/byte is the tokenizer-independent quantity: lower is better, "
                   "and it is the ONLY perplexity-derived number that may be compared "

@@ -4,10 +4,10 @@
     python scripts/check-request.py unsloth/Qwen3-30B-A3B-GGUF \
         --slug qwen3-30b-a3b --quant UD-Q4_K_XL --quant Q5_K_M
 
-WHY THIS FILE EXISTS. Two blockers bite AFTER the Stage 0 interview closes, and
-by then rule 27 has made asking illegal. Both are network-and-arithmetic;
-neither needs a GPU; so both belong in the last minute of Stage 0, while asking
-is still legal.
+WHY THIS FILE EXISTS. Three blockers bite AFTER the Stage 0 interview closes,
+and by then rule 27 has made asking illegal. All three are network, arithmetic
+or bytes-on-disk; none needs a GPU; so all three belong in the last minute of
+Stage 0, while asking is still legal.
 
   1. A GATED repo passes the interview and fails at download time. The listing
      API answers 200 for a gated repo -- verified live: the tree of
@@ -24,6 +24,17 @@ is still legal.
      downloaded, an hour of bandwidth spent, and every Stage-1 probe failing to
      start. The arithmetic that prevents it is four numbers wide.
 
+  3. NOTHING read the model's declared ARCHITECTURE, so the gate green-lit
+     models llama.cpp cannot load at all. A 44-model coverage audit produced
+     five green lights on Abiray/ZAYA1-8B-GGUF -- SLUG, LISTING, QUANTS,
+     ACCESS, and a `magic GGUF ok` on real served bytes -- for a repo whose
+     every GGUF declares `general.architecture = "zaya"`, a name that is in no
+     llama.cpp build here. The load aborts with
+     `unknown model architecture: 'zaya'` after about 9 GiB of download and a
+     burnt Stage-1 slot. GGUF magic proves the file is a GGUF; it says nothing
+     about whether this build has a graph for it. Reading four more fields of
+     the same header settles it, and the header is already being fetched.
+
 WHAT IT REFUSES TO GUESS. Board size and desktop reserve come from
 results/<slug>/machine.json through scripts/lib/paths.py or the fit is reported
 UNKNOWN with the command that writes one -- never defaulted (rule 3, rule 14).
@@ -35,21 +46,31 @@ Weights alone are still checked against the budget when KV is unknown: if the
 file by itself will not fit, that is PROVEN without the cache arithmetic, and
 proving it costs nothing.
 
+The ARCH check reads the roster out of the installed llama.cpp with
+scripts/lib/archs.py, which parses the binary rather than running it: the
+binaries in bin/llama.cpp are Linux ELF built under WSL2 and do not exec on the
+Windows side of the same clone. It reports UNKNOWN, never a short roster, when
+it cannot read the table -- rejecting a model this build loads fine is the
+expensive mistake, and a silent one.
+
 Stdlib only -- urllib, not requests. Stage 0 runs before `.venv` is guaranteed
 to exist (setup.sh creates it, and a check that cannot run until after the
 bootstrap cannot gate the bootstrap). Python 3.9+. Linux, macOS, Windows.
 """
 import argparse
+import difflib
 import json
 import os
 import re
 import shutil
+import struct
 import sys
 import urllib.error
 import urllib.parse
 import urllib.request
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib"))
+import archs  # noqa: E402
 import paths  # noqa: E402
 
 HF_HOST = "https://huggingface.co"
@@ -81,6 +102,35 @@ CACHE_TYPES = {"f32": (4.0, "f32"),
 # recommendation. Campaigns with a real target window pass --c-min.
 DEFAULT_C_MIN = 16384
 
+# The ARCH check's ranged GET. general.architecture is written first by every
+# GGUF writer in circulation, so 64 KiB reaches it with room to spare and costs
+# less than the ACCESS probe's own round trip. It is a HEADER read, not a
+# download: the response body is truncated at this many bytes.
+ARCH_PROBE_BYTES = 64 * 1024
+
+# One widening, and only one. The parser reports the exact offset it ran out
+# at, and that offset is exact for the NEXT read but not for the rest of the
+# walk -- a short inside a 150,000-entry tokenizer array says only "I want byte
+# N", so re-ranging per token would BE the download this script must not do.
+# The floor is therefore stated out loud rather than hidden: widen to at least
+# 4 MiB, which clears every tokenizer array shipped so far in one request.
+ARCH_WIDEN_MIN = 4 * 1024 * 1024
+
+# Past this the header is not a header. Refusing is the honest answer: a GGUF
+# whose metadata block is 32 MiB is not a file this gate should be pulling
+# down piecemeal at Stage 0.
+ARCH_HEADER_MAX = 32 * 1024 * 1024
+
+# Sanity bounds on the KV walk. Corrupt or hostile length fields turn a parse
+# into an allocation or a 10^12-iteration loop, and this runs against arbitrary
+# repos on the open internet.
+GGUF_MAX_KV = 1 << 20
+GGUF_MAX_ELEMS = 1 << 26
+GGUF_MAX_STR = 1 << 20
+
+ARCH_KEY = "general.architecture"
+PROJECTOR_KEY = "clip.projector_type"
+
 OK, FAIL, UNKNOWN, SKIP = "OK", "FAIL", "UNKNOWN", "SKIP"
 
 
@@ -89,7 +139,7 @@ OK, FAIL, UNKNOWN, SKIP = "OK", "FAIL", "UNKNOWN", "SKIP"
 # ---------------------------------------------------------------------------
 
 class Report(object):
-    """Six checks, each one line plus its evidence, then a one-line verdict."""
+    """Seven checks, each one line plus its evidence, then a one-line verdict."""
 
     def __init__(self, total):
         self.rows = []
@@ -274,7 +324,7 @@ def token_label(token, where):
 
 
 # ---------------------------------------------------------------------------
-# check 1 -- the slug
+# the slug
 # ---------------------------------------------------------------------------
 
 def parse_repo(raw):
@@ -333,7 +383,7 @@ def check_slug(rep, repo, given):
 
 
 # ---------------------------------------------------------------------------
-# check 2 -- the listing
+# the listing
 # ---------------------------------------------------------------------------
 
 SHARD = re.compile(r"-\d{5}-of-\d{5}(?=\.gguf$)", re.I)
@@ -440,18 +490,439 @@ def check_listing(rep, repo, token, offline):
 
 
 # ---------------------------------------------------------------------------
-# check 3 -- access, PROVEN
+# the architecture gate -- the GGUF header, read for real
+# ---------------------------------------------------------------------------
+#
+# GGUF's header is: magic "GGUF", a uint32 version, then a tensor count, a KV
+# count, and that many key/value pairs -- key length, key, value type, value.
+# v1 wrote every count and string length as uint32; v2 and v3 write them as
+# uint64. There is no index and no way to seek to one key: to READ the third
+# field you must TRAVERSE the first two, arrays included, which is why this is
+# a parser and not a regex over the first kilobyte. A regex would also happily
+# match `general.architecture` inside a tokenizer merge and report the
+# architecture of a string that is not one.
+
+GGUF_MAGIC = b"GGUF"
+
+# gguf_type, from ggml.h. 7 is bool, stored as one byte.
+(GGUF_U8, GGUF_I8, GGUF_U16, GGUF_I16, GGUF_U32, GGUF_I32, GGUF_F32,
+ GGUF_BOOL, GGUF_STRING, GGUF_ARRAY, GGUF_U64, GGUF_I64, GGUF_F64) = range(13)
+
+GGUF_FIXED = {GGUF_U8: (1, "B"), GGUF_I8: (1, "b"),
+              GGUF_U16: (2, "H"), GGUF_I16: (2, "h"),
+              GGUF_U32: (4, "I"), GGUF_I32: (4, "i"), GGUF_F32: (4, "f"),
+              GGUF_BOOL: (1, "?"),
+              GGUF_U64: (8, "Q"), GGUF_I64: (8, "q"), GGUF_F64: (8, "d")}
+
+GGUF_TYPE_NAMES = {GGUF_U8: "uint8", GGUF_I8: "int8", GGUF_U16: "uint16",
+                   GGUF_I16: "int16", GGUF_U32: "uint32", GGUF_I32: "int32",
+                   GGUF_F32: "float32", GGUF_BOOL: "bool",
+                   GGUF_STRING: "string", GGUF_ARRAY: "array",
+                   GGUF_U64: "uint64", GGUF_I64: "int64", GGUF_F64: "float64"}
+
+
+class GgufShort(Exception):
+    """The header runs past the bytes we fetched.
+
+    `need` is the exact offset the NEXT read wants -- exact for that read, a
+    lower bound for the rest of the walk.
+    """
+
+    def __init__(self, need):
+        Exception.__init__(self, "header needs byte %d" % need)
+        self.need = need
+
+
+class GgufBad(Exception):
+    """These bytes are not a GGUF header we can traverse.
+
+    Always UNKNOWN in the report, never FAIL: failing to parse a header is our
+    failure to read it, not proof that the model is unsupported.
+    """
+
+
+class _Cur(object):
+    """A bounds-checked cursor over the fetched prefix.
+
+    Every overrun is a GgufShort carrying the offset, so the caller widens the
+    range instead of guessing at one.
+    """
+
+    __slots__ = ("b", "p", "e", "wide")
+
+    def __init__(self, buf, endian, wide):
+        self.b, self.p, self.e, self.wide = buf, 8, endian, wide
+
+    def _need(self, n):
+        if n < 0:
+            raise GgufBad("a length field is negative (%d)" % n)
+        if n > ARCH_HEADER_MAX:
+            raise GgufBad("a length field wants %s bytes, past the %s ceiling"
+                          % (comma(n), comma(ARCH_HEADER_MAX)))
+        if self.p + n > len(self.b):
+            raise GgufShort(self.p + n)
+
+    def skip(self, n):
+        self._need(n)
+        self.p += n
+
+    def take(self, n):
+        self._need(n)
+        out = self.b[self.p:self.p + n]
+        self.p += n
+        return out
+
+    def u32(self):
+        return struct.unpack(self.e + "I", self.take(4))[0]
+
+    def count(self):
+        # The one GGUF v1 vs v2/v3 difference that matters here.
+        return (struct.unpack(self.e + "Q", self.take(8))[0] if self.wide
+                else self.u32())
+
+    def string(self):
+        n = self.count()
+        if n > GGUF_MAX_STR:
+            raise GgufBad("a string field claims %s bytes" % comma(n))
+        return self.take(n)
+
+
+def _gguf_open(buf):
+    """(endian, version). Raises GgufShort/GgufBad.
+
+    Byte order is detected, not assumed: a GGUF written on s390x keeps the same
+    ASCII magic and byte-swaps everything after it, so the version field is the
+    only handle -- 1..3 one way round, an eight-digit nonsense number the
+    other.
+    """
+    if len(buf) < 8:
+        raise GgufShort(8)
+    if buf[:4] != GGUF_MAGIC:
+        raise GgufBad("first 4 bytes are %r, not GGUF magic" % buf[:4])
+    for endian in ("<", ">"):
+        version = struct.unpack_from(endian + "I", buf, 4)[0]
+        if 1 <= version <= 3:
+            return endian, version
+    raise GgufBad("GGUF version reads %s little-endian and %s big-endian; "
+                  "neither is 1-3"
+                  % (comma(struct.unpack_from("<I", buf, 4)[0]),
+                     comma(struct.unpack_from(">I", buf, 4)[0])))
+
+
+def _gguf_skip(cur, vtype, depth=0):
+    """Step over one value of `vtype` without materialising it."""
+    if vtype in GGUF_FIXED:
+        cur.skip(GGUF_FIXED[vtype][0])
+        return
+    if vtype == GGUF_STRING:
+        cur.string()
+        return
+    if vtype == GGUF_ARRAY:
+        if depth > 1:
+            raise GgufBad("an array is nested more than two deep")
+        elem = cur.u32()
+        n = cur.count()
+        if n > GGUF_MAX_ELEMS:
+            raise GgufBad("an array claims %s elements" % comma(n))
+        if elem in GGUF_FIXED:
+            # Arithmetic, not a loop: a 262,144-entry float array is one skip,
+            # and the GgufShort it raises names the END of that array, which is
+            # what makes ONE widening enough for the common case.
+            cur.skip(GGUF_FIXED[elem][0] * n)
+        elif elem == GGUF_STRING:
+            for _ in range(n):
+                cur.string()
+        elif elem == GGUF_ARRAY:
+            for _ in range(n):
+                _gguf_skip(cur, GGUF_ARRAY, depth + 1)
+        else:
+            raise GgufBad("array element type %d is not a GGUF type" % elem)
+        return
+    raise GgufBad("value type %d is not a GGUF type" % vtype)
+
+
+def _gguf_value(cur, vtype):
+    """(text, type_name) for a value we actually want.
+
+    A wanted key with an unexpected type is reported rather than coerced: a
+    general.architecture stored as a uint32 is a finding about the file, and
+    rendering it as a number would hide that.
+    """
+    name = GGUF_TYPE_NAMES.get(vtype, "type %d" % vtype)
+    if vtype == GGUF_STRING:
+        return cur.string().decode("utf-8", "replace"), name
+    if vtype in GGUF_FIXED:
+        size, code = GGUF_FIXED[vtype]
+        return str(struct.unpack(cur.e + code, cur.take(size))[0]), name
+    _gguf_skip(cur, vtype)
+    return None, name
+
+
+def gguf_read_kv(buf, wanted):
+    """Walk the KV block for `wanted`. Raises GgufShort/GgufBad.
+
+    Stops as soon as every wanted key is in hand. general.architecture is the
+    first KV in every GGUF that convert_hf_to_gguf.py has ever written, so the
+    common case reads about sixty bytes and never touches the tokenizer.
+    """
+    endian, version = _gguf_open(buf)
+    cur = _Cur(buf, endian, version >= 2)
+    tensors = cur.count()
+    kvs = cur.count()
+    if kvs > GGUF_MAX_KV:
+        raise GgufBad("the header claims %s metadata keys" % comma(kvs))
+    want = set(wanted)
+    found, types, scanned = {}, {}, 0
+    for _ in range(kvs):
+        if not want:
+            break
+        key = cur.string().decode("utf-8", "replace")
+        vtype = cur.u32()
+        scanned += 1
+        if key in want:
+            found[key], types[key] = _gguf_value(cur, vtype)
+            want.discard(key)
+        else:
+            _gguf_skip(cur, vtype)
+    return {"version": version,
+            "byte_order": "little" if endian == "<" else "big",
+            "tensor_count": tensors, "kv_count": kvs, "kv_scanned": scanned,
+            "found": found, "types": types, "bytes_used": cur.p}
+
+
+def gguf_header(repo, filename, token, wanted):
+    """(record, fetched_bytes, widened_to). Raises HttpFail/NetworkDown/GgufBad.
+
+    One probe, then at most one widening -- ARCH_WIDEN_MIN says why the second
+    range is floored rather than taken from the parser's exact `need`.
+    """
+    body = range_bytes(repo, filename, token, ARCH_PROBE_BYTES)[2]
+    try:
+        return gguf_read_kv(body, wanted), len(body), None
+    except GgufShort as short:
+        if short.need > ARCH_HEADER_MAX:
+            raise GgufBad("the header wants at least %s bytes, past the %s "
+                          "ceiling" % (comma(short.need),
+                                       comma(ARCH_HEADER_MAX)))
+        wider = min(max(short.need, ARCH_WIDEN_MIN), ARCH_HEADER_MAX)
+    body = range_bytes(repo, filename, token, wider)[2]
+    try:
+        return gguf_read_kv(body, wanted), len(body), wider
+    except GgufShort as short:
+        raise GgufBad("still short after widening to %s bytes: the header "
+                      "wants at least %s" % (comma(wider), comma(short.need)))
+
+
+def _roster_or_none(kind, notes, llama_dir=None):
+    """(Roster, None) or (None, why). An unreadable roster is never fatal."""
+    try:
+        return archs.roster(kind, llama_dir), None
+    except archs.RosterUnknown as exc:
+        for line in exc.tried[:4]:
+            notes.append("  %s" % line)
+        return None, exc.reason
+
+
+def _grade(rosters, kind, name, llama_dir=None):
+    """(status, extra lines) for one declared name against this build."""
+    r = rosters.get(kind)
+    if r is None:
+        return UNKNOWN, ["the %s roster is UNKNOWN, so %r is neither proven "
+                         "supported nor proven absent" % (kind, name)]
+    if not name:
+        return UNKNOWN, ["the header parsed but carries no %s"
+                         % (ARCH_KEY if kind == "archs" else PROJECTOR_KEY)]
+    hit = archs.lookup(kind, name, llama_dir)
+    state = hit["state"]
+    ev = hit.get("evidence") or {}
+    if state == archs.IN_TABLE:
+        return OK, []
+    if state == archs.RECOVERED:
+        # Worth printing: the name is NOT in the contiguous table, because the
+        # linker merged it into a longer literal, and a reader grepping
+        # ARCHS.json's name list will not find it there either.
+        return OK, ["%r is in %s but has no literal of its own -- the linker "
+                    "merged it into %r (%s+0x%x); the %s class corroborates it"
+                    % (name, r.symbol, ev.get("inside"),
+                       os.path.basename(r.source), ev.get("offset", 0),
+                       ev.get("class"))]
+    if state == archs.PRESENT:
+        return UNKNOWN, [
+            "%r is NOT in %s. The byte string does occur in the binary, inside "
+            "%r (%s+0x%x), but nothing corroborates it as a roster entry, so "
+            "support is UNPROVEN either way"
+            % (name, r.symbol, ev.get("inside"),
+               os.path.basename(r.source), ev.get("offset", 0))]
+    return FAIL, []
+
+
+def _nearest(roster, name):
+    close = difflib.get_close_matches(name, sorted(roster.names), 3, 0.6)
+    if close:
+        return "nearest names in the roster: %s" % ", ".join(close)
+    return "no name in the roster is close to it"
+
+
+def check_arch(rep, repo, groups, chosen, projector, token, offline, all_files,
+               llama_dir=None):
+    """Does THIS llama.cpp have a graph for what the file declares?
+
+    Placed between LISTING and ACCESS because it is the cheapest fatal check
+    left: one 64 KiB ranged GET, no config.json, no machine.json -- and a FAIL
+    here means every check after it is about a file that will never load.
+
+    An HTTP refusal here is UNKNOWN, never FAIL. A gated repo cannot serve a
+    header either, and ACCESS immediately below is the check that names that
+    finding properly; reporting it twice, once as the wrong diagnosis, would
+    bury it.
+    """
+    if offline:
+        rep.add("ARCH", UNKNOWN, "--no-network: no GGUF header was read")
+        return None
+    if groups is None:
+        rep.add("ARCH", UNKNOWN,
+                "not attempted (no listing to choose a file from)")
+        return None
+
+    weights = chosen or [g for g in groups if not g["mmproj"]]
+    # The architecture is a property of the model, not of the quantisation, so
+    # one weight file answers for all of them; --range-all widens this the same
+    # way it widens ACCESS, for a repo that mixes conversions.
+    picks = [("archs", g, ARCH_KEY)
+             for g in (weights if all_files else weights[:1])]
+    if projector is not None:
+        picks.append(("projectors", projector, PROJECTOR_KEY))
+    if not picks:
+        rep.add("ARCH", UNKNOWN, "no file to read a header from")
+        return None
+
+    notes, rosters, unreadable = [], {}, []
+    for kind in sorted(set(k for k, _, _ in picks)):
+        r, why = _roster_or_none(kind, notes, llama_dir)
+        rosters[kind] = r
+        if r is None:
+            unreadable.append("%s roster UNKNOWN: %s" % (kind, why))
+        else:
+            notes.append("%-11s %s, build tag %s"
+                         % (kind + ":", r.where(),
+                            r.install_tag or "unrecorded"))
+    detail = list(unreadable) + notes
+
+    worst, first_fail, rows = OK, None, []
+    for kind, g, key in picks:
+        fn = g["files"][0]
+        keys = (ARCH_KEY, PROJECTOR_KEY) if kind == "projectors" else (ARCH_KEY,)
+        try:
+            rec, fetched, wider = gguf_header(repo, fn, token, keys)
+        except NetworkDown as exc:
+            rep.add("ARCH", UNKNOWN,
+                    "no network during the header read: %s" % exc, detail)
+            return None
+        except HttpFail as exc:
+            detail.append("%-44s -> %d %s (no header served; ACCESS below "
+                          "settles this)" % (fn, exc.code, exc.reason))
+            if worst != FAIL:
+                worst = UNKNOWN
+            continue
+        except GgufBad as exc:
+            detail.append("%-44s -> header unparseable: %s" % (fn, exc))
+            if worst != FAIL:
+                worst = UNKNOWN
+            continue
+
+        name = rec["found"].get(key)
+        line = "%-44s %s = %s" % (fn, key, name if name else "(absent)")
+        vtype = rec["types"].get(key)
+        if vtype and vtype != "string":
+            # Worth saying out loud: the roster is keyed by strings, so a key
+            # stored as anything else is a malformed file, not a new arch.
+            line += "   [stored as %s, not a string]" % vtype
+        if wider:
+            line += "   [range widened once to %s B]" % comma(wider)
+        detail.append(line)
+        detail.append("%-44s   GGUF v%d, %s-endian, %s tensors, %s KV "
+                      "(%d walked, %s B read)"
+                      % ("", rec["version"], rec["byte_order"],
+                         comma(rec["tensor_count"]), comma(rec["kv_count"]),
+                         rec["kv_scanned"], comma(fetched)))
+        if kind == "projectors":
+            # An mmproj declares general.architecture = "clip"; the projector
+            # type is the field that decides whether mtmd has an encoder.
+            holder = rec["found"].get(ARCH_KEY)
+            if holder:
+                detail.append("%-44s   %s = %s" % ("", ARCH_KEY, holder))
+
+        status, lines = _grade(rosters, kind, name, llama_dir)
+        detail.extend("%-44s   %s" % ("", ln) for ln in lines)
+        rows.append({"file": fn, "kind": kind, "key": key, "declared": name,
+                     "status": status, "gguf_version": rec["version"]})
+        if status == FAIL:
+            worst = FAIL
+            if first_fail is None:
+                first_fail = (kind, name)
+        elif status == UNKNOWN and worst != FAIL:
+            worst = UNKNOWN
+
+    if worst == FAIL:
+        kind, name = first_fail
+        r = rosters[kind]
+        err = archs.load_error(kind, name, llama_dir)
+        label = "architecture" if kind == "archs" else "projector type"
+        detail.append("the byte string %r does not occur anywhere in %s, so it "
+                      "is not a roster entry the linker merged away either"
+                      % (name, os.path.basename(r.source)))
+        detail.append(_nearest(r, name))
+        if err:
+            detail.append("llama.cpp aborts the load with:  %s" % err["text"])
+            detail.append("  (that text is the literal %r at %s+0x%x with the "
+                          "%s substituted -- %s)"
+                          % (err["literal"], os.path.basename(err["source"]),
+                             err["offset"], label, err["note"]))
+        rep.add("ARCH", FAIL,
+                "%s %r is NOT in this build's roster -- the load will abort"
+                % (label, name), detail,
+                fix="pick a repo this build can load, or rebuild llama.cpp from "
+                    "a tag that has %r in %s -- ASK NOW, while the interview is "
+                    "still open (rule 27). `python scripts/lib/archs.py` prints "
+                    "the whole roster." % (name, r.symbol))
+        return rows
+
+    named = ", ".join("%s %s" % ("projector" if row["kind"] == "projectors"
+                                 else "arch", row["declared"] or "(absent)")
+                      for row in rows) or "nothing readable"
+    if worst == UNKNOWN:
+        rep.add("ARCH", UNKNOWN, "%s -- support is NOT established" % named,
+                detail,
+                fix="run `python scripts/lib/archs.py` to see what this build "
+                    "reports, and resolve it before the interview closes")
+    else:
+        rep.add("ARCH", OK, "%s -- in this build's roster" % named, detail)
+    return rows
+
+
+# ---------------------------------------------------------------------------
+# access, PROVEN
 # ---------------------------------------------------------------------------
 
-def range_probe(repo, filename, token):
-    """(status, total_bytes, first_bytes). A real GET, a real 1 KiB served."""
+def range_bytes(repo, filename, token, nbytes):
+    """(status, total_bytes, body). A real GET of the first `nbytes`.
+
+    `read(nbytes)` and not `read()` on purpose: a server that ignores Range and
+    answers 200 with the whole file would otherwise turn a header probe into
+    the multi-gigabyte download this script exists to happen BEFORE.
+    """
     url = RESOLVE % (repo, urllib.parse.quote(filename))
-    with _open(url, token, {"Range": "bytes=0-%d" % (PROBE_BYTES - 1)}) as r:
-        body = r.read(PROBE_BYTES)
+    with _open(url, token, {"Range": "bytes=0-%d" % (nbytes - 1)}) as r:
+        body = r.read(nbytes)
         cr = r.headers.get("Content-Range") or ""
         m = re.search(r"/(\d+)\s*$", cr)
         status = r.status if hasattr(r, "status") else r.getcode()
         return status, (int(m.group(1)) if m else None), body
+
+
+def range_probe(repo, filename, token):
+    """(status, total_bytes, first_bytes). A real GET, a real 1 KiB served."""
+    return range_bytes(repo, filename, token, PROBE_BYTES)
 
 
 def check_access(rep, repo, groups, chosen, token, where, offline, all_files):
@@ -523,7 +994,7 @@ def check_access(rep, repo, groups, chosen, token, where, offline, all_files):
 
 
 # ---------------------------------------------------------------------------
-# check 4 -- every named quant exists
+# every named quant exists
 # ---------------------------------------------------------------------------
 
 def label_re(label):
@@ -596,7 +1067,7 @@ def check_quants(rep, groups, wanted):
 
 
 # ---------------------------------------------------------------------------
-# check 5 -- the fit
+# the fit
 # ---------------------------------------------------------------------------
 
 def fetch_config(repo, base_repo, token, offline, notes):
@@ -889,7 +1360,7 @@ def check_fit(rep, cands, projector, kv, board, reserve, c_min, notes, named,
 
 
 # ---------------------------------------------------------------------------
-# check 6 -- disk
+# disk
 # ---------------------------------------------------------------------------
 
 def models_dir(slug):
@@ -996,7 +1467,11 @@ is UNKNOWN -- an unproven access or an unsized fit is not a pass.""",
     ap.add_argument("--no-projector", action="store_true",
                     help="do not charge the mmproj against the budget")
     ap.add_argument("--range-all", action="store_true",
-                    help="range-probe every chosen file, not just the first")
+                    help="range-probe and header-read every chosen file, not "
+                         "just the first")
+    ap.add_argument("--llama-dir", metavar="DIR",
+                    help="hold the ARCH check to the llama.cpp build in DIR, "
+                         "instead of the one scripts/lib/paths.py would resolve")
     ap.add_argument("--no-network", action="store_true",
                     help="skip every network check deliberately")
     ap.add_argument("--json", action="store_true",
@@ -1014,7 +1489,7 @@ is UNKNOWN -- an unproven access or an unsized fit is not a pass.""",
     out.write("               %s, c_min %s, KV %s\n\n"
               % (token_label(token, where), comma(a.c_min), a.cache_type))
 
-    rep = Report(6)
+    rep = Report(7)
     slug = check_slug(rep, repo, a.slug)
 
     info = {}
@@ -1031,13 +1506,20 @@ is UNKNOWN -- an unproven access or an unsized fit is not a pass.""",
             "settles it" % info["gated"])
 
     chosen = check_quants(rep, groups, a.quant)
-    check_access(rep, repo, groups, chosen, token, where, a.no_network,
-                 a.range_all)
 
     projector = None
     if groups and not a.no_projector:
         projs = [g for g in groups if g["mmproj"]]
         projector = projs[0] if projs else None
+
+    # ARCH before ACCESS: it is the cheaper fatal check and its own ranged GET
+    # is what reads the header. An HTTP refusal inside it is reported UNKNOWN
+    # so that ACCESS, immediately below, is the one place a gated repo gets
+    # diagnosed.
+    arch_rows = check_arch(rep, repo, groups, chosen, projector, token,
+                           a.no_network, a.range_all, a.llama_dir)
+    check_access(rep, repo, groups, chosen, token, where, a.no_network,
+                 a.range_all)
 
     notes = []
     cfg, cfg_src = None, None
@@ -1080,6 +1562,7 @@ is UNKNOWN -- an unproven access or an unsized fit is not a pass.""",
                    "token_source": where if token else None,
                    "board_total_mib": board,
                    "desktop_reserve_max_mib": reserve,
+                   "arch": arch_rows,
                    "kv_bytes_per_token": kv.get("bytes_per_token"),
                    "fixed_state_mib": round(kv.get("fixed_mib", 0.0), 1),
                    "candidates": rows,

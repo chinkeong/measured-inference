@@ -83,7 +83,7 @@ sweeps. Injecting a house default would quietly convert one into the other.
 "n_predict": -1 means uncapped - llama.cpp generates until the window ends -
 and is sent by omitting max_tokens, which is what the .ps1 originals did.
 
-THE FIVE THINGS A HAND-WRITTEN SWEEP FORGETS, and this one cannot:
+THE SIX THINGS A HAND-WRITTEN SWEEP FORGETS, and this one cannot:
 
   LEDGER (rule 28). One JSON line per probe, appended and fsynced the moment
   the probe returns, to results/<slug>/data/arms/<armfile-stem>.jsonl. Never
@@ -105,6 +105,16 @@ THE FIVE THINGS A HAND-WRITTEN SWEEP FORGETS, and this one cannot:
   the clocks are still ramping. With "discard_first" it is dropped from the
   summary and STILL written to the ledger, flagged discarded, because a
   discarded probe is a measurement of the ramp and must not vanish.
+
+  RESPONSES (rule 28, and METHODOLOGY's artifact read-back). Every generated
+  body is written verbatim to <ledger-stem>-responses/, named by arm, pass and
+  probe so it joins back to its ledger line, and the line carries the path.
+  ON by default; --no-save-responses turns it off. A ledger that records
+  response_chars and throws the text away can say how MUCH was generated and
+  nothing about WHAT: no reasoning-appetite count, no blind judging, nothing
+  for the repetition detector to read, no "max coherent output" column - and
+  no way to notice a probe that spent its whole budget thinking and copied
+  nothing, which is the correction that cost this campaign the most.
 
   ORDER (rule 30). Throughput on the reference rig has two levels ~13% apart
   and nothing recorded predicts which one you get. Arms are therefore compared
@@ -851,6 +861,46 @@ def append_ledger(path, rec):
         os.fsync(fh.fileno())
 
 
+RESPONSES_SUFFIX = "-responses"
+
+
+def response_name(arm_id, rep, probe_index, probe_id, ext=".txt"):
+    """arm / pass / probe in the filename, so a file joins back to its line.
+
+    The ledger's own key for a probe is (arm, rep, probe_index, probe) and this
+    is that tuple, in that order, filesystem-safe. Sorting the directory sorts
+    the sweep.
+    """
+    return "%s__rep%d__%02d-%s%s" % (_safe(arm_id), rep, probe_index,
+                                     _safe(probe_id), ext)
+
+
+def save_response(dir_path, name, text):
+    """Write one generated body VERBATIM. Returns (relative path, error|None).
+
+    Verbatim, and not "prettified": the repetition detector, the blind judge
+    and any max-coherent-output measurement read this file and are entitled to
+    the model's characters rather than the runner's. An EMPTY body still gets
+    its file - a zero-byte file next to a line saying finish_reason=stop is
+    the empty-answer shape METHODOLOGY names, and it is only nameable because
+    something was written.
+
+    A failure here never kills the sweep: the probe already happened and its
+    numbers are real. It is reported on the record instead, so a missing file
+    is a fact in the ledger rather than a silence.
+    """
+    path = os.path.join(dir_path, name)
+    try:
+        os.makedirs(dir_path, exist_ok=True)
+        with open(path, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(text)
+            fh.flush()
+            os.fsync(fh.fileno())
+    except OSError as e:
+        return None, "%s: %s" % (type(e).__name__, e)
+    return "%s/%s" % (os.path.basename(dir_path), name), None
+
+
 def write_heartbeat(path, rec):
     """Rewritten every probe, atomically. Rule 20's 'where is it now'."""
     tmp = path + ".tmp"
@@ -944,9 +994,13 @@ def print_listing(spec, arms, order_mode):
     print("\ntotal probes: %d" % total)
 
 
-def print_plan(units, resolved, ledger_path, hb_path, slug, arm_dir, checked):
+def print_plan(units, resolved, ledger_path, hb_path, slug, arm_dir, checked,
+               responses_dir=None):
     print("slug       : %s" % slug)
     print("ledger     : %s" % ledger_path)
+    print("responses  : %s" % (responses_dir or
+                               "NOT SAVED (--no-save-responses): the generated "
+                               "text will not exist after this run (rule 28)"))
     print("heartbeat  : %s" % hb_path)
     print("frozen     : %d probe(s) carry prompt_sha256/prompt_chars, all "
           "reproduced" % checked)
@@ -1054,6 +1108,39 @@ def main():
     ap.add_argument("--only", metavar="ID", default=None,
                     help="run just this arm id - what a raised-cap rerun and a "
                          "data-dependent ladder walk both need")
+    # DEFAULT: ON, and rule 28 decides that, not taste. "A field not written
+    # down during the run cannot be recovered at any price" is exactly what a
+    # response body is: once the server has stopped, rerunning the probe is a
+    # NEW sample under new clocks - and under any sampler but greedy it is not
+    # even the same text - so the thing that was generated is simply gone.
+    # Four downstream jobs read it and none can be served by response_chars:
+    # Stage 4 counts reasoning appetite from the text, Stage 6b blind-judges
+    # it, rule 20's repetition check has to spot-read it before a long greedy
+    # run's tokens or timings may be trusted, and a "max coherent output"
+    # column cannot be filled without it. METHODOLOGY is blunter still: a
+    # probe whose claim carries a content label must have its text SAVED and
+    # READ, because discarded output cannot support a claim about what was
+    # generated.
+    #
+    # Against that, the disk. A body is capped at n_predict tokens at roughly
+    # 4 chars a token, so this campaign's largest cap - 16,384 tokens - is
+    # about 64 KiB, and a 400-probe sweep at that cap is about 26 MiB. The
+    # weight file it was measuring is 9 GiB. Paying three thousandths of one
+    # model file to keep the only unrecoverable artifact of the run is not a
+    # trade worth deliberating, so saving is ON and the flag that matters is
+    # the one that turns it OFF.
+    ap.add_argument("--save-responses", dest="save_responses",
+                    action="store_true", default=True,
+                    help="write every generated body to "
+                         "<ledger-stem>-responses/ beside the ledger, named "
+                         "arm__repN__NN-probe.txt (this is the DEFAULT; the "
+                         "flag is accepted so a command can say so out loud)")
+    ap.add_argument("--no-save-responses", dest="save_responses",
+                    action="store_false",
+                    help="do NOT keep the generated text. Only for a sweep "
+                         "measuring pure throughput at a huge cap where no "
+                         "claim will ever be made about the CONTENT - the "
+                         "text cannot be recovered afterwards (rule 28)")
     ap.add_argument("--dry-run", action="store_true",
                     help="print the full plan - every arm, its resolved model "
                          "path, its full argv, every probe - and touch nothing")
@@ -1093,6 +1180,11 @@ def main():
     data_dir = os.path.join(root, "results", slug, "data", "arms")
     work_dir = os.path.join(root, "results", slug, "work", "arms", _safe(stem))
     ledger_path = os.path.join(data_dir, stem + ".jsonl")
+    # Beside the ledger, not under work/: the text IS data, it is what a later
+    # stage judges, and a directory that ships with the .jsonl keeps the two
+    # together when the campaign is archived or handed on.
+    responses_dir = (os.path.join(data_dir, stem + RESPONSES_SUFFIX)
+                     if args.save_responses else None)
     hb_path = os.path.join(root, "results", slug, "work", "heartbeat.json")
 
     units = build_plan(arms, order_mode)
@@ -1126,7 +1218,8 @@ def main():
         resolved[a["id"]] = rec
 
     if args.dry_run:
-        print_plan(units, resolved, ledger_path, hb_path, slug, arm_dir, checked)
+        print_plan(units, resolved, ledger_path, hb_path, slug, arm_dir,
+                   checked, responses_dir)
         print("\nDRY RUN: nothing was launched and nothing was written.")
         if unresolved:
             print("%d arm(s) could not be resolved - see UNRESOLVED above."
@@ -1136,6 +1229,8 @@ def main():
 
     for d in (data_dir, work_dir, os.path.dirname(hb_path)):
         os.makedirs(d, exist_ok=True)
+    if responses_dir:
+        os.makedirs(responses_dir, exist_ok=True)
 
     already = read_ledger(ledger_path) if args.resume else {}
     total_probes = sum(len(u["arm"]["probes"]) for u in units)
@@ -1176,6 +1271,10 @@ def main():
                   "repeat": a["repeat"], "discard_first": a["discard_first"],
                   "warnings": arm_warnings(a)} for a in arms],
         "frozen_prompts_verified": checked,
+        # Whether the text survives this run is a CONDITION of every content
+        # claim made from it later (rule 3), so it is on the sweep's own line.
+        "save_responses": bool(args.save_responses),
+        "responses_dir": responses_dir,
         "resume": bool(args.resume), "only": args.only,
         "pid": os.getpid(), "argv": sys.argv,
         # rule 3: the conditions travel with the numbers, in the same file
@@ -1357,8 +1456,34 @@ def main():
 
                     t = resp.get("timings") or {}
                     choice = (resp.get("choices") or [{}])[0]
-                    content = (choice.get("message") or {}).get("content") or ""
+                    message = choice.get("message") or {}
+                    content = message.get("content") or ""
+                    # A server run with --reasoning keeps the thinking out of
+                    # content. It is generated text too, it is what a probe
+                    # that "spent the whole budget thinking and copied nothing"
+                    # actually produced, and this request is already being
+                    # issued - rule 28: widening it costs nothing.
+                    reasoning = (message.get("reasoning_content")
+                                 or message.get("reasoning") or "")
                     finish = choice.get("finish_reason")
+
+                    resp_file = reas_file = save_err = None
+                    if responses_dir:
+                        resp_file, save_err = save_response(
+                            responses_dir,
+                            response_name(arm["id"], rep, j, p["id"]), content)
+                        if reasoning:
+                            reas_file, r_err = save_response(
+                                responses_dir,
+                                response_name(arm["id"], rep, j, p["id"],
+                                              ".reasoning.txt"), reasoning)
+                            save_err = save_err or r_err
+                        if save_err:
+                            print("       WARNING: the generated text could "
+                                  "not be saved (%s) - this probe's numbers "
+                                  "are real but its content is gone (rule 28)"
+                                  % save_err)
+
                     rec = dict(
                         common, kind="probe", ts=_iso(), probe=p["id"],
                         # The energy join needs the request's START, and rule 28
@@ -1376,6 +1501,20 @@ def main():
                         request=request, timings=t, drafting=drafting(t),
                         usage=resp.get("usage"), vram=vram.result(),
                         finish_reason=finish, response_chars=len(content),
+                        # response_chars says how much; response_file is the
+                        # only thing that can ever say WHAT. The path is
+                        # relative to this ledger's own directory, so the pair
+                        # survives the campaign being moved or archived.
+                        response_file=resp_file,
+                        response_saved=bool(resp_file),
+                        response_save_error=save_err,
+                        reasoning_chars=len(reasoning),
+                        reasoning_file=reas_file,
+                        # METHODOLOGY: an empty completion has two shapes and
+                        # only one trips a cap. finish_reason=stop with zero
+                        # characters is invisible to every truncation count,
+                        # so it is counted here, separately, by name.
+                        empty_answer=(len(content) == 0),
                         elapsed_s=elapsed,
                         # rule 7: a truncation is a condition, not a footnote
                         truncated=(finish == "length"))
@@ -1409,6 +1548,11 @@ def main():
                         print("       NOTE: finish_reason=length - this probe "
                               "TRUNCATED at its cap (rule 7: raise the cap and "
                               "rerun this arm, never filter it out)")
+                    if rec["empty_answer"] and not rec["truncated"]:
+                        print("       NOTE: EMPTY ANSWER - finish_reason=%s "
+                              "with 0 characters after %d reasoning chars. No "
+                              "truncation counter can see this; it is its own "
+                              "metric." % (finish, len(reasoning)))
                     if discarded and arm["settle_s"]:
                         time.sleep(arm["settle_s"])
             except RuntimeError as e:
@@ -1435,6 +1579,11 @@ def main():
     print_summary(summary_rows)
     print("\n%d probe record(s) written of %d planned -> %s"
           % (probes_written, total_probes, ledger_path))
+    if responses_dir:
+        print("generated text -> %s" % responses_dir)
+    else:
+        print("generated text: NOT SAVED (--no-save-responses). Nothing in "
+              "this run can support a claim about what was generated.")
     if failed_arms:
         print("FAILED arms: %s" % ", ".join(failed_arms))
         return 1

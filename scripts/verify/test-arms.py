@@ -43,6 +43,13 @@ WHAT EACH TEST PROTECTS, by the rule it belongs to:
   alternate-order    rule 30: the order reverses on the second pass, and the
                      order actually used is on every line
   truncation-notice  rule 7: finish_reason=length is a condition, reported
+  save-responses     rule 28 again, on the one artifact that cannot be
+                     recovered at any price: the generated TEXT is written
+                     beside the ledger BY DEFAULT, named so it joins back to
+                     its arm/pass/probe, and its bytes are the characters the
+                     ledger counted. Two zero-byte accept-*.txt files under
+                     results/qwen38-27b-blind/data/ are what its absence
+                     looked like
   address-space-reservation  a server that reserves 32 GB of address space and
                      commits none of it still runs - the RLIMIT_AS shape
 
@@ -326,6 +333,10 @@ class Sandbox(object):
 
     def probes(self, stem):
         return [r for r in self.ledger(stem) if r.get("kind") == "probe"]
+
+    def responses_dir(self, stem):
+        return os.path.join(self.root, "results", SLUG, "data", "arms",
+                            stem + "-responses")
 
     def heartbeat_path(self):
         return os.path.join(self.root, "results", SLUG, "work",
@@ -831,6 +842,90 @@ def t_truncation_notice(sb):
     return "finish_reason=length recorded and reported"
 
 
+def t_save_responses(sb):
+    """rule 28: the generated TEXT is kept, joined to its line, and by default.
+
+    response_chars alone can say how much was generated and nothing about
+    what. Stage 4's appetite count, Stage 6b's blind judging, rule 20's
+    repetition spot-read and any max-coherent-output column all read the body,
+    and the body cannot be recovered after the server stops. So this asserts
+    three things: saving happens with NO flag asked for, the file joins back to
+    its ledger line by name and by path, and its bytes are exactly the
+    characters the ledger counted.
+    """
+    port = free_port()
+    arms = [sb.arm("arm-a", probes=[{"id": "p1", "prompt": "say something",
+                                     "n_predict": 48},
+                                    {"id": "p2", "prompt": "say more",
+                                     "n_predict": 32}])]
+    f = sb.arm_file("saved", arms, port)
+    rc, out = sb.run("--arms", f, "--slug", SLUG)       # no flag: the DEFAULT
+    need(rc == 0, "sweep exited %d:\n%s" % (rc, out[-1200:]))
+
+    ddir = sb.responses_dir("saved")
+    need(os.path.isdir(ddir),
+         "no responses directory at %s - the run kept response_chars and threw "
+         "the text away, which is the state rule 28 calls unrecoverable" % ddir)
+    got = sorted(os.listdir(ddir))
+    want = ["arm-a__rep1__00-p1.txt", "arm-a__rep1__01-p2.txt"]
+    need(got == want, "responses are named %r, expected %r - the name IS the "
+                      "join back to arm/pass/probe" % (got, want))
+
+    ledger_dir = os.path.dirname(os.path.join(
+        sb.root, "results", SLUG, "data", "arms", "saved.jsonl"))
+    for r in sb.probes("saved"):
+        where = "%s/%s" % (r["arm"], r["probe"])
+        need(r.get("response_saved") is True,
+             "%s: response_saved is %r" % (where, r.get("response_saved")))
+        need(r.get("response_save_error") is None,
+             "%s: response_save_error %r" % (where, r.get("response_save_error")))
+        rel = r.get("response_file")
+        need(rel == "saved-responses/%s"
+             % ("arm-a__rep1__%02d-%s.txt" % (r["probe_index"], r["probe"])),
+             "%s: response_file is %r" % (where, rel))
+        path = os.path.join(ledger_dir, *rel.split("/"))
+        need(os.path.exists(path),
+             "%s: response_file %r does not resolve from the ledger's own "
+             "directory - the path has to survive the campaign being moved"
+             % (where, rel))
+        body = open(path, encoding="utf-8").read()
+        need(len(body) == r["response_chars"],
+             "%s: the saved file is %d chars, the ledger counted %d - they are "
+             "supposed to be the same text" % (where, len(body),
+                                               r["response_chars"]))
+        need(body.strip(),
+             "%s: the saved file is EMPTY while the ledger says %d chars were "
+             "generated - a zero-byte artifact is exactly what a discarded "
+             "body looks like" % (where, r["response_chars"]))
+        need(r.get("empty_answer") is False,
+             "%s: empty_answer %r for a %d-char body"
+             % (where, r.get("empty_answer"), r["response_chars"]))
+
+    start = [r for r in sb.ledger("saved") if r.get("kind") == "sweep_start"][0]
+    need(start.get("save_responses") is True,
+         "sweep_start does not record that the text was kept - whether it was "
+         "is a condition of every later claim about content (rule 3)")
+
+    # ... and the opt-out really opts out, loudly.
+    arms2 = [sb.arm("arm-a", probes=[{"id": "p1", "prompt": "quiet",
+                                      "n_predict": 16}])]
+    f2 = sb.arm_file("unsaved", arms2, free_port())
+    rc, out2 = sb.run("--arms", f2, "--slug", SLUG, "--no-save-responses")
+    need(rc == 0, "opt-out sweep exited %d:\n%s" % (rc, out2[-1200:]))
+    need(not os.path.exists(sb.responses_dir("unsaved")),
+         "--no-save-responses still created %s" % sb.responses_dir("unsaved"))
+    rec = sb.probes("unsaved")[0]
+    need(rec.get("response_file") is None and rec.get("response_saved") is False,
+         "--no-save-responses left response_file %r / response_saved %r"
+         % (rec.get("response_file"), rec.get("response_saved")))
+    need(rec.get("response_chars") > 0,
+         "the opt-out dropped response_chars too - it is only supposed to drop "
+         "the text")
+    need("NOT SAVED" in out2,
+         "the opt-out run never says the text is gone:\n%s" % out2[-600:])
+    return "2 bodies saved by default, named by arm/pass/probe; opt-out is loud"
+
+
 TESTS = (
     ("resolver-accepts-stub", t_resolver_accepts_stub),
     ("stub-contract", t_stub_contract),
@@ -842,6 +937,7 @@ TESTS = (
     ("failed-arm-continues", t_failed_arm_continues),
     ("alternate-order", t_alternate_order),
     ("truncation-notice", t_truncation_notice),
+    ("save-responses", t_save_responses),
     ("address-space-reservation", t_address_space_reservation),
 )
 
