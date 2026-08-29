@@ -55,6 +55,56 @@ follows a model-carrying flag, is resolved through paths.model_path(). No
 absolute path ever appears in an arm file, which is what makes one file run on
 Windows today and Ubuntu tomorrow.
 
+RUNGS COME FROM THE PLAN WHEN THE LADDER IS NOT A FIXED EXPERIMENT. A context
+ceiling is a property of <this file + this card>, so a ladder of -c values
+written into an arm file is a ladder for somebody else's machine. An arm may
+therefore carry a "rungs" object in place of a literal -c, and is then a
+TEMPLATE: the runner expands it into one arm per rung out of
+results/<slug>/plan.json, which scripts/plan-campaign.py derives from the GGUF
+header, machine.json and the KV arithmetic.
+
+    {"id": "q4km-c{rung.c}", "sweep": "q4km-ceiling",
+     "rungs": {"from": "plan", "file": "Q4_K_M"},
+     "server": {"model": "Q4_K_M",
+                "flags": ["-c", "{rung.c}", "-ngl", "99", "--jinja"]},
+     "probes": [{"id": "rbtree", "prompt": "...", "n_predict": 400}]}
+
+"file" is the plan's label for the weight file - the <label> in
+results/<slug>/model-<label>.json - and defaults to the arm's own server.model,
+because both are the same quant label by construction. "{rung.KEY}" is
+substituted wherever a string appears in the arm: the id, a flag, a probe
+prompt, an n_predict. KEY is any field of the plan's rung record - c, zone,
+deep_fill_tokens, above_predicted_ceiling - plus index, of and file. A string
+that is EXACTLY one placeholder takes the VALUE'S TYPE, so
+"n_predict": "{rung.deep_fill_tokens}" is an integer cap and not a string; a
+placeholder inside a longer string is interpolated as text, which is what an id
+template wants. The expanded arms come out in ascending -c, so a ladder walk
+under "order": "fixed" runs bottom-up as its stop rule expects.
+
+THERE IS NO FALLBACK, and that is the entire point. An arm file that names a
+rung source and finds no plan.json ABORTS, naming the command that writes one.
+Falling back to a hardcoded value is exactly how a ladder sized for one 27B on
+one 24 GB card gets run against a 1.7B whose whole 40,960-token window sits
+below the ladder's bottom rung - and the ledger would record those readings as
+if the ladder had been derived for that model.
+
+WHAT THE LEDGER RECORDS ABOUT IT (rules 3 and 28). Every probe line carries
+ctx_size - the -c actually in the argv, parsed back out of it - and ctx_source,
+one of "plan", "literal" or "none". A plan-driven line also carries the whole
+rung record and the plan it came from, and the sweep_start line carries the
+plan's path, slug, generation time and step rule. A window is a condition, and
+a condition that exists only inside a flags array is one grep away from being
+lost.
+
+WHEN A LITERAL -c IS RIGHT, AND WHAT HAPPENS THEN. A depth series at
+1.5k/28k/91k, an effort sweep at rule 21's frozen cap, a speculative-decoding
+grid held at one window - those -c values are part of a fixed experiment, and a
+runner that rewrote them would be running a different one. So it does not touch
+them. It does CHECK them: when a plan is present, a literal -c above the
+model's own trained context_length, or above the plan's predicted ceiling for
+that file, is warned about in the listing, in the plan, on the sweep_start line
+and in the console. Loud, recorded, and never silently changed.
+
 A probe names its prompt in exactly one of three ways:
 
     "prompt":       the literal string
@@ -153,9 +203,11 @@ import datetime
 import hashlib
 import json
 import os
+import re
 import socket
 import subprocess
 import sys
+import textwrap
 import threading
 import time
 
@@ -212,6 +264,16 @@ MODEL_FLAGS = ("--mmproj", "-md", "--model-draft", "--mmproj-file")
 # recording nothing usable and should stop before it costs hours (rule 25).
 REQUIRED_TIMINGS = ("prompt_n", "predicted_n", "prompt_ms", "predicted_ms",
                     "predicted_per_second")
+
+# The DERIVED ladder, written by scripts/plan-campaign.py from the GGUF header
+# and machine.json. "from": "plan" is spelled out in the arm file rather than
+# assumed, so a second source one day is a new VALUE and not a new shape.
+PLAN_FILE = "plan.json"
+PLAN_WRITER = "scripts/plan-campaign.py"
+MODEL_WRITER = "scripts/inspect-model.py"
+RUNG_SOURCES = ("plan",)
+RUNG_RE = re.compile(r"\{rung\.([A-Za-z_][A-Za-z0-9_]*)\}")
+CTX_FLAGS = ("-c", "--ctx-size")
 
 # subprocess text kwargs: on Windows bare text=True decodes the child as cp1252,
 # and one UTF-8 byte in the child's output kills the reader (bench.py:77)
@@ -279,12 +341,264 @@ def _flag_present(flags, *names):
     return any(f in names for f in flags)
 
 
+def _wrap(text, width=72, indent=""):
+    return [indent + ln for ln in textwrap.wrap(str(text or ""), width)] or []
+
+
+def raw_ctx(flags):
+    """The token the flag list puts after -c, or None if it names no window."""
+    for i in range(len(flags) - 1):
+        if flags[i] in CTX_FLAGS:
+            return str(flags[i + 1])
+    return None
+
+
+def ctx_size(flags):
+    """The -c actually in this flag list, or None if it names no window.
+
+    Read back OUT of the flag list rather than remembered from wherever the
+    value came from, so the ledger records the window the server was actually
+    given (rule 3) whether it was a literal, a plan rung, or absent.
+    """
+    tok = raw_ctx(flags)
+    try:
+        return int(tok)
+    except (TypeError, ValueError):
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Rungs from the campaign plan
+#
+# A -c ladder is a property of <this weight file + this card>, not of the
+# experiment, so scripts/plan-campaign.py derives one per model file and this
+# is where an arm file spends it. Everything below either produces a concrete
+# ladder or refuses in a way that names the command that would fix it: there is
+# no path through this section that ends in a guessed window.
+# ---------------------------------------------------------------------------
+
+def _rel(path):
+    """Repo-relative when it can be, absolute when it cannot.
+
+    os.path.relpath RAISES on Windows across drives, and --plan pointing at a
+    file on another volume is an ordinary thing to do. A path that cannot be
+    made relative is still a perfectly good path.
+    """
+    try:
+        return os.path.relpath(path, paths.repo_root()).replace(os.sep, "/")
+    except ValueError:
+        return os.path.abspath(path).replace(os.sep, "/")
+
+
+def default_plan_path(slug):
+    return os.path.join(paths.repo_root(), "results", str(slug), PLAN_FILE)
+
+
+def load_plan(slug, explicit=None):
+    """(plan, path, why_not). Never raises - the caller decides how loud.
+
+    Absence is fatal for an arm file that NAMES a rung source and merely
+    informative for one that does not, and only the caller knows which, so
+    this reports rather than exits. Every rejection carries the reason in the
+    words a fix would be written in.
+    """
+    path = explicit or default_plan_path(slug)
+    if not os.path.isfile(path):
+        return None, path, "there is no such file"
+    try:
+        with open(path, encoding="utf-8-sig") as fh:
+            plan = json.load(fh)
+    except (OSError, ValueError) as e:
+        return None, path, "%s: %s" % (type(e).__name__, e)
+    if not isinstance(plan, dict):
+        return None, path, "it is not a JSON object"
+    got = plan.get("slug")
+    if got and slug and str(got) != str(slug):
+        # The guard that makes --plan safe. A ladder derived for one model on
+        # one card is not a ladder for another, and a plan pointed at the
+        # wrong campaign is precisely the 27B-ladder-on-a-1.7B accident with
+        # an extra step.
+        return None, path, ("it is the plan for campaign %r and this sweep is "
+                            "campaign %r - a ladder derived for one model on "
+                            "one card is not a ladder for another"
+                            % (str(got), str(slug)))
+    per_file = (plan.get("rungs") or {}).get("per_file")
+    if not isinstance(per_file, list):
+        return None, path, ("it carries no rungs.per_file list, so %s never "
+                            "got as far as deriving a ladder (its own "
+                            "verdict: %s)"
+                            % (PLAN_WRITER, plan.get("verdict") or "not recorded"))
+    return plan, path, None
+
+
+def plan_record(plan, label):
+    """The plan's rung record for one model label, or None."""
+    if not plan:
+        return None
+    for rec in (plan.get("rungs") or {}).get("per_file") or []:
+        if isinstance(rec, dict) and str(rec.get("file")) == str(label):
+            return rec
+    return None
+
+
+def plan_labels(plan):
+    return [str(r.get("file"))
+            for r in (plan.get("rungs") or {}).get("per_file") or []
+            if isinstance(r, dict)]
+
+
+def no_plan_message(arm_id, arm_file, slug, path, why):
+    """Why the sweep stopped, and the exact command that unblocks it."""
+    return (
+        "arm %r in %s takes its -c values from the campaign plan, and no "
+        "usable plan was found.\n"
+        "  looked at  : %s\n"
+        "  because    : %s\n"
+        "Write one - it needs the model's own GGUF header and this machine:\n"
+        "  python %s --slug %s --repo <org>/<repo>-GGUF --quant <LABEL>   "
+        "# only if results/%s/model-<LABEL>.json is missing\n"
+        "  python %s --slug %s\n"
+        "There is deliberately NO fallback to a hardcoded ladder. A -c ladder "
+        "belongs to one weight file on one card; run another model's ladder "
+        "and the sweep measures windows this model has never had, while the "
+        "ledger records the readings as though the ladder had been derived "
+        "for it (rule 1: measured, cited or labeled-derived - a borrowed "
+        "ladder is none of the three)."
+        % (arm_id, arm_file, path, why,
+           MODEL_WRITER, slug, slug, PLAN_WRITER, slug))
+
+
+def _rung_value(key, values, where):
+    if key not in values:
+        _fail("%s: {rung.%s} is not a field of the plan's rung record. "
+              "This plan offers: %s"
+              % (where, key, ", ".join(sorted(values))))
+    return values[key]
+
+
+def _subst(obj, values, where):
+    """{rung.KEY} -> the plan's value, wherever a string appears in the arm.
+
+    A string that is EXACTLY one placeholder takes the value's TYPE, so
+    ["-c", "{rung.c}"] becomes ["-c", 122880] (merge_arm stringifies flags
+    anyway) and "n_predict": "{rung.deep_fill_tokens}" is an integer cap that
+    passes merge_arm's integer check. A placeholder inside a longer string is
+    interpolated as text, which is what "q4km-c{rung.c}" wants.
+
+    Exact-token matching, not str.format(): a flag list here legitimately
+    contains {"reasoning_effort":"low"}, and format() would explode on it.
+    """
+    if isinstance(obj, str):
+        m = RUNG_RE.fullmatch(obj)
+        if m:
+            return _rung_value(m.group(1), values, where)
+        return RUNG_RE.sub(
+            lambda mo: str(_rung_value(mo.group(1), values, where)), obj)
+    if isinstance(obj, list):
+        return [_subst(v, values, where) for v in obj]
+    if isinstance(obj, dict):
+        return dict((k, _subst(v, values, where)) for k, v in obj.items())
+    return obj
+
+
+def expand_rungs(raw_arms, plan, plan_path, arm_file):
+    """Template arms -> one concrete arm per plan rung. (arms, ladders).
+
+    Arms that name no rung source pass through untouched, so a file may mix a
+    derived ladder with fixed arms. `ladders` is what --list, --dry-run and
+    the sweep_start line print and record: the resolved rungs, the plan's own
+    reason for them, and the reference ladder they replaced.
+    """
+    out, ladders = [], []
+    rel = _rel(plan_path)
+    for arm in raw_arms:
+        src = arm.get("rungs") if isinstance(arm, dict) else None
+        if not src:
+            out.append(arm)
+            continue
+        arm_id = arm.get("id")
+        where = "arm %r in %s" % (arm_id, arm_file)
+        if not isinstance(src, dict):
+            _fail("%s: \"rungs\" must be an object, e.g. "
+                  "{\"from\": \"plan\", \"file\": \"Q4_K_M\"}" % where)
+        frm = str(src.get("from") or "plan")
+        if frm not in RUNG_SOURCES:
+            _fail("%s: \"rungs\".from is %r; the only source is %s"
+                  % (where, frm, " or ".join(repr(s) for s in RUNG_SOURCES)))
+        label = src.get("file") or (arm.get("server") or {}).get("model")
+        if not label:
+            _fail("%s: \"rungs\" names no \"file\" and the arm has no "
+                  "server.model to take the plan label from" % where)
+        rec = plan_record(plan, label)
+        if rec is None:
+            _fail("%s: wants rungs for plan file %r, and %s has none. It "
+                  "holds: %s.\nEither this campaign inspected a different "
+                  "quant, or \"rungs\".file names the wrong label. Re-run "
+                  "%s for %r, then %s."
+                  % (where, str(label), rel, ", ".join(plan_labels(plan))
+                     or "(nothing)", MODEL_WRITER, str(label), PLAN_WRITER))
+        rungs = [r for r in (rec.get("rungs") or []) if isinstance(r, dict)]
+        if not rungs:
+            _fail("%s: %s derives NO rungs for %r, and gives this reason:\n"
+                  "  %s\nThat is an answer about this machine, not a bug - "
+                  "but there is nothing for this sweep to run, so it stops "
+                  "here rather than inventing a window."
+                  % (where, rel, str(label), rec.get("why") or "none recorded"))
+        if len(rungs) > 1 and "{rung." not in str(arm_id or ""):
+            _fail("%s: expands to %d arms and its id carries no {rung.*} "
+                  "placeholder, so every one of them would be called %r. Arm "
+                  "ids key the ledger and the resume index - put {rung.c} in "
+                  "the id." % (where, len(rungs), arm_id))
+        for i, r in enumerate(rungs):
+            values = dict(r)
+            values.update({"file": str(label), "index": i + 1,
+                           "of": len(rungs)})
+            body = dict((k, v) for k, v in arm.items() if k != "rungs")
+            concrete = _subst(body, values, where)
+            # Provenance rides on the arm itself so the ledger can copy it
+            # onto every line the arm produces (rules 3 and 28). It is NOT in
+            # spec_hash(): the -c is already in the flag list, and rehashing
+            # the plan's metadata would force a completed sweep to rerun every
+            # time plan-campaign.py is re-run with the same numbers.
+            concrete["_rung"] = {
+                "source": "plan", "plan": rel, "plan_file": str(label),
+                "template": arm_id, "index": i + 1, "of": len(rungs),
+                "c": r.get("c"), "zone": r.get("zone"),
+                "deep_fill_tokens": r.get("deep_fill_tokens"),
+                "above_predicted_ceiling": r.get("above_predicted_ceiling"),
+                "predicted_ceiling": rec.get("predicted_ceiling"),
+                "predicted_ceiling_drafter_off":
+                    rec.get("predicted_ceiling_drafter_off"),
+                "model_context_length": rec.get("model_context_length"),
+                "cache_type": rec.get("cache_type"),
+                "quantum": rec.get("quantum"),
+            }
+            out.append(concrete)
+        ladders.append({
+            "template": arm_id, "plan": rel, "plan_file": str(label),
+            "c": [r.get("c") for r in rungs],
+            "zones": [r.get("zone") for r in rungs],
+            "deep_fill_tokens": [r.get("deep_fill_tokens") for r in rungs],
+            "predicted_ceiling": rec.get("predicted_ceiling"),
+            "model_context_length": rec.get("model_context_length"),
+            "cache_type": rec.get("cache_type"),
+            "collapse_point_reachable": rec.get("collapse_point_reachable"),
+            "why": rec.get("why"),
+            # Documentation, carried as DATA so it can be compared instead of
+            # believed: the literal ladder this template replaced.
+            "reference_rungs": src.get("reference_rungs"),
+        })
+    return out, ladders
+
+
 # ---------------------------------------------------------------------------
 # Arm file -> plan
 # ---------------------------------------------------------------------------
 
-def load_arm_file(path):
-    """Read and validate an arm file. Returns (spec, merged_arms)."""
+def read_arm_file(path):
+    """The arm file as written: (spec, raw arms). Nothing merged, nothing
+    expanded - rung templates are still templates here, because resolving one
+    needs the campaign slug and the slug is resolved from this same spec."""
     if not os.path.exists(path):
         _fail("arm file not found: %s" % path)
     try:
@@ -297,10 +611,14 @@ def load_arm_file(path):
     arms = spec.get("arms")
     if not isinstance(arms, list) or not arms:
         _fail("arm file %s has no \"arms\" list" % path)
-    defaults = spec.get("defaults") or {}
-    if not isinstance(defaults, dict):
+    if not isinstance(spec.get("defaults") or {}, dict):
         _fail("\"defaults\" must be an object in %s" % path)
+    return spec, arms
 
+
+def merge_arms(spec, arms, path):
+    """defaults + each (already expanded) arm -> the fully resolved list."""
+    defaults = spec.get("defaults") or {}
     merged, seen = [], set()
     for i, arm in enumerate(arms):
         if not isinstance(arm, dict):
@@ -311,7 +629,7 @@ def load_arm_file(path):
                   "resume index, so they have to be unique" % (m["id"], path))
         seen.add(m["id"])
         merged.append(m)
-    return spec, merged
+    return merged
 
 
 def merge_arm(defaults, arm, index, path):
@@ -399,6 +717,10 @@ def merge_arm(defaults, arm, index, path):
     sampling = dict(defaults.get("sampling") or {})
     sampling.update(arm.get("sampling") or {})
     out["sampling"] = sampling
+    # Set by expand_rungs(); carried through so every ledger line this arm
+    # produces can say which rung of which plan it is (rules 3 and 28).
+    if arm.get("_rung"):
+        out["_rung"] = arm["_rung"]
     return out
 
 
@@ -420,13 +742,19 @@ def filler_n(probe):
     return None
 
 
-def arm_warnings(arm):
+def arm_warnings(arm, plan=None):
     """Conditions worth shouting about, without touching the flag list.
 
     The flag lists in scripts/arms/*.json were reconstructed from the .ps1
     originals flag for flag; silently adding to one would measure a different
     server than the published number came from. So these are warnings, printed
     in the plan and recorded in the ledger, and nothing more.
+
+    With a plan in hand the same restraint applies to a LITERAL -c. A depth
+    series or a frozen effort suite names its window on purpose, and rewriting
+    it would run a different experiment - but a window above the model's own
+    trained context_length, or above what the card can hold, is a fact the
+    operator has to be told before the hours are spent, not after.
     """
     flags, w = arm["server"]["flags"], []
     if not _flag_present(flags, "-ngl", "--n-gpu-layers", "--gpu-layers"):
@@ -441,6 +769,28 @@ def arm_warnings(arm):
                  "takes is the ramp probe, so the arm contributes NO kept "
                  "reading. Add a second probe, or set discard_first false and "
                  "say in the writeup that the reading is a cold one (rule 12)")
+    if plan is not None and not arm.get("_rung"):
+        c = ctx_size(flags)
+        rec = plan_record(plan, arm["server"]["model"])
+        window = (rec or {}).get("model_context_length")
+        ceiling = (rec or {}).get("predicted_ceiling")
+        if c and window and c > window:
+            w.append("-c %d is ABOVE this model's own trained window (%d, "
+                     "from the GGUF header via %s). llama.cpp does not refuse "
+                     "that, it rope-scales, so the arm would measure "
+                     "extrapolation rather than the model - and the window is "
+                     "a condition every number here travels with (rule 3). "
+                     "The value is left exactly as the arm file wrote it: it "
+                     "is part of a fixed experiment and only a deliberate "
+                     "re-freeze may change it." % (c, window, PLAN_FILE))
+        elif c and ceiling and c > ceiling:
+            w.append("-c %d is above the plan's predicted ceiling for %s (%s "
+                     "tokens at %s KV, %s). The arithmetic says this window "
+                     "does not fit on this card, so expect this arm to fail "
+                     "to load or to spill - which is a RESULT the ledger "
+                     "records, not a reason to change the flag"
+                     % (c, arm["server"]["model"], ceiling,
+                        (rec or {}).get("cache_type"), PLAN_FILE))
     return w
 
 
@@ -969,7 +1319,117 @@ def _cap(p):
     return "uncapped" if p["n_predict"] < 0 else str(p["n_predict"])
 
 
-def print_listing(spec, arms, order_mode):
+def ctx_source(arm):
+    """"plan", "literal" or "none" - where this arm's window came from."""
+    if arm.get("_rung"):
+        return "plan"
+    return "literal" if ctx_size(arm["server"]["flags"]) is not None else "none"
+
+
+def _ctx_line(arm):
+    """The window and its origin, in the one line rule 3 wants beside it."""
+    flags = arm["server"]["flags"]
+    c, src, tok = ctx_size(flags), ctx_source(arm), raw_ctx(flags)
+    if src == "none" and tok is not None:
+        # Only reachable in --list / --dry-run: the plan could not be read, so
+        # the template was never expanded and this is still the placeholder.
+        return "%s   (UNEXPANDED - see the UNRESOLVED rungs above)" % tok
+    if src == "none":
+        return ("NONE in the flag list - llama.cpp's own default applies and a "
+                "deep probe truncates silently")
+    if src == "literal":
+        return "%s   (literal, written in the arm file)" % c
+    r = arm["_rung"]
+    return ("%s   (plan rung %s of %s, zone %s, from rungs.per_file[%s]; "
+            "predicted ceiling %s, model window %s, %s KV)"
+            % (c, r["index"], r["of"], r["zone"], r["plan_file"],
+               r["predicted_ceiling"], r["model_context_length"],
+               r["cache_type"]))
+
+
+def print_ladders(ladders, plan, plan_path):
+    """The resolved -c ladder, before any hours are committed.
+
+    An agent about to spend a Stage-2 evening on a ceiling hunt should be able
+    to read the whole ladder, the arithmetic that produced it, and the plan
+    file it came from, off one screen - and see immediately when this machine's
+    ladder is not the one the arm file was reconstructed from.
+    """
+    if not ladders:
+        return
+    rel = _rel(plan_path)
+    print("plan       : %s" % rel)
+    print("             generated %s by %s; %s KV; budget %s MiB"
+          % (plan.get("generated_utc"), plan.get("generated_by"),
+             plan.get("cache_type"),
+             (plan.get("machine") or {}).get("budget_mib")))
+    for lad in ladders:
+        print("\n  ladder %s  <- rungs.per_file[%s]"
+              % (lad["template"], lad["plan_file"]))
+        print("    %d rung(s), %s KV: %s"
+              % (len(lad["c"]), lad["cache_type"],
+                 ", ".join("%s (%s)" % (c, z)
+                           for c, z in zip(lad["c"], lad["zones"]))))
+        print("    predicted ceiling %s   model window %s   collapse point "
+              "reachable: %s"
+              % (lad["predicted_ceiling"], lad["model_context_length"],
+                 lad["collapse_point_reachable"]))
+        for line in _wrap(lad["why"], 74, "    "):
+            print(line)
+        ref = lad.get("reference_rungs")
+        if ref:
+            # Compared as text: reference_rungs is hand-written in an arm
+            # file, and a comparison that can raise on somebody's typo would
+            # take down a --dry-run whose whole job is to be safe.
+            same = [str(x) for x in ref] == [str(c) for c in lad["c"]]
+            print("    reference ladder: %s"
+                  % ("REPRODUCED exactly - this machine derives the ladder "
+                     "the reference campaign ran"
+                     if same else
+                     "DIFFERENT. The reference campaign ran %d rungs (%s ... "
+                     "%s); this machine derives %d. Numbers from the two are "
+                     "not arm-for-arm comparable (rule 30)."
+                     % (len(ref), ref[0], ref[-1], len(lad["c"]))))
+
+
+def print_unresolved(spec, raw_arms, order_mode, problem):
+    """What --list and --dry-run print when the ladder cannot be resolved.
+
+    The templates are NOT run through merge_arm here. An unexpanded template
+    still has "{rung.c}" where its window goes, and validating that as if it
+    were an arm produces a complaint about a placeholder instead of the one
+    fact that matters: there is no plan. So the file is described as it was
+    written, and the actionable message is the last thing on screen.
+    """
+    print("sweep file : %s" % (spec.get("name") or "(unnamed)"))
+    print("order      : %s" % order_mode)
+    print("arms       : %d as written, of which %d take their -c from the plan"
+          % (len(raw_arms),
+             sum(1 for a in raw_arms if isinstance(a, dict) and a.get("rungs"))))
+    for a in raw_arms:
+        if not isinstance(a, dict):
+            continue
+        src = a.get("rungs")
+        if src:
+            print("\n  %-30s TEMPLATE, one arm per rung of "
+                  "rungs.per_file[%s]"
+                  % (a.get("id"), (src.get("file")
+                                   or (a.get("server") or {}).get("model"))))
+            ref = src.get("reference_rungs")
+            if ref:
+                print("    the literal ladder it replaced: %d rungs, %s ... %s"
+                      % (len(ref), ref[0], ref[-1]))
+        else:
+            print("\n  %-30s literal, -c %s"
+                  % (a.get("id"), raw_ctx((a.get("server") or {}).get("flags")
+                                          or []) or "(none)"))
+    print("\nrungs      : UNRESOLVED - nothing in this file can run yet")
+    for line in str(problem).splitlines():
+        print("  %s" % line)
+
+
+def print_listing(spec, arms, order_mode, ladders=(), plan=None,
+                  plan_path=None):
     print("sweep file : %s" % (spec.get("name") or "(unnamed)"))
     print("order      : %s%s"
           % (order_mode,
@@ -977,7 +1437,12 @@ def print_listing(spec, arms, order_mode):
              "rule 30)" if order_mode == "alternate" else
              "  (file order, kept - correct for a ladder whose walk depends "
              "on it; rule 30 wants alternate wherever arms are COMPARED)"))
-    print("arms       : %d" % len(arms))
+    print_ladders(ladders, plan, plan_path)
+    print("arms       : %d%s"
+          % (len(arms),
+             "   (%d expanded from %d plan-driven template(s))"
+             % (sum(1 for a in arms if a.get("_rung")), len(ladders))
+             if ladders else ""))
     total = 0
     for a in arms:
         total += len(a["probes"]) * a["repeat"]
@@ -985,18 +1450,20 @@ def print_listing(spec, arms, order_mode):
               % (a["id"], a["sweep"] or "(ungrouped)", a["repeat"],
                  str(a["discard_first"]).lower()))
         print("    model  : %s" % a["server"]["model"])
+        print("    -c     : %s" % _ctx_line(a))
         print("    flags  : %s" % (" ".join(a["server"]["flags"]) or "(none)"))
         for p in a["probes"]:
             print("    probe  : %-20s %-26s n_predict %s"
                   % (p["id"], _probe_source(p), _cap(p)))
-        for w in arm_warnings(a):
+        for w in arm_warnings(a, plan):
             print("    WARNING: %s" % w)
     print("\ntotal probes: %d" % total)
 
 
 def print_plan(units, resolved, ledger_path, hb_path, slug, arm_dir, checked,
-               responses_dir=None):
+               responses_dir=None, ladders=(), plan=None, plan_path=None):
     print("slug       : %s" % slug)
+    print_ladders(ladders, plan, plan_path)
     print("ledger     : %s" % ledger_path)
     print("responses  : %s" % (responses_dir or
                                "NOT SAVED (--no-save-responses): the generated "
@@ -1013,6 +1480,7 @@ def print_plan(units, resolved, ledger_path, hb_path, slug, arm_dir, checked,
               % (k + 1, len(units), u["group"], u["rep"], u["pos"] + 1,
                  " -> ".join(u["order"])))
         print("    arm      : %s   (spec %s)" % (arm["id"], spec_hash(arm)))
+        print("    -c       : %s" % _ctx_line(arm))
         if r.get("error"):
             print("    UNRESOLVED: %s" % r["error"])
         else:
@@ -1032,7 +1500,7 @@ def print_plan(units, resolved, ledger_path, hb_path, slug, arm_dir, checked,
             body = probe_body(p, "", arm["sampling"])
             body.pop("messages", None)
             print("               request %s" % json.dumps(body, sort_keys=True))
-        for w in arm_warnings(arm):
+        for w in arm_warnings(arm, plan):
             print("    WARNING  : %s" % w)
 
 
@@ -1102,6 +1570,12 @@ def main():
     ap.add_argument("--slug", default=None,
                     help="campaign slug; default: the arm file's slug, then "
                          "campaign.json, then the one campaign under results/")
+    ap.add_argument("--plan", metavar="FILE", default=None,
+                    help="the campaign plan an arm file's \"rungs\" are taken "
+                         "from; default results/<slug>/" + PLAN_FILE +
+                         ", written by " + PLAN_WRITER + ". Its own \"slug\" "
+                         "must match this campaign - one model's ladder on "
+                         "another model is refused, not warned about")
     ap.add_argument("--resume", action="store_true",
                     help="skip arm/repeat units the ledger already records as "
                          "complete, and print which ones were skipped")
@@ -1149,31 +1623,77 @@ def main():
                          "resolves no paths, so it runs anywhere")
     args = ap.parse_args()
 
-    spec, arms = load_arm_file(args.arms)
+    spec, raw_arms = read_arm_file(args.arms)
     order_mode = (spec.get("order")
                   or (spec.get("defaults") or {}).get("order") or "alternate")
-
-    if args.only:
-        arms = [a for a in arms if a["id"] == args.only]
-        if not arms:
-            _fail("--only %r matches no arm in %s" % (args.only, args.arms))
-
-    if args.list:
-        print_listing(spec, arms, order_mode)
-        return 0
+    # --list and --dry-run REPORT a broken plan and exit 2; a real run refuses
+    # outright. Neither ever falls back to a hardcoded window.
+    soft = bool(args.list or args.dry_run)
+    needs_plan = any(isinstance(a, dict) and a.get("rungs") for a in raw_arms)
 
     # A dry run must never take the GPU. gpu_lock refuses outright under this
     # variable, which turns "the plan accidentally launched something" from a
     # wasted hour into a stack trace.
     if args.dry_run:
         os.environ.setdefault(gpu_lock.DRY_RUN_ENV, "1")
-    elif os.environ.get(gpu_lock.DRY_RUN_ENV):
+    elif not args.list and os.environ.get(gpu_lock.DRY_RUN_ENV):
         _fail("%s is set in the environment but --dry-run was not passed. "
               "Every launch would raise DryRunViolation partway through the "
               "sweep. Pass --dry-run, or unset the variable deliberately."
               % gpu_lock.DRY_RUN_ENV)
 
-    slug = resolve_slug(args.slug, spec, arms)
+    # The slug has to be resolved BEFORE the arms are merged now, because a
+    # rung template is resolved out of results/<slug>/plan.json. --list on a
+    # file of literal arms still resolves nothing and still runs anywhere.
+    slug, plan, plan_path, problem = None, None, None, None
+    if needs_plan or args.plan or not args.list:
+        try:
+            slug = resolve_slug(args.slug, spec, raw_arms)
+        except SystemExit as e:
+            if not soft:
+                raise
+            slug = None
+            # Only a stopper for a file whose rungs live under results/<slug>/.
+            # A --list of literal arms has never needed a campaign and still
+            # does not.
+            problem = str(e) if needs_plan else None
+    if slug is not None:
+        plan, plan_path, why = load_plan(slug, args.plan)
+        if plan is None and needs_plan:
+            tmpl = next(a for a in raw_arms
+                        if isinstance(a, dict) and a.get("rungs"))
+            msg = no_plan_message(tmpl.get("id"), args.arms, slug,
+                                  plan_path, why)
+            if soft:
+                problem = msg
+            else:
+                _fail(msg)
+        elif plan is None and args.plan:
+            _fail("--plan %s cannot be used: %s" % (plan_path, why))
+
+    if problem and needs_plan:
+        # soft only - a real run already exited inside the block above.
+        print_unresolved(spec, raw_arms, order_mode, problem)
+        return 2
+
+    ladders = []
+    if plan is not None and needs_plan:
+        raw_arms, ladders = expand_rungs(raw_arms, plan, plan_path, args.arms)
+    arms = merge_arms(spec, raw_arms, args.arms)
+
+    if args.only:
+        arms = [a for a in arms if a["id"] == args.only]
+        if not arms:
+            _fail("--only %r matches no arm in %s%s"
+                  % (args.only, args.arms,
+                     " (a plan-driven arm's id is the EXPANDED one, with this "
+                     "machine's rung substituted into the template - run "
+                     "--list to see them)" if needs_plan else ""))
+
+    if args.list:
+        print_listing(spec, arms, order_mode, ladders, plan, plan_path)
+        return 0
+
     stem = os.path.splitext(os.path.basename(args.arms))[0]
     root = paths.repo_root()
     arm_dir = os.path.dirname(os.path.abspath(args.arms))
@@ -1219,7 +1739,7 @@ def main():
 
     if args.dry_run:
         print_plan(units, resolved, ledger_path, hb_path, slug, arm_dir,
-                   checked, responses_dir)
+                   checked, responses_dir, ladders, plan, plan_path)
         print("\nDRY RUN: nothing was launched and nothing was written.")
         if unresolved:
             print("%d arm(s) could not be resolved - see UNRESOLVED above."
@@ -1269,8 +1789,27 @@ def main():
         "arms": [{"id": a["id"], "sweep": a["sweep"], "spec_sha": spec_hash(a),
                   "model": a["server"]["model"], "flags": a["server"]["flags"],
                   "repeat": a["repeat"], "discard_first": a["discard_first"],
-                  "warnings": arm_warnings(a)} for a in arms],
+                  "ctx_size": ctx_size(a["server"]["flags"]),
+                  "ctx_source": ctx_source(a), "rung": a.get("_rung"),
+                  "warnings": arm_warnings(a, plan)} for a in arms],
         "frozen_prompts_verified": checked,
+        # rule 3, and the reason this runner reads a plan at all: the ladder is
+        # DERIVED, so the derivation travels with the sweep it produced. A
+        # plan-driven ladder that cannot be traced back to the arithmetic and
+        # the machine that made it is a hardcoded ladder with extra steps.
+        # NOT "plan": that key is already this line's per-pass ARM ORDER.
+        "campaign_plan": ({"path": _rel(plan_path),
+                  "slug": plan.get("slug"),
+                  "generated_utc": plan.get("generated_utc"),
+                  "generated_by": plan.get("generated_by"),
+                  "cache_type": plan.get("cache_type"),
+                  "c_min": plan.get("c_min"),
+                  "exit_code": plan.get("exit_code"),
+                  "verdict": plan.get("verdict"),
+                  "machine": plan.get("machine"),
+                  "step_rule": (plan.get("rungs") or {}).get("step_rule")}
+                 if plan is not None else None),
+        "ladders": ladders,
         # Whether the text survives this run is a CONDITION of every content
         # claim made from it later (rule 3), so it is on the sweep's own line.
         "save_responses": bool(args.save_responses),
@@ -1285,8 +1824,10 @@ def main():
           % (file_name, len(arms), len(units), total_probes, ledger_path))
     print("%d frozen prompt(s) verified against the arm file (rule 23)"
           % checked)
+    if ladders:
+        print_ladders(ladders, plan, plan_path)
     for a in arms:
-        for w in arm_warnings(a):
+        for w in arm_warnings(a, plan):
             print("WARNING [%s]: %s" % (a["id"], w))
 
     with gpu_lock.guard("arms:%s" % stem):
@@ -1330,6 +1871,15 @@ def main():
                 "flags_resolved": r["flags_resolved"], "argv": r["argv"],
                 "injected_flags": r["injected"], "port": arm["port"],
                 "server_log": log_path,
+                # The window, and where it came from, on every line this arm
+                # writes. A number without its conditions is unfalsifiable
+                # (rule 3), and "which -c was this?" answered by re-parsing a
+                # flags array in a later stage is one refactor from being
+                # answered wrongly. ctx_source distinguishes a DERIVED rung
+                # from a literal, which is itself a condition of the ceiling.
+                "ctx_size": ctx_size(arm["server"]["flags"]),
+                "ctx_source": ctx_source(arm),
+                "rung": arm.get("_rung"),
             }
 
             print("\n[%d/%d] arm %s, sweep %s, pass %d (position %d of %d: %s)"

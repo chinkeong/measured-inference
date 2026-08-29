@@ -1,6 +1,6 @@
 ---
 name: stage-3
-description: Load when executing Stage 3 (SPEED SURFACES, ~1 h) — the drafter/MTP sweep in both token regimes, the acceptance demonstration with mean draft length, and the cooled depth ladder run to the clock-ramp protocol.
+description: Load when executing Stage 3 (SPEED SURFACES, ~1 h) — the plan.json capability gate on the drafter work, the drafter/MTP sweep in both token regimes, the acceptance demonstration with mean draft length, and the cooled depth ladder run to the clock-ramp protocol.
 ---
 
 # Stage 3 — SPEED SURFACES (~1 h)
@@ -9,13 +9,33 @@ ceiling — each labeled with its token regime and its depth. Matched pairs only
 a drafter sweep transfers across quants (rule 11: same optimum, acceptance
 within 1.6 pts), but it does NOT transfer across token regimes.
 
+**Read `results/<slug>/plan.json` before launching anything — the drafter work
+is capability-gated, and the gate is a file, not a judgement call.** Its
+`stages[]` rows name `scripts/arms/spec-sweep.json` and
+`scripts/arms/acceptance.json` RUNS or SKIPPED from the Stage-0 profile's
+`drafter` field. **SKIPPED means they do not run: the sweep and the acceptance
+demonstration are not attempted, and the report states that the model ships no
+draft head and no companion draft model** — quoting plan.json's own line, which
+says it in those words. It may never read as speculation measured and found
+wanting; a silently missing axis is a measured negative to a reader who cannot
+see the gate (rule 2). Measured 2026-08-29: `unsloth/Qwen3-1.7B-GGUF` profiles
+as `drafter: null` and its plan marks both files SKIPPED, 8 arms not run; the
+reference 27B profiles a sibling `MTP/mtp-Qwen3.8-27B-Q4_0.gguf` and runs both.
+`depth-series.json` still RUNS on a drafter-less model, with `--spec-type`
+dropped rather than swept — say so beside its numbers, because they then
+describe a lighter configuration than the reference campaign's and are not
+comparable to it (rule 30).
+
 - **Sweep in BOTH token regimes.** Run the matched drafter/MTP sweep twice —
   thinking on and thinking off — and keep both surfaces. The reference campaign
   discovered the 1.69× regime split late, after speeds had been published
   without it; the split belongs here, before any recipe quotes a band.
 - Discover drafting options (built-in MTP head? companion draft model?
-  DFlash-style heads?). **Name every mechanism available and mark each
-  measured or unmeasured** — an omitted alternative reads as nonexistent.
+  DFlash-style heads?). The profile's `drafter` block already answers the first
+  two from the header — the sibling file, its bytes, its `arch`, whether it
+  matches the target's, and any `others` it found — so start from that and add
+  what it cannot see. **Name every mechanism available and mark each measured or
+  unmeasured** — an omitted alternative reads as nonexistent.
   Sweep n-max × p-min on a realistic code probe (~10 configs; run: `python
   scripts/arms.py --arms scripts/arms/spec-sweep.json`; the Windows original is
   archived in scripts/reference-3090/). Expect high p-min to win at real

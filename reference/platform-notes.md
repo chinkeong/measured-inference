@@ -179,6 +179,70 @@ memory.used,memory.reserved,temperature.gpu,pstate \
   scope, not board: label the tier (rule 24).
 - **Power capping** on Linux may need `nvidia-smi -pm 1` before `-pl <W>`.
 
+### SYMPTOM: the aider run talks to the wrong machine — `ip route show default`, zeros for hours
+
+`GW=$(ip route show default | awk '{print $3}')` is the **WSL2** idiom: WSL2 is
+NAT, so field 3 is the `vEthernet (WSL)` gateway, which is the Windows host, and
+the same address is routable from inside the container. **On native Linux the
+identical command returns the LAN router.** Nothing fails at launch — the
+benchmark starts, talks to a router, and surfaces hours later as Stage-6 zeros.
+Fixed 2026-08-29 in `scripts/agentic/aider-bench.sh` and
+`aider-bench-detached.sh`; copy the shape into anything else that needs the host:
+
+```bash
+# platform, not assumption: both markers are WSL2-only, either alone is enough
+if [ -n "${WSL_DISTRO_NAME:-}" ] ||
+   grep -qi microsoft /proc/sys/kernel/osrelease 2>/dev/null; then …
+```
+
+**Two addresses, never one.** `HOST_ADDR` is how the shell reaches the server;
+`CONTAINER_ADDR` is how the container does. On WSL2 they are the same string —
+which is why one variable survived for as long as only WSL2 ran this. On native
+Linux `HOST_ADDR` is `127.0.0.1`, and 127.0.0.1 inside a container is the
+container: it needs `host.docker.internal` plus
+`--add-host=host.docker.internal:host-gateway` (Docker ≥ 20.10). Both are
+printed before anything starts and both are overridable — `LLAMA_HOST`,
+`LLAMA_CONTAINER_HOST`. A host-side `HTTP 200` does **not** prove the container
+can reach the model, so the scripts curl the real URL from inside the real image
+before launching (`AIDER_BENCH_SKIP_CONTAINER_CHECK=1` skips it). Related, and a
+different failure: WSL2 in **mirrored** networking mode also puts the LAN router
+on the default route — set `LLAMA_HOST` explicitly there.
+
+### SYMPTOM: probe-smoke-test.py fails 18 of 83 on a tree you have not touched
+
+Known failures, all eighteen, recorded in `scripts/verify/smoke-baseline.json`
+with a reason, a bucket and a date. Until 2026-08-29 the tool ended `18 of 83
+FAILED` and exited 0; it now reports them as `known`, reports anything else as
+`NEW`, and **exits non-zero on NEW alone** — `--fail` restores
+"any failure fails", which is what a hook wants and what makes the overnight
+pre-check red on a clean tree. Read the summary, not the colour:
+
+```bash
+python scripts/verify/probe-smoke-test.py            # 0 NEW → exit 0
+python scripts/verify/probe-smoke-test.py --fail     # 18 known → exit 1
+```
+
+Nothing is skipped: every check still runs on every file and every failure is
+still printed. A row whose probe starts passing prints as `STALE … PASSES NOW -
+delete this row`, and a row whose recorded cause has stopped being true counts
+as NEW. To add one, prove it is older than your work (`git log -1
+--format=%cd -- <path>`), then write the row — never by deleting a check.
+
+**Ten of the eighteen end in a missing `llama-server` path and are still not
+"environment".** Each has no argument parser, so `--help` is not answered, it is
+RUN, and the missing binary is only where the run stops first; building
+llama.cpp moves the stop point rather than clearing the row (DERIVED — measured
+only on a box with no build). That is the same class as the destroyed result
+`scripts/quant-ladder/three-file-12gb-fit.py` documents. Twenty-five of the 83
+are in that state; the checker prints the count, sets
+`MEASURED_INFERENCE_DRY_RUN=1` on both subprocesses so none of them can take the
+card, and diffs `git status --porcelain` around the run so a file a probe writes
+is named in the output. Measured 2026-08-29: one run wrote the campaign's
+280,937-byte quant-ladder figure at the IMPORT stage, from
+`scripts/quant-ladder/make-ladder-png.py`, whose whole body is top level and
+which the checker calls a library module — and the new untracked figure then
+trips `instrument-guard.py`. Delete it; any run remakes it.
+
 ---
 
 ## WSL2
@@ -192,6 +256,9 @@ The host is the **`vEthernet (WSL)` gateway** — the reference machine's is
 `192.168.128.1`, confirmed via `ip route | grep default`. Never `localhost`.
 `/etc/resolv.conf`'s `10.255.255.254` is the DNS-tunnel address, **not** the
 host — a common misread. The Wi-Fi LAN IP works too but changes with DHCP.
+Do not port this idiom to a script that also runs on native Linux: there the
+same default route is the LAN router — POSIX above, "the aider run talks to the
+wrong machine".
 
 ### SYMPTOM: `sudo -n true` fails — password required, and the session cannot prompt
 

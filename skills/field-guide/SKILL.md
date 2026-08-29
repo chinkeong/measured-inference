@@ -61,6 +61,12 @@ fields and pastes it back has closed the interview.
    listing API itself succeeds on gated repos, so listing is not proof). If it
    401s, ask for an HF token in this same round and confirm it works
    (`Authorization: Bearer <token>`) before proceeding.
+   Then **read the roster rather than inferring it from filenames**: `python
+   scripts/inspect-model.py <repo> --quant <LABEL> --slug <slug>`, once per file,
+   writes `results/<slug>/model-<LABEL>.json` out of the GGUF's own header —
+   architecture and whether this build loads it, window, KV bytes/token, sibling
+   mmproj and projector type, sibling draft head, chat template. `stages/stage-0.md`
+   says what each field buys and what `plan.json` then does with it.
 2. **Machine**: auto-detect (GPU via nvidia-smi / lspci, VRAM, RAM speed+channels,
    CPU threads, OS, disk free) and present the detection for confirmation. RAM
    channels matter: single-stick machines halve every offload/iGPU estimate.
@@ -81,7 +87,8 @@ fields and pastes it back has closed the interview.
      publish a quant ranking from it.
 5. **Philosophy**: quality-first (ship max effort where the window allows — the
    default) or latency-first. Also: does the model expose an effort/thinking knob
-   (check the chat template) — if yes, Stage 4's appetite probes and Stage 6's
+   — the profile's `chat_template.effort_knob` answers it, naming the kwarg, the
+   kind and the levels; if it is present, Stage 4's appetite probes and Stage 6's
    effort arms run.
 6. **Publish target**: results/<slug>/index.html always; plus a git remote / site
    directory if the user names one. **`<slug>` = the model repo name,
@@ -123,6 +130,12 @@ minutes to correct, a stalled GPU weekend cannot be re-run.
 - **Verify your own probes**: a metric that divides tokens by wall time including
   prefill will lie to you at depth. Prefer the server's own `timings` fields
   (prompt_per_second / predicted_per_second / draft acceptance).
+- **A skipped axis is quoted, never silent**: `results/<slug>/plan.json` marks
+  every stage unit and every `scripts/arms/*.json` RUNS or SKIPPED with the
+  reason, from the model profile's `capabilities`. A model with no draft head,
+  no projector or no effort knob loses those stages and the report says so in
+  plan.json's own words — a missing axis a reader cannot see reads as a measured
+  negative (rule 2).
 
 **Platform traps are not here.** PowerShell 5.1's quoting, function-output and
 stderr behaviour, the POSIX equivalents for detaching / parse-checking / VRAM
@@ -140,7 +153,7 @@ references**.
 
 | Stage | Goal | Cost | Gate / output | Procedure |
 |---|---|---|---|---|
-| **0** | interview + instrumentation on | ~free | slug, roster and budget agreed; power logger running; cold idle baseline dated | interview above, then `stages/stage-0.md` |
+| **0** | interview + instrumentation on | ~free | slug, roster and budget agreed; `campaign.json` + `machine.json` + a `model-*.json` per file + `plan.json` written; power logger running; cold idle baseline dated | interview above, then `stages/stage-0.md` |
 | **1** | STRUCTURE — runtime, files, KV arithmetic, verified `-ngl`, one floor per quant | ~1 h | **the early pruning gate**: slower AND worse is dropped, recorded, published as screened out | `stages/stage-1.md` |
 | **2** | MEMORY MAP — budget table, drafter pair, ceiling sweep, projector pair, desktop slack | ~1.5 h | **the two-constant model**: every candidate window becomes arithmetic, confirmed by a deep-fill probe | `stages/stage-2.md` |
 | **3** | SPEED SURFACES — drafter sweep in both token regimes, acceptance demo, cooled depth ladder | ~1 h | floor · real-work band · ceiling, each labeled with regime, depth and desktop state | `stages/stage-3.md` |

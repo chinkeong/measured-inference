@@ -1,0 +1,199 @@
+{
+  "note": [
+    "The failures scripts/verify/probe-smoke-test.py finds on a CLEAN TREE, so that a",
+    "NEW failure - one your changes caused - is not buried under eighteen old ones.",
+    "Every check still runs on every file and every failure is still printed. This",
+    "file only decides which of them you have to think about.",
+    "",
+    "ADD A ROW only after you have proved the failure is older than your work:",
+    "  git log -1 --format=%cd -- <path>   and read the probe.",
+    "Give it a reason, a bucket, today's date, and a clears_when that says what has",
+    "to become true for the row to be deleted. DELETE A ROW the moment the probe",
+    "passes - the checker prints PASSES NOW for a row that no longer fails, because",
+    "a baseline nobody prunes is where failures go to be forgotten.",
+    "",
+    "BUCKETS are PROMPTS.md's two: environment (the box has not run setup) and",
+    "defect (the probe cannot start for its own reasons). All eighteen rows here are",
+    "defect, which is not what the messages look like: ten of them end in the path",
+    "of a missing llama-server, which reads as environment. It is not. Each of those",
+    "ten has NO ARGUMENT PARSER, so `--help` is not answered, it is RUN - and the",
+    "missing binary is only where the run stops first. DERIVED, not measured here:",
+    "with llama.cpp built those ten do not clear, they stop later - at the dry-run",
+    "GPU fence, since probe-smoke-test.py sets MEASURED_INFERENCE_DRY_RUN=1.",
+    "",
+    "'A help request must never start work' is the standing rule; see the comment in",
+    "scripts/quant-ladder/three-file-12gb-fit.py, which overwrote its own result file",
+    "under a smoke test before it grew a --help test."
+  ],
+  "recorded": "2026-08-29",
+  "recorded_on": [
+    "18 of 83 tracked scripts, on a clean tree with nothing built: no",
+    "bin/llama.cpp binaries (bin/ is gitignored), no results/qwen38-27b-blind/",
+    "machine.json, numpy + matplotlib + scipy present. Windows 11, Python 3.11.",
+    "The 65 that pass are not listed; only failures are baselined."
+  ],
+  "entries": [
+    {
+      "path": "scripts/bench/cpu-contention.py",
+      "stage": "--help",
+      "bucket": "defect",
+      "cause": "no-argparse",
+      "reason": "no argument parser: --help runs the probe, which stops at the missing llama-server",
+      "clears_when": "--help is answered without starting the probe; a llama.cpp build only moves the stop",
+      "first_seen": "2026-08-29"
+    },
+    {
+      "path": "scripts/bench/drafter-deepfill.py",
+      "stage": "--help",
+      "bucket": "defect",
+      "cause": "no-argparse",
+      "reason": "no argument parser: --help runs the probe, which stops at the missing machine.json",
+      "clears_when": "--help is answered without starting the probe; a machine.json only moves the stop",
+      "first_seen": "2026-08-29"
+    },
+    {
+      "path": "scripts/bench/drafter-vs-window.py",
+      "stage": "--help",
+      "bucket": "defect",
+      "cause": "no-argparse",
+      "reason": "no argument parser: --help runs the probe, which stops at the missing machine.json",
+      "clears_when": "--help is answered without starting the probe; a machine.json only moves the stop",
+      "first_seen": "2026-08-29"
+    },
+    {
+      "path": "scripts/bench/host-correlate.py",
+      "stage": "--help",
+      "bucket": "defect",
+      "cause": "no-argparse",
+      "reason": "no argument parser: --help runs the probe, which stops at the missing llama-server",
+      "clears_when": "--help is answered without starting the probe; a llama.cpp build only moves the stop",
+      "first_seen": "2026-08-29"
+    },
+    {
+      "path": "scripts/bench/judge-panel.py",
+      "stage": "--help",
+      "bucket": "defect",
+      "cause": "no-argparse",
+      "reason": "no argument parser: --help is looked up in the subcommand dict and raises KeyError",
+      "clears_when": "--help prints the subcommands (build, score, compare) and exits 0",
+      "first_seen": "2026-08-29"
+    },
+    {
+      "path": "scripts/bench/loop-detect.py",
+      "stage": "--help",
+      "bucket": "defect",
+      "cause": "no-argparse",
+      "reason": "no argument parser: --help is looked up in the subcommand dict and raises KeyError",
+      "clears_when": "--help prints the subcommands (validate, scan) and exits 0",
+      "first_seen": "2026-08-29"
+    },
+    {
+      "path": "scripts/bench/ngram-content.py",
+      "stage": "--help",
+      "bucket": "defect",
+      "cause": "no-argparse",
+      "reason": "no argument parser: --help runs the probe, which stops at the missing llama-server",
+      "clears_when": "--help is answered without starting the probe; a llama.cpp build only moves the stop",
+      "first_seen": "2026-08-29"
+    },
+    {
+      "path": "scripts/bench/probe-length-floor.py",
+      "stage": "--help",
+      "bucket": "defect",
+      "cause": "no-argparse",
+      "reason": "no argument parser: --help runs the probe, which stops at the missing llama-server",
+      "clears_when": "--help is answered without starting the probe; a llama.cpp build only moves the stop",
+      "first_seen": "2026-08-29"
+    },
+    {
+      "path": "scripts/bench/prompt-ab.py",
+      "stage": "--help",
+      "bucket": "defect",
+      "cause": "no-argparse",
+      "reason": "no argument parser: --help runs the probe, which stops at the missing llama-server",
+      "clears_when": "--help is answered without starting the probe; a llama.cpp build only moves the stop",
+      "first_seen": "2026-08-29"
+    },
+    {
+      "path": "scripts/bench/render_table.py",
+      "stage": "--help",
+      "bucket": "defect",
+      "cause": "no-argparse",
+      "reason": "no argument parser: argv is read as result-JSON paths, so --help is opened as a file",
+      "clears_when": "--help prints usage instead of raising FileNotFoundError",
+      "first_seen": "2026-08-29"
+    },
+    {
+      "path": "scripts/bench/resolution-floor.py",
+      "stage": "--help",
+      "bucket": "defect",
+      "cause": "no-argparse",
+      "reason": "no argument parser: --help runs the probe, which stops at the missing llama-server",
+      "clears_when": "--help is answered without starting the probe; a llama.cpp build only moves the stop",
+      "first_seen": "2026-08-29"
+    },
+    {
+      "path": "scripts/bench/sampler-band.py",
+      "stage": "--help",
+      "bucket": "defect",
+      "cause": "no-argparse",
+      "reason": "no argument parser: --help runs the probe, which stops at the missing llama-server",
+      "clears_when": "--help is answered without starting the probe; a llama.cpp build only moves the stop",
+      "first_seen": "2026-08-29"
+    },
+    {
+      "path": "scripts/bench/sampling-bridge.py",
+      "stage": "--help",
+      "bucket": "defect",
+      "cause": "no-argparse",
+      "reason": "no argument parser: --help runs the probe, which stops at the missing llama-server",
+      "clears_when": "--help is answered without starting the probe; a llama.cpp build only moves the stop",
+      "first_seen": "2026-08-29"
+    },
+    {
+      "path": "scripts/bench/selftest.py",
+      "stage": "import",
+      "bucket": "defect",
+      "cause": "assertion",
+      "reason": "77 of its 78 checks pass; the one that fails compares the seven rule-21 dataset names against the eight-name catalogue in datasets_io, so the frozen suite fails a check that should test membership",
+      "clears_when": "that check tests that each of the seven resolves, not that the seven are the catalogue",
+      "first_seen": "2026-08-29"
+    },
+    {
+      "path": "scripts/quant-ladder/bench-arm.py",
+      "stage": "--help",
+      "bucket": "defect",
+      "cause": "no-argparse",
+      "reason": "no argument parser: three positional arguments are required, so --help prints usage and exits 2",
+      "clears_when": "--help prints that usage line and exits 0",
+      "first_seen": "2026-08-29"
+    },
+    {
+      "path": "scripts/quant-ladder/ngram-verify.py",
+      "stage": "--help",
+      "bucket": "defect",
+      "cause": "no-argparse",
+      "reason": "no argument parser: --help runs the probe, which stops at the missing llama-server",
+      "clears_when": "--help is answered without starting the probe; a llama.cpp build only moves the stop",
+      "first_seen": "2026-08-29"
+    },
+    {
+      "path": "scripts/quant-ladder/qat-3060-fit.py",
+      "stage": "--help",
+      "bucket": "defect",
+      "cause": "no-argparse",
+      "reason": "no argument parser: --help runs the probe, which stops at the missing llama-server",
+      "clears_when": "--help is answered without starting the probe; a llama.cpp build only moves the stop",
+      "first_seen": "2026-08-29"
+    },
+    {
+      "path": "scripts/report/plots/cost.py",
+      "stage": "import",
+      "bucket": "defect",
+      "cause": "sibling-import",
+      "reason": "imports archdata without the sys.path insert its nine sibling plot modules carry",
+      "clears_when": "cost.py inserts the parent directory before importing archdata, as plots/capacity.py does",
+      "first_seen": "2026-08-29"
+    }
+  ]
+}

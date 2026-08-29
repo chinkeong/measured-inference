@@ -53,6 +53,7 @@ Three failures no rule number catches:
 |---|---|
 | starting or resuming a campaign | `skills/field-guide/SKILL.md`, then ONLY your current stage file |
 | executing Stage N | `skills/field-guide/stages/stage-N.md` — never load another stage |
+| what the model IS, and which stages it may run | `scripts/inspect-model.py` → `model-*.json` (header: arch, window, KV/token, mmproj, draft head, effort knob); `scripts/plan-campaign.py` → `plan.json` (fit, ceiling rungs, RUNS/SKIPPED per stage) |
 | writing, reviewing or publishing report sections | `templates/REPORT-SPEC.md` + `methodology/REASONING.md` |
 | actually writing the prose — who writes it, how it is briefed, its register | `methodology/WRITING.md` + `VOICE.md` |
 | adjudicating conflicts, criticizing prior work, blind judging | `methodology/REASONING.md` |
@@ -103,12 +104,11 @@ reference/                   platform-notes.md · failure-library.md — grep, n
 scripts/                     arms.py + arms/ (sweeps as data) · lib/paths.py · bench/
                              power/ · detect-machine.py · setup.* · reference-3090/ (archive)
 bin/ models/                 gitignored: runtimes and weights live here
-results/<slug>/              campaign.md · campaign.json · machine.json · work/ · data/ · index.html
+results/<slug>/              campaign.md · campaign.json · machine.json · model-*.json · plan.json · work/ · data/ · index.html
 ```
-`<slug>` = the model repo name, lowercased, as a **single path component** (no
-slashes), `-GGUF`/`-gguf` dropped: `.../unsloth/SomeNew-32B-GGUF` →
-`somenew-32b`. Pick it once in Stage 0, write it into `campaign.md`, and reuse
-it verbatim after any restart.
+`<slug>` = the repo name, lowercased, **one path component** (no slashes),
+`-GGUF`/`-gguf` dropped: `.../unsloth/SomeNew-32B-GGUF` → `somenew-32b`. Pick it
+once in Stage 0, write it into `campaign.md`, reuse it verbatim after a restart.
 
 ## THE CONTEXT BUDGET RULE
 

@@ -52,6 +52,14 @@ WHAT EACH TEST PROTECTS, by the rule it belongs to:
                      looked like
   address-space-reservation  a server that reserves 32 GB of address space and
                      commits none of it still runs - the RLIMIT_AS shape
+  plan-rungs         an arm file takes its -c ladder from the campaign plan
+                     rather than hardcoding one, and every ledger line says
+                     which rung of which plan produced it (rules 3 and 28)
+  plan-missing-is-fatal  THE HARDCODED-LADDER BUG. An arm file that names a
+                     rung source and finds no plan.json launches nothing,
+                     writes nothing and names the command that writes one.
+                     A silent fallback is how a 27B's ladder gets run against
+                     a 1.7B whose whole window is below its bottom rung
 
 HOW THE STUB PASSES paths.llama_bin(). That resolver does not merely check
 that a candidate exists: _unusable() rejects a file that is not executable on
@@ -252,6 +260,43 @@ class Sandbox(object):
                         % (sys.executable, STUB))
             os.chmod(path, 0o755)
         return path
+
+    def plan_path(self):
+        return os.path.join(self.root, "results", SLUG, "plan.json")
+
+    def write_plan(self, per_file, **extra):
+        """A results/<slug>/plan.json in the shape scripts/plan-campaign.py
+        writes: slug, machine, and rungs.per_file[] each carrying a rungs[]
+        list of {c, zone, deep_fill_tokens, above_predicted_ceiling}.
+
+        A FIXTURE, and only a fixture: it proves what arms.py does with a
+        plan, never that plan-campaign.py's arithmetic is right. The rung
+        VALUES here are small enough for a stub to load instantly and are not
+        anybody's real ceiling.
+        """
+        plan = {"slug": SLUG,
+                "generated_utc": "2026-08-29T00:00:00Z",
+                "generated_by": "scripts/plan-campaign.py",
+                "cache_type": "q8_0", "c_min": 1024,
+                "machine": {"board_total_mib": 24576, "budget_mib": 22780},
+                "rungs": {"step_rule": "FIXTURE - test-arms.py wrote this",
+                          "cache_type": "q8_0", "per_file": per_file},
+                "verdict": "VERDICT: PLANNED (fixture)", "exit_code": 0}
+        plan.update(extra)
+        return self.write_file(self.plan_path(), json.dumps(plan, indent=1))
+
+    @staticmethod
+    def rung_record(label, cs, ceiling, window, zones=None, why="fixture"):
+        zones = list(zones or ["dense"] * len(cs))
+        return {"file": label, "cache_type": "q8_0",
+                "predicted_ceiling": ceiling,
+                "predicted_ceiling_drafter_off": ceiling,
+                "model_context_length": window, "quantum": 1024,
+                "top": max(cs), "why": why, "collapse_point_reachable": True,
+                "rungs": [{"c": c, "zone": z,
+                           "deep_fill_tokens": int(c * 0.9),
+                           "above_predicted_ceiling": c > ceiling}
+                          for c, z in zip(cs, zones)]}
 
     def arm_file(self, stem, arms, port, order="alternate", defaults=None):
         """Write an arm file. Stub flags shared by every arm live in defaults."""
@@ -926,6 +971,180 @@ def t_save_responses(sb):
     return "2 bodies saved by default, named by arm/pass/probe; opt-out is loud"
 
 
+def _rung_arm_file(sb, stem, port, rungs=None, extra_arms=()):
+    """One plan-driven template arm, plus whatever else the test wants.
+
+    The stub's own flags go on the ARM rather than in defaults, because
+    defaults are prepended: a "-c 4096" there would be the FIRST -c in the
+    list and would win over the rung the template resolves.
+    """
+    tmpl = {"id": "rung-c{rung.c}", "sweep": "ladder",
+            "rungs": dict({"from": "plan", "file": MODEL_NAME,
+                           "reference_rungs": [9999]}, **(rungs or {})),
+            "server": {"model": MODEL_NAME,
+                       "flags": ["-ngl", "99", "-c", "{rung.c}",
+                                 "--launch-log", sb.launch_log,
+                                 "--max-life", "120"]},
+            "probes": [{"id": "p1", "prompt": "lane probe",
+                        "n_predict": "{rung.deep_fill_tokens}"}]}
+    return sb.arm_file(stem, [tmpl] + list(extra_arms), port,
+                       order="fixed",
+                       defaults={"server": {"flags": []}, "probe": {}})
+
+
+def t_plan_rungs(sb):
+    """An arm file may take its -c ladder from results/<slug>/plan.json.
+
+    THE HARDCODED-LADDER BUG. scripts/arms/ctx-ceiling.json used to carry 25
+    arms at 18 distinct -c values from 122,880 to 262,144, every one of them
+    sized for one 27B on one 24 GB card; run against a smaller model they
+    sweep windows it has never had. The ladder is DERIVED now, and this
+    asserts the three things that
+    makes true: the rungs come out of the plan, the placeholder substitution
+    reaches the id, the flags AND an integer probe field, and every ledger
+    line says which rung of which plan it is (rules 3 and 28).
+    """
+    port = free_port()
+    sb.write_plan([sb.rung_record(MODEL_NAME, [2048, 3072, 5120],
+                                  ceiling=4096, window=8192,
+                                  zones=["lever", "dense", "coarse"],
+                                  why="FIXTURE ladder, three rungs")])
+    f = _rung_arm_file(sb, "rungs", port)
+
+    rc, out = sb.run("--arms", f, "--slug", SLUG, "--dry-run")
+    need(rc == 0, "--dry-run exited %d:\n%s" % (rc, out[-1500:]))
+    for want in ("2048 (lever)", "3072 (dense)", "5120 (coarse)",
+                 "rung-c2048", "rung-c5120", "plan rung 2 of 3"):
+        need(want in out,
+             "--dry-run does not show the resolved ladder: %r missing.\n%s"
+             % (want, out[:2500]))
+
+    rc, out = sb.run("--arms", f, "--slug", SLUG)
+    need(rc == 0, "sweep exited %d:\n%s" % (rc, out[-1500:]))
+
+    recs = sb.probes("rungs")
+    need([r["arm"] for r in recs] == ["rung-c2048", "rung-c3072",
+                                      "rung-c5120"],
+         "the ladder did not expand into one arm per rung, ascending: %r"
+         % [r["arm"] for r in recs])
+    for rec, (c, zone) in zip(recs, [(2048, "lever"), (3072, "dense"),
+                                     (5120, "coarse")]):
+        where = "arm %s" % rec["arm"]
+        need(rec["ctx_size"] == c,
+             "%s: ledger ctx_size %r, expected %d - the window is a condition "
+             "every number travels with (rule 3)"
+             % (where, rec.get("ctx_size"), c))
+        need(rec["ctx_source"] == "plan",
+             "%s: ctx_source %r, expected 'plan' - a DERIVED rung and a "
+             "literal are not the same claim" % (where, rec.get("ctx_source")))
+        rung = rec.get("rung") or {}
+        need(rung.get("zone") == zone and rung.get("c") == c,
+             "%s: rung record is %r" % (where, rung))
+        need(rung.get("plan", "").endswith("plan.json"),
+             "%s: the line does not name the plan it came from: %r"
+             % (where, rung.get("plan")))
+        need(rung.get("template") == "rung-c{rung.c}",
+             "%s: the line does not name the template: %r"
+             % (where, rung.get("template")))
+        # "{rung.c}" is the whole flag value, so it must arrive as a NUMBER,
+        # and "{rung.deep_fill_tokens}" as an integer n_predict.
+        need(rec["request"].get("max_tokens") == int(c * 0.9),
+             "%s: max_tokens %r, expected the rung's deep_fill_tokens %d - a "
+             "placeholder that is the whole string must keep the value's type"
+             % (where, rec["request"].get("max_tokens"), int(c * 0.9)))
+
+    launched = [l["argv"] for l in sb.launches()]
+    for argv, c in zip(launched, (2048, 3072, 5120)):
+        need(str(c) in argv[argv.index("-c") + 1],
+             "llama-server was launched with -c %s, not %d"
+             % (argv[argv.index("-c") + 1], c))
+
+    start = [r for r in sb.ledger("rungs") if r.get("kind") == "sweep_start"][0]
+    cp = start.get("campaign_plan") or {}
+    need(cp.get("generated_utc") == "2026-08-29T00:00:00Z" and cp.get("path"),
+         "sweep_start does not carry the plan it derived the ladder from: %r"
+         % cp)
+    need(start.get("plan") and start["plan"][0].get("order"),
+         "the per-pass arm ORDER plan was lost from sweep_start: %r"
+         % start.get("plan"))
+    lad = (start.get("ladders") or [{}])[0]
+    need(lad.get("c") == [2048, 3072, 5120] and lad.get("reference_rungs"),
+         "sweep_start does not record the resolved ladder and the reference "
+         "one it replaced: %r" % lad)
+
+    # Re-running plan-campaign.py after a fresh desktop-reserve reading moves
+    # predicted_ceiling without necessarily moving a single rung: the rungs
+    # snap to a quantum, so the same three -c values come back under a new
+    # timestamp and a new ceiling. If the plan's metadata counted as an arm
+    # change, that would re-spend a completed ladder for nothing - so
+    # spec_hash covers the flag list, where the -c actually is, and NOT the
+    # rung provenance carried beside it. Only a changed -c reruns an arm.
+    n = len(sb.launches())
+    sb.write_plan([sb.rung_record(MODEL_NAME, [2048, 3072, 5120],
+                                  ceiling=4200, window=8192,
+                                  zones=["lever", "dense", "coarse"],
+                                  why="FIXTURE ladder, re-derived")],
+                  generated_utc="2026-08-30T12:00:00Z")
+    rc, out = sb.run("--arms", f, "--slug", SLUG, "--resume")
+    need(rc == 0, "--resume exited %d:\n%s" % (rc, out[-1200:]))
+    need(len(sb.probes("rungs")) == 3,
+         "--resume re-ran the ladder after the plan was regenerated with the "
+         "SAME rungs: %d probe lines" % len(sb.probes("rungs")))
+    need(len(sb.launches()) == n,
+         "--resume relaunched a server for an unchanged rung")
+    return "3 rungs resolved from plan.json, on the argv and on every line"
+
+
+def t_plan_missing_is_fatal(sb):
+    """No plan.json -> the sweep REFUSES, and names the command that writes one.
+
+    The one behaviour that must never regress. A silent fall back to a
+    hardcoded -c is how a ladder derived for a 27B on a 24 GB card gets run
+    against a 1.7B whose whole window sits below its bottom rung - and the
+    ledger would record those readings as though the ladder had been derived
+    for it (rule 1). So: nothing launched, nothing written, and an error a
+    stranger at 2am can act on without reading any source.
+    """
+    port = free_port()
+    f = _rung_arm_file(sb, "noplan", port)
+    need(not os.path.exists(sb.plan_path()),
+         "the sandbox already has a plan.json; this test needs none")
+
+    rc, out = sb.run("--arms", f, "--slug", SLUG)
+    need(rc != 0, "the sweep exited 0 with no plan - it fell back:\n%s"
+         % out[-1500:])
+    for want in ("plan-campaign.py --slug %s" % SLUG, "rung-c{rung.c}",
+                 os.path.join("results", SLUG, "plan.json").replace("\\", "\\"),
+                 "NO fallback"):
+        need(want in out,
+             "the refusal does not name %r - it has to be actionable without "
+             "reading arms.py:\n%s" % (want, out[-1500:]))
+    need(not sb.launches(),
+         "a server was launched before the plan was checked: %r"
+         % sb.launches())
+    ledger = os.path.join(sb.root, "results", SLUG, "data", "arms",
+                          "noplan.jsonl")
+    need(not os.path.exists(ledger),
+         "a ledger was written for a sweep that cannot run: %s" % ledger)
+
+    # --dry-run reports the same thing rather than raising, and still refuses.
+    rc, out = sb.run("--arms", f, "--slug", SLUG, "--dry-run")
+    need(rc == 2, "--dry-run exited %d, expected 2:\n%s" % (rc, out[-900:]))
+    need("UNRESOLVED" in out and "plan-campaign.py" in out,
+         "--dry-run hid the missing plan:\n%s" % out[-900:])
+
+    # A plan that exists but knows nothing about this file is the same class
+    # of failure, and must not resolve to some other file's ladder.
+    sb.write_plan([sb.rung_record("SOME-OTHER-QUANT", [4096], 4096, 8192)])
+    rc, out = sb.run("--arms", f, "--slug", SLUG)
+    need(rc != 0, "a plan with no record for this file was accepted:\n%s"
+         % out[-1200:])
+    need("SOME-OTHER-QUANT" in out,
+         "the error does not say which files the plan DOES hold:\n%s"
+         % out[-1200:])
+    return "refused, named plan-campaign.py, launched and wrote nothing"
+
+
 TESTS = (
     ("resolver-accepts-stub", t_resolver_accepts_stub),
     ("stub-contract", t_stub_contract),
@@ -939,6 +1158,8 @@ TESTS = (
     ("truncation-notice", t_truncation_notice),
     ("save-responses", t_save_responses),
     ("address-space-reservation", t_address_space_reservation),
+    ("plan-rungs", t_plan_rungs),
+    ("plan-missing-is-fatal", t_plan_missing_is_fatal),
 )
 
 

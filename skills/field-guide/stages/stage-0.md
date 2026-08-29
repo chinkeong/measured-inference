@@ -1,13 +1,14 @@
 ---
 name: stage-0
-description: Load when opening a campaign — Stage 0's instrumentation half. The interview itself is in SKILL.md; this file writes the campaign.json and machine.json every later stage resolves against, starts the 500 ms power logger, and takes the cold idle baseline before anything loads.
+description: Load when opening a campaign — Stage 0's instrumentation half. The interview itself is in SKILL.md; this file writes the four artefacts every later stage resolves against — campaign.json, machine.json, a model-*.json per roster file and the derived plan.json — starts the 500 ms power logger, and takes the cold idle baseline before anything loads.
 ---
 
 # Stage 0 — interview + instrumentation on
 The interview is `skills/field-guide/SKILL.md`'s "Stage 0 — the interview"
 section: one round of questions, then autonomous to the end. It closes only when
-the two files below exist, and Stage 0 then adds two nearly-free instruments that
-pay for themselves across the whole campaign.
+four machine-readable files exist — `campaign.json`, `machine.json`, one
+`model-<LABEL>.json` per roster file, and `plan.json` — and Stage 0 then adds two
+nearly-free instruments that pay for themselves across the whole campaign.
 
 **The bootstrap runs before Stage 0 can start.** `scripts/setup.sh` (POSIX) or
 `scripts/setup.ps1` (Windows) installs a llama.cpp build into `bin/llama.cpp/`,
@@ -20,9 +21,9 @@ CUDA from source, which is the NVIDIA path on Linux — there is no official Lin
 CUDA binary; `MEASURED_INFERENCE_ALLOW_VULKAN=1` overrides deliberately, and the
 backend it installs is then a condition of every number the campaign publishes.
 
-**Write two machine-readable files before the interview closes.** Rule 27 gives
-no second chance: every path, port and file name a later stage needs is decided
-here or not at all.
+**Write the machine half first — `campaign.json` and `machine.json`.** Rule 27
+gives no second chance: every path, port and file name a later stage needs is
+decided here or not at all.
 
 - **`results/<slug>/campaign.json`**, copied from
   `results/TEMPLATE-campaign.json` and filled in — slug, port, `llama_dir`,
@@ -61,6 +62,42 @@ the desktop reserve, showing the arithmetic. It reports UNPROVEN rather than
 PASS when machine.json is missing, because a guessed board size is how a
 spilling window gets stamped PASS (rule 13). A FAIL here costs a re-pick; the
 same FAIL at Stage 1 costs the download and the hours after it.
+
+**Then write the model half — the profile per file, then the plan.** Both are
+header reads and arithmetic: no download, no GPU, no `.venv` needed.
+
+```
+python scripts/inspect-model.py <org/repo> --quant <LABEL> --slug <slug>
+python scripts/plan-campaign.py --slug <slug>
+```
+
+- **`results/<slug>/model-<LABEL>.json`**, one per model FILE — run
+  `inspect-model.py` once per file on the roster, mmproj and draft head
+  included. It reads the GGUF's own header over a few ranged GETs (measured
+  2026-08-29: 6 MiB in 6 requests for `unsloth/Qwen3-1.7B-GGUF`; 23 MiB in 23
+  requests for the reference 27B, its `mmproj-F16.gguf` and its MTP head) and
+  records `arch` and whether this build can load it, `context_length`,
+  `block_count`, the head counts, the tensor table with exact params and bpw,
+  `kv_bytes_per_token` for f16/q8_0/q4_0 with the arithmetic that produced each,
+  a sibling mmproj and its projector type, a sibling draft head, and the chat
+  template including whether it exposes an effort knob. Every field is MEASURED,
+  DERIVED, CITED, or null with a `why`. `capabilities` is the list Stages 3, 4
+  and 6 are gated on: the reference 27B reads `text, vision, drafter, effort`,
+  `unsloth/Qwen3-1.7B-GGUF` reads `text, effort`.
+- **`results/<slug>/plan.json`**, every `model-*.json` crossed with
+  `machine.json`: the fit table, the DERIVED ceiling rungs Stage 2 sweeps, and a
+  RUNS/SKIPPED verdict with a quotable reason for every stage unit and every
+  `scripts/arms/*.json`. Exit 0 is a complete plan; **1 is a campaign that cannot
+  start** — an architecture this build does not list, or nothing that fits at any
+  window — and stops Stage 0 here rather than at the first load; **2 is a plan
+  with an UNKNOWN in it**, and an unsized fit is not a plan.
+
+Without them the campaign runs the reference 27B's assumptions over whatever
+model was asked for: a 25-arm ceiling ladder sized for a 24 GB card, a drafter
+sweep on a model with no draft head, a vision stage with no projector. The
+profile is what turns each of those into an explicit, quotable SKIPPED instead of
+a silently missing axis, which a reader cannot tell from a measured negative
+(rule 2).
 
 **Start the power logger now and leave it running** — this is METHODOLOGY rule
 24's instrumentation, opened at campaign start. A 500 ms CSV log costs one

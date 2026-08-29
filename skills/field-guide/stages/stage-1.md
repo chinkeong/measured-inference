@@ -1,6 +1,6 @@
 ---
 name: stage-1
-description: Load when executing Stage 1 (STRUCTURE, ~1 h, cheap probes only) — acquire runtime and weights, compute KV bytes/token, verify -ngl 99, one floor probe per quant, and the early pruning gate that drops files before they earn expensive treatment.
+description: Load when executing Stage 1 (STRUCTURE, ~1 h, cheap probes only) — acquire runtime and weights, take KV bytes/token from the Stage-0 model profile and cross-check it, verify -ngl 99, one floor probe per quant, and the early pruning gate that drops files before they earn expensive treatment.
 ---
 
 # Stage 1 — STRUCTURE (~1 h, cheap probes only)
@@ -21,8 +21,10 @@ the chosen quants + mmproj into `models/` (curl, resumable, verify byte sizes
 against the HF listing). Download nothing you won't measure.
 
 **Foundation & sanity**
-- Read the model's `config.json`: layer count, full-attention pattern, KV
-  heads/head_dim → compute **KV bytes/token** (the budget-table backbone):
+- **KV bytes/token comes from `results/<slug>/model-<LABEL>.json`**, the
+  Stage-0 profile — the budget-table backbone, read out of the header of the
+  very file this campaign loads. `kv_bytes_per_token` gives f16, q8_0 and q4_0;
+  `kv_arithmetic.lines` prints the derivation to copy into `campaign.md`:
 
   **KV bytes/token = 2 × full-attention layers × n_kv_heads × head_dim ×
   bytes-per-element** — 2 = K and V; bytes-per-element = 2 for fp16 cache, 1
@@ -31,13 +33,24 @@ against the HF listing). Download nothing you won't measure.
   layer) count only the full-attention ones; linear/gated-delta layers carry a
   fixed-size state, and sliding-window layers cap at their window — note both
   as separate constants rather than folding them into the per-token figure.
-  Sanity-check the result against the server's reported KV size at a known
-  `-c`; if they disagree, trust the server and say why in `campaign.md`.
 
-  If the GGUF repo has no `config.json` (common for quant-only repos), read the
-  base model repo it was converted from, or take the values from llama-server's
-  own GGUF metadata dump at load time (`n_layer`, `n_head_kv`, `n_embd_head_k` /
-  `n_embd_head_v` in the startup log).
+  **Cross-check the header against the base repo's `config.json` and against
+  the server's reported KV size at a known `-c`** — two independent cheap
+  readings agreeing beat one (rule 4), and on the reference 27B they agree.
+  The header derives 16 full-attention layers × 4 kv-heads × (key_length 256 +
+  value_length 256) = 32,768 values = **65,536 B/token** at f16; `python
+  scripts/check-request.py unsloth/Qwen3.8-27B-GGUF --quant UD-IQ4_XS --c-min
+  65536`, reading the base repo's `config.json`, prints `KV bytes/token = 2 x 16
+  full-attn x 4 kv-heads x 256 head-dim x 2 B = 65,536`. Keep `config.json` as
+  the cross-check and never promote it back to the source: it 404s on
+  quant-only repos (verified 2026-08-29 — `ibm-granite/granite-4.0-h-tiny-GGUF`
+  answers 404, the reference repo answers 200), and its transformers-era
+  `layer_types` vocabulary does not always name the layers that hold a cache, so
+  a hybrid can read out at 0 B/token, which is a green light for every context
+  rather than a conservative answer. If the two disagree, trust the server, then
+  the header, and record which and why in `campaign.md`. llama-server's own
+  startup dump (`n_layer`, `n_head_kv`, `n_embd_head_k` / `n_embd_head_v`) is
+  the third reading when they do.
 - **The -ngl trap**: llama.cpp counts the output layer as layer n+1. Always use
   `-ngl 99`; verify with a baseline probe that decode ≈ bandwidth ÷ file-size ×
   0.7 (reference: `probe-config.ps1` — note its header warning: it defaults to
