@@ -50,7 +50,17 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 # Directories holding runnable probes. results/**/work/ is excluded on purpose:
 # those are archived scripts kept as the record of a past run, not tools anyone
 # is expected to launch again.
-ROOTS = ("scripts/bench", "scripts/power", "scripts/verify", "scripts/agentic",
+ROOTS = (# The top level itself. Omitting it left scripts/arms.py - the sweep
+         # runner every stage from 2 on goes through - and
+         # scripts/detect-machine.py unchecked: `git ls-files "scripts/*.py"`
+         # returned 76 files and this checker saw 74. A git pathspec glob
+         # matches across directory separators, so this entry alone is a
+         # superset of the ones below; they stay because they are the map of
+         # where probes are expected to live, and because a checker that
+         # silently stopped covering a directory is the failure this file is
+         # about.
+         "scripts",
+         "scripts/bench", "scripts/power", "scripts/verify", "scripts/agentic",
          "scripts/vision", "scripts/quant-ladder", "scripts/report",
          # scripts/lib is not a probe directory, but every probe now imports
          # from it to find the server, the weights and the card. A library that

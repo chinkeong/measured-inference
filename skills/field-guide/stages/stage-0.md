@@ -44,6 +44,24 @@ here or not at all.
   and pass `--ram-channels` / `--backend` for what this box cannot report: an
   idle-desktop reserve is not a fence for a loaded desktop (rule 14).
 
+**Prove the request before the interview closes.** Two things fail at Stage 1 and
+cannot be asked about once rule 27 has closed the round: a gated repo, and a
+quant that does not fit the card. Both are network and arithmetic, so settle
+them here:
+
+```
+python scripts/check-request.py <org/repo> --quant <LABEL> --c-min <N>
+```
+
+It derives the slug, lists the GGUFs, proves ACCESS with a range request that
+reads real bytes and checks the GGUF magic — a listing succeeds on a gated repo,
+so only the range request is proof — and prices the FIT as
+`weights + KV(c_min) + projector` against `machine.json`'s measured board minus
+the desktop reserve, showing the arithmetic. It reports UNPROVEN rather than
+PASS when machine.json is missing, because a guessed board size is how a
+spilling window gets stamped PASS (rule 13). A FAIL here costs a re-pick; the
+same FAIL at Stage 1 costs the download and the hours after it.
+
 **Start the power logger now and leave it running** — this is METHODOLOGY rule
 24's instrumentation, opened at campaign start. A 500 ms CSV log costs one
 process and a few MB a day, and it retroactively converts every later stage into
