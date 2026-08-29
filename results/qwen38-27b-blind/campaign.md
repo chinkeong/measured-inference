@@ -3023,3 +3023,20 @@ ratios, as lossless speculation must". **The "as it must" is wrong.** The
 ratios matched on that prompt; they need not. The verification still stands -
 the output was diverse, non-repetitive and terminated normally - but it stands
 on reading the text, not on an identity that is not guaranteed.
+
+---
+
+## Stage 7 complete / published — THIS IS THE SHIPPED REFERENCE CAMPAIGN
+
+This log is the worked example that ships with the repository. It is **not a
+resumable run**, and it is not yours.
+
+AGENTS.md's "RESUMING A CRASHED CAMPAIGN" tells an agent to list
+`results/*/campaign.md` and, if the last entry is not "Stage 7 complete /
+published", to resume rather than interview. Without this closing entry a fresh
+clone reads 3,000 lines of somebody else's Qwen3.8-27B campaign and tries to
+continue it, skipping the Stage 0 interview for the model the user actually
+asked about. Recorded 2026-08-29.
+
+The published artefact is `results/qwen38-27b-blind/index.html`. Read this log
+for how a campaign is kept, not for what to do next.

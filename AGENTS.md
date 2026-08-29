@@ -71,8 +71,9 @@ A new skill registers ONE line here. Not a section.
 
 Sessions die; campaigns do not have to. **Before starting anything, list
 `results/*/campaign.md`.** If one exists and its last entry is not "Stage 7
-complete / published" (older logs: "Phase 11 complete / published"), you are
-resuming, not starting — do NOT re-interview.
+complete / published" (older: "Phase 11"), you are resuming, not starting — do
+NOT re-interview. `qwen38-27b-blind` ships closed: it is the worked example that
+comes with the repo, never yours to resume.
 
 1. Read `results/<slug>/campaign.md` end-to-end: interview answers, every
    finding so far, and the stage it died in. A log written under the old
