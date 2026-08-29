@@ -20,6 +20,15 @@ bin/
 # per-run server and harness transcripts - remade by re-running the harness
 *.log
 
+# EXCEPT the OpenVINO requantisation record. The clause above is a
+# statement about cost: a transcript is ignorable because re-running the
+# harness remakes it. This one it does not remake. It needs a llama.cpp
+# built with the commented-out per-tensor logging restored, and that patch
+# is not in this repository. Ignored, it would leave
+# results/openvino-groundtruth/README.md asserting 316 REQUANT with nothing
+# a reader could check it against, which is the exact shape rule 1 forbids.
+!results/openvino-groundtruth/*.log
+
 # opaque byte caches, not readings: llama-perplexity --kl-divergence-base
 # logit dumps (25 GB of the 25 GB under results/), model shards, arrays
 *.dat
