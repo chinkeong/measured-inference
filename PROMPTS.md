@@ -28,6 +28,7 @@ field prints its default, so you can delete any line you do not care about.
 - [Start here](#start-here)
   - [Pre-flight — prove the machine is ready before you type a word to the agent](#pre-flight--prove-the-machine-is-ready-before-you-type-a-word-to-the-agent)
   - [The simplest prompt that works](#the-simplest-prompt-that-works)
+  - [Ask for the form pre-filled — the shortest path](#ask-for-the-form-pre-filled--the-shortest-path)
   - [The fill-in form](#the-fill-in-form)
   - [What the agent does with it — the first ten minutes](#what-the-agent-does-with-it--the-first-ten-minutes)
 - [Campaign shapes](#campaign-shapes)
@@ -170,6 +171,44 @@ The opening line is not decoration. Claude Code auto-loads `CLAUDE.md`, opencode
 every harness. The agent will still come back to you once, with the proposed quant roster and
 the detected hardware; that single round **is** the interview, not a failure to be autonomous.
 If you would rather answer everything in one pass and never be interrupted, use the form below.
+
+### Ask for the form pre-filled — the shortest path
+
+Filling forty lines by hand is the slow way to use the sheet. The agent can find most of it
+itself: the quant roster from the HuggingFace listing, whether an mmproj exists, whether the
+repo is gated, every field about the machine, the slug (the naming rule derives it from the
+repo name), and which coding agents are on `PATH`. Ask it to do that first and hand you the
+sheet already filled.
+
+Three answers are genuinely yours and cannot be guessed: what you will use the model for,
+how many hours it may have, and quality-first or latency-first. Everything else arrives as a
+proposal you correct.
+
+```
+Read AGENTS.md, then skills/field-guide/SKILL.md.
+
+Campaign for <https://huggingface.co/ORG/REPO-GGUF>.
+
+Do not interview me line by line. First:
+  - resolve the repo listing and propose the quant roster, and say whether an
+    mmproj exists
+  - prove access with a range request now, not at download time
+  - run `python scripts/detect-machine.py --slug <slug> --json`
+  - probe PATH for coding agents
+
+Then print PROMPTS.md's Stage-0 answer sheet with all of that ALREADY FILLED IN,
+marking which lines you filled so I can see what you assumed. I will correct it
+and paste it back, and that closes the interview.
+```
+
+You get back a sheet with Q1, Q2, Q6 and Q7 populated and Q3, Q4, Q5 blank. Edit those three,
+fix anything the detection got wrong, paste the whole sheet back. The campaign then runs to
+the end without asking you anything else (rule 27).
+
+This is also the safest order: the range-request access check happens **before** the interview
+closes. Discover a gated repo afterwards and the no-questions rule has already locked the
+agent out of asking you for a token, and there is no downloader or token plumbing in this
+repo to fall back on.
 
 ### The fill-in form
 

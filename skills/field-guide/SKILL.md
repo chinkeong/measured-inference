@@ -35,6 +35,21 @@ Ask everything up front, in ONE round. After this, run autonomously to the end;
 never block on the user. Confirm auto-detected facts rather than asking open
 questions.
 
+**Detect first, then hand back a filled sheet.** Do not ask the seven questions
+one at a time and do not ask what you can find out. Resolve the HF listing, run
+`python scripts/detect-machine.py --slug <slug> --json`, and probe `PATH` for
+the coding agents; then print `PROMPTS.md`'s answer sheet with everything you
+found ALREADY FILLED IN, and ask the user only to correct it. Four of the seven
+are yours to fill: **Q1** the roster and whether an mmproj exists and whether the
+repo is gated (prove that with the range request now, not at download time),
+**Q2** the whole machine block, **Q6** the slug, which the naming rule derives
+mechanically from the repo name, and **Q7** the detected agent roster. Three are
+genuinely the user's and cannot be defaulted away: **Q3** what they will use the
+model for, **Q4** the time budget, and **Q5** quality-first or latency-first.
+Mark every line you filled so they can see what you assumed, and say plainly
+that anything they leave takes the printed default. A user who edits three
+fields and pastes it back has closed the interview.
+
 1. **Model**: the HF URL(s). Resolve the repo file listing (HF API
    `/api/models/<repo>/tree/main`) and propose which quants to measure (a Q4-class
    primary + challengers: same-size alternates, one smaller IQ-class, vendor
