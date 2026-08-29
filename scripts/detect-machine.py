@@ -42,6 +42,41 @@ WHAT IT PROMISES.
     Setting a value to itself changes nothing, and the reading afterwards is
     recorded so the artefact can prove it.
 
+THE FIELD THAT DECIDES WHICH ARITHMETIC IS EVEN RIGHT. `board_total_mib` minus
+a desktop reserve is the fit budget on ONE topology: a discrete board with its
+own memory, on the far side of a PCIe link, which spills to host RAM when it
+overflows. Three other topologies are now first-class targets and the
+subtraction is wrong on every one of them:
+
+  unified      DGX Spark's GB10 has 128 GB of LPDDR5X shared coherently by the
+               Grace CPU and the Blackwell GPU. There is no board. nvidia-smi
+               still answers `memory.total`, and the answer is the WHOLE
+               machine's memory -- so `board - reserve` silently prices the
+               model against RAM the operating system is already living in,
+               and nothing about the failure looks like a failure. Apple
+               Silicon is the same shape.
+  shared-igpu  An Intel or AMD integrated GPU has no memory either; it maps a
+               share of system RAM, and the driver -- not the arithmetic here
+               -- decides how large that share may be.
+  system       CPU-only. There is no GPU pool at all.
+
+So this script MEASURES which one it is and writes `memory_topology` beside
+every number that depends on it, with the evidence it classified on. When the
+evidence does not settle it, the field is null with the reason and the
+downstream fit refuses rather than guessing -- a wrong PASS costs a day, an
+UNPROVEN fit costs one command. The pool the fit must price against travels
+with it: `host_mem_total_mib` and a measured `host_reserve_mib` (MemTotal minus
+MemAvailable, sampled, exactly as the desktop reserve is sampled on a board),
+plus `igpu_share_limit_mib` where a driver publishes one. The arithmetic that
+consumes them lives in `scripts/check-request.py:memory_plan()`, so that the
+planner and the Stage-0 gate cannot drift apart.
+
+Two more fields hang off the same measurement. `spec_bandwidth_gbs` because
+rule 10's decode estimate is bandwidth over file GB and a unified box's
+bandwidth is a property of the memory, not of a board (GB10: 273 GB/s, CITED).
+`cuda_arch` out of bin/llama.cpp/INSTALL.json because GB10 needs
+-DCMAKE_CUDA_ARCHITECTURES=121a-real and `native` does not produce it.
+
 THE FIELD THAT NEEDS A HUMAN. desktop_reserve_mib is the VRAM the graphical
 session itself holds, and it depends on what the desktop is DOING. The
 reference rig measured 1,181 MiB idle and 1,669 MiB with a real workload on
@@ -56,6 +91,7 @@ Stdlib only, Python 3.10+, Linux/macOS/Windows.
 import argparse
 import ctypes
 import datetime
+import glob
 import json
 import os
 import platform
@@ -84,13 +120,109 @@ except Exception:                                              # pragma: no cove
 # Copied from bench.py's _TEXT for exactly that reason.
 _TEXT = dict(text=True, encoding="utf-8", errors="replace")
 
-BACKENDS = ("cuda", "vulkan", "rocm", "metal", "cpu")
-SCHEMA = "measured-inference/machine.json v1"
+# The llama.cpp backends this box might decode with. `openvino` and `sycl` are
+# here because the alternative is worse than being early: _detect_backend()
+# accepts INSTALL.json's `flavor` only when it is in this tuple, so a flavor
+# missing from it does not raise -- it falls through to a DERIVED guess from
+# the card, which on an Intel box would confidently write "cpu" over a real
+# OpenVINO build. A name recorded before a setup script writes it costs
+# nothing; a backend silently misrecorded is a condition of every number the
+# campaign then publishes (rule 3).
+BACKENDS = ("cuda", "vulkan", "rocm", "metal", "cpu", "openvino", "sycl")
+SCHEMA = "measured-inference/machine.json v2"
 SLUG_ENV = getattr(paths, "SLUG_ENV", "MEASURED_INFERENCE_SLUG")
+
+# The four memory topologies the fit arithmetic branches on. They are not
+# vendor names: they are the four different sums.
+#
+#   discrete     a board with its own memory behind a link. Budget =
+#                board_total - desktop_reserve. Overflow spills to host RAM
+#                over PCIe: slow, survivable, MEASURABLE -- which is what makes
+#                rule 13's second ceiling and collapse point findable at all.
+#   unified      one physical pool, CPU and GPU coherent, no board and no link.
+#                GB10 / DGX Spark, Apple Silicon, Jetson. Budget is a share of
+#                system memory. Overflow does not spill anywhere: it is the OOM
+#                killer, or swap.
+#   shared-igpu  an integrated GPU mapping a share of system RAM, where the
+#                driver caps the share. Same pool as `unified`, but the cap is
+#                a second, lower ceiling that has to be read from the driver
+#                rather than assumed -- assuming MemTotal over-promises by
+#                roughly 2x on both i915/xe and WDDM.
+#   system       CPU-only. No GPU pool. Weights are mmapped, so overflow is
+#                page-cache thrash rather than a kill -- a different failure
+#                again.
+TOPOLOGIES = ("discrete", "unified", "shared-igpu", "system")
+
+# NVIDIA parts whose GPU memory IS the host's memory. Matched case-insensitively
+# against nvidia-smi's product name. Every entry is a claim about topology that
+# changes the downstream sum, so each carries its source rather than being a
+# name in a list.
+UNIFIED_NVIDIA = (
+    ("gb10",
+     "NVIDIA GB10 Grace Blackwell Superchip (DGX Spark): 128 GB of LPDDR5X "
+     "shared coherently by the Grace CPU and the Blackwell GPU. There is no "
+     "discrete board, so nvidia-smi's memory.total is the whole machine's "
+     "memory and board-minus-reserve would price the model against RAM the OS "
+     "is already using."),
+    ("orin", "NVIDIA Jetson Orin: Tegra SoC, one LPDDR5 pool shared by CPU "
+             "and iGPU. No discrete board."),
+    ("thor", "NVIDIA Jetson Thor: Tegra SoC, one LPDDR5X pool shared by CPU "
+             "and iGPU. No discrete board."),
+    ("xavier", "NVIDIA Jetson Xavier: Tegra SoC, one LPDDR4x pool shared by "
+               "CPU and iGPU. No discrete board."),
+    ("tegra", "NVIDIA Tegra SoC: one memory pool shared by CPU and iGPU. No "
+              "discrete board."),
+)
+
+# Parts this script REFUSES to classify, and why. A Grace-Hopper or
+# Grace-Blackwell superchip is neither: the GPU has its own HBM *and*
+# cache-coherent access to the Grace LPDDR, so "discrete" under-counts the
+# reachable memory and "unified" over-counts the fast memory. Neither sum is
+# right, and picking one silently is exactly the failure this field exists to
+# stop.
+AMBIGUOUS_NVIDIA = (
+    ("gh200", "NVIDIA GH200 Grace Hopper Superchip: the GPU has its own HBM3 "
+              "AND cache-coherent access to the Grace LPDDR5X. 'discrete' "
+              "under-counts what it can reach; 'unified' over-counts what it "
+              "can reach FAST. Neither sum is right."),
+    ("gb200", "NVIDIA GB200 Grace Blackwell Superchip: HBM3e per GPU plus "
+              "cache-coherent Grace LPDDR5X. Same two-pool problem as GH200."),
+)
+
+# Memory bandwidth, in GB/s, for parts where the figure is a published
+# specification rather than something this box can measure. Rule 10's decode
+# estimate is bandwidth over file GB, and on a unified box the bandwidth
+# belongs to the memory, not to a board -- so it has to come from somewhere,
+# and CITED with a source is the only honest somewhere.
+SPEC_BANDWIDTH = (
+    ("gb10", 273.0,
+     "NVIDIA DGX Spark / GB10 published specification: 128 GB LPDDR5X at "
+     "273 GB/s. Recorded here from the 2026-08-29 backend-port research brief "
+     "in this repository; re-read NVIDIA's own page before publishing a number "
+     "derived from it."),
+)
+
+# DDR channels are 64 bits wide however the vendor sub-divides them, so a
+# theoretical peak is channels x 8 bytes x MT/s. It is a CEILING, not a
+# measurement -- the constant in rule 10 is re-derived against a measured
+# figure, never against this one.
+DDR_BYTES_PER_CHANNEL = 8
+
+# What CMAKE_CUDA_ARCHITECTURES has to say for a part, when "native" is known
+# not to produce it. Only entries this repository has a reason to assert.
+CUDA_ARCH_REQUIRED = (
+    ("gb10", "121a-real",
+     "GB10 is sm_121a. -DCMAKE_CUDA_ARCHITECTURES=native, 120, 120f or a bare "
+     "121 all build something that runs and none of them keeps "
+     "MMVQ_PARAMETERS_GB10, so the build is slower than the hardware and "
+     "nothing says so. Rebuild with --cuda-arch 121a-real."),
+)
 
 # The order machine.json is written in: the fields a reader wants first.
 FIELD_ORDER = (
-    "board_total_mib", "gpu_name", "backend", "driver", "host_ram_gb",
+    "memory_topology", "board_total_mib", "gpu_name", "backend", "driver",
+    "host_ram_gb", "host_mem_total_mib", "host_reserve_mib",
+    "igpu_share_limit_mib", "spec_bandwidth_gbs", "cuda_arch", "compute_cap",
     "ram_channels", "os", "arch", "power_default_limit_w",
     "pl_writable_without_elevation", "desktop_reserve_mib",
 )
@@ -402,6 +534,393 @@ def host_ram_bytes():
 
 
 # ---------------------------------------------------------------------------
+# the HOST pool -- what a unified, shared or CPU-only fit is priced against
+# ---------------------------------------------------------------------------
+
+def host_meminfo():
+    """(total_mib, available_mib, how) for the pool a process allocates from.
+
+    `available` is deliberately the kernel's own MemAvailable rather than
+    MemFree: MemFree on a box that has read a 20 GB GGUF once reads near zero
+    while 20 GB of reclaimable page cache is sitting right there, and a budget
+    built on it would refuse every model on a healthy machine. MemAvailable is
+    the kernel's estimate of what can be allocated WITHOUT swapping, which is
+    the question the fit is asking.
+    """
+    if sys.platform.startswith("linux"):
+        try:
+            info = {}
+            with open("/proc/meminfo", "r") as fh:
+                for line in fh:
+                    k, _, v = line.partition(":")
+                    parts = v.split()
+                    if parts and parts[0].isdigit():
+                        info[k.strip()] = int(parts[0]) // 1024      # kB -> MiB
+        except OSError as exc:
+            return None, None, "/proc/meminfo unreadable: %s" % exc
+        total = info.get("MemTotal")
+        avail = info.get("MemAvailable")
+        if avail is None and "MemFree" in info:
+            return (total, None,
+                    "/proc/meminfo has MemTotal but no MemAvailable (kernel "
+                    "older than 3.14); MemFree is not a substitute")
+        if total:
+            return total, avail, "/proc/meminfo MemTotal / MemAvailable"
+        return None, None, "/proc/meminfo carried no MemTotal"
+    if os.name == "nt":
+        if gpu_lock is None or not hasattr(gpu_lock, "_MEMORYSTATUSEX"):
+            return None, None, ("gpu_lock did not import, so its "
+                                "GlobalMemoryStatusEx binding is unavailable")
+        try:
+            st = gpu_lock._MEMORYSTATUSEX()
+            st.dwLength = ctypes.sizeof(st)
+            if not gpu_lock._k32.GlobalMemoryStatusEx(ctypes.byref(st)):
+                return None, None, "GlobalMemoryStatusEx failed"
+            return (int(st.ullTotalPhys) // (1 << 20),
+                    int(st.ullAvailPhys) // (1 << 20),
+                    "GlobalMemoryStatusEx ullTotalPhys / ullAvailPhys")
+        except Exception as exc:                       # pragma: no cover
+            return None, None, "GlobalMemoryStatusEx: %s" % exc
+    if sys.platform == "darwin":
+        rc, out = _run(["sysctl", "-n", "hw.memsize"])
+        total = (_int(out) or 0) // (1 << 20) if rc == 0 else None
+        rc, out = _run(["vm_stat"])
+        avail = None
+        if rc == 0 and out:
+            page = 4096
+            m = re.search(r"page size of (\d+) bytes", out)
+            if m:
+                page = int(m.group(1))
+            free = 0
+            for key in ("Pages free", "Pages inactive", "Pages speculable",
+                        "Pages speculative", "Pages purgeable"):
+                m = re.search(re.escape(key) + r":\s+(\d+)", out)
+                if m:
+                    free += int(m.group(1))
+            if free:
+                avail = free * page // (1 << 20)
+        if total:
+            return (total, avail,
+                    "sysctl -n hw.memsize; free+inactive+speculative+purgeable "
+                    "pages from vm_stat")
+    return None, None, "no host-memory reader for platform %r" % sys.platform
+
+
+def sample_host_available_mib(n, interval, log=None):
+    """n readings of MemAvailable, spaced `interval` seconds apart."""
+    samples = []
+    for k in range(n):
+        if k:
+            time.sleep(interval)
+        _, avail, _ = host_meminfo()
+        if avail is not None:
+            samples.append(int(avail))
+            if log:
+                log("  host sample %d/%d: %d MiB available" % (k + 1, n, avail))
+    return samples
+
+
+# ---------------------------------------------------------------------------
+# is the GPU on the far side of a link, or is it in the same memory?
+# ---------------------------------------------------------------------------
+
+def device_tree_model():
+    """The board name the firmware states, on the platforms that state one.
+
+    Tegra and GB10 are SoCs, not PCIe cards, and the device tree names the
+    board before any vendor tool is installed: /proc/device-tree/model reads
+    "NVIDIA Jetson AGX Orin" or "NVIDIA DGX Spark". It is the cheapest
+    corroboration there is for "this is not a discrete board".
+    """
+    for path in ("/proc/device-tree/model",
+                 "/sys/firmware/devicetree/base/model"):
+        try:
+            with open(path, "rb") as fh:
+                text = fh.read(256).split(b"\x00")[0]
+            text = text.decode("utf-8", "replace").strip()
+            if text:
+                return text, path
+        except OSError:
+            continue
+    return None, None
+
+
+_PCI_VENDOR = {"0x8086": "Intel", "0x1002": "AMD", "0x10de": "NVIDIA",
+               "0x1a03": "ASPEED", "0x102b": "Matrox"}
+
+
+def drm_cards():
+    """Every /sys/class/drm/cardN, with the evidence that classifies it.
+
+    The signal that separates an integrated GPU from a discrete one without a
+    PCI-ID database: a discrete card's driver publishes the size of its own
+    device-local memory -- i915 `lmem_total_bytes`, xe
+    `tile0/physical_vram_size_bytes`, amdgpu `mem_info_vram_total` -- and an
+    integrated one has none to publish. The PCI address corroborates it: Intel
+    and AMD integrated graphics sit on the root bus at 0000:00, and an add-in
+    card never does.
+    """
+    out = []
+    root = "/sys/class/drm"
+    if not os.path.isdir(root):
+        return out
+    for name in sorted(os.listdir(root)):
+        if not re.match(r"^card\d+$", name):
+            continue
+        dev = os.path.join(root, name, "device")
+
+        def _read(*rel):
+            try:
+                with open(os.path.join(dev, *rel), "r") as fh:
+                    return fh.read().strip()
+            except OSError:
+                return None
+
+        vendor = _read("vendor")
+        if not vendor:
+            continue
+        try:
+            pci = os.path.basename(os.path.realpath(dev))
+        except OSError:                                # pragma: no cover
+            pci = None
+        lmem = None
+        for rel in (("lmem_total_bytes",),
+                    ("tile0", "physical_vram_size_bytes"),
+                    ("mem_info_vram_total",)):
+            val = _read(*rel)
+            if val and val.isdigit() and int(val) > 0:
+                lmem = (int(val), "/".join(rel))
+                break
+        gtt = _read("mem_info_gtt_total")
+        out.append({
+            "card": name,
+            "vendor_id": vendor.lower(),
+            "vendor": _PCI_VENDOR.get(vendor.lower(), vendor),
+            "device_id": _read("device"),
+            "driver": (os.path.basename(os.path.realpath(
+                os.path.join(dev, "driver"))) if os.path.exists(
+                    os.path.join(dev, "driver")) else None),
+            "pci_address": pci,
+            "on_root_bus": bool(pci and pci.startswith("0000:00:")),
+            "device_local_memory_bytes": lmem[0] if lmem else None,
+            "device_local_memory_source": lmem[1] if lmem else None,
+            "gtt_total_bytes": int(gtt) if gtt and gtt.isdigit() else None,
+        })
+    return out
+
+
+def windows_video_controllers():
+    """(controllers, how) on Windows, where there is no /sys/class/drm.
+
+    AdapterRAM is famously wrong above 4 GB, so it is recorded and NOT used to
+    size anything -- the only thing wanted here is the adapter's NAME, which is
+    enough to tell an integrated part from an add-in card.
+    """
+    if os.name != "nt":
+        return [], "not Windows"
+    ps = shutil.which("powershell") or shutil.which("pwsh")
+    if not ps:
+        return [], "no powershell on PATH"
+    cmd = [ps, "-NoProfile", "-NonInteractive", "-Command",
+           "Get-CimInstance Win32_VideoController | "
+           "Select-Object Name,AdapterCompatibility,AdapterRAM | "
+           "ConvertTo-Json -Compress"]
+    rc, out = _run(cmd, timeout=60)
+    if rc != 0 or not out:
+        return [], "Get-CimInstance Win32_VideoController returned nothing"
+    try:
+        data = json.loads(out)
+    except ValueError:
+        return [], "Win32_VideoController output was not JSON"
+    if isinstance(data, dict):
+        data = [data]
+    return ([d for d in data if isinstance(d, dict)],
+            "Get-CimInstance Win32_VideoController")
+
+
+_IGPU_NAME_RE = re.compile(
+    r"\b(uhd graphics|hd graphics|iris|arc\s+\d+\w*\s+graphics|"
+    r"radeon\s+graphics|vega\s+graphics|integrated)\b", re.I)
+
+# NVIDIA product lines that are discrete boards by construction. NVIDIA's
+# unified-memory parts are exactly the Tegra/Jetson line plus GB10, and those
+# are matched above this; nothing sold as GeForce, Quadro, Tesla, TITAN or a
+# datacenter PCIe/SXM part shares memory with the host. This is a POSITIVE
+# identification, which is why it outranks the size-ratio test below -- a
+# 24 GiB card in a 32 GiB box is 75% of the host's memory and is still a board.
+_DISCRETE_NVIDIA_RE = re.compile(
+    r"\b(geforce|quadro|tesla|titan|rtx|gtx|nvs|"
+    r"[ahlv]\d{2,3}[a-z]?|p\d{2,3}|t\d{1,3}|k\d{2})\b", re.I)
+# AMD discrete boards. "Radeon Graphics" with no model number is an APU's
+# integrated part and is deliberately NOT here -- _IGPU_NAME_RE has it.
+_DISCRETE_AMD_RE = re.compile(
+    r"\b(instinct|mi\d{2,3}[a-z]?|radeon\s+(pro|rx)\b|rx\s?\d{3,4})\b", re.I)
+
+
+def classify_topology(gpu_name, board_mib, host_total_mib, drm, win_gpus,
+                      dt_model, have_nvidia, have_rocm):
+    """(topology, how, evidence) -- or (None, why it cannot be settled, ...).
+
+    Ordered by how strong the evidence is, and it stops at the first thing that
+    actually settles the question. Nothing here falls through to a default:
+    the last branch returns None, because "we could not tell" is a value this
+    schema carries and "discrete" is not a safe thing to assume on a box the
+    script has not recognised.
+    """
+    ev = {"gpu_name": gpu_name, "board_total_mib": board_mib,
+          "host_mem_total_mib": host_total_mib,
+          "device_tree_model": dt_model,
+          "drm_cards": drm or None,
+          "windows_video_controllers": win_gpus or None}
+    low = (gpu_name or "").lower()
+
+    # 1. Named parts that are known SoCs, and named parts that are known to be
+    #    neither. The refusal is as important as the match.
+    for needle, why in AMBIGUOUS_NVIDIA:
+        if needle in low:
+            return None, why + (" Pass --topology explicitly once you have "
+                                "decided which pool this campaign prices "
+                                "against, and say so in the report."), ev
+    for needle, why in UNIFIED_NVIDIA:
+        if needle in low:
+            return "unified", "the GPU is %r. %s" % (gpu_name, why), ev
+
+    # 2. Apple Silicon: one pool by construction.
+    if sys.platform == "darwin" and platform.machine().startswith("arm"):
+        return ("unified",
+                "macOS on Apple Silicon (%s): the SoC has one memory pool and "
+                "Metal's working-set limit is a policy over it, not a separate "
+                "board." % platform.machine(), ev)
+
+    # 3. The firmware names the board and it is an SoC.
+    if dt_model and re.search(r"jetson|dgx spark|tegra|orin|thor",
+                              dt_model, re.I):
+        return ("unified",
+                "the device tree names this board %r, which is an SoC with one "
+                "memory pool rather than a host plus a card." % dt_model, ev)
+
+    # 4. A named product line that is a board by construction.
+    if have_nvidia and _DISCRETE_NVIDIA_RE.search(low):
+        return ("discrete",
+                "nvidia-smi names the card %r. NVIDIA's shared-memory parts "
+                "are the Tegra/Jetson line and GB10, all matched above this; "
+                "a GeForce, Quadro, Tesla, TITAN or datacenter part has its "
+                "own board memory behind a PCIe link." % gpu_name, ev)
+    if have_rocm and _DISCRETE_AMD_RE.search(low):
+        return ("discrete",
+                "rocm-smi names the card %r, which is a discrete Radeon or "
+                "Instinct board rather than an APU's integrated graphics."
+                % gpu_name, ev)
+
+    # 5. What the kernel says about where the memory is. Root bus FIRST: an
+    #    AMD APU publishes mem_info_vram_total for its BIOS carve-out, so
+    #    "publishes device-local memory" alone would misread it as a board.
+    if drm:
+        rendering = [c for c in drm if c["vendor_id"] != "0x1a03"]
+        igpu = [c for c in rendering
+                if c["on_root_bus"] and c["vendor_id"] in ("0x8086", "0x1002")]
+        if igpu and not have_nvidia:
+            c = igpu[0]
+            return ("shared-igpu",
+                    "%s %s sits on the root bus at %s under %s: an integrated "
+                    "GPU, which maps a share of system RAM rather than owning "
+                    "any%s."
+                    % (c["vendor"], c["card"], c["pci_address"],
+                       c["driver"] or "an unnamed driver",
+                       (" (its mem_info_vram_total of %.1f GiB is the BIOS "
+                        "carve-out, not a board)"
+                        % (c["device_local_memory_bytes"] / 2.0**30))
+                       if c["device_local_memory_bytes"] else ""), ev)
+        with_lmem = [c for c in rendering
+                     if c["device_local_memory_bytes"] and not c["on_root_bus"]]
+        if with_lmem:
+            c = with_lmem[0]
+            return ("discrete",
+                    "%s %s is at %s, off the root bus, and publishes %.1f GiB "
+                    "of device-local memory at %s -- memory an integrated GPU "
+                    "does not have."
+                    % (c["vendor"], c["card"], c["pci_address"],
+                       c["device_local_memory_bytes"] / 2.0**30,
+                       c["device_local_memory_source"]), ev)
+        if rendering and not have_nvidia and not have_rocm:
+            return (None,
+                    "/sys/class/drm lists %s but none of them publishes "
+                    "device-local memory off the root bus and none is an Intel "
+                    "or AMD part on it, so this script cannot tell whether the "
+                    "GPU owns memory or borrows it."
+                    % ", ".join("%s %s" % (c["vendor"], c["card"])
+                                for c in rendering), ev)
+
+    # 6. Windows, where there is no /sys/class/drm to read.
+    if win_gpus and not have_nvidia and not have_rocm:
+        names = [str(g.get("Name") or "") for g in win_gpus]
+        hits = [n for n in names if _IGPU_NAME_RE.search(n)]
+        if hits:
+            return ("shared-igpu",
+                    "Win32_VideoController names %r and no discrete adapter "
+                    "answered a vendor tool, so the GPU maps a share of system "
+                    "RAM." % hits[0], ev)
+
+    # 7. The measurement that needs no name: a discrete board is a FRACTION of
+    #    the host's memory, and one pool counted twice is not. This is the
+    #    branch that catches a GB10 whose product name this script has never
+    #    seen -- and the band in the middle is where it refuses.
+    if board_mib and host_total_mib:
+        ratio = board_mib / float(host_total_mib)
+        ev["board_over_host_ratio"] = round(ratio, 3)
+        if ratio >= 0.90:
+            return (None,
+                    "the GPU reports %s MiB of memory against %s MiB of system "
+                    "RAM -- %.0f%% of it. A discrete board is a fraction of the "
+                    "host's memory; a number this close to all of it is one "
+                    "pool being counted twice, and board-minus-reserve would "
+                    "price the model against RAM the OS is living in. Refusing "
+                    "to call this discrete. Pass --topology unified (or "
+                    "shared-igpu) once you have confirmed which it is."
+                    % (_c(board_mib), _c(host_total_mib), ratio * 100), ev)
+        if ratio <= 0.75:
+            return ("discrete",
+                    "the GPU reports %s MiB of memory against %s MiB of system "
+                    "RAM (%.0f%%). A pool that is a fraction of the host's is a "
+                    "board of its own, not a share of the host's."
+                    % (_c(board_mib), _c(host_total_mib), ratio * 100), ev)
+        return (None,
+                "the GPU reports %s MiB of memory against %s MiB of system RAM "
+                "(%.0f%%). That is too large a share to read as a discrete "
+                "board and too small to read as one pool, so this script will "
+                "not pick. Pass --topology."
+                % (_c(board_mib), _c(host_total_mib), ratio * 100), ev)
+
+    # 8. No GPU pool at all, and the tools agree there is no GPU.
+    if not have_nvidia and not have_rocm and not drm and not win_gpus:
+        return ("system",
+                "no GPU vendor tool answered, /sys/class/drm lists no card and "
+                "no video controller was enumerated: there is no GPU memory "
+                "pool, so the fit is priced against system RAM.", ev)
+    if board_mib == 0 and not have_nvidia and not have_rocm:
+        return ("system",
+                "no GPU vendor tool answered, so there is no GPU memory pool "
+                "and the fit is priced against system RAM.", ev)
+
+    return (None,
+            "nothing here settled it: %s answered for the card and %s for the "
+            "host pool. Pass --topology %s -- the fit arithmetic differs on "
+            "each, and this script will not pick one for you."
+            % ("nvidia-smi" if have_nvidia else
+               "rocm-smi" if have_rocm else "no vendor tool",
+               "no reader" if not host_total_mib else "/proc/meminfo",
+               "|".join(TOPOLOGIES)), ev)
+
+
+def _c(n):
+    """Thousands separators, for the prose above."""
+    try:
+        return "{:,}".format(int(n))
+    except (TypeError, ValueError):                    # pragma: no cover
+        return str(n)
+
+
+# ---------------------------------------------------------------------------
 # elevation, and the power-limit write test
 # ---------------------------------------------------------------------------
 
@@ -563,11 +1082,24 @@ def detect(args, log):
                                        for d in devices) or "no populated DIMMs"),
                           **evidence)
 
+    # ---- the host pool ----------------------------------------------------
+    # Measured on every topology, not only the ones that price against it: on a
+    # discrete box it is what gpu_lock sizes its commit cap from, and on every
+    # other one it IS the budget. Recorded either way, so a machine.json can be
+    # re-read after the fact without re-running anything.
+    host_total, host_avail, host_how = host_meminfo()
+    if host_total:
+        p.measured("host_mem_total_mib", int(host_total), host_how,
+                   available_now_mib=host_avail)
+    else:
+        p.unknown("host_mem_total_mib", host_how)
+
     # ---- the card ---------------------------------------------------------
     nv = nvidia_query(NVIDIA_FIELDS, index=args.gpu)
     gpu_count = nvidia_count()
     row = nv[0] if nv else None
     have_nvidia = row is not None
+    have_rocm = bool(shutil.which("rocm-smi"))
 
     if have_nvidia:
         name, total, _used, driver, default_pl, cur_pl = (row + [None] * 6)[:6]
@@ -586,6 +1118,20 @@ def detect(args, log):
                        "nvidia-smi --query-gpu=driver_version")
         else:
             p.unknown("driver", "nvidia-smi did not report driver_version")
+        # compute_cap is a separate query on purpose: it postdates R470 and a
+        # driver that does not know the field fails the WHOLE --query-gpu row,
+        # which would cost the board size to learn the architecture.
+        cc = nvidia_query(("compute_cap",), index=args.gpu)
+        cc_val = cc[0][0] if cc and cc[0] else None
+        if cc_val:
+            p.measured("compute_cap", cc_val,
+                       "nvidia-smi --query-gpu=compute_cap -- the SM version "
+                       "this card actually is, which is what "
+                       "-DCMAKE_CUDA_ARCHITECTURES has to match")
+        else:
+            p.unknown("compute_cap",
+                      "nvidia-smi did not answer --query-gpu=compute_cap "
+                      "(the field postdates driver R470)")
         dpl = _float(default_pl)
         if dpl is not None:
             p.measured("power_default_limit_w", dpl,
@@ -601,7 +1147,6 @@ def detect(args, log):
                 "Rule 3: say which card produced a number, and re-run with "
                 "--gpu N for the others." % (gpu_count, args.gpu)))
     else:
-        have_rocm = bool(shutil.which("rocm-smi"))
         rocm_mem = rocm_json(["--showmeminfo", "vram"])
         vram_total, where = _rocm_find(rocm_mem or {}, "vram", "total", "memory")
         vram_bytes = _int(vram_total)
@@ -688,7 +1233,289 @@ def detect(args, log):
 
     # ---- the desktop reserve (rule 14) ------------------------------------
     _measure_reserve(p, args, have_nvidia, today, log)
+
+    # ---- which arithmetic is even right -----------------------------------
+    if "compute_cap" not in p.values:
+        p.unknown("compute_cap",
+                  "compute_cap is an NVIDIA field and no NVIDIA card answered")
+    _measure_topology(p, args, have_nvidia, have_rocm, today, log)
     return p
+
+
+def _measure_topology(p, args, have_nvidia, have_rocm, today, log):
+    """memory_topology, the host reserve, the iGPU share, bandwidth, cuda_arch.
+
+    Everything here is a MEASUREMENT of the machine. The arithmetic that
+    consumes it -- which pool the fit is priced against, and which of rule 13's
+    two ceilings still means anything -- lives in
+    scripts/check-request.py:memory_plan(), so that the Stage-0 gate and the
+    planner cannot answer the same question differently.
+    """
+    gpu_name = p.values.get("gpu_name")
+    board_mib = p.values.get("board_total_mib")
+    host_total = p.values.get("host_mem_total_mib")
+    drm = drm_cards()
+    win_gpus, win_how = windows_video_controllers()
+    dt_model, dt_path = device_tree_model()
+
+    # ---- the topology itself ---------------------------------------------
+    if args.topology:
+        p.cited("memory_topology", args.topology,
+                "--topology %s, stated by the operator" % args.topology,
+                note="a stated topology overrides the evidence below; it is "
+                     "recorded as CITED so a reader can tell it was asserted "
+                     "rather than measured",
+                evidence_that_was_overridden=classify_topology(
+                    gpu_name, board_mib, host_total, drm, win_gpus, dt_model,
+                    have_nvidia, have_rocm)[1])
+        topology = args.topology
+    else:
+        topology, how, ev = classify_topology(
+            gpu_name, board_mib, host_total, drm, win_gpus, dt_model,
+            have_nvidia, have_rocm)
+        ev["device_tree_path"] = dt_path
+        ev["windows_probe"] = win_how if os.name == "nt" else None
+        if topology:
+            p.derived("memory_topology", topology, how, **ev)
+        else:
+            p.unknown("memory_topology", how, **ev)
+    log("memory topology: %s" % (topology or "UNKNOWN -- see machine.json"))
+
+    # A board reading on a box that has no board is the silent failure this
+    # whole field exists to catch. Say so ON the reading, not only beside it.
+    if topology in ("unified", "shared-igpu") and board_mib:
+        p.note("board_total_mib", warning=(
+            "memory_topology is %r: this is NOT a discrete board. %s MiB is "
+            "the shared pool as the vendor tool reports it, and subtracting a "
+            "desktop reserve from it prices the model against memory the "
+            "operating system is already using. The fit budget comes from "
+            "host_mem_total_mib minus host_reserve_mib instead -- see "
+            "scripts/check-request.py:memory_plan()."
+            % (topology, _c(board_mib))))
+
+    # ---- the host reserve, measured the same way the desktop one is -------
+    _measure_host_reserve(p, args, topology, today, log)
+
+    # ---- what the driver will let an integrated GPU map -------------------
+    _measure_igpu_share(p, args, topology, drm)
+
+    # ---- bandwidth (rule 10) ---------------------------------------------
+    _record_bandwidth(p, args, topology, gpu_name)
+
+    # ---- the build's CUDA architecture -----------------------------------
+    _record_cuda_arch(p, gpu_name, topology)
+
+
+def _measure_host_reserve(p, args, topology, today, log):
+    """MemTotal - MemAvailable, sampled: the host's own standing footprint.
+
+    Exactly the shape of the desktop reserve on a board, and for the same
+    reason (rule 14): the fence a fit is held to is what the machine is ALREADY
+    holding when nothing has been loaded, and that is a dated range measured
+    under a named load, never a constant.
+    """
+    key = "host_reserve_mib"
+    total = p.values.get("host_mem_total_mib")
+    common = {"desktop_state": args.desktop_state or None,
+              "samples_n": args.samples, "interval_s": args.interval}
+    if not total:
+        p.unknown(key, "host_mem_total_mib is unknown, so there is nothing to "
+                       "subtract MemAvailable from", **common)
+        return
+    log("host reserve: %d samples, %.1fs apart (MemTotal - MemAvailable)"
+        % (args.samples, args.interval))
+    avail = sample_host_available_mib(args.samples, args.interval, log=log)
+    if not avail:
+        p.unknown(key,
+                  "no MemAvailable reading on this platform, so the host's "
+                  "standing footprint is unmeasured. On unified, shared-igpu "
+                  "and CPU-only boxes that IS the fit's reserve, so the fit "
+                  "will refuse rather than guess it.", **common)
+        return
+    used = sorted(int(total) - a for a in avail)
+    extra = dict(common)
+    extra.update(
+        memtotal_mib=int(total),
+        available_samples_mib=avail,
+        desktop_state=args.desktop_state or "NOT STATED -- pass --desktop-state",
+        window_s=round(args.interval * max(0, len(avail) - 1), 1),
+        warning=("min/max span this sample window ONLY, on whatever this box "
+                 "was doing at the time. On a unified or CPU-only box this is "
+                 "the anti-spill fence rule 14 is about, and it has to be "
+                 "measured under the load the campaign will actually run "
+                 "beside -- a reserve sampled on an idle box is a fence that "
+                 "moves when someone opens a browser."))
+    p.measured(key, {"min": used[0], "max": used[-1], "n": len(used),
+                     "date": today},
+               "MemTotal minus MemAvailable, %d samples %.1fs apart"
+               % (len(used), args.interval), **extra)
+
+
+def _measure_igpu_share(p, args, topology, drm):
+    """How much of system RAM the driver will let an integrated GPU map.
+
+    This is the second ceiling on a shared-igpu box and it is NOT MemTotal:
+    i915/xe and WDDM both cap the mappable share at roughly half of RAM, so
+    pricing against MemTotal over-promises by about 2x. Neither driver
+    publishes the cap anywhere an unprivileged process can read it, so the
+    honest answer here is usually UNKNOWN plus the two commands that DO answer
+    it -- and the fit refuses on a shared-igpu box until one of them has.
+    """
+    key = "igpu_share_limit_mib"
+    if args.igpu_share_limit_mib is not None:
+        p.cited(key, args.igpu_share_limit_mib,
+                "--igpu-share-limit-mib %d, stated by the operator"
+                % args.igpu_share_limit_mib)
+        return
+    if topology != "shared-igpu":
+        p.unknown(key, "not applicable: memory_topology is %r, and only an "
+                       "integrated GPU has a driver-imposed share of system "
+                       "RAM" % (topology or "UNKNOWN"))
+        return
+    # amdgpu is the one driver here that does publish it, as the GTT aperture.
+    for card in drm or []:
+        if card.get("gtt_total_bytes"):
+            p.measured(key, int(card["gtt_total_bytes"]) // (1 << 20),
+                       "%s/device/mem_info_gtt_total -- the GTT aperture, "
+                       "which is how much system RAM amdgpu will map for the "
+                       "GPU" % card["card"],
+                       card=card["card"], vendor=card["vendor"],
+                       device_local_memory_bytes=card
+                       ["device_local_memory_bytes"])
+            return
+    p.unknown(key,
+              "no driver here publishes the mappable share to an unprivileged "
+              "process (i915 and xe do not; amdgpu's mem_info_gtt_total is "
+              "absent). It is NOT MemTotal -- both i915/xe and WDDM cap it at "
+              "roughly half of system RAM, so assuming MemTotal over-promises "
+              "by about 2x and the fit will refuse instead. Read it with "
+              "`clinfo | grep -i 'global memory size'` or, on the OpenVINO "
+              "build, from GPU_DEVICE_TOTAL_MEM_SIZE, then pass "
+              "--igpu-share-limit-mib N.")
+
+
+def _record_bandwidth(p, args, topology, gpu_name):
+    """spec_bandwidth_gbs: rule 10's decode estimate hangs off it.
+
+    MEASURED is not on offer -- nothing here runs a bandwidth benchmark -- so
+    it is CITED from a published specification when there is one for this part,
+    DERIVED from the SMBIOS module speed and channel count when the pool is
+    system RAM, and UNKNOWN otherwise. A decode estimate built on an UNKNOWN is
+    not published; that is the point of writing it down as one.
+    """
+    key = "spec_bandwidth_gbs"
+    if args.spec_bandwidth_gbs is not None:
+        if not args.bandwidth_source:
+            p.unknown(key,
+                      "--spec-bandwidth-gbs %g was given with no "
+                      "--bandwidth-source. Rule 1 has no category for a number "
+                      "without a provenance, so it is refused rather than "
+                      "recorded." % args.spec_bandwidth_gbs)
+            return
+        p.cited(key, float(args.spec_bandwidth_gbs),
+                "--spec-bandwidth-gbs %g, source: %s"
+                % (args.spec_bandwidth_gbs, args.bandwidth_source))
+        return
+
+    low = (gpu_name or "").lower()
+    for needle, gbs, source in SPEC_BANDWIDTH:
+        if needle in low:
+            p.cited(key, gbs, source, matched_on=needle, gpu_name=gpu_name)
+            return
+
+    if topology in ("unified", "shared-igpu", "system"):
+        chan = p.values.get("ram_channels")
+        speed = None
+        prov = p.prov.get("ram_channels") or {}
+        for dev in (prov.get("modules") or []):
+            if dev.get("speed_mts"):
+                speed = max(speed or 0, dev["speed_mts"])
+        if chan and speed:
+            gbs = chan * DDR_BYTES_PER_CHANNEL * speed / 1000.0
+            p.derived(key, round(gbs, 1),
+                      "%d channels x %d B per channel x %d MT/s / 1000 = "
+                      "%.1f GB/s. This is the THEORETICAL PEAK of the memory "
+                      "controller, not a measurement: rule 10's constant is "
+                      "re-derived against a measured figure, and real streams "
+                      "land well under this."
+                      % (chan, DDR_BYTES_PER_CHANNEL, speed, gbs),
+                      channels=chan, speed_mts=speed,
+                      assumption="DDR channels are 64 bits wide however the "
+                                 "vendor sub-divides them")
+            return
+        p.unknown(key,
+                  "the fit is priced against system memory (topology %r) and "
+                  "rule 10's decode estimate needs its bandwidth, but %s. "
+                  "Measure it (mbw, STREAM, `sysbench memory`) or pass "
+                  "--spec-bandwidth-gbs N --bandwidth-source '...'."
+                  % (topology,
+                     "the channel count is unknown" if not chan else
+                     "SMBIOS reported no module speed"))
+        return
+    p.unknown(key,
+              "no published bandwidth on file for %r, and this script measures "
+              "none. Pass --spec-bandwidth-gbs N --bandwidth-source '...' if "
+              "rule 10's decode estimate is going to be published for this box."
+              % (gpu_name or "this device"))
+
+
+def _record_cuda_arch(p, gpu_name, topology):
+    """What the installed build was compiled for -- and whether that is right.
+
+    bin/llama.cpp/INSTALL.json records CMAKE_CUDA_ARCHITECTURES because
+    setup.sh writes it there. On GB10 the value matters and the default does
+    not produce it, so the mismatch is flagged HERE rather than discovered as a
+    slow campaign nobody can explain.
+    """
+    key = "cuda_arch"
+    install = os.path.join(paths.repo_root(), "bin", "llama.cpp",
+                           "INSTALL.json")
+    meta = {}
+    if os.path.isfile(install):
+        try:
+            with open(install, "r", encoding="utf-8-sig") as fh:
+                meta = json.load(fh) or {}
+        except (OSError, ValueError):
+            meta = {}
+    val = meta.get("cuda_arch")
+    low = (gpu_name or "").lower()
+    want = None
+    for needle, arch, why in CUDA_ARCH_REQUIRED:
+        if needle in low:
+            want = (arch, why)
+            break
+
+    if not os.path.isfile(install):
+        p.unknown(key, "no bin/llama.cpp/INSTALL.json: nothing recorded which "
+                       "architecture this build was compiled for. Run "
+                       "scripts/setup.sh (or setup.ps1); it writes it.")
+    elif val is None:
+        p.unknown(key,
+                  "bin/llama.cpp/INSTALL.json records cuda_arch: null -- this "
+                  "build is a downloaded binary or a non-CUDA flavor (%s), so "
+                  "no CMAKE_CUDA_ARCHITECTURES was chosen here."
+                  % (meta.get("flavor") or "flavor not recorded"),
+                  install_json=meta)
+    else:
+        p.measured(key, str(val),
+                   "bin/llama.cpp/INSTALL.json, written by the setup script "
+                   "that built this llama.cpp",
+                   built_from_source=meta.get("built_from_source"),
+                   flavor=meta.get("flavor"), tag=meta.get("tag"))
+    if want:
+        arch, why = want
+        got = p.values.get(key)
+        if got != arch:
+            p.note(key, warning=(
+                "this box is %r and the build records cuda_arch %r, not %r. %s"
+                % (gpu_name, got, arch, why)))
+        p.note(key, required_for_this_gpu=arch, required_because=why)
+    if topology == "unified" and p.values.get(key) in (None, "native"):
+        p.note(key, warning_unified=(
+            "memory_topology is 'unified' and there is no official Linux "
+            "aarch64 CUDA binary for this class of box, so the build is a "
+            "source build and the architecture is a choice somebody made. "
+            "Record it."))
 
 
 def _detect_metal(p, args):
@@ -857,6 +1684,428 @@ def _measure_reserve(p, args, have_nvidia, today, log):
 
 
 # ---------------------------------------------------------------------------
+# THE TOPOLOGY FIXTURES -- the decision table, made runnable
+# ---------------------------------------------------------------------------
+#
+# A classifier whose whole job is to refuse in the ambiguous case cannot be
+# checked by running it on the one box that happens to be here. These are the
+# four topologies plus the two refusals, each as (a) the inputs
+# classify_topology() sees and (b) a machine.json the planner and the Stage-0
+# gate can be pointed at, so that "the arithmetic differs per topology" is a
+# thing a reader can run rather than a thing this file claims.
+#
+# WHAT IS MEASURED AND WHAT IS CONSTRUCTED, per fixture, is stated in its own
+# provenance and in its FIXTURE.md. The discrete one is this repository's
+# reference rig, measured. The other five are constructed from published
+# specifications and say so on every field -- a constructed number that admits
+# it is a fixture; a constructed number that does not is the failure this whole
+# workstream is about.
+
+FIXTURE_PREFIX = "fixture-topo-"
+_FX_DATE = "2026-08-29"
+
+
+def _fx(topology, gpu_name, board, host_total, host_reserve, **kw):
+    """One fixture machine.json, with a provenance entry on every field."""
+    rec = {
+        "_schema": SCHEMA,
+        "_fixture": True,
+        "measured_at": _FX_DATE + "T00:00:00",
+        "host": "fixture",
+        "memory_topology": topology,
+        "board_total_mib": board,
+        "gpu_name": gpu_name,
+        "backend": kw.get("backend"),
+        "driver": kw.get("driver"),
+        "host_ram_gb": (round(host_total / 1024.0, 1) if host_total else None),
+        "host_mem_total_mib": host_total,
+        "host_reserve_mib": (
+            None if host_reserve is None else
+            {"min": host_reserve, "max": host_reserve, "n": kw.get("host_n", 1),
+             # The date string is quoted verbatim beside every budget this
+             # fixture produces, so a constructed one says so THERE, not only
+             # in a provenance block nobody prints.
+             "date": kw.get("host_date", _FX_DATE + " CONSTRUCTED")}),
+        "igpu_share_limit_mib": kw.get("igpu_share_limit_mib"),
+        "spec_bandwidth_gbs": kw.get("spec_bandwidth_gbs"),
+        "cuda_arch": kw.get("cuda_arch"),
+        "compute_cap": kw.get("compute_cap"),
+        "ram_channels": kw.get("ram_channels"),
+        "os": kw.get("os"),
+        "arch": kw.get("arch"),
+        "power_default_limit_w": kw.get("power_default_limit_w"),
+        "pl_writable_without_elevation": None,
+        "desktop_reserve_mib": kw.get("desktop_reserve_mib"),
+        "provenance": {},
+    }
+    prov = kw.get("provenance") or {}
+    for key in FIELD_ORDER:
+        rec["provenance"][key] = prov.get(key, {
+            "how": "UNKNOWN", "why": "not set by this fixture"}
+            if rec.get(key) is None else
+            {"how": "FIXTURE: constructed, not measured"})
+    rec["provenance"]["pl_writable_without_elevation"] = {
+        "how": "UNKNOWN", "why": "fixtures run no power-limit probe"}
+    return rec
+
+
+_REF_DESKTOP_RESERVE = {"min": 412, "max": 1796, "n": 9, "date": "2026-08-27"}
+
+TOPO_FIXTURES = {}
+
+TOPO_FIXTURES["discrete"] = {
+    "expect": "discrete",
+    "what": "The reference rig: an RTX 3090 in a 32 GiB desktop. A board of "
+            "its own behind PCIe, so the budget is board minus the measured "
+            "desktop reserve and rule 13's two ceilings and collapse point all "
+            "mean what they have always meant.",
+    "inputs": dict(gpu_name="NVIDIA GeForce RTX 3090", board_mib=24576,
+                   host_total_mib=32581, drm=[], win_gpus=[], dt_model=None,
+                   have_nvidia=True, have_rocm=False),
+    "note": "board_total_mib, host_mem_total_mib and compute_cap were read on "
+            "this machine on 2026-08-29 (nvidia-smi --query-gpu=name,"
+            "memory.total,compute_cap; GlobalMemoryStatusEx). host_reserve_mib "
+            "is the single reading taken at the same moment, 32,581 - 17,663. "
+            "desktop_reserve_mib is the reference figure carried in "
+            "scripts/lib/paths.py's own schema block. Note the ratio: the "
+            "board is 75% of host RAM, which is why the size-ratio test is the "
+            "LAST resort and the product name outranks it.",
+    "machine": _fx("discrete", "NVIDIA GeForce RTX 3090", 24576, 32581, 14918,
+                   backend="cuda", driver="596.36", compute_cap="8.6",
+                   cuda_arch="86", os="Windows-10-10.0.26200-SP0",
+                   arch="AMD64", power_default_limit_w=350.0,
+                   ram_channels=2, host_n=2, host_date=_FX_DATE,
+                   desktop_reserve_mib=dict(_REF_DESKTOP_RESERVE),
+                   provenance={
+                       "memory_topology": {
+                           "how": "DERIVED: nvidia-smi names the card 'NVIDIA "
+                                  "GeForce RTX 3090'. NVIDIA's shared-memory "
+                                  "parts are the Tegra/Jetson line and GB10; a "
+                                  "GeForce has its own board behind PCIe."},
+                       "board_total_mib": {
+                           "how": "MEASURED: nvidia-smi "
+                                  "--query-gpu=memory.total, on this rig "
+                                  "2026-08-29"},
+                       "host_mem_total_mib": {
+                           "how": "MEASURED: GlobalMemoryStatusEx "
+                                  "ullTotalPhys, on this rig 2026-08-29"},
+                       "host_reserve_mib": {
+                           "how": "MEASURED: MemTotal - MemAvailable, 32,581 - "
+                                  "17,663, on this rig 2026-08-29. Not part of "
+                                  "the discrete sum; recorded because the same "
+                                  "record has to be readable on any topology."},
+                       "desktop_reserve_mib": {
+                           "how": "MEASURED: the reference figure carried in "
+                                  "scripts/lib/paths.py's own schema block -- "
+                                  "a 1,669 MiB desktop worst case plus 127 MiB "
+                                  "of load-to-load variation, n=9, 2026-08-27"},
+                       "spec_bandwidth_gbs": {
+                           "how": "UNKNOWN",
+                           "why": "no published bandwidth on file for this "
+                                  "part, and detect-machine.py measures none"},
+                       "igpu_share_limit_mib": {
+                           "how": "UNKNOWN",
+                           "why": "not applicable on a discrete board"},
+                   }),
+}
+
+TOPO_FIXTURES["unified"] = {
+    "expect": "unified",
+    "what": "NVIDIA DGX Spark (GB10): 128 GB of LPDDR5X shared coherently by "
+            "the Grace CPU and the Blackwell GPU. nvidia-smi still answers "
+            "memory.total and the answer is the whole machine, so "
+            "board-minus-reserve would price the model against RAM the OS is "
+            "living in. There is no board and nothing spills to host RAM, "
+            "because it IS host RAM.",
+    "inputs": dict(gpu_name="NVIDIA GB10", board_mib=131072,
+                   host_total_mib=131072, drm=[], win_gpus=[],
+                   dt_model="NVIDIA DGX Spark", have_nvidia=True,
+                   have_rocm=False),
+    "note": "CONSTRUCTED from the published specification (128 GB unified, "
+            "273 GB/s, sm_121a) -- nobody has run detect-machine.py on a GB10 "
+            "yet. board_total_mib and host_mem_total_mib are both the full "
+            "131,072 MiB on purpose: a real box reports somewhat less after "
+            "the firmware carve-out, and the gap between those two numbers is "
+            "exactly the thing that must be MEASURED rather than assumed. "
+            "host_reserve_mib 4,096 stands in for the host's standing "
+            "footprint and is the field that most changes the answer.",
+    "machine": _fx("unified", "NVIDIA GB10", 131072, 131072, 4096,
+                   backend="cuda", driver="580.95.05", compute_cap="12.1",
+                   cuda_arch="121a-real", spec_bandwidth_gbs=273.0,
+                   ram_channels=None,
+                   os="Linux-6.11.0-1008-nvidia-aarch64", arch="aarch64",
+                   provenance={
+                       "memory_topology": {
+                           "how": "DERIVED: the GPU is 'NVIDIA GB10' and the "
+                                  "device tree names the board 'NVIDIA DGX "
+                                  "Spark'. One coherent LPDDR5X pool, no "
+                                  "board.",
+                           "device_tree_model": "NVIDIA DGX Spark"},
+                       "spec_bandwidth_gbs": {
+                           "how": "CITED: NVIDIA DGX Spark / GB10 published "
+                                  "specification, 273 GB/s"},
+                       "board_total_mib": {
+                           "how": "FIXTURE: constructed from the 128 GB "
+                                  "specification",
+                           "warning": "memory_topology is 'unified': this is "
+                                      "NOT a discrete board. Subtracting a "
+                                      "desktop reserve from it prices the "
+                                      "model against memory the OS is already "
+                                      "using."},
+                       "host_reserve_mib": {
+                           "how": "FIXTURE: constructed. A real box measures "
+                                  "this with detect-machine.py --desktop-state"},
+                       "cuda_arch": {
+                           "how": "FIXTURE: -DCMAKE_CUDA_ARCHITECTURES="
+                                  "121a-real, which is what keeps "
+                                  "MMVQ_PARAMETERS_GB10; native, 120, 120f "
+                                  "and a bare 121 do not"},
+                       "desktop_reserve_mib": {
+                           "how": "UNKNOWN",
+                           "why": "not applicable on a unified box: there is "
+                                  "no board VRAM for a desktop to hold "
+                                  "separately, and the host's standing "
+                                  "footprint is host_reserve_mib"},
+                   }),
+}
+
+TOPO_FIXTURES["shared-igpu"] = {
+    "expect": "shared-igpu",
+    "what": "An Intel integrated GPU (Lunar Lake class) mapping a share of a "
+            "32 GiB LPDDR5X system. Same pool as unified, but the driver caps "
+            "how much of it the GPU may map, and that cap is a second ceiling "
+            "that has to be READ rather than assumed -- MemTotal over-promises "
+            "by about 2x.",
+    "inputs": dict(gpu_name=None, board_mib=None, host_total_mib=32768,
+                   drm=[{"card": "card0", "vendor_id": "0x8086",
+                         "vendor": "Intel", "device_id": "0x64a0",
+                         "driver": "xe", "pci_address": "0000:00:02.0",
+                         "on_root_bus": True,
+                         "device_local_memory_bytes": None,
+                         "device_local_memory_source": None,
+                         "gtt_total_bytes": None}],
+                   win_gpus=[], dt_model=None, have_nvidia=False,
+                   have_rocm=False),
+    "note": "CONSTRUCTED. The /sys/class/drm shape is the real one for an "
+            "Intel iGPU under the xe driver: vendor 0x8086, root bus at "
+            "0000:00:02.0, no lmem_total_bytes. igpu_share_limit_mib 16,384 is "
+            "the half-of-RAM cap as clinfo reports it; the sibling fixture "
+            "'shared-igpu-unmeasured' is the same box with that field null, to "
+            "show the fit REFUSING rather than assuming MemTotal.",
+    "machine": _fx("shared-igpu", "Intel integrated GPU (xe, 0000:00:02.0)",
+                   None, 32768, 3072, backend="vulkan", ram_channels=2,
+                   igpu_share_limit_mib=16384, spec_bandwidth_gbs=136.5,
+                   os="Linux-6.14.0-generic-x86_64", arch="x86_64",
+                   provenance={
+                       "memory_topology": {
+                           "how": "DERIVED: Intel card0 sits on the root bus "
+                                  "at 0000:00:02.0 under xe and publishes no "
+                                  "device-local memory."},
+                       "board_total_mib": {
+                           "how": "UNKNOWN",
+                           "why": "an integrated GPU has no board; "
+                                  "/sys/class/drm publishes no device-local "
+                                  "memory for it"},
+                       "igpu_share_limit_mib": {
+                           "how": "CITED: clinfo CL_DEVICE_GLOBAL_MEM_SIZE, "
+                                  "16 GiB -- half of the 32 GiB system"},
+                       "spec_bandwidth_gbs": {
+                           "how": "DERIVED: 2 channels x 8 B x 8533 MT/s / "
+                                  "1000 = 136.5 GB/s, the memory controller's "
+                                  "theoretical peak, not a measurement"},
+                       "desktop_reserve_mib": {
+                           "how": "UNKNOWN",
+                           "why": "not applicable: there is no board VRAM. "
+                                  "The desktop's footprint is inside "
+                                  "host_reserve_mib"},
+                   }),
+}
+
+TOPO_FIXTURES["shared-igpu-unmeasured"] = {
+    "expect": "shared-igpu",
+    "what": "The shared-igpu box with the driver's share cap UNREAD. Present "
+            "so the refusal is demonstrable: neither i915 nor xe publishes the "
+            "cap to an unprivileged process, and assuming MemTotal would "
+            "over-promise by about 2x.",
+    "inputs": TOPO_FIXTURES["shared-igpu"]["inputs"],
+    "note": "Identical to 'shared-igpu' except igpu_share_limit_mib is null. "
+            "The fit must report UNKNOWN and name the command that answers it.",
+    "machine": _fx("shared-igpu", "Intel integrated GPU (xe, 0000:00:02.0)",
+                   None, 32768, 3072, backend="vulkan", ram_channels=2,
+                   igpu_share_limit_mib=None, spec_bandwidth_gbs=136.5,
+                   os="Linux-6.14.0-generic-x86_64", arch="x86_64",
+                   provenance={
+                       "memory_topology": {
+                           "how": "DERIVED: Intel card0 sits on the root bus "
+                                  "at 0000:00:02.0 under xe and publishes no "
+                                  "device-local memory."},
+                       "board_total_mib": {
+                           "how": "UNKNOWN",
+                           "why": "an integrated GPU has no board"},
+                       "igpu_share_limit_mib": {
+                           "how": "UNKNOWN",
+                           "why": "no driver here publishes the mappable share "
+                                  "to an unprivileged process. Read it with "
+                                  "`clinfo | grep -i 'global memory size'` or "
+                                  "from OpenVINO's GPU_DEVICE_TOTAL_MEM_SIZE, "
+                                  "then pass --igpu-share-limit-mib N"},
+                   }),
+}
+
+TOPO_FIXTURES["system"] = {
+    "expect": "system",
+    "what": "A dual-socket Xeon with no GPU at all: 512 GiB of DDR5 across 16 "
+            "channels. There is no GPU pool, weights are mmapped, and rule "
+            "13's ceilings do not describe anything here.",
+    "inputs": dict(gpu_name=None, board_mib=0, host_total_mib=524288, drm=[],
+                   win_gpus=[], dt_model=None, have_nvidia=False,
+                   have_rocm=False),
+    "note": "CONSTRUCTED. 16 channels x 8 B x 4800 MT/s = 614.4 GB/s is the "
+            "controllers' theoretical peak; rule 10's dual-socket constant "
+            "(~0.35) exists because the measured figure is nothing like it.",
+    "machine": _fx("system", None, 0, 524288, 8192, backend="cpu",
+                   ram_channels=16, spec_bandwidth_gbs=614.4,
+                   os="Linux-6.8.0-generic-x86_64", arch="x86_64",
+                   provenance={
+                       "memory_topology": {
+                           "how": "DERIVED: no GPU vendor tool answered, "
+                                  "/sys/class/drm lists no card"},
+                       "board_total_mib": {
+                           "how": "DERIVED: no GPU vendor tool answered, so "
+                                  "this is a CPU box and there is no board "
+                                  "memory. 0 makes every board-shaped fit "
+                                  "check refuse rather than pass."},
+                       "spec_bandwidth_gbs": {
+                           "how": "DERIVED: 16 channels x 8 B x 4800 MT/s / "
+                                  "1000 = 614.4 GB/s (theoretical peak)"},
+                       "desktop_reserve_mib": {
+                           "how": "UNKNOWN",
+                           "why": "no GPU, so no board VRAM and no desktop "
+                                  "reserve to measure"},
+                   }),
+}
+
+TOPO_FIXTURES["unknown"] = {
+    "expect": None,
+    "what": "An accelerator this script has never heard of, reporting 96 GiB "
+            "against a 102 GiB host. 94% of the host's memory is not a board; "
+            "it is one pool counted twice. The classifier refuses, and every "
+            "fit downstream refuses with it.",
+    "inputs": dict(gpu_name="Acme XPU 96G", board_mib=98304,
+                   host_total_mib=104448, drm=[], win_gpus=[], dt_model=None,
+                   have_nvidia=False, have_rocm=False),
+    "note": "CONSTRUCTED, and the point of it is the refusal: an UNPROVEN fit "
+            "is a plan, a wrong PASS is a wasted day.",
+    "machine": _fx(None, "Acme XPU 96G", 98304, 104448, None,
+                   backend=None, os="Linux-6.8.0-generic-x86_64",
+                   arch="x86_64",
+                   provenance={
+                       "memory_topology": {
+                           "how": "UNKNOWN",
+                           "why": "the GPU reports 98,304 MiB of memory "
+                                  "against 104,448 MiB of system RAM -- 94% "
+                                  "of it. Too large a share to read as a "
+                                  "discrete board. Pass --topology.",
+                           "board_over_host_ratio": 0.941},
+                   }),
+}
+
+
+def self_test(out):
+    """Run classify_topology over every fixture and print the decision table."""
+    out.write("\ntopology classifier self-test  (%d fixtures)\n\n"
+              % len(TOPO_FIXTURES))
+    bad = 0
+    for name in TOPO_FIXTURES:
+        fx = TOPO_FIXTURES[name]
+        got, how, _ = classify_topology(**fx["inputs"])
+        ok = (got == fx["expect"])
+        bad += 0 if ok else 1
+        out.write("  %-24s expect %-12s got %-12s %s\n"
+                  % (name, fx["expect"] or "REFUSE", got or "REFUSE",
+                     "ok" if ok else "*** MISMATCH ***"))
+        for chunk in _wrap_text(how, 74):
+            out.write("      %s\n" % chunk)
+        out.write("\n")
+    out.write("  %d fixture(s), %d mismatch(es)\n\n"
+              % (len(TOPO_FIXTURES), bad))
+    return 1 if bad else 0
+
+
+def _wrap_text(text, width):
+    words, line, lines = (text or "").split(), "", []
+    for w in words:
+        if line and len(line) + 1 + len(w) > width:
+            lines.append(line)
+            line = w
+        else:
+            line = (line + " " + w).strip()
+    if line:
+        lines.append(line)
+    return lines or [""]
+
+
+def write_fixtures(out):
+    """results/fixture-topo-*/machine.json, so the fit can be run on each."""
+    root = os.path.join(paths.repo_root(), "results")
+    made = []
+    for name in TOPO_FIXTURES:
+        fx = TOPO_FIXTURES[name]
+        slug = FIXTURE_PREFIX + name
+        d = os.path.join(root, slug)
+        if os.path.isfile(os.path.join(d, "campaign.md")):
+            out.write("REFUSED %s: it has a campaign.md, so it is a real "
+                      "campaign\n" % slug)
+            continue
+        if not os.path.isdir(d):
+            os.makedirs(d)
+        rec = dict(fx["machine"])
+        rec["slug"] = slug
+        rec["_fixture_note"] = fx["note"]
+        with open(os.path.join(d, "machine.json"), "w", encoding="utf-8",
+                  newline="\n") as fh:
+            json.dump(rec, fh, indent=1, ensure_ascii=False)
+            fh.write("\n")
+        with open(os.path.join(d, "FIXTURE.md"), "w", encoding="utf-8",
+                  newline="\n") as fh:
+            fh.write("# %s -- FIXTURE, not a campaign\n\n%s\n\n%s\n\n"
+                     "Written by `python scripts/detect-machine.py "
+                     "--write-fixtures`. Remove with `--clean-fixtures`.\n"
+                     % (slug, fx["what"], fx["note"]))
+        # A fit table needs a model profile as well as a machine. Borrow one
+        # from whatever fixture campaign already has a REAL header read, rather
+        # than inventing a second set of model numbers here.
+        n_models = 0
+        for src in sorted(glob.glob(os.path.join(
+                root, "fixture-qwen38-27b", "model-*.json"))):
+            shutil.copy2(src, os.path.join(d, os.path.basename(src)))
+            n_models += 1
+        out.write("wrote results/%s/  (machine.json%s)\n"
+                  % (slug, ", %d model-*.json copied from "
+                           "results/fixture-qwen38-27b/" % n_models
+                     if n_models else "; no model profile -- run "
+                     "scripts/fixtures/plan-campaign-fixtures.py --write "
+                     "--only fixture-qwen38-27b first, then re-run this"))
+        made.append(slug)
+    return made
+
+
+def clean_fixtures(out):
+    root = os.path.join(paths.repo_root(), "results")
+    for name in TOPO_FIXTURES:
+        slug = FIXTURE_PREFIX + name
+        d = os.path.join(root, slug)
+        if not os.path.isdir(d):
+            continue
+        if not os.path.isfile(os.path.join(d, "FIXTURE.md")):
+            out.write("REFUSED %s: no FIXTURE.md, so this script did not write "
+                      "it\n" % slug)
+            continue
+        shutil.rmtree(d)
+        out.write("removed results/%s/\n" % slug)
+
+
+# ---------------------------------------------------------------------------
 # output
 # ---------------------------------------------------------------------------
 
@@ -958,6 +2207,35 @@ def main(argv=None):
     ap.add_argument("--board-total-mib", type=int, metavar="N",
                     help="record the board memory you know to be true, for "
                          "cards no vendor tool here can read (recorded as CITED)")
+    ap.add_argument("--topology", choices=TOPOLOGIES,
+                    help="state the memory topology when the evidence here "
+                         "cannot settle it (recorded as CITED). It decides "
+                         "WHICH fit arithmetic is right: discrete subtracts a "
+                         "desktop reserve from a board, the other three price "
+                         "against system memory.")
+    ap.add_argument("--igpu-share-limit-mib", type=int, metavar="N",
+                    help="how much system RAM the driver will let an "
+                         "integrated GPU map (recorded as CITED). Read it with "
+                         "`clinfo | grep -i 'global memory size'`; it is NOT "
+                         "MemTotal, and assuming MemTotal over-promises by ~2x")
+    ap.add_argument("--spec-bandwidth-gbs", type=float, metavar="GBS",
+                    help="published memory bandwidth in GB/s, for rule 10's "
+                         "decode estimate (recorded as CITED; requires "
+                         "--bandwidth-source)")
+    ap.add_argument("--bandwidth-source", metavar="TEXT",
+                    help="where --spec-bandwidth-gbs came from. Rule 1: a "
+                         "number without a provenance is refused, not recorded")
+    ap.add_argument("--self-test", action="store_true",
+                    help="run the topology classifier against the four "
+                         "recorded topology fixtures and print the decision "
+                         "table; measures nothing, writes nothing")
+    ap.add_argument("--write-fixtures", action="store_true",
+                    help="write results/fixture-topo-*/machine.json for the "
+                         "four topologies, so the planner and the Stage-0 gate "
+                         "can be exercised on each")
+    ap.add_argument("--clean-fixtures", action="store_true",
+                    help="remove exactly the fixture campaigns --write-"
+                         "fixtures created, and nothing else")
     ap.add_argument("--no-pl-test", action="store_true",
                     help="skip the power-limit writability probe (it sets the "
                          "limit to the value already in force)")
@@ -966,6 +2244,26 @@ def main(argv=None):
     # progress on stderr so `--json | jq` stays clean
     log = (lambda msg: sys.stderr.write(msg + "\n")) if args.json else print
 
+    # These three measure nothing and touch no card, so they run before every
+    # check below and never acquire anything.
+    if args.clean_fixtures or args.write_fixtures or args.self_test:
+        rc = 0
+        if args.clean_fixtures:
+            clean_fixtures(sys.stdout)
+        if args.write_fixtures:
+            made = write_fixtures(sys.stdout)
+            if made:
+                print("\nrun the fit on each:")
+                for slug in made:
+                    print("  python scripts/plan-campaign.py --slug %s "
+                          "--no-network" % slug)
+        if args.self_test:
+            rc = self_test(sys.stdout)
+        return rc
+
+    if args.bandwidth_source and args.spec_bandwidth_gbs is None:
+        ap.error("--bandwidth-source without --spec-bandwidth-gbs: there is no "
+                 "number for it to be the source of")
     if args.samples < 1:
         ap.error("--samples must be at least 1")
     if args.interval < 0:

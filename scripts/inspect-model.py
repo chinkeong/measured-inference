@@ -83,6 +83,7 @@ import json
 import os
 import re
 import sys
+import textwrap
 import urllib.parse
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -140,6 +141,21 @@ except Exception as _exc:                                       # pragma: no cov
         type(_exc).__name__, _exc)
 else:
     ARCHS_WHY = None
+
+# openvino_quant.py ships with this file, so its absence is a broken clone
+# rather than a workstream that has not landed. It is still guarded, and for
+# the same reason archs.py is: a traceback here would take out the whole
+# inspection, and a missing table is a supported answer -- bpw_effective goes
+# null WITH the reason, which is exactly what the field is for.
+try:
+    import openvino_quant as ovq                              # noqa: E402
+except Exception as _exc:                                     # pragma: no cover
+    ovq = None
+    OVQ_WHY = ("scripts/lib/openvino_quant.py could not be imported (%s: %s), "
+               "so no backend's effect on the file's tensor types can be "
+               "established" % (type(_exc).__name__, _exc))
+else:
+    OVQ_WHY = None
 
 SCHEMA = "measured-inference/model.json v1"
 
@@ -733,13 +749,27 @@ def recurrent_state(kv, arch, detail, full):
 # architecture support, against THIS build
 # ---------------------------------------------------------------------------
 
-def build_tag():
-    """(tag, where). The build every support answer is scoped to."""
+def install_meta():
+    """(what setup.sh/setup.ps1 recorded about this build, or {}, and a why).
+
+    One reader for one file. `build_tag` scopes every architecture-support
+    answer to it and `resolve_backend` reads its `flavor`; detect-machine.py
+    reads the same key for the machine artefact, so the model record and the
+    machine record cannot end up naming two different backends.
+    """
     p = os.path.join(paths.repo_root(), "bin", "llama.cpp", "INSTALL.json")
     try:
         with open(p, "r", encoding="utf-8-sig") as fh:
-            data = json.load(fh)
-    except (OSError, ValueError):
+            return (json.load(fh) or {}), None
+    except (OSError, ValueError) as exc:
+        return {}, ("bin/llama.cpp/INSTALL.json is absent or unreadable (%s: %s)"
+                    % (type(exc).__name__, exc))
+
+
+def build_tag():
+    """(tag, where). The build every support answer is scoped to."""
+    data, why = install_meta()
+    if not data:
         return None, "bin/llama.cpp/INSTALL.json is absent or unreadable"
     bits = [data.get("tag"), data.get("flavor"), data.get("os")]
     return data.get("tag"), "/".join(b for b in bits if b)
@@ -777,6 +807,186 @@ def support(kind, name):
         extra["load_error_note"] = err.get("note")
     return False, ("%r is NOT in %s -- this build cannot load it"
                    % (name, r.where())), extra
+
+
+# ---------------------------------------------------------------------------
+# the backend, and the bits per weight that survive it
+# ---------------------------------------------------------------------------
+#
+# `bpw` above is the file's: file_bytes x 8 / params_total, MEASURED off the
+# header, and the right answer to "what did I download". It has also been read
+# as the answer to a second question -- how many bits a weight does the RUN
+# hold -- and on one backend those are different numbers. The OpenVINO backend
+# requantises tensors at load (ggml-openvino-extra.cpp:252-273, read
+# 2026-08-29): token_embd.weight and output.weight are rewritten on EVERY
+# device, and on NPU every quantized tensor becomes Q4_0_128 whatever the file
+# held. Nothing in the run says so -- the four log lines that would are
+# commented out, and /props->description carries the OpenVINO version string
+# and nothing else -- so this artefact is the only place the discrepancy gets
+# recorded, and it is recorded here.
+#
+# scripts/lib/openvino_quant.py owns the table and the arithmetic. This file
+# owns only the decision about WHICH backend the answer is scoped to, and the
+# refusal to answer when that is not known.
+
+def resolve_backend(args):
+    """(backend, device, how, device_how). Never defaults to anything.
+
+    Order: the operator's --backend, then bin/llama.cpp/INSTALL.json's flavor
+    (the file setup.sh and setup.ps1 write, and the same key detect-machine.py
+    reads for the machine artefact, so the two records cannot name two
+    different backends), then nothing. Nothing is a supported answer and
+    produces a null bpw_effective carrying its reason; guessing cuda because
+    most of this campaign ran on CUDA would put a number in the artefact that
+    describes a machine nobody named.
+    """
+    if args.backend:
+        backend = args.backend.strip().lower()
+        how = "--backend %s, stated on the command line" % args.backend
+    else:
+        meta, why = install_meta()
+        flavor = str(meta.get("flavor") or "").lower()
+        if flavor:
+            backend = flavor
+            how = ("bin/llama.cpp/INSTALL.json's flavor, written by the setup "
+                   "script that installed this build (tag %s, os %s, host %s)"
+                   % (meta.get("tag"), meta.get("os"), meta.get("host")))
+        else:
+            backend = None
+            how = (why or "bin/llama.cpp/INSTALL.json records no flavor, so "
+                          "the build in bin/ does not name its backend")
+
+    device, device_how = None, None
+    if args.device:
+        device = args.device
+        device_how = "--device %s, stated on the command line" % args.device
+    elif backend == "openvino" and ovq is not None:
+        device, device_how = ovq.device_from_env()
+    return backend, device, how, device_how
+
+
+def effective_bits(rec, all_tensors, backend, device, how, device_how):
+    """bpw_effective: the bits a weight the RUN holds, or null and the reason.
+
+    Three outcomes, and there is no fourth:
+
+      passthrough backend  bpw_effective IS bpw, by identity rather than by
+                           arithmetic -- the kernels consume the file's own
+                           block layouts, so there is nothing to recompute.
+      openvino             the conversion table applied to every tensor, with
+                           the per-role breakdown and the note that the backend
+                           does not report any of it.
+      backend unknown      null, with the reason. A bpw_effective that quietly
+                           equals bpw is the exact failure this field exists to
+                           stop, so it is never the fallback.
+    """
+    if ovq is None:
+        rec.unknown("bpw_effective", OVQ_WHY, backend=backend)
+        return None
+    eff = ovq.backend_effect(backend, device)
+
+    if eff["kind"] == "unknown":
+        rec.unknown("bpw_effective", eff["why"], backend=eff.get("backend"),
+                    backend_how=how, device_how=device_how,
+                    bpw_is_unaffected="bpw above is MEASURED off this file and "
+                                      "remains the right answer to what you "
+                                      "downloaded")
+        return None
+
+    if eff["kind"] == "passthrough":
+        bpw = rec.values.get("bpw")
+        if bpw is None:
+            rec.unknown("bpw_effective",
+                        "the %s backend loads the file's own tensor types, so "
+                        "bpw_effective would be bpw -- and bpw itself is null: "
+                        "%s" % (eff["backend"],
+                                rec.prov.get("bpw", {}).get("why", "")),
+                        backend=eff["backend"], backend_how=how)
+            return None
+        rec.derived("bpw_effective", bpw,
+                    "bpw_effective = bpw on the %s backend, by identity and not "
+                    "by arithmetic: %s. The weights that run are the weights in "
+                    "the file." % (eff["backend"], eff["why"]),
+                    backend=eff["backend"], backend_how=how,
+                    rewrites_tensor_types=False,
+                    the_one_backend_that_does=ovq.SOURCE["conversion_table"])
+        return None
+
+    # --- openvino: the table, applied -------------------------------------
+    # The tensor rows are built HERE, from gguf-inspect's block table, because
+    # openvino_quant.py deliberately keeps no second copy of it: it owns the
+    # layouts of the types the backend invents and nothing about the GGUF.
+    rows, missing = [], 0
+    for t in all_tensors:
+        e = 1
+        for d in t["dims"]:
+            e *= d
+        info = gguf.GGML.get(t["type"])
+        if info is None:
+            missing += 1
+            name, bs, bb = "TYPE_%d" % t["type"], 0, 0
+        else:
+            name, bs, bb = info
+        rows.append({"name": t["name"], "elements": e,
+                     "ne0": t["dims"][0] if t["dims"] else 0,
+                     "type": name,
+                     "bytes": (e // bs) * bb if (bs and bb) else 0})
+    prof = ovq.model_profile(rows, eff["device"], label=rec.values.get("label"))
+    if prof.get("bpw_effective") is None:
+        rec.unknown("bpw_effective", prof.get("why") or "the profile is empty",
+                    backend="openvino", backend_how=how)
+        return prof
+
+    by_role = {}
+    for k, v in prof["by_role"].items():
+        by_role[k] = {
+            "tensors": v["tensors"], "elements": v["elements"],
+            "bpw_file": round(v["bpw_file"], 4) if v["bpw_file"] else None,
+            "bpw_effective": (round(v["bpw_effective"], 4)
+                              if v["bpw_effective"] else None),
+            "source_types": v["source_types"],
+            "effective_types": v["effective_types"],
+            "rules_fired": v["rules"]}
+
+    rec.derived("bpw_effective", round(prof["bpw_effective"], 4),
+                "the OpenVINO conversion table (%s) applied to all %d tensor "
+                "records on device %s, %d of which are rewritten at load: "
+                "effective_bytes x 8 / params_total = %d x 8 / %d"
+                % (ovq.SOURCE["conversion_table"], prof["tensors"],
+                   prof["device"], prof["tensors_rewritten"],
+                   prof["effective_bytes"], prof["params_total"]),
+                backend="openvino", backend_how=how,
+                device=prof["device"],
+                device_how=device_how or prof["device_how"],
+                rewrites_tensor_types=True,
+                basis=prof["basis"],
+                bpw_file_tensor_table=round(prof["bpw_file_tensor_table"], 4),
+                delta_bpw=round(prof["delta_bpw"], 4),
+                bpw_effective_if_f32_scale=round(
+                    prof["bpw_effective_if_f32_scale"], 4),
+                scale_bits=prof["scale_bits"],
+                by_role=by_role,
+                conversions=prof["conversions"],
+                unrecognised_source_types=prof["unrecognised_source_types"],
+                named_tensors=prof["named_tensors"],
+                effective_types=prof["effective_types"],
+                collapse=prof["collapse"],
+                not_reported_by_the_backend=(
+                    "the OpenVINO backend prints nothing about any of this. "
+                    "The four GGML_LOG_DEBUG lines that would name every "
+                    "rewritten tensor are written and COMMENTED OUT at %s; "
+                    "/props->description carries only "
+                    "ov::get_openvino_version().description (%s). The one "
+                    "capturable line is the resolved device at %s -- capture "
+                    "it, because a silent NPU to CPU fallback changes which "
+                    "rules fired and therefore changes this number."
+                    % (ovq.SOURCE["commented_out_logging"],
+                       ovq.SOURCE["props_description"],
+                       ovq.SOURCE["device_log_line"])),
+                ground_truth=ovq.GROUND_TRUTH["how"],
+                warnings=prof["warnings"],
+                unrecognised_ggml_type_records=missing or None)
+    return prof
 
 
 # ---------------------------------------------------------------------------
@@ -1119,6 +1329,14 @@ def inspect_file(repo, group, groups, token, args, log):
     else:
         rec.unknown("bpw", "needs both file_bytes and params_total")
 
+    # --- and the bits per weight that survive the backend -----------------
+    backend, device, b_how, d_how = resolve_backend(args)
+    if backend:
+        rec.cited("backend", backend, b_how, device=device, device_how=d_how)
+    else:
+        rec.unknown("backend", b_how)
+    effective_bits(rec, all_tensors, backend, device, b_how, d_how)
+
     # --- the shape --------------------------------------------------------
     ctx = kvget(kv, arch, "context_length") if arch else None
     if isinstance(ctx, int):
@@ -1221,8 +1439,9 @@ def inspect_file(repo, group, groups, token, args, log):
 def assemble(rec, art, cost):
     """The artefact, ordered so a human reads the important part first."""
     order = ("repo", "file", "file_bytes", "sha256_head", "sha256_file",
-             "inspected_utc", "build_tag", "arch", "arch_supported",
-             "params_total", "bpw", "context_length", "block_count",
+             "inspected_utc", "build_tag", "backend", "arch", "arch_supported",
+             "params_total", "bpw", "bpw_effective",
+             "context_length", "block_count",
              "head_count", "head_count_kv", "head_dim", "embedding_length",
              "kv_bytes_per_token", "vision", "drafter", "chat_template",
              "capabilities")
@@ -1261,12 +1480,78 @@ def assemble(rec, art, cost):
 # output
 # ---------------------------------------------------------------------------
 
+def summarize_effective(rec_dict, prov, w):
+    """Why bpw_effective is what it is -- the part a reader has to see.
+
+    When the two figures differ this is the whole finding, and when the field
+    is null the REASON is the finding, so neither is truncated to fit a column
+    the way the scalar fields above are.
+    """
+    p = prov.get("bpw_effective") or {}
+    if rec_dict.get("bpw_effective") is None:
+        for chunk in textwrap.wrap(p.get("why") or "", 74):
+            w("      %s\n" % chunk)
+        return
+    if not p.get("rewrites_tensor_types"):
+        w("      the %s backend loads the file's own tensor types: "
+          "bpw_effective is bpw, unchanged\n" % p.get("backend"))
+        return
+
+    w("      %s on %s REWRITES tensor types at load. Same tensor-table basis, "
+      "so\n      the difference is the requantisation and nothing else:\n"
+      % (p.get("backend"), p.get("device")))
+    w("        file %.4f bpw -> effective %.4f bpw  (%+.4f, and %.4f if the "
+      "block scale is f32)\n"
+      % (p.get("bpw_file_tensor_table"), rec_dict["bpw_effective"],
+         p.get("delta_bpw"), p.get("bpw_effective_if_f32_scale")))
+    for role in ("token_embd", "output", "block"):
+        b = (p.get("by_role") or {}).get(role)
+        if not b:
+            continue
+        w("        %-11s %6.3f -> %6.3f bpw over %s weights (%d tensor%s)\n"
+          % (role, b["bpw_file"] or 0, b["bpw_effective"] or 0,
+             hf.comma(b["elements"]), b["tensors"],
+             "" if b["tensors"] == 1 else "s"))
+    changed = [c for c in (p.get("conversions") or []) if c["changed"]]
+    if changed:
+        w("      the conversions that fired, by weights:\n")
+        for c in changed[:6]:
+            w("        rule %s  %-8s -> %-9s %4d tensor%s %18s weights  %s\n"
+              % (c["rule_n"], c["source"], c["effective"], c["tensors"],
+                 " " if c["tensors"] == 1 else "s",
+                 hf.comma(c["elements"]), "/".join(c["roles"])))
+        if len(changed) > 6:
+            w("        ... and %d more pair%s, all in the artefact\n"
+              % (len(changed) - 6, "" if len(changed) - 6 == 1 else "s"))
+    for c in changed:
+        if c.get("note") and c["source"] in ("Q6_K", "Q5_K") \
+                and c["effective"] == "Q8_0_C":
+            w("      %s -> Q8_0_C is MORE BITS AT COARSER SCALE GRANULARITY -- "
+              "one scale per\n      ROW, not per 256 weights. Not lossless, "
+              "and not an upgrade.\n" % c["source"])
+            break
+    col = p.get("collapse") or {}
+    if col.get("degenerate"):
+        w("      DEGENERATE: %d distinct quantized types in the body tensors "
+          "all become %s.\n"
+          % (col["distinct_in"],
+             (col.get("effective_types_in_blocks") or ["?"])[0]))
+        w("      A quant ladder on this device compares arms that are the same "
+          "weights (rule 30).\n")
+    for chunk in textwrap.wrap(p.get("not_reported_by_the_backend") or "", 74):
+        w("      %s\n" % chunk)
+    for warn in p.get("warnings") or []:
+        first = True
+        for chunk in textwrap.wrap(warn, 71):
+            w("      %s %s\n" % ("-" if first else " ", chunk))
+            first = False
+
+
 def summarize(rec_dict, out):
     w = lambda s: out.write(hf.ascii_only(s))
     prov = rec_dict.get("provenance") or {}
-    for key in ("arch", "arch_supported", "params_total", "bpw",
-                "context_length", "block_count", "head_count",
-                "head_count_kv", "head_dim", "embedding_length"):
+
+    def line(key):
         val = rec_dict.get(key)
         p = prov.get(key) or {}
         label = (p.get("how") or "-").split(":")[0]
@@ -1274,6 +1559,14 @@ def summarize(rec_dict, out):
             w("  %-20s null      (%s)\n" % (key, (p.get("why") or "")[:88]))
         else:
             w("  %-20s %-9s %s\n" % (key, label, val))
+
+    for key in ("backend", "arch", "arch_supported", "params_total", "bpw",
+                "bpw_effective"):
+        line(key)
+    summarize_effective(rec_dict, prov, w)
+    for key in ("context_length", "block_count", "head_count",
+                "head_count_kv", "head_dim", "embedding_length"):
+        line(key)
 
     kvb = rec_dict.get("kv_bytes_per_token")
     art = rec_dict.get("kv_arithmetic") or {}
@@ -1435,6 +1728,16 @@ def main(argv=None):
                     help="ignore $HF_TOKEN and the cached token")
     ap.add_argument("--no-siblings", action="store_true",
                     help="skip the mmproj and draft-head reads")
+    ap.add_argument("--backend",
+                    help="the backend bpw_effective is scoped to: cuda, "
+                         "vulkan, metal, cpu, openvino. Default: whatever "
+                         "bin/llama.cpp/INSTALL.json says was installed; with "
+                         "neither, bpw_effective is null and says why")
+    ap.add_argument("--device",
+                    help="OpenVINO device -- CPU, GPU, GPU.0, GPU.1 or NPU "
+                         "(the values GGML_OPENVINO_DEVICE takes, and it is "
+                         "read when this is not given). On NPU every quantized "
+                         "tensor is rewritten to Q4_0_128 at load")
     args = ap.parse_args(argv)
 
     out = sys.stdout

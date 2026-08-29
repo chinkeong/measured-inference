@@ -126,8 +126,16 @@ The script refuses rather than installing a Vulkan build quietly, as it used to.
 ```bash
 sudo apt-get install -y nvidia-cuda-toolkit cmake build-essential git
 ./scripts/setup.sh --cuda            # shallow-clones the pinned tag, builds, ~10-25 min
-./scripts/setup.sh --cuda --cuda-arch 121   # DGX Spark GB10, when 'native' is unsupported
+./scripts/setup.sh --cuda --cuda-arch 121a-real   # DGX Spark GB10 -- see below; 121 is refused
 MEASURED_INFERENCE_ALLOW_VULKAN=1 ./scripts/setup.sh   # deliberate, non-comparable
+```
+
+On an Intel box the answer is a different backend, not an override:
+
+```bash
+./scripts/setup.sh --openvino                          # CPU by default
+./scripts/setup.sh --openvino --openvino-device GPU    # iGPU or Arc
+./scripts/setup.sh --check-npu                         # prerequisites only; installs nothing
 ```
 
 `--dry-run` prints the whole plan (flavor, assets or cmake line, venv) and
@@ -148,12 +156,40 @@ commit is the test, not the absence of CR bytes.
 
 ### The build's own record: `bin/llama.cpp/INSTALL.json`
 
-Both setup scripts write it: `tag, flavor, arch, os, os_version, host, assets,
-urls, installed_utc, built_from_source, cuda_arch`, plus gpu/driver, the
-`llama-server --version` line, `source_commit` for a source build, and which
-tools exist. `scripts/detect-machine.py` reads `flavor` from it as the measured
-backend (and `os` as a token — `linux`/`windows`/`macos`). Copy flavor + tag
-into `campaign.md` and the report's conditions block.
+Both setup scripts write the same 41-field record: `tag, flavor, arch, os,
+os_version, host, assets, urls, installed_utc, built_from_source`, plus
+gpu/driver, the `llama-server --version` line, `source_commit` for a source
+build, and which tools exist. `scripts/detect-machine.py` reads `flavor` from it
+as the measured backend (and `os` as a token — `linux`/`windows`/`macos`). Copy
+flavor + tag into `campaign.md` and the report's conditions block.
+
+The fields that carry a build's measurement conditions:
+
+| Field | What it settles |
+|---|---|
+| `cuda_arch`, `cuda_arch_source`, `cuda_arch_override` | which CUDA kernels were compiled, and whether the value was a default, a flag, or a GB10 override |
+| `gb10`, `compute_cap` | whether this is a DGX Spark, and by which signal |
+| `openvino_version`, `openvino_build`, `openvino_root` | the exact runtime the binaries link against |
+| `openvino_device`, `openvino_install_path` | `GGML_OPENVINO_DEVICE`, and prebuilt asset against source build |
+| `openvino_runtime_sha256` + `_provenance` | the runtime bytes, and how they were checked |
+| `openvino_requantises` | `true` on any OpenVINO build — the file on disk is not the weights that ran |
+| `openvino_npu_quant_ladder_degenerate` | `true` on NPU: a quant ladder there compares identical weights |
+| `multimodal_supported` | `false` on OpenVINO — text only, so a vision stage measures nothing |
+| `cpu_gen`, `npu_status`, `npu_findings` | the silicon generation and every unmet NPU prerequisite |
+| `needs_ld_library_path`, `ld_library_path` | the loader path a launcher must set (on Windows this is `PATH`) |
+
+### SYMPTOM: an idempotent re-run of setup wiped `cuda_arch` / `assets` / `source_commit`
+
+Fixed 2026-08-29 in both scripts. Measured against the pre-fix `setup.sh`: a
+second run over an already-installed CUDA source build rewrote
+`built_from_source: false, cuda_arch: null, source_commit: null,
+build_seconds: null, tools: [], assets: [], urls: []` — seven provenance fields
+deleted by a run that installed nothing, which is rule 3's strongest condition
+erased by a no-op. Both scripts now carry those fields forward from the existing
+record when they skip the install. If you have a record showing
+`built_from_source: false` beside a `flavor` you know was built from source, it
+was written by a pre-fix re-run: rebuild with `-f`, or restore the fields by hand
+from the campaign log rather than publishing the false ones.
 
 - **Detach**: `setsid nohup ./run.sh > run.log 2>&1 &` (or `nohup … &`); poll
   the log for a DONE marker, same as the Windows path.
@@ -278,29 +314,265 @@ bare IP literal — no hostname or `dst` ACL needed.
 
 ---
 
+## Intel OpenVINO backend
+
+In mainline llama.cpp at `ggml/src/ggml-openvino/`, merged 2026-03-14. It reads
+GGUF directly — no conversion — and covers Intel CPU, iGPU, Arc and NPU through
+one build. Install it with `./scripts/setup.sh --openvino` (Linux) or
+`.\scripts\setup.ps1 -OpenVINO` (Windows). Everything below was read from the
+merged source or measured against the vendor artefacts on 2026-08-29.
+
+### SYMPTOM: two quants score the same perplexity on an NPU, or a quant ladder shows no spread
+
+**The arms are the same weights.** OpenVINO requantises the file before it runs
+it, on every device, and says nothing. `ggml-openvino-extra.cpp:252-273`:
+
+```
+token_embd.weight -> F16 if (NPU and source Q6_K), else Q8_0_C   [ALWAYS, any device]
+output.weight     -> Q8_0_C                                      [ALWAYS, any device]
+if NPU            -> Q4_0_128   UNCONDITIONALLY, whatever the tensor type was
+else Q6_K, Q5_K   -> Q8_0_C
+```
+
+So on NPU every quantized tensor other than those two collapses to one
+representation: Q8_0, Q4_K_M, Q5_K, Q6_K and Q4_1 all become Q4_0_128, and even
+Q4_0 is re-blocked from 32 to 128 weights per block — four times fewer scales
+than the file carries. **A quant ladder on NPU is degenerate (rule 30); run it
+on CPU or GPU.** It is a real rewrite, not a reinterpretation:
+`requantize_to_buffers` (`ggml-quants.cpp:841`) dequantises to F32 and
+re-quantises, and the `no_requant` escape is `use_bias`, asserted test-only at
+`ggml-quants.cpp:1016`.
+
+`Q8_0_C` and `Q4_0_C` are **channel-wise** — `weights_per_block = tensor->ne[0]`,
+one scale per row — so `Q6_K -> Q8_0_C` is more bits at a *coarser* scale
+granularity. Do not describe it as an upgrade; it is a different quantisation,
+and which way it moves perplexity is a measurement, not a deduction.
+
+`bin/llama.cpp/INSTALL.json` records `openvino_requantises: true` and
+`openvino_npu_quant_ladder_degenerate` so a planner does not have to re-derive
+this from the source tree.
+
+### SYMPTOM: nothing in the log says a tensor changed type
+
+There is nothing to find. The four `GGML_LOG_DEBUG` lines that would report it
+are **commented out** at `ggml-openvino.cpp:332-346`, and `/props->description`
+carries only `ov::get_openvino_version().description`
+(`ggml-openvino.cpp:1546`) — the version string, nothing about quantisation.
+
+Two things you can capture instead:
+
+- `GGML_LOG_INFO("OpenVINO: using device %s\n", ...)` at
+  `ggml-openvino.cpp:1526`, emitted once in `ggml_openvino_init()`. It prints the
+  **resolved** device *after* availability fallback, so it is the one line that
+  catches a silent NPU→CPU downgrade. Grep the server log for it on every launch.
+- `GGML_OPENVINO_DUMP_IR=1` dumps the graph that actually ran. That is the proof
+  of which tensor types executed; the filename is not.
+
+### SYMPTOM: `llama-server` exits at once, or `error while loading shared libraries: libopenvino.so`
+
+The runtime lives in its own versioned prefix so the active version stays
+swappable, so it is not on the default loader path. `setup.sh` writes
+`bin/llama.cpp/openvino-env.sh` (and `setup.ps1` writes `openvino-env.ps1`) with
+the loader path and `GGML_OPENVINO_DEVICE` already set — source it before any
+launch, or read `ld_library_path` out of `INSTALL.json`.
+
+The runtime is the tarball, not the apt package: `/opt/intel/openvino_2026.3.1`
+with an `/opt/intel/openvino` symlink. Pinned at **2026.3.1**, full build string
+`2026.3.1.22476.56d9685302d`. Verified 2026-08-29, 110,961,409 bytes, sha256
+`cb84d1cc…f96eb21b` for `openvino_toolkit_ubuntu24_..._x86_64.tgz`.
+
+### SYMPTOM: the OpenVINO download is an HTML page named `.tgz`
+
+Patch releases live in their **own** directory —
+`.../openvino/packages/2026.3.1/linux/`, not `.../2026.3/linux/`. The shortened
+prefix answers **200 with an HTML directory page**, not 404, so a wrong URL
+downloads a web page under the archive's name and fails later at `tar`. Both
+setup scripts check the sha256 against a pinned constant and the published
+`.sha256` sidecar, which is what turns this into an error at download time.
+
+### SYMPTOM: `machine.json` says `backend: cpu` on a box you built with `--openvino`
+
+`scripts/detect-machine.py` carries `openvino` in its `BACKENDS` tuple as of
+2026-08-29, so it reads that flavor out of `INSTALL.json` as the **measured**
+backend and `--backend openvino` is accepted. A `cpu` reading therefore means the
+record was not read, not that the tuple is short — the usual causes are no
+`bin/llama.cpp/INSTALL.json` at all, or a record whose `os` token names a
+different platform than the one running, which detect-machine reports as a
+foreign build and refuses to trust. Check `backend` in `machine.json` against
+`flavor` in `INSTALL.json` before either reaches a report; on an Intel box with
+no NVIDIA card and no `rocm-smi` the fallback chain ends at `derived: cpu`, which
+is a plausible-looking wrong answer rather than a blank.
+
+### SYMPTOM: the second concurrent chat session hangs or errors on OpenVINO
+
+`GGML_OPENVINO_STATEFUL_EXECUTION=1` is experimental, faster on CPU and GPU, and
+**limits `llama-server` to ONE chat session**. Do not set it under a sweep that
+uses parallel slots; if you do set it, it is an arm condition and travels with
+every number from that arm (rule 3). Separately, `llama-server` on **NPU** cannot
+handle parallel sequences at all: `--parallel 1`.
+
+### SYMPTOM: an NPU run uses a context you did not ask for, and the fit is wrong
+
+**`llama-server` on NPU needs an explicit `-c`.** Without one it defaults to the
+model's training context, which is usually far larger than intended and moves
+both the fit and the speed. Rule 3 — the window travels with the number; rule 16
+— the window sets the effort ceiling, and a level whose appetite exceeds it
+truncates rather than degrading.
+
+### SYMPTOM: a vision stage on OpenVINO produces nothing
+
+Multimodal is incomplete in this backend: it is **text-only** today.
+`INSTALL.json` records `multimodal_supported: false`. Skip the vision stages and
+say so, rather than shipping a stage that measured nothing (rule 2, rule 19 —
+hallucinated "sight" is the worst outcome).
+
+### What to expect: OpenVINO wins prefill, ties decode
+
+CITED, 2026-04-05, Arc A770, Llama-3.2-1B: pp512 **16,305** (OpenVINO) against
+**6,234** (Vulkan); tg128 **88.67** against **119.60**. So prefill is 3-4x and
+token generation ties or loses. Decode on an iGPU is bandwidth-bound and
+near-identical across Vulkan, SYCL and OpenVINO — the constant in rule 10 is what
+moves, not the backend. Plan the arms accordingly: OpenVINO earns its place on
+prompt-heavy work, not on long generations.
+
+---
+
+## Intel NPU
+
+Run `./scripts/setup.sh --check-npu` (or `.\scripts\setup.ps1 -CheckNPU`). It
+installs nothing, downloads nothing, and exits 7 when a prerequisite is unmet.
+
+### SYMPTOM: SIGSEGV in `libopenvino_intel_npu_plugin.so`
+
+**Arrow Lake.** Its NPU segfaults inside the OpenVINO NPU plugin — confirmed by
+an Intel engineer on 2026-07-21, still open. There is no flag for it and it is
+not a configuration problem. **Lunar Lake and Panther Lake work**; llama.cpp
+validates the OpenVINO NPU path on a Core Ultra 5 238V (Lunar Lake), Ubuntu
+24.04, NPU driver 1.35.0. A campaign pointed at an Arrow Lake NPU loses the day
+and produces nothing, so run the Intel arms on GPU or CPU there.
+
+Telling the parts apart, from the marketing model number (both setup scripts
+classify on this, and default to caution on anything they do not recognise):
+
+| Model number | Silicon | NPU |
+|---|---|---|
+| Core Ultra `1xx` (155H, 165U) | Meteor Lake | present, but the OpenVINO NPU path is validated on Lunar Lake — label any number from it unvalidated |
+| Core Ultra `2xx` **V** (238V, 268V) | Lunar Lake | works |
+| Core Ultra `2xx` H/HX/U/K/KF (265H, 285K, 225U) | **Arrow Lake** | **SIGSEGV — do not use** |
+| Core Ultra `3xx` and Ultra X`n` `3xx` (355H, X7 358H) | Panther Lake | works |
+
+### SYMPTOM: the NPU driver will not install on Ubuntu 22.04
+
+It is not published for it. `intel/linux-npu-driver` **dropped 22.04 at
+v1.28.0**, and v1.35.0 (published 2026-07-24) ships a single asset,
+`linux-npu-driver-v1.35.0.20260722-29947505341-ubuntu2404.tar.gz`. Ubuntu 24.04
+is the NPU platform; 22.04 can still run OpenVINO on CPU and GPU with the
+`ubuntu22` runtime build, which `setup.sh` selects automatically from
+`/etc/os-release`.
+
+### SYMPTOM: `/dev/accel/accel0` is missing, or exists but cannot be opened
+
+Missing means the `intel_vpu` kernel module is not loaded — it is in-tree from
+Linux 6.7; check `modprobe intel_vpu` and `dmesg | grep -i vpu`. Present but
+unopenable is a group problem, not a driver problem:
+
+```bash
+sudo usermod -a -G render $USER   # then log out and back in -- the group is read at login
+```
+
+The user-space half is the release tarball, not apt: `dpkg -i ./*.deb` for
+`intel-driver-compiler-npu`, `intel-fw-npu` and `intel-level-zero-npu`, plus
+`libtbb12`. `--check-npu` names whichever of these is missing, one line each.
+
+---
+
+## NVIDIA DGX Spark (GB10)
+
+Detected by either of two independent signals (rule 4): the `nvidia-smi` board
+name matching `GB10`, or `compute_cap` reporting `12.1`, which no other shipping
+part does. Recorded as `gb10` and `compute_cap` in `INSTALL.json`.
+
+### SYMPTOM: `setup.sh` exits 3 — "`-DCMAKE_CUDA_ARCHITECTURES=120` is refused"
+
+Working as designed, and the refusal is the point. `120`, `120f` and `native`
+are the workarounds that circulate for GB10; they all configure, compile and
+run, and they all lose **`MMVQ_PARAMETERS_GB10`** — the GB10 matrix-vector kernel
+parameters. The result is a working server that decodes slower, with no error
+and nothing in the log, from a flag that until 2026-08-29 reached no artefact in
+this repo. The architecture that keeps those kernels is **`121a-real`**, and
+nothing else:
+
+```bash
+./scripts/setup.sh --cuda --cuda-arch 121a-real   # also the default once GB10 is detected
+MEASURED_INFERENCE_ALLOW_CUDA_ARCH=1 ./scripts/setup.sh --cuda --cuda-arch 120  # deliberate, recorded
+```
+
+The override sets `cuda_arch_override: true` in `INSTALL.json`. No number from
+such a build is comparable to a `121a-real` one (rule 30).
+
+### SYMPTOM: no CUDA build exists for this box at any llama.cpp release
+
+There is **no official Linux aarch64 CUDA binary**, at any tag. On a GB10 the
+source build is not one option of two — it is the only one, and `setup.sh --cuda`
+is the whole path. Without `--cuda` the script takes the `ubuntu-vulkan-arm64`
+asset, and section 4's gate refuses to install it on an NVIDIA GPU. (Until
+2026-08-29 this box got a CPU-only build silently: the aarch64 branch tested for
+`vulkan-capable`, which `nvidia-smi` never sets.)
+
+### SYMPTOM: VRAM readings look wrong, or a fit ceiling comes out absurd
+
+**GB10 has 128 GB of unified memory and no discrete board.** `nvidia-smi` VRAM
+sampling and the `board_total_mib - reserve` fit arithmetic **both fail
+silently** there, which is worse than failing loudly: the numbers arrive, they
+are wrong, and nothing marks them. Do not derive rule 13's ceilings from either
+on this machine — measure the fit by loading, and state the memory as unified
+with the host RAM figure beside it. Bandwidth is 273 GB/s, which is the number
+rule 10's decode estimate takes.
+
+Note the vendor-native alternative (vLLM with NVFP4) and what switching buys
+before committing a campaign to llama.cpp here.
+
+---
+
 ## Per-platform hardware notes
 
 - **NVIDIA/CUDA** (reference campaign): everything in the stage files applies
   directly.
-- **Intel Arc dGPU**: llama.cpp Vulkan build (SYCL has known Battlemage perf
-  bugs; IPEX-LLM archived). Verify KV-quant support in the build.
+- **Intel Arc dGPU**: `setup.sh --openvino --openvino-device GPU` is the tuned
+  path and wins prefill 3-4x; the Vulkan build is the comparison arm (SYCL has
+  known Battlemage perf bugs; IPEX-LLM archived). Verify KV-quant support in the
+  build. Read the OpenVINO section above before designing a quant arm — the file
+  is not the weights that ran.
 - **Intel iGPU (unified memory)**: the window is borrowed RAM, not a wall —
   document the Shared GPU Memory Override path; the effort ceiling is patience,
-  not memory. State RAM speed/channels with every number.
-- **DGX Spark / GB10 (Ubuntu ARM)**: `setup.sh --cuda --cuda-arch 121` when
-  `native` is unsupported; without `--cuda` it takes the `ubuntu-vulkan-arm64`
-  asset and falls back to the CPU one only if that is absent. (Until 2026-08-29
-  this box got a CPU-only build silently: the aarch64 branch tested for
-  `vulkan-capable`, which `nvidia-smi` never sets.) Note the vendor-native
-  alternative (vLLM/NVFP4) with what switching buys.
+  not memory. State RAM speed/channels with every number. Decode here is
+  bandwidth-bound and near-identical across Vulkan, SYCL and OpenVINO, so pick
+  the backend on prefill and on what the campaign is measuring.
+- **Intel NPU**: Lunar Lake and Panther Lake only — Arrow Lake segfaults. Needs
+  an explicit `-c`, `--parallel 1`, and Ubuntu 24.04. No quant ladder: every
+  arm is the same weights. Full entries in "Intel NPU" above.
+- **DGX Spark / GB10 (Ubuntu ARM)**: `setup.sh --cuda --cuda-arch 121a-real`,
+  which is the default once GB10 is detected — `120`, `120f`, `121` and `native`
+  are refused because they silently lose `MMVQ_PARAMETERS_GB10`. There is no
+  official Linux aarch64 CUDA binary, so the source build is the only path;
+  without `--cuda` the script takes the `ubuntu-vulkan-arm64` asset and the
+  backend gate refuses it. (Until 2026-08-29 this box got a CPU-only build
+  silently: the aarch64 branch tested for `vulkan-capable`, which `nvidia-smi`
+  never sets.) Unified memory: `nvidia-smi` VRAM and the fit arithmetic both lie.
+  Note the vendor-native alternative (vLLM/NVFP4) with what switching buys.
 - **Apple Silicon (Metal)**: in scope — `setup.sh` fetches the official
   `macos-arm64` release (Metal built in; no `-ngl` spill risk, unified memory).
   The "VRAM" ceiling is the Metal working-set limit
   (`recommendedMaxWorkingSetSize`, ~66-75% of RAM by default); state total RAM
   with every number and watch for swap, not spill. Intel Macs get the CPU-only
   official build — treat like the CPU path or build Metal from source.
-- **OpenVINO (future)**: not yet implemented — record the intent: OVMS with
-  int4-ov weights as Intel's tuned path; benchmark against Vulkan llama.cpp.
+- **OpenVINO**: implemented — `setup.sh --openvino` / `setup.ps1 -OpenVINO`
+  install the pinned 2026.3.1 runtime and take the prebuilt
+  `ubuntu-openvino-2026.3.1-x64` (or `win-openvino-2026.3.1-x64`) llama.cpp
+  asset, falling back to `-DGGML_OPENVINO=ON` from source on Linux when a
+  release publishes none. Section "Intel OpenVINO backend" above carries the
+  traps. OVMS with int4-ov weights remains an unexplored second Intel path;
+  benchmark it against this one before assuming either.
 
 ### Energy counters by platform (rule 24 tiers)
 

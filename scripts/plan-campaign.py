@@ -28,13 +28,26 @@ example, a 27B on a 24 GB card:
     a measured negative in disguise, and this file is what makes every skip
     explicit and quotable.
 
-WHAT IT REFUSES TO GUESS. Board size and desktop reserve come from
-`machine.json` through `scripts/lib/paths.py`, exactly as `check-request.py`
-takes them: absent, the fit is UNKNOWN with the command that writes one, and
-nothing is called a ceiling. KV bytes/token comes from the model profile;
-absent, the rungs are UNKNOWN. Architecture support comes from the profile,
-backfilled from `scripts/lib/archs.py` when that module is importable and
-reported UNKNOWN when it is not.
+WHAT IT REFUSES TO GUESS. The memory budget comes from `machine.json` through
+`check-request.py:memory_plan()`, exactly as the Stage-0 gate takes it: absent,
+the fit is UNKNOWN with the command that writes one, and nothing is called a
+ceiling. KV bytes/token comes from the model profile; absent, the rungs are
+UNKNOWN. Architecture support comes from the profile, backfilled from
+`scripts/lib/archs.py` when that module is importable and reported UNKNOWN when
+it is not.
+
+AND IT REFUSES TO GUESS WHICH POOL. `board - desktop_reserve` is the budget on
+a discrete board and on nothing else. A DGX Spark's GB10 has one 128 GB pool
+shared by CPU and GPU; an Intel iGPU maps a driver-capped share of system RAM;
+a CPU box has no GPU pool at all. `memory_topology` in machine.json selects the
+sum, and it also selects the LADDER: every rung above the predicted ceiling
+exists to find rule 13's shallow-safe ceiling and bracket the collapse point,
+and both of those are properties of a card that can spill over PCIe. On the
+other three topologies the band above the ceiling is not a slower regime, it is
+the OOM killer -- so the ladder stops at the ceiling, the hard wall is reported
+as arithmetic instead of swept to, and the plan states which of rule 13's three
+quantities still has a referent. An unrecorded topology is UNKNOWN, not
+discrete.
 
 WHAT IT REUSES. `check-request.py` already prints a fit table against
 `board - desktop_reserve.max`, and its `Report`, `ascii_only`, `comma`, `mib`,
@@ -91,7 +104,12 @@ CR = _load_sibling("check-request.py", "check_request")
 # fit table.
 _BORROWED = ("Report", "ascii_only", "comma", "mib", "human", "_stem",
              "CACHE_TYPES", "DEFAULT_C_MIN", "RESOLVE", "_open", "find_token",
-             "OK", "FAIL", "UNKNOWN", "SKIP")
+             "OK", "FAIL", "UNKNOWN", "SKIP",
+             # The memory topology and the sum it selects. Borrowed for the
+             # same reason the fit table is: two scripts that price a model
+             # against DIFFERENT POOLS are worse than two that round
+             # differently.
+             "memory_plan", "plan_lines", "TOPOLOGIES", "WRITE_MACHINE")
 _gone = [n for n in _BORROWED if not hasattr(CR, n)]
 if _gone:
     raise SystemExit(
@@ -296,25 +314,16 @@ def side_bytes(prof, which, token, offline, notes):
 # ---------------------------------------------------------------------------
 
 def budget(slug, notes):
-    """(board_mib, reserve_dict) from machine.json, or (None, None).
+    """The memory plan for this box: which pool, which sum, and what it means.
 
-    paths.py raises SystemExit when the file is missing, which is right for a
-    run about to measure and wrong for a planner whose job is to report what is
-    missing. Caught, reported, never defaulted (rule 3, rule 14).
+    Delegated whole to `check-request.py:memory_plan()` -- see the block above
+    it there for why the sum branches. The short version: `board - desktop
+    reserve` is the budget on a discrete board and on nothing else, and a GB10
+    or an Intel iGPU answers the board question with a number that makes the
+    wrong sum look comfortable. When the topology is not recorded this returns
+    a plan whose `budget_mib` is None, and every ceiling below refuses.
     """
-    try:
-        board = paths.board_total_mib(slug)
-        reserve = paths.desktop_reserve_mib(slug)
-    except SystemExit as exc:
-        text = str(exc).strip()
-        notes.append("machine.json: %s"
-                     % (text.splitlines()[0] if text else "unavailable"))
-        return None, None
-    notes.append("machine.json: board %s MiB, desktop reserve max %s MiB "
-                 "(n=%s, measured %s)"
-                 % (comma(board), comma(reserve["max"]), reserve["n"],
-                    reserve["date"]))
-    return board, reserve
+    return CR.memory_plan(slug, notes)
 
 
 NOT_COUNTED = ("NOT counted: llama.cpp's compute/output buffers (hundreds of "
@@ -323,9 +332,17 @@ NOT_COUNTED = ("NOT counted: llama.cpp's compute/output buffers (hundreds of "
                "the ladder puts rungs BELOW it as well as above.")
 
 
-def fit_one(prof, bpt, avail_mib, proj_mib, draft_mib, c_min, state_mib=0.0):
+def fit_one(prof, bpt, avail_mib, proj_mib, draft_mib, c_min, state_mib=0.0,
+            pool="board"):
     """weights + drafter + projector + fixed state + kv(c) against the budget,
-    plus the largest c that fits with the drafter aboard and with it off."""
+    plus the largest c that fits with the drafter aboard and with it off.
+
+    `pool` only changes the WORD printed for a miss. A discrete board spills --
+    over PCIe, slowly, survivably. Nothing else does, and calling an allocation
+    failure a spill promises a reader a slow window and hands them a dead
+    campaign.
+    """
+    over = "SPILLS" if pool == "board" else "OVER BUDGET"
     w = mib(prof["file_bytes"])
     fixed_on = w + proj_mib + draft_mib + state_mib
     fixed_off = w + proj_mib + state_mib
@@ -347,6 +364,7 @@ def fit_one(prof, bpt, avail_mib, proj_mib, draft_mib, c_min, state_mib=0.0):
     total = fixed_on + mib(bpt * c_min)
     row["total_at_c_min_mib"] = round(total, 1)
     row["verdict"] = "FITS" if total <= avail_mib else "SPILLS"
+    row["verdict_word"] = "FITS" if total <= avail_mib else over
     row["spare_mib_at_c_min"] = round(avail_mib - total, 1)
     row["largest_c"] = max(0, int((avail_mib - fixed_on) * 1048576.0 / bpt))
     row["largest_c_drafter_off"] = max(
@@ -358,7 +376,7 @@ def fit_one(prof, bpt, avail_mib, proj_mib, draft_mib, c_min, state_mib=0.0):
         "tokens (drafter aboard), %s with the drafter off."
         % (comma(w), comma(draft_mib), comma(proj_mib), comma(state_mib),
            comma(mib(bpt * c_min)), comma(c_min), comma(total),
-           comma(avail_mib), row["verdict"],
+           comma(avail_mib), row["verdict_word"],
            comma(avail_mib), comma(fixed_on), comma(bpt),
            comma(row["largest_c"]), comma(row["largest_c_drafter_off"])))
     return row
@@ -439,6 +457,28 @@ STEP_RULE = (
     % (Q_DIVISOR, comma(Q_MIN), comma(Q_MAX), LEVER_RUNGS,
        DENSE_BELOW, DENSE_ABOVE, COARSE_STEP, COARSE_START, OVERSHOOT))
 
+# AND THE LADDER FOR A BOX WITH NO BOARD. Every rung above the predicted
+# ceiling exists to find rule 13's SECOND ceiling and then bracket the collapse
+# point, and both of those are properties of a discrete card: a window
+# allocated past the board lives partly on the far side of a PCIe link, stays
+# fast until deep pages are touched, and then falls off a measurable cliff.
+# Take the board and the link away and the band above the ceiling is not a
+# slower regime, it is the OOM killer -- which takes the campaign, not the arm.
+# So on unified, shared-igpu and system the ladder stops AT the ceiling, the
+# hard wall is reported as a do-not-cross number rather than swept to, and the
+# plan says which of rule 13's three quantities still means anything.
+STEP_RULE_SHARED = (
+    "q = clamp(2^round(log2(ceiling/%d)), %s, %s); "
+    "lever = %d rungs by halving below the dense band, snapped to q, floored "
+    "at max(q, ceiling/8); "
+    "dense = every q in [ceiling-%dq, ceiling]; "
+    "NO RUNG ABOVE THE CEILING and no coarse band. This box has no discrete "
+    "board, so there is nothing above the budget for a window to overhang: "
+    "rule 13's shallow-safe ceiling does not exist here and its collapse point "
+    "is an allocation failure rather than a throughput cliff. The hard wall is "
+    "reported as arithmetic and is never swept to."
+    % (Q_DIVISOR, comma(Q_MIN), comma(Q_MAX), LEVER_RUNGS, DENSE_BELOW))
+
 
 def quantum(ceiling):
     if ceiling <= 0:
@@ -451,14 +491,26 @@ def _snap(x, q):
     return int(max(q, (int(x) // q) * q))
 
 
-def derive_rungs(label, ceiling, ceiling_off, ctx_len, cache_type, why_no=None):
-    """The ladder for one file on one card, or a stated reason there is none."""
+def derive_rungs(label, ceiling, ceiling_off, ctx_len, cache_type, why_no=None,
+                 topology=None, hard_wall_c=None, rule_13=None):
+    """The ladder for one file on one pool, or a stated reason there is none.
+
+    `topology` is not decoration: on anything but a discrete board the rungs
+    above the ceiling are removed, because what they were built to find does
+    not exist there. See STEP_RULE_SHARED.
+    """
+    discrete = (topology == "discrete")
     out = {"file": label, "cache_type": cache_type,
            "predicted_ceiling": ceiling,
            "predicted_ceiling_drafter_off": ceiling_off,
            "model_context_length": ctx_len, "quantum": None, "top": None,
-           "rungs": [], "step_rule": STEP_RULE, "why": None,
-           "collapse_point_reachable": None}
+           "rungs": [], "step_rule": STEP_RULE if discrete else
+                                     STEP_RULE_SHARED, "why": None,
+           "collapse_point_reachable": None,
+           "memory_topology": topology,
+           "hard_wall_c": hard_wall_c,
+           "rule_13": {k: {"verdict": v[0], "why": v[1]}
+                       for k, v in (rule_13 or {}).items()}}
 
     if why_no:
         out["why"] = why_no
@@ -478,25 +530,34 @@ def derive_rungs(label, ceiling, ceiling_off, ctx_len, cache_type, why_no=None):
         out["why"] = (
             "THE WHOLE WINDOW FITS -- there is no ceiling to find. The "
             "arithmetic holds %s tokens and the model was only trained for %s, "
-            "so rule 13's fully-resident ceiling and shallow-safe ceiling are "
-            "the same number, the model's own window, and this card has no "
-            "collapse point for this file. A ceiling ladder here would spend a "
-            "dozen arms proving one fact a dozen times. ONE rung, at the "
-            "model's window -- still deep-filled to %d%% of it, because rule 13 "
-            "labels no window without a deep-fill probe near its top."
-            % (comma(ceiling), comma(ctx_len), int(DEEP_FILL * 100)))
+            "so %s A ceiling ladder here would spend a dozen arms proving one "
+            "fact a dozen times. ONE rung, at the model's window -- still "
+            "deep-filled to %d%% of it, because rule 13 labels no window "
+            "without a deep-fill probe near its top."
+            % (comma(ceiling), comma(ctx_len),
+               ("rule 13's fully-resident ceiling and shallow-safe ceiling are "
+                "the same number, the model's own window, and this box has no "
+                "collapse point for this file." if discrete else
+                "the model's own window is the only ceiling there is. On a %r "
+                "topology rule 13's shallow-safe ceiling does not exist at all "
+                "(there is no board for a window to overhang) and its collapse "
+                "point is an allocation failure this plan will not sweep to%s."
+                % (topology,
+                   "; the hard wall is c=%s" % comma(hard_wall_c)
+                   if hard_wall_c else "")),
+               int(DEEP_FILL * 100)))
         out["collapse_point_reachable"] = False
         return out
 
     q = quantum(ceiling)
     ceil0 = _snap(ceiling, q)
-    top = int(OVERSHOOT * ceil0)
+    top = int(OVERSHOOT * ceil0) if discrete else ceil0
     bounded_by_model = False
     if ctx_len and ctx_len < top:
         top, bounded_by_model = int(ctx_len), True
 
     dense_lo = max(q, ceil0 - DENSE_BELOW * q)
-    dense_hi = min(top, ceil0 + DENSE_ABOVE * q)
+    dense_hi = min(top, ceil0 + DENSE_ABOVE * q) if discrete else min(top, ceil0)
 
     rungs = {}
     x = dense_lo
@@ -511,12 +572,13 @@ def derive_rungs(label, ceiling, ceiling_off, ctx_len, cache_type, why_no=None):
             break
         rungs[x] = "lever"
 
-    x = ceil0 + COARSE_START * q
-    while x <= top:
-        rungs[x] = "coarse"
-        x += COARSE_STEP * q
-    if top not in rungs and top > dense_hi:
-        rungs[top] = "coarse"
+    if discrete:
+        x = ceil0 + COARSE_START * q
+        while x <= top:
+            rungs[x] = "coarse"
+            x += COARSE_STEP * q
+        if top not in rungs and top > dense_hi:
+            rungs[top] = "coarse"
 
     out["quantum"] = q
     out["top"] = top
@@ -525,7 +587,28 @@ def derive_rungs(label, ceiling, ceiling_off, ctx_len, cache_type, why_no=None):
                      "above_predicted_ceiling": c > ceiling}
                     for c in sorted(rungs)]
     above = [r for r in out["rungs"] if r["above_predicted_ceiling"]]
-    out["collapse_point_reachable"] = bool(above)
+    out["collapse_point_reachable"] = bool(above) if discrete else False
+    if not discrete:
+        r13 = out["rule_13"]
+        out["why"] = (
+            "%d rungs, step %s, TOPPING OUT AT THE CEILING (%s). This box's "
+            "memory topology is %r: there is no discrete board, so there is "
+            "nothing above the budget for a window to overhang. Rule 13's "
+            "fully-resident ceiling is %s and it is what this ladder measures; "
+            "its shallow-safe ceiling is %s; its collapse point is %s. %s"
+            % (len(out["rungs"]), comma(q), comma(ceil0), topology,
+               (r13.get("fully_resident_ceiling") or {}).get("verdict", "?"),
+               (r13.get("shallow_safe_ceiling") or {}).get("verdict", "?"),
+               (r13.get("collapse_point") or {}).get("verdict", "?"),
+               ("The hard wall is c=%s -- reported so a reader knows where the "
+                "OOM killer is, never swept to." % comma(hard_wall_c))
+               if hard_wall_c else
+               "The hard wall could not be priced, so it is not quoted."))
+        if bounded_by_model:
+            out["why"] += (" The model's own window (%s) stops below the "
+                           "ceiling, so the top rung is the window, not a "
+                           "measured ceiling." % comma(ctx_len))
+        return out
     if not above:
         out["why"] = (
             "NO RUNG ABOVE THE PREDICTED CEILING. The card holds %s tokens and "
@@ -1231,20 +1314,19 @@ UNKNOWN -- an unsized fit is not a plan.""",
         rep.add("ARCH", SKIP, "no profiles to check")
 
     # ---- 4  FIT ----------------------------------------------------------
-    board, reserve = budget(a.slug, notes)
-    avail = None if board is None else board - reserve["max"]
+    mem = budget(a.slug, notes)
+    avail = mem["budget_mib"]
     fits, rung_recs = [], []
     if not profiles:
-        rep.add("FIT", UNKNOWN, "no profiles to size", notes)
+        rep.add("FIT", UNKNOWN, "no profiles to size",
+                CR.plan_lines(mem) + notes)
     else:
         detail = []
         if arch_ok is False:
             detail.append("ARCH SAYS NO: the arithmetic below is real, and it "
                           "is academic -- this build cannot load the file at "
                           "all, so nothing here is a go-ahead.")
-        if avail is not None:
-            detail.append("budget = %s board - %s desktop reserve(max) = %s MiB"
-                          % (comma(board), comma(reserve["max"]), comma(avail)))
+        detail.extend(CR.plan_lines(mem))
         detail.extend(notes)
         for p in profiles:
             bpt, formula = kv_bytes(p, a.cache_type)
@@ -1258,7 +1340,7 @@ UNKNOWN -- an unsized fit is not a plan.""",
             draft_mib = mib(dbytes) if dbytes else 0.0
             state_mib, state_how = fixed_state(p)
             row = fit_one(p, bpt, avail, proj_mib, draft_mib, a.c_min,
-                          state_mib)
+                          state_mib, pool=mem["pool"] or "board")
             row["fixed_state_how"] = state_how
             row["kv_formula"] = formula
             row["projector"] = {"file": pname, "mib": round(proj_mib, 1),
@@ -1267,6 +1349,20 @@ UNKNOWN -- an unsized fit is not a plan.""",
                               "how": dhow}
             row["arch_supported"] = p.get("_arch_ok")
             row["context_length"] = p.get("context_length")
+            row["memory_topology"] = mem["topology"]
+            row["pool"] = mem["pool"]
+            row["hard_wall_mib"] = mem["hard_wall_mib"]
+            # The window the pool physically cannot hold, as opposed to the one
+            # the budget forbids. On a board the gap between them is where the
+            # spill lives and it is measurable; on the other three it is where
+            # the OOM killer lives and it is not.
+            if bpt and mem["hard_wall_mib"] is not None:
+                row["hard_wall_c"] = max(0, int(
+                    (mem["hard_wall_mib"] - (mib(p["file_bytes"]) + proj_mib
+                                             + draft_mib + state_mib))
+                    * 1048576.0 / bpt))
+            else:
+                row["hard_wall_c"] = None
             # A component that EXISTS but could not be sized is not a zero. It
             # is the difference between a fit and a spill, and leaving the row
             # green with a footnote is how an optimistic total gets published
@@ -1279,7 +1375,8 @@ UNKNOWN -- an unsized fit is not a plan.""",
 
             mark = ("FITS, %s MiB spare" % comma(row["spare_mib_at_c_min"])
                     if row["verdict"] == "FITS" else
-                    "SPILLS by %s MiB" % comma(-row["spare_mib_at_c_min"])
+                    "%s by %s MiB" % (row.get("verdict_word", "SPILLS"),
+                                      comma(-row["spare_mib_at_c_min"]))
                     if row["verdict"] == "SPILLS" else "? unsized")
             # "-" means the model has no such component; "?" means it has one
             # and nothing could size it. Printing both as "?" would turn a
@@ -1309,6 +1406,14 @@ UNKNOWN -- an unsized fit is not a plan.""",
                                  comma(row["largest_c_drafter_off"]),
                                  comma(p["context_length"])
                                  if p.get("context_length") else "UNKNOWN"))
+            if row["hard_wall_c"]:
+                detail.append("      hard wall: c=%s (%s MiB, %s). %s"
+                              % (comma(row["hard_wall_c"]),
+                                 comma(mem["hard_wall_mib"]),
+                                 "the board itself"
+                                 if mem["pool"] == "board" else
+                                 "the pool itself, reserve included",
+                                 mem["spill_behaviour"]))
             if ((pbytes is None and isinstance(p.get("vision"), dict))
                     or (dbytes is None and isinstance(p.get("drafter"), dict))):
                 detail.append("      NOTE: a resident component could not be "
@@ -1316,12 +1421,14 @@ UNKNOWN -- an unsized fit is not a plan.""",
         detail.append(NOT_COUNTED)
 
         if avail is None:
-            rep.add("FIT", UNKNOWN, "no machine.json: this card is unmeasured",
+            rep.add("FIT", UNKNOWN,
+                    "no proven memory budget: %s"
+                    % (mem["why_unknown"] or "this box is unmeasured"
+                       ).split(".")[0],
                     detail,
-                    fix="python scripts/detect-machine.py --slug %s   (writes "
-                        "results/%s/machine.json; a guessed board is how a "
-                        "spilling window gets stamped PASS -- rule 13)"
-                        % (a.slug, a.slug))
+                    fix=(mem["fix"] or CR.WRITE_MACHINE % a.slug)
+                        + "\n       a guessed budget is how a spilling window "
+                          "gets stamped PASS -- rule 13")
         elif any(r["verdict"] == UNKNOWN for r in fits):
             rep.add("FIT", UNKNOWN, "%d of %d files could not be sized"
                     % (sum(1 for r in fits if r["verdict"] == UNKNOWN),
@@ -1341,8 +1448,15 @@ UNKNOWN -- an unsized fit is not a plan.""",
                          "with a component missing from the sum is not a fit."))
         elif not any(r["verdict"] == "FITS" for r in fits):
             rep.add("FIT", FAIL, "nothing fits at c=%s" % comma(a.c_min), detail,
-                    fix="this card is the wrong size for these files -- pick a "
-                        "smaller quant, or lower --c-min")
+                    fix="%s is the wrong size for these files -- pick a "
+                        "smaller quant, or lower --c-min.%s"
+                        % ({"board": "this card",
+                            "host": "this box's memory",
+                            "host-shared": "the share of system RAM this "
+                                           "driver will map"}.get(mem["pool"],
+                                                                  "this budget"),
+                           "" if mem["topology"] == "discrete" else
+                           " Note the topology: " + mem["spill_behaviour"]))
         else:
             rep.add("FIT", OK, "%d of %d file%s fit at c=%s"
                     % (sum(1 for r in fits if r["verdict"] == "FITS"),
@@ -1352,10 +1466,11 @@ UNKNOWN -- an unsized fit is not a plan.""",
     # ---- 5  RUNGS --------------------------------------------------------
     if not fits:
         rep.add("RUNGS", UNKNOWN, "no fit table, so no ladder",
-                ["The rungs are derived FROM the fit: with no board size and no "
-                 "KV figure there is no predicted ceiling to place them around, "
-                 "and a ladder placed anywhere else is the 22 hardcoded numbers "
-                 "again."])
+                CR.plan_lines(mem) +
+                ["The rungs are derived FROM the fit: with no memory budget and "
+                 "no KV figure there is no predicted ceiling to place them "
+                 "around, and a ladder placed anywhere else is the 22 "
+                 "hardcoded numbers again."])
     else:
         detail = []
         if arch_ok is False:
@@ -1366,12 +1481,16 @@ UNKNOWN -- an unsized fit is not a plan.""",
             why_no = None
             if row["largest_c"] is None:
                 why_no = ("UNSIZED: %s -- no ceiling to place rungs around."
-                          % ("no board size (machine.json is missing)"
+                          % (("no memory budget: "
+                              + (mem["why_unknown"] or "unmeasured box"))
                              if avail is None else
                              "no kv_bytes_per_token for %s" % a.cache_type))
             rec = derive_rungs(p["_label"], row["largest_c"],
                                row["largest_c_drafter_off"],
-                               p.get("context_length"), a.cache_type, why_no)
+                               p.get("context_length"), a.cache_type, why_no,
+                               topology=mem["topology"],
+                               hard_wall_c=row.get("hard_wall_c"),
+                               rule_13=mem["rule_13"])
             rec["ceiling_is_upper_bound"] = bool(row["unsized_components"])
             if row["unsized_components"]:
                 rec["why"] = (
@@ -1411,17 +1530,38 @@ UNKNOWN -- an unsized fit is not a plan.""",
                                  ", ".join(comma(c) for c in low)))
         detail.append("zones: lever | dense | coarse    * = the rung just under "
                       "the predicted ceiling")
-        detail.append("step rule: " + STEP_RULE)
+        detail.append("step rule: " + (STEP_RULE if mem["topology"] == "discrete"
+                                       else STEP_RULE_SHARED))
         total = sum(len(r["rungs"]) for r in rung_recs)
-        unreachable = [r for r in rung_recs
-                       if r["collapse_point_reachable"] is False
-                       and len(r["rungs"]) > 1]
+        # A ladder that stops at the ceiling because the TOPOLOGY has nothing
+        # above it is not the same finding as one that stops because the MODEL
+        # runs out of window, and the two must not print the same fix. The
+        # first is complete; the second is a hole in rule 13 the report has to
+        # own.
+        by_topology = mem["topology"] not in (None, "discrete")
+        if by_topology:
+            # Said in the evidence, not in `fix`: there is nothing here for an
+            # operator to repair, and a row that passes must not print a FIX.
+            # It is a REPORTING obligation -- rule 2 is broken the moment a
+            # page prints one ceiling where the method promised two without
+            # saying which one went missing and why.
+            detail.append(
+                "REPORT OBLIGATION: rule 13's shallow-safe ceiling and "
+                "collapse point do NOT apply on a %s box. The report must say "
+                "so where it would otherwise print them -- one ceiling where "
+                "the method promises two, unexplained, is rule 2 broken before "
+                "a reader reaches a number." % mem["topology"])
+        unreachable = [] if by_topology else [
+            r for r in rung_recs
+            if r["collapse_point_reachable"] is False and len(r["rungs"]) > 1]
         upper = [r for r in rung_recs if r.get("ceiling_is_upper_bound")]
         if total:
             rep.add("RUNGS", UNKNOWN if (unreachable or upper) else OK,
-                    "%d rung%s across %d file%s"
+                    "%d rung%s across %d file%s%s"
                     % (total, "" if total == 1 else "s", len(rung_recs),
-                       "" if len(rung_recs) == 1 else "s"), detail,
+                       "" if len(rung_recs) == 1 else "s",
+                       ", topping out at the ceiling (%s: no board to overhang)"
+                       % mem["topology"] if by_topology else ""), detail,
                     fix=("size the unsized resident components first -- a "
                          "ladder built on an upper-bound ceiling sweeps windows "
                          "the card cannot hold and reads as a collapse that is "
@@ -1483,11 +1623,29 @@ UNKNOWN -- an unsized fit is not a plan.""",
         "generated_by": "scripts/plan-campaign.py",
         "cache_type": a.cache_type,
         "c_min": a.c_min,
-        "machine": {"board_total_mib": board,
-                    "desktop_reserve_mib": reserve,
+        "machine": {"memory_topology": mem["topology"],
+                    "memory_topology_how": mem["topology_how"],
+                    "memory_topology_legacy": mem["topology_legacy"],
+                    "pool": mem["pool"],
+                    "pool_total_mib": mem["pool_total_mib"],
+                    "pool_total_how": mem["pool_total_how"],
+                    "reserve_mib": mem["reserve_mib"],
+                    "reserve_how": mem["reserve_how"],
+                    "share_limit_mib": mem["share_limit_mib"],
                     "budget_mib": avail,
+                    "hard_wall_mib": mem["hard_wall_mib"],
+                    "arithmetic": mem["arithmetic"],
+                    "why_unknown": mem["why_unknown"],
+                    "spill_behaviour": mem["spill_behaviour"],
+                    "rule_13": {k: {"verdict": v[0], "why": v[1]}
+                                for k, v in (mem["rule_13"] or {}).items()},
+                    # kept under their old names so a reader of a 3090 plan
+                    # finds the pair they expect; on the other three topologies
+                    # they are recorded and NOT part of any sum above.
+                    "board_total_mib": mem["board_total_mib"],
+                    "desktop_reserve_mib": mem["desktop_reserve_mib"],
                     "source": ("results/%s/machine.json" % a.slug)
-                              if board is not None else None},
+                              if mem["topology"] is not None else None},
         "models": [{"label": p["_label"], "file": p.get("file"),
                     "repo": p.get("repo"), "arch": p.get("arch"),
                     "arch_supported": p.get("_arch_ok"),
@@ -1510,10 +1668,21 @@ UNKNOWN -- an unsized fit is not a plan.""",
                                           rows, est)),
         "exit_code": rep.exit_code(),
         "provenance": {
-            "board_total_mib": ("MEASURED (machine.json)" if board is not None
+            "memory_topology": (mem["topology_how"] if mem["topology"]
+                                else "UNKNOWN -- " + (mem["why_unknown"] or "")),
+            "pool_total_mib": mem["pool_total_how"] or "UNKNOWN",
+            "reserve_mib": mem["reserve_how"] or "UNKNOWN",
+            "budget_mib": (mem["arithmetic"] if avail is not None
+                           else "UNKNOWN -- " + (mem["why_unknown"] or "")),
+            "board_total_mib": ("MEASURED (machine.json)"
+                                if mem["board_total_mib"] is not None
                                 else "UNKNOWN (no machine.json)"),
-            "desktop_reserve_mib": ("MEASURED (machine.json)" if reserve
+            "desktop_reserve_mib": ("MEASURED (machine.json)"
+                                    if mem["desktop_reserve_mib"]
                                     else "UNKNOWN"),
+            "rule_13": "DERIVED from memory_topology -- which of the two "
+                       "ceilings and the collapse point still have a referent "
+                       "on this pool. See machine.rule_13.",
             "weights": "MEASURED (file_bytes from the GGUF profile)",
             "kv_bytes_per_token": "DERIVED by the model profiler, carried here",
             "context_length": "MEASURED (GGUF header, via the model profile)",

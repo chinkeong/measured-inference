@@ -5,7 +5,8 @@
     python scripts/quant-ladder/measure-bpw.py <file.gguf> --json
     python scripts/quant-ladder/measure-bpw.py <file.gguf> --declared 27000000000
     python scripts/quant-ladder/measure-bpw.py --hf <repo-id> [--file name.gguf]
-    python scripts/quant-ladder/measure-bpw.py --audit-manifest [<manifest.json>]
+    python scripts/quant-ladder/measure-bpw.py <file.gguf> --backend openvino --device NPU
+    python scripts/quant-ladder/measure-bpw.py --audit-manifest --backend openvino --device NPU
 
 WHY THIS FILE EXISTS. The quant ladder publishes a column headed "Bits per
 weight (measured)". Until this file existed the number behind it was
@@ -34,6 +35,26 @@ of a bit), and when they DISAGREE the file is not what its table says it is:
 an unrecognised ggml type id, a split file, or trailing data. So the agreement
 is reported as a number, and a disagreement is said out loud rather than
 averaged away.
+
+AND A THIRD NUMBER, WHEN THE BACKEND IS NAMED. Both figures above describe
+the FILE. On four backends -- cuda, vulkan, metal and the ggml CPU one -- the
+file is also what runs, so there is one number and this section is empty. On
+the OpenVINO backend it is not: that backend requantises tensors at load
+(ggml/src/ggml-openvino/ggml-openvino-extra.cpp:252-273, read 2026-08-29), so
+`bpw` describes the download and `bpw_effective` describes the run, and on its
+NPU device every quantized tensor becomes Q4_0_128 whatever the file held --
+which makes a quant ladder there a set of arms that are the same weights.
+
+`--backend` and `--device` turn that section on. With neither, `bpw_effective`
+is reported as null WITH THE REASON rather than quietly set equal to `bpw`: a
+null that says why is falsifiable and a wrong number is not. The table lives in
+`scripts/lib/openvino_quant.py`, which also carries the shortest route to
+ground truth -- four commented-out log lines in llama.cpp.
+
+`--audit-manifest --backend openvino --device NPU` is the cheapest thing in
+this repository (rule 25): it costs a header read per rung and no GPU at all,
+and it says before the ladder runs whether two of its rungs are the same
+weights.
 
 WHERE THE LOGIC LIVES, AND WHY HERE. run-ladder.ps1 is PowerShell 5.1 and runs
 on exactly one operating system; a Linux clone of this campaign has no ladder
@@ -67,6 +88,21 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 INSPECTOR = os.path.join(HERE, "gguf-inspect.py")
 
+# The OpenVINO conversion table. Guarded like every other cross-file import in
+# this repository: without it the effective figure is null with a reason, which
+# is a supported answer, where a traceback would take out the bpw measurement
+# this script exists for.
+sys.path.insert(0, os.path.join(os.path.dirname(HERE), "lib"))
+try:
+    import openvino_quant as ovq
+except Exception as _exc:                                    # pragma: no cover
+    ovq = None
+    OVQ_WHY = ("scripts/lib/openvino_quant.py could not be imported (%s: %s), "
+               "so no backend's effect on this file's tensor types can be "
+               "established" % (type(_exc).__name__, _exc))
+else:
+    OVQ_WHY = None
+
 
 def load_inspector():
     """gguf-inspect.py, imported. Its name has a hyphen, so it is loaded by path.
@@ -83,7 +119,75 @@ def load_inspector():
     return mod
 
 
-def measure(path=None, url=None, verbose=False):
+def effective(hdr, gi, backend, device, label=None):
+    """What the RUN holds, against what the file holds. Never a silent equal.
+
+    Returns a dict whose `kind` is "passthrough", "rewrite" or "unknown" and
+    whose `bpw_effective` is a number only in the first two cases. The tensor
+    rows are built here, from gguf-inspect's block table, because
+    openvino_quant.py keeps no second copy of it.
+    """
+    if ovq is None:
+        return {"kind": "unknown", "backend": backend, "device": device,
+                "bpw_effective": None, "why": OVQ_WHY}
+    eff = ovq.backend_effect(backend, device)
+    if eff["kind"] == "unknown":
+        return {"kind": "unknown", "backend": eff.get("backend"),
+                "device": None, "bpw_effective": None, "why": eff["why"]}
+    if eff["kind"] == "passthrough":
+        return {"kind": "passthrough", "backend": eff["backend"],
+                "device": None, "bpw_effective": None,
+                "why": "%s. bpw above IS the effective figure, by identity and "
+                       "not by arithmetic." % eff["why"],
+                "equals_bpw": True}
+
+    rows = []
+    for t in hdr["tensors"]:
+        e = 1
+        for d in t["dims"]:
+            e *= d
+        info = gi.GGML.get(t["type"])
+        name, bs, bb = info if info else ("TYPE_%d" % t["type"], 0, 0)
+        rows.append({"name": t["name"], "elements": e,
+                     "ne0": t["dims"][0] if t["dims"] else 0, "type": name,
+                     "bytes": (e // bs) * bb if (bs and bb) else 0})
+    prof = ovq.model_profile(rows, eff["device"], label=label)
+    if prof.get("bpw_effective") is None:
+        return {"kind": "unknown", "backend": "openvino", "device": None,
+                "bpw_effective": None, "why": prof.get("why")}
+    return {
+        "kind": "rewrite",
+        "backend": "openvino",
+        "device": prof["device"],
+        "bpw_effective": prof["bpw_effective"],
+        "bpw_effective_if_f32_scale": prof["bpw_effective_if_f32_scale"],
+        "bpw_file_same_basis": prof["bpw_file_tensor_table"],
+        "delta_bpw": prof["delta_bpw"],
+        "tensors_rewritten": prof["tensors_rewritten"],
+        "tensors": prof["tensors"],
+        "basis": prof["basis"],
+        "by_role": {k: {"bpw_file": v["bpw_file"],
+                        "bpw_effective": v["bpw_effective"],
+                        "elements": v["elements"], "tensors": v["tensors"],
+                        "effective_types": v["effective_types"]}
+                    for k, v in prof["by_role"].items()},
+        "conversions": prof["conversions"],
+        "unrecognised_source_types": prof["unrecognised_source_types"],
+        "collapse": prof["collapse"],
+        "signature": ovq.ladder_signature(prof),
+        "why": eff["why"],
+        "not_reported_by_the_backend":
+            "the backend prints nothing about it: the four GGML_LOG_DEBUG "
+            "lines that would are commented out at %s, and /props->description "
+            "carries only the OpenVINO version string (%s)"
+            % (ovq.SOURCE["commented_out_logging"],
+               ovq.SOURCE["props_description"]),
+        "ground_truth": ovq.GROUND_TRUTH["how"],
+        "warnings": prof["warnings"],
+    }
+
+
+def measure(path=None, url=None, verbose=False, backend=None, device=None):
     """Read one GGUF header and return its measured bits per weight.
 
     Exactly one of `path` (local file) and `url` (HTTP, ranged) is given.
@@ -113,8 +217,19 @@ def measure(path=None, url=None, verbose=False):
     if bpw_size and bpw_tensors:
         agree = 100.0 * (bpw_size - bpw_tensors) / bpw_tensors
 
+    eff = effective(hdr, gi, backend, device,
+                    label=os.path.basename(path or url))
+    if eff.get("equals_bpw"):
+        # Said once, here, rather than recomputed: on a passthrough backend the
+        # effective figure IS the file figure, and copying it is the whole
+        # arithmetic. Anything else would invent a second number for one fact.
+        eff["bpw_effective"] = bpw_size
+        eff["bpw_file_same_basis"] = bpw_size
+        eff["delta_bpw"] = 0.0
+
     return {
         "path": path or url,
+        "effective": eff,
         "name": rep["name"],
         "arch": rep["arch"],
         "file_type": rep["file_type"],
@@ -164,6 +279,7 @@ def _print_human(m, cmp_=None):
                  else "   (INCOMPLETE: unknown ggml types %s - the tensor-table"
                       " figure reads low, trust the file-size one)"
                       % ", ".join(m["unknown_types"])))
+    _print_effective(m.get("effective") or {})
     if cmp_:
         print()
         print("  declared parameters    : %d" % cmp_["params_declared"])
@@ -179,11 +295,114 @@ def _print_human(m, cmp_=None):
              m["size_bytes"] / 1024.0 ** 3))
 
 
-def audit_manifest(manifest_path, tolerance_pct):
+def _print_effective(eff):
+    """The third number, and -- when it differs from the first two -- why.
+
+    Says it plainly or says nothing was established. What it will never do is
+    print a number equal to bpw without having checked that the backend leaves
+    the file alone, which is the failure the whole block exists to catch.
+    """
+    kind = eff.get("kind")
+    if not kind:
+        return
+    print()
+    if kind == "unknown":
+        print("  bpw, as the run holds it: NOT ESTABLISHED")
+        for line in _wrap(eff.get("why") or "", 68):
+            print("      %s" % line)
+        return
+    if kind == "passthrough":
+        print("  bpw, as the run holds it: %.4f   <- the SAME number, on %s"
+              % (eff["bpw_effective"], eff["backend"]))
+        for line in _wrap(eff.get("why") or "", 68):
+            print("      %s" % line)
+        return
+
+    print("  bpw, as the run holds it: %.4f   <- %s on %s, and it is NOT the "
+          "file's" % (eff["bpw_effective"], eff["backend"], eff["device"]))
+    print()
+    print("  THE TWO DIFFER BY %+.4f bpw, and here is why."
+          % (eff["bpw_effective"] - eff["bpw_file_same_basis"]))
+    print("  The %s backend requantises tensors at load. %d of the file's %d "
+          "tensors are" % (eff["backend"], eff["tensors_rewritten"],
+                           eff["tensors"]))
+    print("  rewritten before the first token, and nothing in the run says so.")
+    print()
+    print("  On the same tensor-table basis (no container overhead on either "
+          "side):")
+    print("      the file holds       : %.4f bpw" % eff["bpw_file_same_basis"])
+    print("      the run holds        : %.4f bpw  (%.4f if the block scale is "
+          "f32, not f16)"
+          % (eff["bpw_effective"], eff["bpw_effective_if_f32_scale"]))
+    print()
+    print("  %-12s %8s %8s  %18s  %s"
+          % ("role", "file", "run", "weights", "becomes"))
+    for role in ("token_embd", "output", "block"):
+        b = (eff.get("by_role") or {}).get(role)
+        if not b:
+            continue
+        print("  %-12s %8.3f %8.3f  %18s  %s"
+              % (role, b["bpw_file"] or 0, b["bpw_effective"] or 0,
+                 "{:,}".format(b["elements"]),
+                 ", ".join(sorted(b["effective_types"]))))
+    changed = [c for c in (eff.get("conversions") or []) if c["changed"]]
+    if changed:
+        print()
+        print("  the conversions that fired (rule numbers are %s):"
+              % (ovq.SOURCE["conversion_table"] if ovq else "the table"))
+        for c in changed:
+            print("      rule %s  %-8s -> %-9s %4d tensor%s %18s weights  %s"
+                  % (c["rule_n"], c["source"], c["effective"], c["tensors"],
+                     " " if c["tensors"] == 1 else "s",
+                     "{:,}".format(c["elements"]), "/".join(c["roles"])))
+    col = eff.get("collapse") or {}
+    if col.get("degenerate"):
+        print()
+        print("  DEGENERATE LADDER RUNG. %d distinct quantized types in this "
+              "file's body" % col["distinct_in"])
+        print("  tensors all become %s. Another rung whose body tensors also "
+              "collapse to"
+              % (col.get("effective_types_in_blocks") or ["?"])[0])
+        print("  that type is the SAME WEIGHTS under a different filename, and "
+              "comparing")
+        print("  the two measures run-to-run variance (rule 30).")
+    print()
+    for line in _wrap(eff.get("not_reported_by_the_backend") or "", 72):
+        print("  %s" % line)
+    print()
+    print("  the conditions that number depends on (rule 3):")
+    for warn in eff.get("warnings") or []:
+        first = True
+        for line in _wrap(warn, 68):
+            print("    %s %s" % ("-" if first else " ", line))
+            first = False
+
+
+def _wrap(text, width):
+    """Wrap without importing textwrap for one call. Words, greedily."""
+    out, line = [], ""
+    for word in (text or "").split():
+        if line and len(line) + 1 + len(word) > width:
+            out.append(line)
+            line = word
+        else:
+            line = (line + " " + word) if line else word
+    if line:
+        out.append(line)
+    return out
+
+
+def audit_manifest(manifest_path, tolerance_pct, backend=None, device=None):
     """Every rung in a ladder manifest: declared denominator vs the file's own.
 
     No GPU, no model load, no download - so this is runnable before a campaign
     commits an hour to anything (rule 25), and on any platform.
+
+    With a backend that rewrites tensor types, it answers a second question the
+    manifest cannot: whether two rungs are the same weights. That verdict costs
+    one header read per rung and it is worth every hour it saves - an OpenVINO
+    NPU ladder is degenerate by construction, and finding that out from a flat
+    perplexity curve costs the whole ladder.
     """
     with io.open(manifest_path, encoding="utf-8-sig") as fh:
         man = json.load(fh)
@@ -204,7 +423,7 @@ def audit_manifest(manifest_path, tolerance_pct):
                   % (name, r.get("params", "?")))
             missing += 1
             continue
-        m = measure(path=path)
+        m = measure(path=path, backend=backend, device=device)
         c = compare(m, r["params"])
         rows.append((name, m, c))
         flag = "" if abs(c["params_error_pct"]) <= tolerance_pct else "  <-- OFF"
@@ -215,6 +434,7 @@ def audit_manifest(manifest_path, tolerance_pct):
                  c["params_error_pct"], c["bpw_declared"], m["bpw"],
                  c["bpw_inflation_pct"], flag))
     print()
+    _audit_effective(rows, backend, device)
     if missing:
         print("%d rung(s) had no file on this machine and were not measured."
               % missing)
@@ -228,6 +448,58 @@ def audit_manifest(manifest_path, tolerance_pct):
         print("Every measured rung's declared count matches its file within "
               "%.2f%%." % tolerance_pct)
     return 0
+
+
+def _audit_effective(rows, backend, device):
+    """Which rungs of this ladder are the same weights once the backend loads.
+
+    Silent unless a backend was named and that backend rewrites: with no
+    --backend there is nothing to say, and saying "probably fine" would be the
+    fourth provenance category rule 1 does not have.
+    """
+    if not rows or ovq is None:
+        return
+    effs = [(name, m.get("effective") or {}) for name, m, _c in rows]
+    if not any(e.get("kind") == "rewrite" for _n, e in effs):
+        return
+    print("%s on %s rewrites tensor types at load, so the rungs above describe "
+          "downloads." % (backend, device))
+    print("What each rung RUNS:")
+    print()
+    print("  %-22s %10s %10s %9s   %s"
+          % ("rung", "bpw(file)", "bpw(run)", "delta", "body tensors become"))
+    for name, e in effs:
+        if e.get("kind") != "rewrite":
+            print("  %-22s   not established: %s" % (name, (e.get("why") or "")[:40]))
+            continue
+        col = e.get("collapse") or {}
+        bad = e.get("unrecognised_source_types")
+        print("  %-22s %10.4f %10.4f %+9.4f   %s%s"
+              % (name, e["bpw_file_same_basis"], e["bpw_effective"],
+                 e["delta_bpw"],
+                 ", ".join(col.get("effective_types_in_blocks") or ["?"]),
+                 "" if not bad else
+                 "   <-- bpw(file) and delta are LOW: %s not in the block table"
+                 % ", ".join(bad)))
+    print()
+    groups = {}
+    for name, e in effs:
+        sig = e.get("signature")
+        if sig:
+            groups.setdefault(sig, []).append(name)
+    same = [g for g in groups.values() if len(g) > 1]
+    if same:
+        print("THESE RUNGS ARE THE SAME WEIGHTS. Running them as separate arms "
+              "measures")
+        print("run-to-run variance and nothing else (rule 30):")
+        for g in same:
+            print("    %s" % ", ".join(sorted(g)))
+        print()
+        print("%d rung(s) in this manifest run %d distinct set(s) of weights "
+              "on %s." % (len(effs), len(groups), device))
+        return
+    print("%d rung(s), %d distinct set(s) of weights on %s: every arm is a "
+          "different arm." % (len(effs), len(groups), device))
 
 
 def main():
@@ -249,14 +521,29 @@ def main():
     ap.add_argument("--audit-manifest", nargs="?", const="", metavar="FILE",
                     help="audit every rung of a ladder manifest (default: "
                          "ladder-manifest.json beside this script)")
+    ap.add_argument("--backend",
+                    help="the backend the effective figure is scoped to: cuda, "
+                         "vulkan, metal, cpu, openvino. Without it, "
+                         "bpw_effective is null and says why - it is never "
+                         "quietly set equal to bpw")
+    ap.add_argument("--device",
+                    help="OpenVINO device - CPU, GPU, GPU.0, GPU.1, NPU (what "
+                         "GGML_OPENVINO_DEVICE takes; it is read when this is "
+                         "not given). On NPU every quantized tensor is "
+                         "rewritten to Q4_0_128 at load")
     ap.add_argument("--tolerance-pct", type=float, default=0.1,
                     help="audit: how far a declared count may sit from the "
                          "file's own before it is called OFF (default 0.1)")
     a = ap.parse_args()
 
+    backend, device = a.backend, a.device
+    if backend and backend.strip().lower() == "openvino" and not device \
+            and ovq is not None:
+        device, _how = ovq.device_from_env()
+
     if a.audit_manifest is not None:
         path = a.audit_manifest or os.path.join(HERE, "ladder-manifest.json")
-        return audit_manifest(path, a.tolerance_pct)
+        return audit_manifest(path, a.tolerance_pct, backend, device)
 
     url = None
     if a.hf:
@@ -276,7 +563,8 @@ def main():
     elif not a.path:
         return _die("give a .gguf path, --hf <repo>, or --audit-manifest")
 
-    m = measure(path=a.path, url=url, verbose=a.verbose)
+    m = measure(path=a.path, url=url, verbose=a.verbose,
+                backend=backend, device=device)
     c = compare(m, a.declared) if a.declared else None
     if a.json:
         out = dict(m)

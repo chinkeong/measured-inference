@@ -42,6 +42,17 @@ KV bytes/token comes from the model's real config.json using stage-1.md's
 formula, or the fit is UNKNOWN. An UNKNOWN exits 2; a proven failure exits 1;
 all-clear exits 0.
 
+AND IT REFUSES TO GUESS WHICH SUM. `board - desktop_reserve` is the budget on a
+discrete board and on nothing else. A DGX Spark's GB10 has 128 GB of unified
+memory and no board at all, and nvidia-smi answers `memory.total` there with
+the whole machine -- so the subtraction prices the model against RAM the OS is
+already living in, and the answer looks like comfortable slack right up until
+the OOM killer. An Intel iGPU maps a driver-capped share of system RAM;
+CPU-only has no GPU pool. `memory_plan()` below reads `memory_topology` out of
+machine.json, picks the pool it names, and reports UNKNOWN when the topology is
+not recorded -- it does not fall back to the board-shaped sum. plan-campaign.py
+imports it rather than keeping a second copy.
+
 Weights alone are still checked against the budget when KV is unknown: if the
 file by itself will not fit, that is PROVEN without the cache arithmetic, and
 proving it costs nothing.
@@ -1260,29 +1271,498 @@ def kv_arithmetic(cfg, elem_bytes, elem_label, c_min):
     return out
 
 
-def budget(slug, notes):
-    """(board_mib, reserve_max_mib) from machine.json, or (None, None).
+# ---------------------------------------------------------------------------
+# WHICH POOL, AND THEREFORE WHICH ARITHMETIC
+# ---------------------------------------------------------------------------
+#
+# `board_total_mib - desktop_reserve.max` is the fit budget on exactly one
+# topology. On the three others it is wrong, and -- this is the part that
+# matters -- wrong in a way that reads as a comfortable margin:
+#
+#   unified      GB10 / DGX Spark and Apple Silicon. nvidia-smi answers
+#                memory.total with the WHOLE machine's memory, so the
+#                subtraction prices the model against RAM the operating system
+#                is already living in. Nothing about the failure looks like a
+#                failure until the OOM killer arrives.
+#   shared-igpu  An Intel or AMD integrated GPU maps a share of system RAM,
+#                and the DRIVER caps that share at roughly half of it. Pricing
+#                against MemTotal over-promises by about 2x.
+#   system       CPU-only. detect-machine.py writes board_total_mib 0 there
+#                precisely so that the board-shaped sum refuses; the honest
+#                budget is host RAM, which the board-shaped sum cannot express.
+#
+# So the topology decides the pool, and the pool decides the sum. Everything
+# below is that one decision written once, because plan-campaign.py imports it
+# rather than keeping a second copy -- two fit tables that round differently
+# are two answers to one question, and two fit tables that price against
+# different POOLS are worse than that.
+#
+# WHEN THE TOPOLOGY IS UNKNOWN THIS REFUSES. Not "assumes discrete": refuses,
+# the same way scripts/lib/paths.py refuses a missing board size. An UNPROVEN
+# fit is a plan. A wrong PASS is a wasted day and a published number.
 
-    paths.py raises SystemExit when the file is missing -- correct for a run
-    that is about to measure, wrong for a check whose entire job is to report
-    what is missing. Caught here, reported as UNKNOWN, never defaulted.
+# The same four names detect-machine.py writes. Deliberately a second copy: if
+# the two ever drift, a value this tuple does not contain is reported UNKNOWN
+# and the fit refuses, which is the only direction the drift may fail in.
+TOPOLOGIES = ("discrete", "unified", "shared-igpu", "system")
+
+APPLIES, REEXPRESSED, NOT_APPLICABLE, NOT_SWEPT = (
+    "APPLIES", "RE-EXPRESSED", "NOT APPLICABLE", "NOT SWEPT")
+
+WRITE_MACHINE = ("python scripts/detect-machine.py --slug %s "
+                 "--desktop-state '<what the desktop is doing>'")
+
+
+def _mj_how(machine, key):
+    """The provenance label machine.json recorded for one field.
+
+    "UNKNOWN" alone is not a provenance -- detect-machine.py writes the reason
+    beside it, and the reason is the half an operator can act on. Both, or the
+    message quoting this reads "so this refuses. UNKNOWN".
     """
-    try:
-        board = paths.board_total_mib(slug)
-        reserve = paths.desktop_reserve_mib(slug)
-    except SystemExit as exc:
-        text = str(exc).strip()
-        notes.append("machine.json: %s"
-                     % (text.splitlines()[0] if text else "unavailable"))
+    prov = (machine.get("provenance") or {}).get(key)
+    if isinstance(prov, str):
+        return prov
+    if not isinstance(prov, dict):
+        return ""
+    how, why = prov.get("how") or "", prov.get("why") or ""
+    if how and why and how.strip().upper().startswith("UNKNOWN"):
+        return "%s: %s" % (how, why)
+    return how or why
+
+
+def _reserve_max(block):
+    """(max_mib, "n=N, dated DATE") from a {min,max,n,date} block.
+
+    "dated", not "measured": this function is handed whatever the record
+    carries, and whether it was measured is the record's provenance to say, not
+    this string's to assert.
+    """
+    if not isinstance(block, dict):
         return None, None
-    notes.append("machine.json: board %s MiB, desktop reserve max %s MiB "
-                 "(n=%s, measured %s)"
-                 % (comma(board), comma(reserve["max"]), reserve["n"],
-                    reserve["date"]))
-    return board, reserve["max"]
+    val = block.get("max")
+    if not isinstance(val, (int, float)) or isinstance(val, bool):
+        return None, None
+    return float(val), ("n=%s, dated %s"
+                        % (block.get("n", "?"), block.get("date", "?")))
 
 
-def check_fit(rep, cands, projector, kv, board, reserve, c_min, notes, named,
+def _topology_of(machine, slug):
+    """(topology, how, is_legacy) -- or (None, why it cannot be settled, ...).
+
+    A machine.json written before `memory_topology` existed is not simply
+    missing a field: the v1 schema in scripts/lib/paths.py describes a discrete
+    board and has no way to express anything else, so a v1 record IS a claim
+    that this is a discrete board. That claim is honoured -- and checked, when
+    the record carries enough to check it. The check is the one that catches a
+    GB10: a discrete board is a FRACTION of the host's memory, and a GPU pool
+    that is nearly all of it is one pool being counted twice.
+    """
+    raw = machine.get("memory_topology")
+    if isinstance(raw, str) and raw in TOPOLOGIES:
+        return raw, (_mj_how(machine, "memory_topology")
+                     or "machine.json memory_topology"), False
+    if isinstance(raw, str):
+        return None, ("machine.json records memory_topology %r, which this "
+                      "script does not know how to price. Known: %s."
+                      % (raw, ", ".join(TOPOLOGIES)), ), False
+    if raw is None and "memory_topology" in machine:
+        why = _mj_how(machine, "memory_topology")
+        return None, ("machine.json records memory_topology as UNMEASURED "
+                      "(null).%s" % (("\n  " + why) if why else "")), False
+
+    # ---- legacy: no memory_topology key at all --------------------------
+    board = machine.get("board_total_mib")
+    host_mib = machine.get("host_mem_total_mib")
+    if host_mib is None and isinstance(machine.get("host_ram_gb"), (int, float)):
+        host_mib = machine["host_ram_gb"] * 1024.0
+    if board is None:
+        return None, ("machine.json predates memory_topology AND records no "
+                      "board_total_mib, so there is nothing to read a topology "
+                      "out of."), True
+    if not board:
+        return None, ("machine.json predates memory_topology and records "
+                      "board_total_mib 0. That is either a CPU-only box (which "
+                      "prices against host RAM) or a card no vendor tool could "
+                      "read (which prices against nothing at all), and the two "
+                      "are not the same answer."), True
+    if host_mib:
+        ratio = board / float(host_mib)
+        if ratio >= 0.90:
+            return None, ("machine.json predates memory_topology, and its own "
+                          "numbers say it cannot be read as a discrete board: "
+                          "%s MiB of GPU memory against %s MiB of host RAM is "
+                          "%.0f%% of it. A discrete board is a fraction of the "
+                          "host's memory; a number this close to all of it is "
+                          "one pool counted twice -- the DGX Spark / GB10 "
+                          "shape, where board-minus-reserve prices the model "
+                          "against RAM the OS is living in."
+                          % (comma(board), comma(host_mib), ratio * 100)), True
+        if ratio > 0.75:
+            return None, ("machine.json predates memory_topology and its GPU "
+                          "pool is %.0f%% of host RAM (%s of %s MiB) -- too "
+                          "large a share to read as a discrete board and too "
+                          "small to read as one pool."
+                          % (ratio * 100, comma(board), comma(host_mib))), True
+        return "discrete", ("DERIVED from a pre-topology machine.json: the v1 "
+                            "schema describes a discrete board and nothing "
+                            "else, and this record's own numbers agree -- %s "
+                            "MiB of board against %s MiB of host RAM, %.0f%% "
+                            "of it."
+                            % (comma(board), comma(host_mib),
+                               ratio * 100)), True
+    return "discrete", ("DERIVED from a pre-topology machine.json: the v1 "
+                        "schema (scripts/lib/paths.py) describes a discrete "
+                        "board -- 'the card's TOTAL board memory, as "
+                        "nvidia-smi reports it' -- and has no way to express "
+                        "any other topology, so a record in it is a claim that "
+                        "this is one. UNCHECKED: the record carries no host "
+                        "RAM figure, so the one test that would catch a "
+                        "unified box read as a board could not be run."), True
+
+
+def _rule_13(topology, backend):
+    """What rule 13's two ceilings and collapse point MEAN on this topology.
+
+    Rule 13 was written on a discrete card and every word of it assumes one: a
+    window can be allocated larger than the board and stay fast until deep
+    pages are touched, at which point it spills over PCIe and throughput falls
+    off a cliff you can measure and walk back from. Take away the board and the
+    link and two of those three things stop existing. Saying which is the whole
+    job -- a report that quietly prints one ceiling where the method promises
+    two has failed rule 2 before anyone reads a number.
+    """
+    if topology == "discrete":
+        return {
+            "fully_resident_ceiling": (APPLIES, "the largest window that fits "
+                                       "board minus the desktop reserve"),
+            "shallow_safe_ceiling": (APPLIES, "a window allocated past the "
+                                     "board stays fast until deep pages are "
+                                     "touched"),
+            "collapse_point": (APPLIES, "throughput falls off a cliff when the "
+                               "spill traffic crosses PCIe; measurable, and "
+                               "survivable enough to sweep to"),
+            "spill_behaviour": "over PCIe into host RAM: slow, survivable, and "
+                               "measurable -- which is exactly what makes the "
+                               "second ceiling and the collapse point findable",
+        }
+    if topology in ("unified", "shared-igpu"):
+        driver_cap = (" A SECOND ceiling exists here and it belongs to the "
+                      "DRIVER, not to the memory: crossing "
+                      "igpu_share_limit_mib fails the allocation with RAM "
+                      "still free." if topology == "shared-igpu" else "")
+        return {
+            "fully_resident_ceiling": (
+                REEXPRESSED, "same shape, different pool: the largest window "
+                "whose weights + KV + projector fit the host budget. It is not "
+                "'resident in VRAM' -- there is no VRAM -- it is 'resident in "
+                "the one pool'." + driver_cap),
+            "shallow_safe_ceiling": (
+                NOT_APPLICABLE, "the second ceiling exists on a board because "
+                "an over-allocated window can live partly on the far side of a "
+                "PCIe link and stay fast until deep pages are touched. There "
+                "is no link and no second pool here, so there is no band "
+                "between resident and dead. Publishing a shallow-safe ceiling "
+                "on this box would be publishing a number with no referent."),
+            "collapse_point": (
+                NOT_SWEPT, "on a board the collapse point is a throughput "
+                "cliff you can measure and walk back from. Here, past the "
+                "budget the OS begins evicting itself and past the hard wall "
+                "it is the OOM killer -- which takes the campaign, not just "
+                "the arm. It is BRACKETED by arithmetic (the hard wall below) "
+                "and no rung is placed above the budget."),
+            "spill_behaviour": "nowhere. It IS host RAM. Past the budget the "
+                               "operating system starts giving up its own "
+                               "pages; past the hard wall it is the OOM killer "
+                               "or swap, not a slow window.",
+        }
+    if topology == "system":
+        mmap_note = ("weights are mmapped on a CPU run, so past the budget the "
+                     "kernel evicts page cache and re-reads the file: a "
+                     "thrash at disk speed, not a kill")
+        if backend and backend != "cpu":
+            mmap_note += (" -- but machine.json records backend %r, not 'cpu', "
+                          "so check which allocator this run actually uses "
+                          "before relying on that" % backend)
+        return {
+            "fully_resident_ceiling": (
+                REEXPRESSED, "the largest window whose weights + KV fit host "
+                "RAM minus the host's standing footprint. 'Resident' means "
+                "resident in RAM; there is no device pool."),
+            "shallow_safe_ceiling": (
+                NOT_APPLICABLE, "there is no device pool for a window to "
+                "overhang, so there is no second ceiling."),
+            "collapse_point": (
+                NOT_SWEPT, "it exists and it is reachable -- %s -- but a rung "
+                "past it costs hours, not minutes, and rule 25 does not buy "
+                "that with a cheap probe. Bracketed by arithmetic; no rung "
+                "above the budget." % mmap_note),
+            "spill_behaviour": mmap_note,
+        }
+    return {
+        "fully_resident_ceiling": (UNKNOWN, "the topology is unknown"),
+        "shallow_safe_ceiling": (UNKNOWN, "the topology is unknown"),
+        "collapse_point": (UNKNOWN, "the topology is unknown"),
+        "spill_behaviour": "UNKNOWN -- the topology is unknown",
+    }
+
+
+def memory_plan(slug, notes=None):
+    """Which pool the fit is priced against on THIS box, and the sum for it.
+
+    The one place either script asks "how much memory may this model have?".
+    Returns a record whose `budget_mib` is None whenever the answer is not
+    proven, with `why_unknown` and `fix` saying what would prove it -- callers
+    report that, they never substitute a number for it.
+    """
+    notes = notes if notes is not None else []
+    plan = {"slug": slug, "topology": None, "topology_how": None,
+            "topology_legacy": False, "pool": None, "pool_total_mib": None,
+            "pool_total_how": None, "reserve_mib": None, "reserve_how": None,
+            "budget_mib": None, "hard_wall_mib": None, "share_limit_mib": None,
+            "arithmetic": None, "why_unknown": None, "fix": None,
+            "rule_13": None, "spill_behaviour": None,
+            "board_total_mib": None, "desktop_reserve_mib": None}
+    fix_cmd = WRITE_MACHINE % (slug or "<slug>")
+
+    try:
+        machine = paths.load_machine(slug) or {}
+    except SystemExit as exc:                    # paths refuses to guess a slug
+        machine = {}
+        notes.append("machine.json: %s"
+                     % (str(exc).strip().splitlines() or ["unavailable"])[0])
+    if not machine:
+        plan["why_unknown"] = ("no machine.json for this campaign: this box is "
+                               "unmeasured, and there is no honest default for "
+                               "how much memory a model may have.")
+        plan["topology_how"] = plan["why_unknown"]
+        plan["fix"] = fix_cmd
+        plan["rule_13"] = _rule_13(None, None)
+        plan["spill_behaviour"] = plan["rule_13"].pop("spill_behaviour")
+        notes.append("machine.json: absent")
+        return plan
+
+    plan["board_total_mib"] = machine.get("board_total_mib")
+    plan["desktop_reserve_mib"] = machine.get("desktop_reserve_mib")
+    backend = machine.get("backend")
+
+    topology, how, legacy = _topology_of(machine, slug)
+    plan["topology"], plan["topology_how"] = topology, how
+    plan["topology_legacy"] = bool(legacy)
+    plan["rule_13"] = _rule_13(topology, backend)
+    plan["spill_behaviour"] = plan["rule_13"].pop("spill_behaviour")
+    if topology is None:
+        plan["why_unknown"] = ("the memory topology is unknown, and it decides "
+                               "WHICH sum is right -- discrete subtracts a "
+                               "desktop reserve from a board, the other three "
+                               "price against system memory. " + how)
+        plan["fix"] = (fix_cmd + "\n       or, if you know it: " + fix_cmd
+                       + " --topology discrete|unified|shared-igpu|system")
+        return plan
+
+    # No note here: plan_lines() prints the topology and its evidence at the
+    # head of the fit table, and a second copy in the notes list reads as two
+    # sources agreeing when it is one source printed twice.
+
+    # ---- the host pool, shared by three of the four topologies ------------
+    host_mib = machine.get("host_mem_total_mib")
+    host_how = "machine.json host_mem_total_mib (%s)" % (
+        _mj_how(machine, "host_mem_total_mib") or "no provenance recorded")
+    if host_mib is None and isinstance(machine.get("host_ram_gb"), (int, float)):
+        host_mib = round(machine["host_ram_gb"] * 1024.0)
+        host_how = ("DERIVED from host_ram_gb %.1f GB x 1024 -- host_ram_gb is "
+                    "rounded to 0.1 GB, so this carries up to ~50 MiB of "
+                    "rounding. Re-run detect-machine.py to record "
+                    "host_mem_total_mib exactly."
+                    % machine["host_ram_gb"])
+    host_res, host_res_when = _reserve_max(machine.get("host_reserve_mib"))
+
+    if topology == "discrete":
+        board = machine.get("board_total_mib")
+        res, when = _reserve_max(machine.get("desktop_reserve_mib"))
+        if not isinstance(board, int) or isinstance(board, bool) or board <= 0:
+            plan["why_unknown"] = (
+                "memory_topology is 'discrete' but board_total_mib is %r. A "
+                "discrete topology with no board size is a contradiction, and "
+                "0 is the value detect-machine.py writes to make every fit "
+                "refuse rather than pass." % board)
+            plan["fix"] = fix_cmd
+            return plan
+        if res is None:
+            plan["why_unknown"] = (
+                "no measured desktop_reserve_mib. Rule 14: the reserve is the "
+                "anti-spill budget and it is a dated range measured under a "
+                "named load, never a constant -- ~1 GiB does not survive a "
+                "desktop.")
+            plan["fix"] = fix_cmd
+            return plan
+        plan.update(pool="board", pool_total_mib=float(board),
+                    pool_total_how="machine.json board_total_mib (%s)"
+                                   % (_mj_how(machine, "board_total_mib")
+                                      or "no provenance recorded"),
+                    reserve_mib=res,
+                    reserve_how="desktop_reserve_mib.max, %s" % when,
+                    budget_mib=float(board) - res,
+                    hard_wall_mib=float(board))
+        plan["arithmetic"] = (
+            "DISCRETE: budget = %s MiB board - %s MiB desktop reserve(max, %s) "
+            "= %s MiB. Hard wall %s MiB = the board itself; past it the window "
+            "spills over PCIe into host RAM, which is slow and survivable."
+            % (comma(board), comma(res), when, comma(plan["budget_mib"]),
+               comma(board)))
+        return plan
+
+    # ---- the three that price against system memory -----------------------
+    if not host_mib:
+        plan["why_unknown"] = (
+            "memory_topology is %r, so the fit is priced against system "
+            "memory -- and machine.json records neither host_mem_total_mib nor "
+            "host_ram_gb. There is no pool to price against." % topology)
+        plan["fix"] = fix_cmd
+        return plan
+    if host_res is None:
+        plan["why_unknown"] = (
+            "memory_topology is %r, so the budget is host memory minus what "
+            "the host is ALREADY holding -- and host_reserve_mib is "
+            "unmeasured. On a board that quantity is the desktop reserve and "
+            "rule 14 refuses to carry it as a constant; it is the same "
+            "quantity here and the same refusal. Assuming zero would hand the "
+            "model the operating system's own pages." % topology)
+        plan["fix"] = fix_cmd
+        return plan
+
+    host_budget = float(host_mib) - host_res
+    plan.update(pool_total_mib=float(host_mib), pool_total_how=host_how,
+                reserve_mib=host_res,
+                reserve_how="host_reserve_mib.max (MemTotal - MemAvailable), %s"
+                            % host_res_when)
+
+    if topology == "shared-igpu":
+        share = machine.get("igpu_share_limit_mib")
+        if not isinstance(share, (int, float)) or isinstance(share, bool) \
+                or share <= 0:
+            plan["pool"] = "host-shared"
+            plan["why_unknown"] = (
+                "memory_topology is 'shared-igpu' and igpu_share_limit_mib is "
+                "%s. The driver -- not this arithmetic -- decides how much of "
+                "system RAM the integrated GPU may map, and both i915/xe and "
+                "WDDM cap it near half. Pricing against the %s MiB of host "
+                "memory would over-promise by roughly 2x, so this refuses. %s"
+                % ("unmeasured" if share is None else repr(share),
+                   comma(host_mib),
+                   _mj_how(machine, "igpu_share_limit_mib")))
+            plan["fix"] = (
+                "read the cap, then record it:\n"
+                "       clinfo | grep -i 'global memory size'      "
+                "# or OpenVINO's GPU_DEVICE_TOTAL_MEM_SIZE\n"
+                "       " + fix_cmd + " --igpu-share-limit-mib N")
+            return plan
+        share = float(share)
+        binding = "the driver's share cap" if share < host_budget \
+            else "host memory minus the host's own footprint"
+        plan.update(pool="host-shared", share_limit_mib=share,
+                    budget_mib=min(share, host_budget),
+                    hard_wall_mib=min(share, float(host_mib)))
+        plan["arithmetic"] = (
+            "SHARED-IGPU: budget = min(driver share cap %s MiB, %s MiB host "
+            "memory - %s MiB host reserve(max, %s)) = min(%s, %s) = %s MiB, "
+            "and %s is what binds. Hard wall %s MiB. There is no board and "
+            "nothing spills: past the cap the allocation FAILS with RAM still "
+            "free, and past the host reserve the OS starts giving up its own "
+            "pages."
+            % (comma(share), comma(host_mib), comma(host_res), host_res_when,
+               comma(share), comma(host_budget), comma(plan["budget_mib"]),
+               binding, comma(plan["hard_wall_mib"])))
+        return plan
+
+    plan.update(pool="host", budget_mib=host_budget,
+                hard_wall_mib=float(host_mib))
+    if topology == "unified":
+        plan["arithmetic"] = (
+            "UNIFIED: budget = %s MiB of one coherent pool - %s MiB the host "
+            "already holds (MemTotal - MemAvailable, max, %s) = %s MiB. There "
+            "is NO board: %s. Hard wall %s MiB = the pool itself, and crossing "
+            "it is the OOM killer, not a spill."
+            % (comma(host_mib), comma(host_res), host_res_when,
+               comma(host_budget),
+               ("board_total_mib %s MiB is the same pool as the vendor tool "
+                "reports it and is NOT subtracted from anything"
+                % comma(machine["board_total_mib"]))
+               if machine.get("board_total_mib") else
+               "machine.json records no board_total_mib, which is correct here",
+               comma(host_mib)))
+    else:                                                        # system
+        plan["arithmetic"] = (
+            "SYSTEM (CPU-only): budget = %s MiB host memory - %s MiB the host "
+            "already holds (MemTotal - MemAvailable, max, %s) = %s MiB. There "
+            "is no GPU pool and board_total_mib %s is not in this sum. Hard "
+            "wall %s MiB."
+            % (comma(host_mib), comma(host_res), host_res_when,
+               comma(host_budget),
+               comma(machine.get("board_total_mib"))
+               if machine.get("board_total_mib") is not None else "(absent)",
+               comma(host_mib)))
+    return plan
+
+
+def budget(slug, notes):
+    """(board_mib, reserve_max_mib) -- the DISCRETE pair, or (None, None).
+
+    Kept because the discrete pair is still what a reader of a 3090 report
+    expects to see printed. It is not the fit budget: memory_plan() is, and on
+    three of the four topologies this pair is not part of the sum at all.
+    """
+    plan = memory_plan(slug, notes)
+    if plan["topology"] != "discrete" or plan["budget_mib"] is None:
+        return None, None
+    notes.append("machine.json: board %s MiB, desktop reserve max %s MiB (%s)"
+                 % (comma(plan["pool_total_mib"]), comma(plan["reserve_mib"]),
+                    plan["reserve_how"]))
+    return plan["pool_total_mib"], plan["reserve_mib"]
+
+
+def plan_lines(plan):
+    """The pool decision, as the lines a fit table prints above its rows."""
+    lines = []
+    topo = plan["topology"] or "UNKNOWN"
+    lines.append("memory topology: %s%s"
+                 % (topo, "   [DERIVED from a machine.json written before the "
+                          "topology was recorded]" if plan["topology_legacy"]
+                    else ""))
+    for chunk in _wrap_note(plan["topology_how"] or "", 88):
+        lines.append("      " + chunk)
+    if plan["arithmetic"]:
+        for chunk in _wrap_note(plan["arithmetic"], 88):
+            lines.append("  " + chunk)
+    elif plan["why_unknown"]:
+        for chunk in _wrap_note("BUDGET UNKNOWN: " + plan["why_unknown"], 88):
+            lines.append("  " + chunk)
+    r13 = plan["rule_13"] or {}
+    for key, label in (("fully_resident_ceiling", "rule 13 fully-resident"),
+                       ("shallow_safe_ceiling", "rule 13 shallow-safe"),
+                       ("collapse_point", "rule 13 collapse point")):
+        verdict, why = r13.get(key, (UNKNOWN, ""))
+        lines.append("  %-24s %-14s %s" % (label, verdict,
+                                           _wrap_note(why, 46)[0]))
+        for chunk in _wrap_note(why, 46)[1:]:
+            lines.append("  %-24s %-14s %s" % ("", "", chunk))
+    return lines
+
+
+def _wrap_note(text, width):
+    words, line, out = (text or "").split(), "", []
+    for w in words:
+        if line and len(line) + 1 + len(w) > width:
+            out.append(line)
+            line = w
+        else:
+            line = (line + " " + w).strip()
+    if line:
+        out.append(line)
+    return out or [""]
+
+
+def check_fit(rep, cands, projector, kv, plan, c_min, notes, named,
               slug="<slug>"):
     if not cands:
         # No files, but the arithmetic that WOULD have been applied is still
@@ -1290,14 +1770,16 @@ def check_fit(rep, cands, projector, kv, board, reserve, c_min, notes, named,
         # the budget by eye without a listing (rule 1 -- derived arithmetic is
         # publishable only when it is shown).
         rep.add("FIT", UNKNOWN, "no candidate files to size",
-                list(kv.get("lines", [])) + list(notes)
+                plan_lines(plan) + list(kv.get("lines", [])) + list(notes)
                 + ["NOTE: %s" % n for n in kv.get("notes", [])])
         return []
     proj_mib = mib(projector["bytes"]) if projector else 0.0
     fixed = kv.get("fixed_mib", 0.0)
     bpt = kv.get("bytes_per_token")
+    avail = plan["budget_mib"]
 
-    detail = list(kv.get("lines", []))
+    detail = plan_lines(plan)
+    detail.extend(kv.get("lines", []))
     detail.extend(notes)
     for n in kv.get("notes", []):
         detail.append("NOTE: %s" % n)
@@ -1314,9 +1796,11 @@ def check_fit(rep, cands, projector, kv, board, reserve, c_min, notes, named,
                   "UNPROVEN until Stage 1 reads the server's own KV figure.")
 
     rows, worst_named, any_fit = [], None, False
-    if board is None:
-        # No board size: the sum is still worth printing, but nothing may be
-        # called a fit. This is the branch rule 3 exists for.
+    if avail is None:
+        # No proven budget: the sum is still worth printing, but nothing may be
+        # called a fit. This is the branch rule 3 exists for -- and since the
+        # budget can now be unknown for four different reasons (no machine.json,
+        # no topology, no reserve, an unread driver cap), the line says which.
         for g in cands:
             w = mib(g["bytes"])
             kvm = mib(bpt * c_min) if bpt else None
@@ -1325,24 +1809,28 @@ def check_fit(rep, cands, projector, kv, board, reserve, c_min, notes, named,
                          "projector_mib": round(proj_mib, 1),
                          "fixed_mib": round(fixed, 1),
                          "total_mib": round(w + (kvm or 0) + proj_mib + fixed, 1),
-                         "budget_mib": None, "verdict": UNKNOWN})
+                         "budget_mib": None, "verdict": UNKNOWN,
+                         "topology": plan["topology"], "pool": plan["pool"]})
             detail.append("%-44s %9s w + %9s kv + %6s proj + %5s fix = %9s MiB"
-                          "   ? no board size"
+                          "   ? no budget"
                           % (_stem(g["name"]), comma(w),
                              comma(kvm) if kvm is not None else "?",
                              comma(proj_mib), comma(fixed),
                              comma(w + (kvm or 0) + proj_mib + fixed)))
-        rep.add("FIT", UNKNOWN, "no machine.json: this card is unmeasured",
+        rep.add("FIT", UNKNOWN,
+                "no proven memory budget: %s"
+                % (plan["why_unknown"] or "this box is unmeasured").split(".")[0],
                 detail,
-                fix="python scripts/detect-machine.py --slug %s   (writes "
-                    "results/%s/machine.json; a guessed board is how a "
-                    "spilling window gets stamped PASS -- rule 13)"
-                    % (slug, slug))
+                fix=(plan["fix"] or WRITE_MACHINE % slug)
+                    + "\n       a guessed budget is how a spilling window gets "
+                      "stamped PASS -- rule 13")
         return rows
 
-    avail = board - reserve
-    detail.insert(0, "budget = %s board - %s desktop reserve(max) = %s MiB"
-                  % (comma(board), comma(reserve), comma(avail)))
+    # "SPILLS" is the verdict token every caller keys on, and it stays. What it
+    # MEANS is topology-dependent, so the printed word is not: only a discrete
+    # board spills, and calling an OOM kill a spill is how a report promises a
+    # slow window and delivers a dead campaign.
+    over = "SPILLS" if plan["topology"] == "discrete" else "OVER BUDGET"
     for g in cands:
         w = mib(g["bytes"])
         kvm = mib(bpt * c_min) if bpt else None
@@ -1351,20 +1839,22 @@ def check_fit(rep, cands, projector, kv, board, reserve, c_min, notes, named,
         if kvm is None:
             # Weights alone can still PROVE a miss without the cache term.
             verdict = "SPILLS" if floor > avail else UNKNOWN
-            mark = ("SPILLS on weights alone by %s MiB" % comma(floor - avail)
+            mark = ("%s on weights alone by %s MiB" % (over, comma(floor - avail))
                     if verdict == "SPILLS" else "? KV unknown")
         else:
             verdict = "FITS" if total <= avail else "SPILLS"
             mark = ("FITS, %s MiB spare" % comma(avail - total)
                     if verdict == "FITS"
-                    else "SPILLS by %s MiB" % comma(total - avail))
+                    else "%s by %s MiB" % (over, comma(total - avail)))
         any_fit = any_fit or verdict == "FITS"
         rows.append({"name": g["name"], "weights_mib": round(w, 1),
                      "kv_mib": None if kvm is None else round(kvm, 1),
                      "projector_mib": round(proj_mib, 1),
                      "fixed_mib": round(fixed, 1),
                      "total_mib": round(total, 1), "budget_mib": round(avail, 1),
-                     "verdict": verdict})
+                     "verdict": verdict, "topology": plan["topology"],
+                     "pool": plan["pool"],
+                     "hard_wall_mib": plan["hard_wall_mib"]})
         detail.append("%-44s %9s w + %9s kv + %6s proj + %5s fix = %9s   %s"
                       % (_stem(g["name"]), comma(w),
                          comma(kvm) if kvm is not None else "?",
@@ -1372,13 +1862,19 @@ def check_fit(rep, cands, projector, kv, board, reserve, c_min, notes, named,
         if named and verdict != "FITS" and worst_named is None:
             worst_named = (g["name"], verdict)
 
+    pool_word = {"board": "this card", "host": "this box's memory",
+                 "host-shared": "this box's shared memory"}.get(plan["pool"],
+                                                                "this budget")
     if worst_named:
         name, verdict = worst_named
         if verdict == "SPILLS":
-            rep.add("FIT", FAIL, "%s does not fit this card at c=%s"
-                    % (_stem(name), comma(c_min)), detail,
+            rep.add("FIT", FAIL, "%s does not fit %s at c=%s"
+                    % (_stem(name), pool_word, comma(c_min)), detail,
                     fix="choose a smaller quant, lower --c-min, or accept the "
-                        "spill knowingly -- do NOT download it to find out")
+                        "overrun knowingly -- do NOT download it to find out"
+                        + ("" if plan["topology"] == "discrete" else
+                           ".\n       Note the topology: %s"
+                           % plan["spill_behaviour"]))
         else:
             rep.add("FIT", UNKNOWN, "%s cannot be sized: KV bytes/token unknown"
                     % _stem(name), detail,
@@ -1390,7 +1886,7 @@ def check_fit(rep, cands, projector, kv, board, reserve, c_min, notes, named,
                 fix="pass --config <config.json> or --base-repo <org/model>")
     elif not any_fit:
         rep.add("FIT", FAIL, "nothing in this repo fits at c=%s" % comma(c_min),
-                detail, fix="this repo is the wrong size for this card")
+                detail, fix="this repo is the wrong size for %s" % pool_word)
     else:
         n = sum(1 for r in rows if r["verdict"] == "FITS")
         rep.add("FIT", OK, "%d of %d candidate%s fit at c=%s"
@@ -1581,7 +2077,7 @@ is UNKNOWN -- an unproven access or an unsized fit is not a pass.""",
           {"lines": [], "bytes_per_token": None, "fixed_mib": 0.0,
            "notes": ["no config.json reached: KV bytes/token is UNKNOWN, so no "
                      "total below is a fit"]})
-    board, reserve = budget(slug, notes)
+    mem = memory_plan(slug, notes)
     # "named" means the user picked files AND they resolved. When --quant was
     # given but resolved to nothing, the roster fallback below is informational
     # only: sizing DISK against all 26 files in the repo would report 415 GiB
@@ -1590,7 +2086,7 @@ is UNKNOWN -- an unproven access or an unsized fit is not a pass.""",
     # it.
     cands = chosen or [g for g in (groups or []) if not g["mmproj"]]
     named = bool(a.quant) and bool(chosen)
-    rows = check_fit(rep, cands, projector, kv, board, reserve, a.c_min, notes,
+    rows = check_fit(rep, cands, projector, kv, mem, a.c_min, notes,
                      named, slug)
     check_disk(rep, slug, cands, projector, named)
 
@@ -1600,8 +2096,15 @@ is UNKNOWN -- an unproven access or an unsized fit is not a pass.""",
         json.dump({"repo": repo, "slug": slug, "c_min": a.c_min,
                    "cache_type": a.cache_type,
                    "token_source": where if token else None,
-                   "board_total_mib": board,
-                   "desktop_reserve_max_mib": reserve,
+                   "memory": {k: v for k, v in mem.items()
+                              if k not in ("rule_13",)},
+                   "rule_13": {k: {"verdict": v[0], "why": v[1]}
+                               for k, v in (mem["rule_13"] or {}).items()},
+                   "board_total_mib": mem["board_total_mib"],
+                   "desktop_reserve_max_mib": (
+                       (mem["desktop_reserve_mib"] or {}).get("max")
+                       if isinstance(mem["desktop_reserve_mib"], dict)
+                       else None),
                    "arch": arch_rows,
                    "kv_bytes_per_token": kv.get("bytes_per_token"),
                    "fixed_state_mib": round(kv.get("fixed_mib", 0.0), 1),

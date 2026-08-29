@@ -22,12 +22,26 @@ and every change lands in a commit with a date.
     python scripts/ledger.py rows   --metric throughput.decode
     python scripts/ledger.py compare --metric composite.mean
     python scripts/ledger.py compare --metric throughput.decode --ratio
+    python scripts/ledger.py compare --metric ppl --where backend=openvino
     python scripts/ledger.py selftest         # no GPU, no network, no model
 
 WHAT THE GATE IS FOR. A retracted 83-86 t/s band reached a published page
 because two throughput figures from different sweeps were put in one sentence.
 Nothing in the artefacts stopped it; the rule lived in a human head. Here it is
 a function that exits non-zero.
+
+THE BACKEND IS PART OF THE KEY, and it is the newest part. Every number in
+results/qwen38-27b-blind/ was measured through CUDA, on one box, and no
+artefact said so - which was survivable while there was one backend. llama.cpp
+now ships an OpenVINO backend in mainline (ggml/src/ggml-openvino/, merged
+2026-03-14) that will decode the same GGUF on the same box through a CPU, an
+iGPU or an NPU, and it does not run the weights that are in the file: it
+rewrites them first, silently, before the first token
+(ggml-openvino-extra.cpp:252-273). So `backend` and the RESOLVED `device` sit
+in the comparability key beside the machine, the build and the sweep, and a
+row that does not name them cannot enter a comparison. See LADDER_* below for
+the refusal that no assertion overrides: a quant ladder on OpenVINO NPU, where
+every arm decodes as Q4_0_128 and the ladder therefore has one arm.
 
 WHAT THE LEDGER ADDS TO A MODEL CATALOGUE. The columns nobody publishes, all of
 them already measured by this harness and thrown away at the end of each
@@ -45,8 +59,12 @@ import os
 import re
 import subprocess
 import sys
+import textwrap
 
-SCHEMA = "measured-inference/ledger.jsonl v1"
+# v2 added two fields to every row and to the comparability key: `backend`
+# and the resolved `device`. A v1 ledger carries neither, so every comparison
+# against it refuses -- correctly, and uselessly. load_ledger() says so.
+SCHEMA = "measured-inference/ledger.jsonl v2"
 HERE = os.path.dirname(os.path.abspath(__file__))
 # The ledger reads results/ and nothing else. It resolves no model, no server
 # binary and no campaign, so it needs none of scripts/lib/paths.py and does not
@@ -68,7 +86,8 @@ ABSENT = object()
 
 CLASSES = {
     "accuracy": {
-        "gate": ("conditions.suite_hash", "conditions.datasets",
+        "gate": ("backend", "device",
+                 "conditions.suite_hash", "conditions.datasets",
                  "conditions.samples", "conditions.seed",
                  "conditions.max_tokens", "conditions.temperature",
                  "conditions.top_k", "conditions.top_p"),
@@ -81,7 +100,8 @@ CLASSES = {
         "travels": True,
     },
     "appetite": {
-        "gate": ("conditions.suite_hash", "conditions.datasets",
+        "gate": ("backend", "device",
+                 "conditions.suite_hash", "conditions.datasets",
                  "conditions.samples", "conditions.seed",
                  "conditions.max_tokens", "conditions.temperature"),
         "thin": ("conditions.truncated_n",),
@@ -92,7 +112,8 @@ CLASSES = {
         "travels": True,
     },
     "count": {
-        "gate": ("conditions.suite_hash", "conditions.datasets",
+        "gate": ("backend", "device",
+                 "conditions.suite_hash", "conditions.datasets",
                  "conditions.samples", "conditions.max_tokens"),
         "thin": (),
         "rules": "rules 7 and 21",
@@ -101,7 +122,8 @@ CLASSES = {
         "travels": True,
     },
     "throughput": {
-        "gate": ("machine", "build", "conditions.sweep"),
+        "gate": ("backend", "device",
+                 "machine", "build", "conditions.sweep"),
         "thin": ("conditions.depth", "conditions.token_regime",
                  "conditions.desktop_state", "conditions.prior_state",
                  "conditions.temperature", "conditions.ctx"),
@@ -118,7 +140,8 @@ CLASSES = {
         # showing acceptance and mean draft length bit-identical across
         # sessions. Sampling IS gated -- rule 3: acceptance is a property of
         # which token the drafter must guess, so temperature moves it.
-        "gate": ("machine", "build", "conditions.spec", "conditions.kv",
+        "gate": ("backend", "device",
+                 "machine", "build", "conditions.spec", "conditions.kv",
                  "conditions.temperature", "conditions.top_k",
                  "conditions.top_p"),
         "thin": ("conditions.depth", "conditions.ctx"),
@@ -131,7 +154,8 @@ CLASSES = {
         "companion": {"acceptance": "draft_len.mean"},
     },
     "memory": {
-        "gate": ("machine", "build", "conditions.ctx", "conditions.model"),
+        "gate": ("backend", "device",
+                 "machine", "build", "conditions.ctx", "conditions.model"),
         "thin": ("conditions.desktop_state", "conditions.depth"),
         "rules": "rules 13 and 14",
         "why": ("a footprint is scoped to file + drafter + projector + "
@@ -140,7 +164,8 @@ CLASSES = {
         "travels": True,
     },
     "energy": {
-        "gate": ("machine", "build", "conditions.sweep", "conditions.tier",
+        "gate": ("backend", "device",
+                 "machine", "build", "conditions.sweep", "conditions.tier",
                  "conditions.phase"),
         "thin": ("conditions.idle_w_used", "conditions.coverage"),
         "rules": "rules 24 and 30",
@@ -150,7 +175,8 @@ CLASSES = {
         "travels": False,
     },
     "load": {
-        "gate": ("machine", "build", "conditions.model", "conditions.ctx"),
+        "gate": ("backend", "device",
+                 "machine", "build", "conditions.model", "conditions.ctx"),
         "thin": (),
         "rules": "rule 13",
         "why": "whether a configuration loads at all is a property of the box",
@@ -158,8 +184,12 @@ CLASSES = {
     },
     "ratio": {
         # A ratio is computed inside one sweep and is the thing rule 30 says
-        # travels. It is gated on WHAT was divided by WHAT, never on where.
-        "gate": ("conditions.of_metric", "conditions.numerator",
+        # travels. It is gated on WHAT was divided by WHAT, never on where --
+        # except for the backend, which is not a "where": two backends running
+        # one file are two experiments, and on OpenVINO they are not even the
+        # same weights.
+        "gate": ("backend", "device",
+                 "conditions.of_metric", "conditions.numerator",
                  "conditions.denominator", "conditions.model"),
         "thin": (),
         "rules": "rule 30",
@@ -195,6 +225,37 @@ REMEDY = {
         "rule 24: name the instrumentation tier beside the watts"),
     "conditions.phase": (
         "rule 24: attribute every joule to prefill or decode"),
+    "backend": (
+        "record what decoded: scripts/bench/provenance.py's toolchain() now "
+        "writes an \"execution\" block (backend, resolved device, cuda_arch, "
+        "openvino_version, stateful_execution, build tag). On Linux with an "
+        "NVIDIA card the backend is NOT derivable -- scripts/setup.sh "
+        "installs the VULKAN build unless --cuda is given -- so pass "
+        "backend= to toolchain(), or install through setup.sh so "
+        "bin/llama.cpp/INSTALL.json describes the binary that runs"),
+    "device": (
+        "on OpenVINO, capture the server log and let "
+        "provenance.openvino_device() read \"OpenVINO: using device X\" out "
+        "of it (ggml-openvino.cpp:1526). GGML_OPENVINO_DEVICE is what was "
+        "ASKED for; that line is what was GIVEN, and a silent NPU -> CPU "
+        "fallback is exactly the difference"),
+}
+
+# Printed under a refusal on a field that is not specific to one metric class.
+FIELD_WHY = {
+    "backend": (
+        "the backend is not a setting, it is a different experiment: it "
+        "changes prefill, decode, acceptance and the VRAM ceiling for reasons "
+        "that have nothing to do with the model (scripts/setup.sh says the "
+        "same thing in prose and refuses the substitution), and on OpenVINO "
+        "it changes the WEIGHTS -- the file on disk is not what ran"),
+    "device": (
+        "one OpenVINO build decodes on CPU, on an iGPU or on an NPU, and the "
+        "three are different silicon with different quantisation: on NPU "
+        "every quantized tensor is rewritten to Q4_0_128 whatever the file "
+        "said (ggml-openvino-extra.cpp:252-273). The device that ran is read "
+        "from the server log, never from the environment variable that asked "
+        "for it"),
 }
 
 
@@ -234,6 +295,12 @@ def num(value):
 def fmt(value):
     n = num(value)
     return show(value) if n is None else ("%.6g" % n)
+
+
+def wrap(text, indent="      ", width=79):
+    """A paragraph a tired operator can read at 2am, not a 400-column line."""
+    return textwrap.fill(" ".join(str(text).split()), width=width,
+                         initial_indent=indent, subsequent_indent=indent)
 
 
 def sha16(text):
@@ -371,15 +438,236 @@ def from_bench_machine(machine, backend):
 
 
 # ---------------------------------------------------------------------------
+# THE EXECUTION CONTEXT: what decoded, and on which device
+#
+# Two fields, in the comparability key of every class, and neither of them is
+# in a single artefact this repository wrote before 2026-08-29.
+#
+#   backend   cuda | openvino | vulkan | sycl | rocm | metal | cpu
+#   device    the RESOLVED device, which on OpenVINO is read out of the server
+#             log (ggml-openvino.cpp:1526) and never out of the environment
+#             variable that asked for it
+#
+# Both come from scripts/bench/provenance.py's execution block when the probe
+# recorded one. Where it did not, they are DERIVED from the box, and only
+# where the derivation is not a guess: an NVIDIA card on Windows means CUDA,
+# because scripts/setup.ps1 installs that build and refuses to substitute
+# another. An NVIDIA card on LINUX means nothing at all -- scripts/setup.sh
+# installs the Vulkan build unless --cuda is passed -- so such a row stays
+# unnamed and blocked, which is the correct answer for exactly the machine
+# this repository is being ported to.
+#
+# This module still reads results/ and nothing else: it does not open a server
+# log, because a log under work/ is declared scratch and a number whose source
+# is re-creatable scratch has no source. Parsing that log is provenance.py's
+# job, at run time, into the artefact.
+# ---------------------------------------------------------------------------
+
+BACKENDS = ("cuda", "openvino", "vulkan", "sycl", "rocm", "metal", "cpu")
+
+# The prefixes provenance.py writes when a field could not be read. They are
+# values, not absences, and reading one of them as a device is how
+# "NOT RECORDED" becomes a comparison.
+_ABSENCE_PREFIXES = ("NOT RECORDED", "NOT SET", "UNKNOWN", "NOT NAMED",
+                     "NOT APPLICABLE")
+
+
+def named(value):
+    """The recorded value, or None when the artefact wrote down an absence."""
+    if value in (None, "", [], {}):
+        return None
+    if not isinstance(value, str):
+        return value
+    v = value.strip()
+    return None if v.upper().startswith(_ABSENCE_PREFIXES) else v
+
+
+# The execution fields that are CONDITIONS of the number rather than part of
+# its identity: they ride in conditions, where rule 3 wants them, and a reader
+# can select on them with --where.
+EXEC_CONDITIONS = ("device_asked", "cuda_arch", "openvino_version",
+                   "stateful_execution", "build_tag", "npu_quant_collapse")
+
+
+def from_execution(block):
+    """(backend, device, conditions) out of provenance.py's execution block."""
+    if not isinstance(block, dict):
+        return None, None, {}
+    be = named(block.get("backend"))
+    be = be.lower() if isinstance(be, str) else None
+    if be not in BACKENDS:
+        be = None
+    dev = named(block.get("device"))
+    cond = {}
+    for k in EXEC_CONDITIONS:
+        v = named(block.get(k))
+        if v is not None:
+            cond[k] = v
+    warn = block.get("warnings")
+    if isinstance(warn, list) and warn:
+        # A silent NPU -> CPU fallback is recorded there, and it travels with
+        # the row: a reader comparing two devices has to know that one of them
+        # was not the device the run asked for.
+        cond["execution_warnings"] = len(warn)
+        cond["execution_warning_1"] = str(warn[0])[:300]
+    return be, dev, cond
+
+
+def derive_backend(machine_fields):
+    """(backend, how) from the box alone -- only where it is not a guess."""
+    fields = machine_fields or {}
+    os_name = str(fields.get("os") or "").lower()
+    gpu = str(fields.get("gpu") or "").lower()
+    if "darwin" in os_name or "macos" in os_name:
+        return "metal", ("DERIVED: macOS, where Metal is compiled into the "
+                         "official arm64 llama.cpp build (scripts/setup.sh, "
+                         "PAT_MACOS_ARM64)")
+    if os_name.startswith("windows") and "nvidia" in gpu:
+        return "cuda", ("DERIVED: an NVIDIA card on Windows, where "
+                        "scripts/setup.ps1 installs the CUDA build and "
+                        "refuses to substitute another")
+    if "nvidia" in gpu:
+        return None, ("UNKNOWN: an NVIDIA card on a non-Windows box says "
+                      "nothing about the backend -- scripts/setup.sh installs "
+                      "the VULKAN build on Linux unless --cuda is given, "
+                      "because there are no official Linux CUDA binaries")
+    return None, ("UNKNOWN: nothing this row records about its box names a "
+                  "backend")
+
+
+def derive_device(backend, machine_fields):
+    """(device, how) once the backend is known. OpenVINO is never derived."""
+    gpu = named((machine_fields or {}).get("gpu"))
+    if backend in ("cuda", "rocm", "vulkan", "sycl", "metal"):
+        if gpu:
+            return gpu, ("DERIVED: the %s build decodes on the card this row "
+                         "names" % backend)
+        return None, ("UNKNOWN: a %s row whose artefact names no card names "
+                      "no device either" % backend)
+    if backend == "cpu":
+        return "CPU", "DERIVED: the cpu build has one device"
+    if backend == "openvino":
+        return None, ("UNKNOWN: an OpenVINO device is never derived. One "
+                      "build decodes on CPU, on an iGPU or on an NPU, the "
+                      "environment variable says only what was asked for, and "
+                      "the device that was given is printed once, in the "
+                      "server log (ggml-openvino.cpp:1526)")
+    return None, ("UNKNOWN: the backend is unnamed, so its device cannot be "
+                  "named")
+
+
+# ---------------------------------------------------------------------------
+# THE QUANT LADDER GUARD
+#
+# A refusal no field match can cure, because these rows are not mislabelled --
+# the ladder does not exist. On OpenVINO the backend rewrites the weights
+# before the first token (ggml/src/ggml-openvino/ggml-openvino-extra.cpp lines
+# 252-273, through requantize_to_buffers at ggml-quants.cpp:841, which
+# dequantises to F32 and re-quantises):
+#
+#   token_embd.weight -> F16 on NPU from a Q6_K source, otherwise Q8_0_C
+#   output.weight     -> Q8_0_C on every device, always
+#   on NPU            -> Q4_0_128 for every other quantized tensor, whatever
+#                        the file said; even a Q4_0 file is re-blocked from 32
+#                        weights per scale to 128
+#   elsewhere         -> Q6_K and Q5_K both become Q8_0_C
+#
+# So a quant ladder on NPU has ONE arm, run several times under several file
+# names, and a ladder that puts an OpenVINO arm beside a CUDA arm compares a
+# rewritten model against the file.
+# ---------------------------------------------------------------------------
+
+# GGUF quantisation tokens as they appear in file names: IQ4_XS, Q4_K_M, Q8_0,
+# Q2_K_XL, F16. Anchored on non-alphanumerics at both ends, so "Qwen3" and
+# "QAT" do not become quantisations.
+QUANT_RE = re.compile(r"(?<![0-9A-Za-z])"
+                      r"(I?Q[0-9](?:_[0-9A-Za-z]+){0,3}|BF16|F16|F32|MXFP4)"
+                      r"(?![0-9A-Za-z])")
+
+LADDER_SOURCE = ("ggml/src/ggml-openvino/ggml-openvino-extra.cpp:252-273; the "
+                 "rewrite itself is requantize_to_buffers at "
+                 "ggml-quants.cpp:841, which dequantises to F32 and "
+                 "re-quantises")
+
+
+def quant_of(name):
+    """The quantisation a model name declares, longest match, or None."""
+    if not name:
+        return None
+    text = str(name).upper()
+    for suffix in (".GGUF", ".BIN"):
+        if text.endswith(suffix):
+            text = text[:-len(suffix)]
+    hits = QUANT_RE.findall(text)
+    return max(hits, key=len) if hits else None
+
+
+def row_quant(r):
+    """This row's quantisation, from whichever field carries the model name."""
+    for cand in (r.get("model_file"), (r.get("conditions") or {}).get("model"),
+                 r.get("model_label"), r.get("model_path")):
+        q = quant_of(cand)
+        if q:
+            return q
+    return None
+
+
+def ladder_guard(rows):
+    """Refusals that no --assert-same can reach.
+
+    Empty unless these rows form a quant ladder -- two or more quantisations
+    of a model, side by side -- and at least one of them ran on OpenVINO.
+    """
+    arms = {}
+    for r in rows:
+        q = row_quant(r)
+        if q:
+            arms.setdefault(q, []).append(r)
+    if len(arms) < 2:
+        return []
+    ov = [r for r in rows if r.get("backend") == "openvino"]
+    if not ov:
+        return []
+    npu = [r for r in ov
+           if str(r.get("device") or "").upper().startswith("NPU")]
+    others = [r for r in rows
+              if r.get("backend") and r.get("backend") != "openvino"]
+    out = []
+    if npu:
+        out.append({"kind": "npu-ladder", "severity": "REFUSED",
+                    "arms": arms, "rows": npu})
+    if others:
+        out.append({"kind": "mixed-backend-ladder", "severity": "REFUSED",
+                    "arms": arms, "rows": ov + others,
+                    "other_backends": sorted({r["backend"] for r in others})})
+    if not npu and not others:
+        out.append({"kind": "openvino-ladder", "severity": "WARNING",
+                    "arms": arms, "rows": ov})
+    return out
+
+
+# ---------------------------------------------------------------------------
 # rows
 # ---------------------------------------------------------------------------
 
 def row(campaign, source, extractor, metric, klass, value, unit,
         date=None, conditions=None, machine=None, build=None,
         machine_fields=None, build_fields=None, model=None, label=None,
-        provenance="MEASURED", note=None):
+        provenance="MEASURED", note=None, backend=None, device=None):
     """One measurement, with everything needed to refuse to misuse it."""
     conditions = {k: v for k, v in (conditions or {}).items() if v is not None}
+    # An artefact that names the backend wins; otherwise the box is asked, and
+    # it answers only where the answer is not a guess. Either way the row says
+    # which of the two happened, so a reader can throw out the derivation
+    # without throwing out the measurement (rule 1).
+    if backend:
+        backend_how = "RECORDED: named by the artefact this row came from"
+    else:
+        backend, backend_how = derive_backend(machine_fields)
+    if device:
+        device_how = "RECORDED: named by the artefact this row came from"
+    else:
+        device, device_how = derive_device(backend, machine_fields)
     rec = {
         "campaign": campaign,
         "model_file": os.path.basename(model.replace("\\", "/")) if model else None,
@@ -387,6 +675,8 @@ def row(campaign, source, extractor, metric, klass, value, unit,
         "model_label": label,
         "machine": machine,
         "build": build,
+        "backend": backend,
+        "device": device,
         "metric": metric,
         "class": klass,
         "value": value,
@@ -398,11 +688,13 @@ def row(campaign, source, extractor, metric, klass, value, unit,
         "provenance": provenance,
         "machine_fields": machine_fields or {},
         "build_fields": build_fields or {},
+        "backend_source": backend_how,
+        "device_source": device_how,
     }
     if note:
         rec["note"] = note
-    ident = canon([campaign, rec["model_path"], machine, build, metric,
-                   conditions, date, source])
+    ident = canon([campaign, rec["model_path"], machine, build, backend,
+                   device, metric, conditions, date, source])
     rec["row"] = hashlib.sha1(ident.encode("utf-8")).hexdigest()[:12]
     return rec
 
@@ -429,6 +721,14 @@ BENCH_METRICS = (
 def extract_bench(doc, source, campaign):
     backend = doc.get("backend") or {}
     settings = doc.get("settings") or {}
+    prov = doc.get("provenance") or doc.get("toolchain")
+    be, dev, exec_cond = from_execution(
+        (prov or {}).get("execution") if isinstance(prov, dict) else None)
+    # bench.py's own backend block is the second place to look: it already
+    # holds the engine, the server binary and the window, and a build that
+    # records what it decoded with puts it here.
+    be = be or named(backend.get("backend"))
+    dev = dev or named(backend.get("device"))
     results = doc.get("results") or {}
     comp = doc.get("composite") or {}
     rule7 = doc.get("rule7_rerun") or {}
@@ -458,6 +758,7 @@ def extract_bench(doc, source, campaign):
         "top_p": settings.get("top_p"),
         "presence_penalty": settings.get("presence_penalty"),
         "ctx": backend.get("ctx"),
+        "engine": backend.get("engine"),
         "server_args": backend.get("server_args"),
         "speculative": doc.get("speculative"),
         "judged": bool(doc.get("judge") or doc.get("judge_panel")),
@@ -467,6 +768,7 @@ def extract_bench(doc, source, campaign):
         # explicitly None so the gate can say "not named" rather than guess.
         "sweep": None,
     }
+    base.update(exec_cond)
     out = []
     for ds, res in sorted(results.items()):
         if not isinstance(res, dict):
@@ -491,7 +793,7 @@ def extract_bench(doc, source, campaign):
                            "%s.%s" % (prefix, ds), klass, res[key], unit,
                            date=date, conditions=cond, machine=mid, build=bid,
                            machine_fields=mfields, build_fields=bfields,
-                           model=model, label=label))
+                           model=model, label=label, backend=be, device=dev))
     for key, metric, note in (
             ("composite", "composite.mean",
              "composite index, never an accuracy (rule 21)"),
@@ -507,6 +809,7 @@ def extract_bench(doc, source, campaign):
                        blk["mean"], "index 0-100", date=date, conditions=cond,
                        machine=mid, build=bid, machine_fields=mfields,
                        build_fields=bfields, model=model, label=label,
+                       backend=be, device=dev,
                        provenance="DERIVED: mean of the scored set",
                        note=note))
     return out
@@ -556,6 +859,10 @@ _ARM_METRIC_KEYS = {k for _, keys, _, _, _ in ARM_METRICS for k in keys}
 ARM_LABEL_KEYS = ("arm", "label", "id", "name", "cap", "fa", "drafter")
 ARM_BULK = ("probes", "per_pos_rate", "fa_log_lines", "log", "logs",
             "rows", "events", "power_files", "samples")
+# Promoted to the row itself, so they are not also copied into conditions:
+# the gate compares FIELDS, and one value in two places is one refactor from
+# being two values.
+PROMOTED = ("backend", "device", "execution")
 
 
 def is_arm_sweep(doc):
@@ -583,8 +890,13 @@ def extract_arm_sweep(doc, source, campaign, sweep, arms=None, extra=None,
         bfields = {k: prov["llama_cpp"].get(k)
                    for k in ("version", "build", "commit")}
     model = doc.get("model") or doc.get("model_key")
+    doc_be, doc_dev, exec_cond = from_execution(
+        (prov or {}).get("execution") if isinstance(prov, dict) else None)
+    doc_be = doc_be or named(doc.get("backend"))
+    doc_dev = doc_dev or named(doc.get("device"))
     doc_cond = scalars(doc, drop=("arms", "provenance", "toolchain", "model",
-                                  "results") + ARM_BULK)
+                                  "results") + ARM_BULK + PROMOTED)
+    doc_cond.update(exec_cond)
     date = date or doc.get("generated") or doc.get("date") or doc.get("t")
 
     out = []
@@ -596,7 +908,14 @@ def extract_arm_sweep(doc, source, campaign, sweep, arms=None, extra=None,
         cond = dict(doc_cond)
         for k, v in (extra or {}).items():
             cond.setdefault(k, v)          # fills gaps, never overrides
-        cond.update(scalars(arm, drop=ARM_BULK))
+        cond.update(scalars(arm, drop=ARM_BULK + PROMOTED))
+        # An ARM may carry its own execution context: a sweep whose arms are
+        # backends is exactly the sweep this repository is about to run, and
+        # the arm wins over the file it sits in.
+        arm_be, arm_dev, arm_exec = from_execution(arm.get("execution"))
+        be = arm_be or named(arm.get("backend")) or doc_be
+        dev = arm_dev or named(arm.get("device")) or doc_dev
+        cond.update(arm_exec)
         cond["sweep"] = sweep
         cond["arm"] = label
         cond["arm_pos"] = i
@@ -616,7 +935,7 @@ def extract_arm_sweep(doc, source, campaign, sweep, arms=None, extra=None,
                 out.append(row(campaign, source, "arm-sweep/v1", metric, klass,
                                arm[k], unit, date=date, conditions=c,
                                machine=mid, build=bid, machine_fields=mfields,
-                               build_fields=bfields,
+                               build_fields=bfields, backend=be, device=dev,
                                model=armfile or model, label=label))
                 break
     return out
@@ -646,6 +965,15 @@ def extract_arms_ledger(lines, source, campaign):
                            rec.get("sweep") or "?")
         prov = header.get("provenance") or header.get("toolchain")
         mid, bid, mfields = from_provenance(prov)
+        # arms.py writes the header once and every probe line afterwards, so
+        # the execution context can arrive on either: the probe wins, because
+        # a sweep may relaunch the server on another device between arms.
+        be, dev, exec_cond = from_execution(
+            (prov or {}).get("execution") if isinstance(prov, dict) else None)
+        p_be, p_dev, p_exec = from_execution(rec.get("execution"))
+        be = p_be or named(rec.get("backend")) or be
+        dev = p_dev or named(rec.get("device")) or dev
+        exec_cond = dict(exec_cond, **p_exec)
         cond = {
             "sweep": sweep, "arm": rec.get("arm"), "rep": rec.get("rep"),
             "arm_pos": rec.get("pos"), "order_mode": rec.get("order_mode"),
@@ -671,6 +999,7 @@ def extract_arms_ledger(lines, source, campaign):
             "spec_sha": rec.get("spec_sha"),
             "server_bin": rec.get("server_bin"),
         }
+        cond.update(exec_cond)
         req = rec.get("request") or {}
         for k in ("temperature", "top_k", "top_p", "seed"):
             if req.get(k) is not None:
@@ -680,6 +1009,7 @@ def extract_arms_ledger(lines, source, campaign):
         common = dict(campaign=campaign, source=source,
                       extractor="arms-ledger/v1", date=date, conditions=cond,
                       machine=mid, build=bid, machine_fields=mfields,
+                      backend=be, device=dev,
                       model=model, label=rec.get("arm"))
         if rec.get("kind") == "arm_failed":
             out.append(row(metric="load.failed", klass="load", value=1,
@@ -782,7 +1112,8 @@ class Sweep(object):
 
     def doc_fields(self):
         return scalars(self.doc, drop=("arms", "provenance", "toolchain",
-                                       "model", "results") + ARM_BULK)
+                                       "model", "results") + ARM_BULK
+                                      + PROMOTED)
 
 
 def supersede(sweeps, log):
@@ -905,7 +1236,16 @@ def scan_campaign(name, camp_path, log):
         if isinstance(prof, dict):
             mid = machine_id(prof.get("gpu_name"), prof.get("driver"),
                              prof.get("os"))
-            filled = 0
+            # detect-machine.py records the backend of the build INSTALLED on
+            # this box, with how it knows (MEASURED from INSTALL.json, DERIVED
+            # from the platform, or UNKNOWN). That is a weaker claim than a
+            # probe recording what it launched -- a campaign can run a
+            # different binary than bin/llama.cpp holds -- so the row says
+            # where the answer came from.
+            prof_backend = named(prof.get("backend"))
+            prof_how = ((prof.get("provenance") or {}).get("backend")
+                        or {}).get("how")
+            filled, filled_be = 0, 0
             for r in rows:
                 if not r["machine"] and mid:
                     r["machine"] = mid
@@ -915,9 +1255,24 @@ def scan_campaign(name, camp_path, log):
                                            "host": prof.get("host")}
                     r["conditions"]["machine_source"] = "campaign machine.json"
                     filled += 1
+                if not r["backend"] and prof_backend:
+                    r["backend"] = prof_backend
+                    r["backend_source"] = (
+                        "campaign machine.json: the backend of the build "
+                        "INSTALLED on this box, not one this probe recorded "
+                        "(%s)" % (prof_how or "no provenance recorded there"))
+                    if not r["device"]:
+                        dev, how = derive_device(prof_backend,
+                                                 r["machine_fields"])
+                        if dev:
+                            r["device"], r["device_source"] = dev, how
+                    filled_be += 1
             if filled:
                 log("  %s: %d row(s) took their machine from machine.json"
                     % (name, filled))
+            if filled_be:
+                log("  %s: %d row(s) took their backend from machine.json"
+                    % (name, filled_be))
     return rows, seen_sources
 
 
@@ -938,9 +1293,10 @@ def build_rows(results_dir, log):
 
 
 ROW_ORDER = ("row", "campaign", "model_file", "model_label", "machine",
-             "build", "metric", "class", "value", "unit", "date", "conditions",
-             "source", "extractor", "provenance", "note", "model_path",
-             "machine_fields", "build_fields")
+             "build", "backend", "device", "metric", "class", "value", "unit",
+             "date", "conditions", "source", "extractor", "provenance", "note",
+             "model_path", "machine_fields", "build_fields", "backend_source",
+             "device_source")
 
 
 def dump_row(r):
@@ -991,6 +1347,13 @@ def load_ledger(path):
     recs = read_jsonl(path)
     if not recs or recs[0].get("kind") != "header":
         sys.exit("%s has no header line; rebuild it" % rel(path))
+    schema = recs[0].get("_schema")
+    if schema != SCHEMA:
+        print(wrap("NOTE: %s was generated under %r; this tool writes %r. Its "
+                   "rows predate the backend and device fields, so every "
+                   "comparison refuses on them until it is rebuilt:"
+                   % (rel(path), schema, SCHEMA), indent=""))
+        print("    python scripts/ledger.py build\n")
     return recs[0], recs[1:]
 
 
@@ -1078,7 +1441,7 @@ def cmd_check(args):
         if extra > 0:
             print("      ... and %d more artefact(s)" % extra)
         if field in REMEDY:
-            print("      FIX: %s" % REMEDY[field])
+            print(wrap("FIX: %s" % REMEDY[field]))
 
     print("\nTHIN -- the row compares, but a condition rule 3 names for its "
           "class is\nabsent, so every comparison it enters inherits the gap.")
@@ -1088,12 +1451,34 @@ def cmd_check(args):
                                      key=lambda kv: -len(kv[1])):
         print("  %-10s %-30s %4d row(s)" % (klass, field, len(rs)))
 
+    print("\nDEGENERATE BY CONSTRUCTION -- a group of rows that looks "
+          "like a ladder but\nis one arm repeated, because the backend "
+          "rewrote the weights before it ran\nthem. No field match cures "
+          "these; the comparison does not exist.")
+    groups, degenerate = {}, 0
+    for r in rows:
+        sweep = get(r, "conditions.sweep")
+        key = (r["campaign"], show(sweep) if present(sweep) else r["source"])
+        groups.setdefault(key, []).append(r)
+    for key in sorted(groups):
+        for g in ladder_guard(groups[key]):
+            if g["severity"] == "REFUSED":
+                degenerate += 1
+            print("  %-8s %s  in %s" % (g["severity"], key[0], key[1]))
+            print("           %s" % LADDER_TITLE[g["kind"]])
+            print("           arms: %s" % ", ".join(sorted(g["arms"])))
+    if not degenerate:
+        print("  no refused ladder. %d group(s) of rows were checked."
+              % len(groups))
+
     n_bad = len({r["row"] for rs in blocked.values() for r in rs})
     print("\n%d of %d row(s) are BLOCKED from comparison; %d artefact(s) "
           "produced them."
           % (n_bad, len(rows),
              len({r["source"] for rs in blocked.values() for r in rs})))
-    if edited or (n_bad and not args.warn_only):
+    if degenerate:
+        print("%d ladder(s) are degenerate by construction." % degenerate)
+    if edited or ((n_bad or degenerate) and not args.warn_only):
         return 1
     return 0
 
@@ -1157,12 +1542,16 @@ def with_label(rows, columns):
     """Put the arm's own name in front when the rows carry different ones.
 
     A table of three numbers that does not say which arm each one is is a
-    table a reader cannot use.
+    table a reader cannot use -- and a table whose rows ran on two backends
+    without saying so is worse, because it looks usable.
     """
-    labels = {r.get("model_label") for r in rows}
-    if len(labels) > 1 and "@model_label" not in columns:
-        return ["@model_label"] + list(columns)
-    return list(columns)
+    out = list(columns)
+    front = []
+    for field in ("model_label", "backend", "device"):
+        key = "@" + field
+        if len({r.get(field) for r in rows}) > 1 and key not in out:
+            front.append(key)
+    return front + out
 
 
 def print_table(rows, columns, indent="  "):
@@ -1282,8 +1671,10 @@ def print_refusal(metric, klass, rows, refusals, asserted, sel=""):
             for val, rs in sorted(ref["values"].items(),
                                   key=lambda kv: -len(kv[1]))[:6]:
                 print("      %4d row(s)  %s" % (len(rs), val[:88]))
+        if ref["field"] in FIELD_WHY:
+            print(wrap(FIELD_WHY[ref["field"]]))
         if ref["field"] in REMEDY:
-            print("      FIX: %s" % REMEDY[ref["field"]])
+            print(wrap("FIX: %s" % REMEDY[ref["field"]]))
     if not spec["travels"]:
         print("\n  This class does not travel between sweeps at all. The "
               "comparison that\n  IS legal here is the ratio inside each "
@@ -1299,6 +1690,101 @@ def print_refusal(metric, klass, rows, refusals, asserted, sel=""):
     print("\n  Override only with evidence you hold and the ledger does not:")
     print("      --assert-same %s" % " ".join(r["field"] for r in refusals))
     print("  The assertion is printed above the result, every time.")
+
+
+LADDER_TITLE = {
+    "npu-ladder": "a quant ladder on OpenVINO NPU, where every arm is "
+                  "Q4_0_128",
+    "mixed-backend-ladder": "a quant ladder mixing an OpenVINO arm with a "
+                            "non-OpenVINO one",
+    "openvino-ladder": "a quant ladder on OpenVINO, where part of every arm "
+                       "is the same Q8_0_C tensors",
+}
+
+
+def _ladder_arms(ref):
+    print("\n  the arms, by the quantisation each row's model name declares:")
+    for q in sorted(ref["arms"]):
+        rs = ref["arms"][q]
+        backends = sorted({str(r.get("backend") or "backend not named")
+                           for r in rs})
+        devices = sorted({str(r.get("device") or "device not named")
+                          for r in rs})
+        print("      %-10s %3d row(s)   %s on %s"
+              % (q, len(rs), "/".join(backends), "/".join(devices)))
+
+
+def print_ladder(refusals, sel=""):
+    """Refuse a ladder whose arms are not different weights, and say why.
+
+    Nothing here is a field mismatch, so nothing here has an override: the
+    rows are labelled correctly and the files really are different files. What
+    ran was the same weights.
+    """
+    for ref in refusals:
+        if ref["kind"] == "npu-ladder":
+            print("REFUSED. A quant ladder on OpenVINO NPU has one arm: every "
+                  "file in it\ndecoded as Q4_0_128.")
+            _ladder_arms(ref)
+            print("\n  WHY. llama.cpp's OpenVINO backend rewrites every "
+                  "quantized tensor before\n  the first token. On NPU each "
+                  "one becomes Q4_0_128 whatever the file said,\n  and even "
+                  "a Q4_0 file is re-blocked from 32 weights per scale to "
+                  "128 -\n  four times fewer scales than the file carries. "
+                  "token_embd.weight and\n  output.weight are Q8_0_C on "
+                  "every arm and on every device.")
+            print(wrap(LADDER_SOURCE))
+            print("\n  So these arms are the same weights under different "
+                  "names. A difference\n  between them is session noise "
+                  "(rule 30); a similarity is arithmetic, not a\n  finding. "
+                  "Published, it tells a reader that quantisation does not "
+                  "matter on\n  an NPU, which is not what was measured "
+                  "(rule 2).")
+            print("\n  There is no --assert-same for this. The rows are not "
+                  "mislabelled and no\n  evidence held outside the ledger "
+                  "changes what ran: the ladder does not exist.")
+            print("\n  WHAT TO DO INSTEAD")
+            print("    - rank the quants where the file survives contact "
+                  "with the runtime -\n      CUDA, Vulkan, or CPU - and "
+                  "publish the ranking as a property of that\n      backend "
+                  "(rule 6: perplexity over 294,912 token positions).")
+            print("    - on NPU measure ONE arm, and label it \"Q4_0_128, "
+                  "requantised from\n      <file>\" rather than by the file "
+                  "name.")
+            print("    - to see the rewrite: GGML_OPENVINO_DUMP_IR=1 dumps "
+                  "what actually ran.\n      Nothing else reports it - the "
+                  "debug lines that would are commented out\n      at "
+                  "ggml-openvino.cpp:332-346.")
+        elif ref["kind"] == "mixed-backend-ladder":
+            print("REFUSED. An OpenVINO arm and a %s arm are in one quant "
+                  "ladder, and they did\nnot run the same weights."
+                  % "/".join(ref["other_backends"]))
+            _ladder_arms(ref)
+            print("\n  WHY. The %s arm ran the file. The OpenVINO arm ran a "
+                  "rewrite of it:\n  token_embd.weight and output.weight "
+                  "become Q8_0_C, and Q6_K and Q5_K\n  tensors become "
+                  "Q8_0_C, before the first token."
+                  % "/".join(ref["other_backends"]))
+            print(wrap(LADDER_SOURCE))
+            print("\n  A ladder across those two measures the runtime at "
+                  "least as much as the\n  quantisation, and nothing "
+                  "recorded separates the two. Split it: one\n  ladder per "
+                  "backend, each published with its backend named.")
+            print("\n  WHAT TO DO INSTEAD")
+            print("      python scripts/ledger.py compare %s --where "
+                  "\"backend=openvino\"" % sel)
+            print("      python scripts/ledger.py compare %s --where "
+                  "\"backend=%s\"" % (sel, ref["other_backends"][0]))
+        else:
+            print("WARNING. This quant ladder ran on OpenVINO, so part of "
+                  "every arm is the\nsame weights.")
+            _ladder_arms(ref)
+            print("\n  token_embd.weight and output.weight are Q8_0_C on "
+                  "every arm whatever the\n  file said, and any Q6_K or "
+                  "Q5_K tensor became Q8_0_C, so the ladder\n  measures a "
+                  "narrower difference than the file names promise. Name the\n"
+                  "  requantisation beside every number (rule 2).")
+            print(wrap(LADDER_SOURCE))
 
 
 def largest_group(rows, refusals, asserted):
@@ -1334,6 +1820,16 @@ def print_permitted(metric, klass, rows, asserted, columns):
         print("\n  span %s to %s -- %s of the low value. Rule 26: printed "
               "precision\n  respects the noise floor the campaign published; "
               "this tool does not know it." % (fmt(lo), fmt(hi), span))
+    ov = [r for r in rows if r.get("backend") == "openvino"]
+    if ov:
+        print("\n  These %d row(s) ran on OpenVINO, which rewrites the file's "
+              "weights before\n  it runs them, so every number above "
+              "describes weights that are not the\n  ones in the GGUF: "
+              "token_embd.weight and output.weight are Q8_0_C on every\n  "
+              "device, Q6_K and Q5_K become Q8_0_C, and on NPU every other "
+              "quantized\n  tensor becomes Q4_0_128. Say so beside the "
+              "number (rule 2)." % len(ov))
+        print(wrap(LADDER_SOURCE, indent="      "))
     comp = spec.get("companion", {})
     if metric in comp:
         print("\n  Rule 11: publish %s beside this, always -- acceptance IS "
@@ -1348,6 +1844,17 @@ def cmd_compare(args):
     if not picked:
         print("no rows match.")
         return 0
+    # The ladder guard runs BEFORE the field gate, and it is the more
+    # fundamental refusal: the gate asks whether two rows may be compared,
+    # this asks whether the second row is a second measurement at all.
+    guards = ladder_guard(picked)
+    refused = [g for g in guards if g["severity"] == "REFUSED"]
+    if refused:
+        print_ladder(refused, selector_flags(args))
+        return 2
+    for g in guards:
+        print_ladder([g], selector_flags(args))
+        print()
     classes = {r["class"] for r in picked}
     if len(classes) > 1:
         print("REFUSED. These rows span %d metric classes (%s) and each has "
@@ -1436,6 +1943,11 @@ def compare_ratio(picked, args):
                             "model": r["conditions"].get("model"),
                             "sweep": sweep},
                 machine=r["machine"], build=r["build"],
+                # A ratio inherits the execution context of the rows it
+                # divided. Two ratios from two backends are two claims about
+                # two runtimes, and rule 30's "ratios travel" was measured on
+                # one of them.
+                backend=r.get("backend"), device=r.get("device"),
                 model=r["model_path"], label=r["model_label"],
                 provenance="DERIVED: this row's value divided by the "
                            "baseline arm's, inside one sweep"))
@@ -1510,7 +2022,14 @@ def _fixture(tmp):
             "python": "3.11.9",
             "gpu": {"name": "NVIDIA GeForce RTX 3090", "driver": "596.36"},
             "llama_cpp": {"version": "0.1.2-dev", "build": "10502",
-                          "commit": "0adcc3bb5"}}
+                          "commit": "0adcc3bb5"},
+            # The block provenance.py writes. It is not decoration on a Linux
+            # artefact: an NVIDIA card on Linux does not imply CUDA, because
+            # scripts/setup.sh installs the Vulkan build unless --cuda is
+            # given, so a Linux row without this block is refused by design.
+            "execution": {"backend": "cuda",
+                          "device": "NVIDIA GeForce RTX 3090",
+                          "cuda_arch": "86", "build_tag": "b10502"}}
     passes = [
         ("forward", 76.32, {"B-f16": -8.9, "C-180k": -3.1, "E-n4-p0": 8.4}),
         ("reverse", 67.41, {"B-f16": -8.2, "C-180k": -4.7, "E-n4-p0": 13.2}),
@@ -1573,6 +2092,107 @@ def _fixture(tmp):
     return os.path.join(tmp, "results")
 
 
+def _fixture_openvino(tmp):
+    """A synthetic campaign whose arms are backends and quantisations.
+
+    Every throughput value below is INVENTED, and it has to be: this repo
+    measures no OpenVINO device yet. They are here only so that rows exist to
+    refuse, and the refusals under test do not read a single one of them --
+    they read the backend, the device and the file name. The NPU arms are
+    given near-identical values on purpose, because that is what a ladder
+    looks like when the four files decoded as the same Q4_0_128 weights.
+    """
+    camp = os.path.join(tmp, "results", "synth-openvino")
+    os.makedirs(os.path.join(camp, "data"))
+    base_prov = {"recorded_by": "scripts/bench/provenance.py",
+                 "platform": "Linux-6.14.0-x86_64",
+                 "python": "3.12.3",
+                 "gpu": {"raw": "NOT RECORDED: FileNotFoundError: nvidia-smi"},
+                 "llama_cpp": {"version": "0.1.2-dev", "build": "10679",
+                               "commit": "9f2b1c4aa"}}
+    npu_exec = {"backend": "openvino", "device": "NPU", "device_asked": "NPU",
+                "openvino_version": "2026.3.1",
+                "stateful_execution": "NOT SET", "build_tag": "b10679",
+                "npu_quant_collapse": "Q4_0_128",
+                "warnings": ["On NPU every quantized tensor except the "
+                             "embeddings and the output projection becomes "
+                             "Q4_0_128, whatever the file was."]}
+    files = {
+        # Four files, one set of weights: the ladder that must be refused.
+        "ov-npu-quant-ladder.json": {
+            "model": "/m/Qwen3.8-27B-UD-IQ4_XS.gguf",
+            "date": "2026-08-29T09:00:00Z",
+            "conditions": "-c 8192 (NPU needs an explicit -c), --parallel 1",
+            "provenance": dict(base_prov, execution=npu_exec),
+            "arms": [
+                {"arm": "npu-iq4xs", "file": "/m/Qwen3.8-27B-UD-IQ4_XS.gguf",
+                 "mean_tps": 11.2},
+                {"arm": "npu-q4km", "file": "/m/Qwen3.8-27B-Q4_K_M.gguf",
+                 "mean_tps": 11.1},
+                {"arm": "npu-q6k", "file": "/m/Qwen3.8-27B-Q6_K.gguf",
+                 "mean_tps": 11.3},
+                {"arm": "npu-q8", "file": "/m/Qwen3.8-27B-Q8_0.gguf",
+                 "mean_tps": 11.0}]},
+        # One sweep, two backends, two quantisations: refused twice over.
+        "ov-vs-cuda-ladder.json": {
+            "model": "/m/Qwen3.8-27B-Q4_K_M.gguf",
+            "date": "2026-08-29T10:00:00Z",
+            "provenance": base_prov,
+            "arms": [
+                {"arm": "openvino-gpu-q4km",
+                 "file": "/m/Qwen3.8-27B-Q4_K_M.gguf", "mean_tps": 9.4,
+                 "execution": {"backend": "openvino", "device": "GPU.0",
+                               "openvino_version": "2026.3.1"}},
+                {"arm": "cuda-q6k", "file": "/m/Qwen3.8-27B-Q6_K.gguf",
+                 "mean_tps": 41.8,
+                 "execution": {"backend": "cuda",
+                               "device": "NVIDIA GeForce RTX 3090",
+                               "cuda_arch": "86"}}]},
+        # Two quants on an iGPU: not degenerate, but not what the file names
+        # promise either, because both arms' Q6_K tensors became Q8_0_C.
+        "ov-gpu-quant-ladder.json": {
+            "model": "/m/Qwen3.8-27B-Q6_K.gguf",
+            "date": "2026-08-29T11:00:00Z",
+            "provenance": dict(base_prov, execution={
+                "backend": "openvino", "device": "GPU.1",
+                "device_asked": "GPU.1", "openvino_version": "2026.3.1"}),
+            "arms": [
+                {"arm": "gpu-q6k", "file": "/m/Qwen3.8-27B-Q6_K.gguf",
+                 "mean_tps": 14.6},
+                {"arm": "gpu-q5km", "file": "/m/Qwen3.8-27B-Q5_K_M.gguf",
+                 "mean_tps": 15.1}]},
+    }
+    for fn, doc in files.items():
+        with open(os.path.join(camp, "data", fn), "w", encoding="utf-8") as fh:
+            json.dump(doc, fh)
+
+    # The silent fallback, in the go-forward shape: the run asked for NPU and
+    # the server log said CPU, so the row is a CPU row.
+    fallback_exec = {
+        "backend": "openvino", "device": "CPU", "device_asked": "NPU",
+        "openvino_version": "2026.3.1", "build_tag": "b10679",
+        "warnings": ["SILENT FALLBACK: GGML_OPENVINO_DEVICE asked for NPU and "
+                     "the backend resolved CPU. Every number from this run is "
+                     "a CPU number."]}
+    led = [{"kind": "sweep_start", "slug": "synth-openvino",
+            "armfile": "ov-device", "provenance": base_prov},
+           {"kind": "probe", "armfile": "ov-device", "sweep": "ov-device",
+            "arm": "asked-npu", "rep": 1, "pos": 0, "probe": "code",
+            "ctx_size": 8192, "ctx_source": "literal",
+            "model_path": "/m/Qwen3.8-27B-UD-IQ4_XS.gguf",
+            "flags": ["-c", "8192", "--parallel", "1"],
+            "ts": "2026-08-29T12:00:00Z",
+            "execution": fallback_exec,
+            "request": {"temperature": 0.0, "top_k": 1, "top_p": 1.0},
+            "timings": {"predicted_per_second": 6.8, "prompt_per_second": 92.0,
+                        "prompt_n": 4, "predicted_n": 400}}]
+    with open(os.path.join(camp, "data", "ov-device.jsonl"), "w",
+              encoding="utf-8") as fh:
+        for r in led:
+            fh.write(json.dumps(r) + "\n")
+    return os.path.join(tmp, "results")
+
+
 def cmd_selftest(args):
     import tempfile
     import shutil
@@ -1604,7 +2224,8 @@ def cmd_selftest(args):
         ok, refusals = gate(forward + nobox)
         check("a row naming no box -> refused on machine and build",
               sorted((r["field"], r["why"]) for r in refusals),
-              [("build", "NOT NAMED"), ("conditions.sweep", "DIFFERS"),
+              [("backend", "NOT NAMED"), ("build", "NOT NAMED"),
+               ("conditions.sweep", "DIFFERS"), ("device", "NOT NAMED"),
                ("machine", "NOT NAMED")])
 
         print("\nratios travel where absolutes do not")
@@ -1650,6 +2271,82 @@ def cmd_selftest(args):
         check("the sweep rides every line",
               sorted({r["conditions"]["sweep"] for r in led}),
               ["spec:spec-sweep"])
+
+        print("\nthe execution context")
+        check("the artefact's execution block names the backend",
+              sorted({r["backend"] for r in tps if "no-provenance"
+                      not in r["source"]}), ["cuda"])
+        check("an NVIDIA card on Linux is NOT derived into a backend",
+              derive_backend({"os": "Linux-6.8.0-x86_64",
+                              "gpu": "NVIDIA GeForce RTX 3090"})[0], None)
+        check("an NVIDIA card on Windows is, and the row says so",
+              derive_backend({"os": "Windows-10-10.0.26200-SP0",
+                              "gpu": "NVIDIA GeForce RTX 3090"})[0], "cuda")
+        check("an OpenVINO device is never derived",
+              derive_device("openvino", {"gpu": "Intel Arc A770"})[0], None)
+
+        ov_results = _fixture_openvino(os.path.join(tmp, "ov"))
+        ovrows, _ = build_rows(ov_results, lambda s: None)
+        by_arm = {}
+        for r in ovrows:
+            if r["metric"] == "throughput.decode":
+                by_arm.setdefault(r["conditions"].get("arm"), []).append(r)
+        check("the resolved device beats the variable that asked for it",
+              [(r["device"], r["conditions"].get("device_asked"))
+               for r in by_arm["asked-npu"]], [("CPU", "NPU")])
+        check("the fallback warning travels with the row",
+              by_arm["asked-npu"][0]["conditions"]["execution_warning_1"][:16],
+              "SILENT FALLBACK:")
+        check("an ARM may carry its own backend",
+              sorted((a, by_arm[a][0]["backend"], by_arm[a][0]["device"])
+                     for a in ("cuda-q6k", "openvino-gpu-q4km")),
+              [("cuda-q6k", "cuda", "NVIDIA GeForce RTX 3090"),
+               ("openvino-gpu-q4km", "openvino", "GPU.0")])
+
+        print("\nbackend and device are in the comparability key")
+        ok, refusals = gate(by_arm["cuda-q6k"] + by_arm["openvino-gpu-q4km"])
+        check("a CUDA arm beside an OpenVINO arm -> refused, by name",
+              sorted((r["field"], r["why"]) for r in refusals),
+              [("backend", "DIFFERS"), ("device", "DIFFERS")])
+        ok, _ = gate(by_arm["gpu-q6k"] + by_arm["gpu-q5km"])
+        check("two arms on one device -> the backend does not stop them",
+              ok, True)
+        ok, refusals = gate(by_arm["npu-iq4xs"] + by_arm["asked-npu"])
+        check("one file, two OpenVINO devices -> refused on the device",
+              [(r["field"], r["why"]) for r in refusals],
+              [("device", "DIFFERS"), ("conditions.sweep", "DIFFERS")])
+
+        print("\nthe quant ladder guard")
+        npu_rows = [r for a in ("npu-iq4xs", "npu-q4km", "npu-q6k", "npu-q8")
+                    for r in by_arm[a]]
+        check("four files on NPU -> REFUSED as one arm repeated",
+              [(g["kind"], g["severity"]) for g in ladder_guard(npu_rows)],
+              [("npu-ladder", "REFUSED")])
+        check("the refusal names every arm it refuses",
+              sorted(ladder_guard(npu_rows)[0]["arms"]),
+              ["IQ4_XS", "Q4_K_M", "Q6_K", "Q8_0"])
+        check("ONE quantisation, two devices, is not a ladder",
+              ladder_guard(by_arm["npu-iq4xs"] + by_arm["asked-npu"]), [])
+        check("an OpenVINO arm beside a CUDA arm -> REFUSED as a ladder too",
+              [(g["kind"], g["severity"]) for g in
+               ladder_guard(by_arm["cuda-q6k"] + by_arm["openvino-gpu-q4km"])],
+              [("mixed-backend-ladder", "REFUSED")])
+        check("an all-OpenVINO iGPU ladder is a WARNING, not a refusal",
+              [(g["kind"], g["severity"]) for g in
+               ladder_guard(by_arm["gpu-q6k"] + by_arm["gpu-q5km"])],
+              [("openvino-ladder", "WARNING")])
+        check("a ladder with no OpenVINO row is not this guard's business",
+              ladder_guard([{"backend": "cuda", "device": "RTX 3090",
+                             "model_file": "m-Q4_K_M.gguf", "conditions": {}},
+                            {"backend": "cuda", "device": "RTX 3090",
+                             "model_file": "m-Q6_K.gguf", "conditions": {}}]),
+              [])
+        check("quantisations are read out of file names, not guessed",
+              [quant_of(n) for n in ("Qwen3.8-27B-UD-IQ4_XS.gguf",
+                                     "gemma-4-12B-it-QAT-Q4_0.gguf",
+                                     "Qwen3.8-27B-UD-Q2_K_XL.gguf",
+                                     "Qwen3.8-27B.gguf")],
+              ["IQ4_XS", "Q4_0", "Q2_K_XL", None])
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
