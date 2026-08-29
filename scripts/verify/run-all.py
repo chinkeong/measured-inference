@@ -130,6 +130,26 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 # saying what a failure MEANS). Ordered cheapest first, measured 2026-08-30 on
 # Windows 11 / Python 3.11: 0.1, 0.1, 0.7, 2.3, 2.9, 20.8 and 23.5 s, 50 s the
 # whole way through. Order is a courtesy only - every member runs regardless.
+# `scripts/setup.sh` on POSIX, `scripts/setup.ps1` on Windows -- the two write
+# the same bin/llama.cpp/INSTALL.json, and naming the wrong one is a dead end
+# for whoever reads it. Picked the way scripts/lib/paths.py already picks it.
+SETUP_HINT = ("scripts\setup.ps1" if os.name == "nt" else "./scripts/setup.sh")
+
+
+def _missing_module(out):
+    """The module name in a ModuleNotFoundError, or None.
+
+    A check that dies importing matplotlib has not found a defect; it has
+    found a box that has not run setup. The two read identically in an exit
+    code and must not read identically in the report.
+    """
+    for line in (out or "").splitlines():
+        line = line.strip()
+        if line.startswith("ModuleNotFoundError: No module named"):
+            return line.split("named", 1)[1].strip().strip("'\"")
+    return None
+
+
 CHECKS = (
     ("detect-machine", "scripts/detect-machine.py", ("--self-test",), 300,
      "the memory-topology classifier changed its mind about a recorded box "
@@ -140,8 +160,9 @@ CHECKS = (
      "table that no longer matches the run that checked it"),
     ("ladder-png", "scripts/quant-ladder/make-ladder-png.py", ("--self-test",),
      300,
-     "the renderer of the published quant-ladder figure mishandles --out, "
-     "and the crash lands after every source is read and the figure drawn"),
+     "the renderer of the published quant-ladder figure cannot draw it "
+     "from the sources in this tree, so the figure a reader is shown and "
+     "the data under it have stopped agreeing"),
     ("bench-selftest", "scripts/bench/selftest.py", (), 300,
      "the benchmark harness and rule 21 disagree about what the suite is"),
     ("instrument-guard", "scripts/verify/instrument-guard.py", (), 300,
@@ -279,7 +300,20 @@ def main():
             print("")
             print("-" * 78)
             print("FAILED  %s  (exit %s, %.1f s)" % (name, rc, secs))
-            print("what it means: %s" % why)
+            missing = _missing_module(out)
+            if missing:
+                # The line below is the one place this tool could confidently
+                # mislead. Every `why` in CHECKS describes a DEFECT, and on a
+                # tree that has not run setup the cause is not a defect at all
+                # -- it is an absent dependency. Printing the defect story here
+                # sends a reader after a bug that is not there, on their first
+                # command after a clone, which is the exact failure this
+                # checker exists to prevent.
+                print("what it means: NOT A DEFECT, an environment: this box "
+                      "has no %s. The check never ran." % missing)
+                print("the fix:       %s   (then re-run this)" % SETUP_HINT)
+            else:
+                print("what it means: %s" % why)
             print("re-run it alone: python %s" % rel)
             print("-" * 78)
             for line in _head_and_tail(out, a.lines):
