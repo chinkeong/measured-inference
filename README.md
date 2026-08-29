@@ -16,10 +16,17 @@ machine.
 ```
 git clone https://github.com/chinkeong/measured-inference.git
 cd measured-inference
-# start your coding agent (Claude Code, etc.), then:
-#   "I need a report for https://huggingface.co/<repo>/<model>.gguf"
-# the field-guide skill interviews you once, then runs autonomously.
+./scripts/setup.sh --cuda          # POSIX + NVIDIA; .\scripts\setup.ps1 on Windows
+python scripts/lib/paths.py        # says what resolves and what is missing
+# start your coding agent (Claude Code, opencode, Pi), then paste a prompt.
 ```
+
+**[PROMPTS.md](PROMPTS.md) is the copy-paste library** — 22 templates covering a
+single-model field guide, a quant ladder, a multi-model shootout, benchmarks
+without sweeps, a hard stop on a rented machine, a shift handover, and resuming
+after a crash. Start with its [fill-in form](PROMPTS.md#the-fill-in-form): it is
+the Stage 0 interview as an answer sheet, so you fill it in one pass, paste it
+once, and the campaign runs to the end without stopping to ask (rule 27).
 
 Everything heavy is self-contained and gitignored: `scripts/setup.*` downloads a
 llama.cpp build into `bin/`, creates the repo-local `.venv/` from
