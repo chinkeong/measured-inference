@@ -147,7 +147,37 @@ def check(rc, out, err):
     return "SILENT", "exit 0 but printed nothing"
 
 
+USAGE = """\
+A6 - assemble each quant rung's probe-A answer into a runnable program and
+EXECUTE it under node, because every published PASS for that probe came from
+four lexical checks and not one of them ran the code.
+
+    python scripts/bench/execute-probe.py
+
+Positional arguments: none. The rung order, the bpw table and the 15-second
+timeout are pinned in this file; the prompt prefix those answers continue from
+is recovered out of scripts/quant-ladder/detectors.ps1.
+
+No environment variables. No server, no model, no GPU - but `node` must be on
+PATH, and this runs model-generated JavaScript on this machine.
+
+Example:
+  python scripts/bench/execute-probe.py
+
+Reads results/qwen38-27b-blind/data/quant-ladder/det-<rung>-probeA.txt. Writes
+.../quant-ladder/execute-probe.json and prints one row per rung: which of the
+four shapes the answer took, whether it ran, and the last line it printed.
+"""
+
+
 def main():
+    # A help request must never start work. This script has no argument parser,
+    # so without this line --help falls through, executes eleven rungs of
+    # model-written JavaScript under node and overwrites execute-probe.json.
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(USAGE.rstrip())
+        return
+
     pre = prefix()
     print("Probe-A code, EXECUTED under node %s. Timeout %ds.\n"
           % (subprocess.run(["node", "--version"], capture_output=True,

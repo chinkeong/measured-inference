@@ -500,5 +500,44 @@ def _report():
     return 0
 
 
+USAGE = """\
+Where things are on THIS machine - repo root, campaign.json, machine.json, the
+llama.cpp binaries, the card - resolved at call time and never assumed. Run
+with no arguments it prints the RESOLUTION REPORT: what resolves here, what
+does not, and why. stage-0 and PROMPTS.md name that report as the readiness
+check, so it stays the no-argument behaviour.
+
+    python scripts/lib/paths.py          # the resolution report
+    python scripts/lib/paths.py --help   # this text
+
+Positional arguments: none. --help and -h are the only words this reads;
+anything else is ignored and the report prints.
+
+Environment, all optional:
+  MEASURED_INFERENCE_SLUG   pin the campaign when results/ holds more than one
+  LLAMA_SERVER              exact path to one llama.cpp binary
+  LLAMA_DIR                 directory holding the llama.cpp binaries
+  MODEL_DIR                 directory holding the .gguf weights
+
+No server, no model, no GPU, and no file written - the report goes to stdout.
+A resolver that finds nothing raises SystemExit carrying the message that says
+what to do about it, so the report prints NOT FOUND per tool instead of dying
+at the first one.
+
+Example:
+  python scripts/lib/paths.py
+
+Imported as a library, this module runs nothing at import time. Resolve at the
+point of use - paths.llama_bin(), paths.model_path(), paths.board_total_mib() -
+never into a module-level constant.
+"""
+
+
 if __name__ == "__main__":
+    # --help DESCRIBES the report; it does not run it. The report stays what a
+    # bare invocation prints, because that is the readiness check stage-0 tells
+    # the operator to run.
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(USAGE.rstrip())
+        sys.exit(0)
     sys.exit(_report())

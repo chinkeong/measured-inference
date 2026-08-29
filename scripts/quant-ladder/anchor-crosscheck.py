@@ -121,5 +121,34 @@ def main():
     print("  hardware rather than attempted and reported badly.")
 
 
+USAGE = """\
+How far is the quantised UD-IQ4_XS anchor from full precision? Prints the KLD
+ladder, the shape of its cost-per-bit curve, and a triangle-inequality LOWER
+bound on the anchor's own distance from BF16, borrowed from a published H200
+measurement of the one file both studies share.
+
+    python scripts/quant-ladder/anchor-crosscheck.py
+
+Positional arguments: none. No environment variables. No server, no model, no
+GPU - it reads one JSON file and prints. The external BF16 reference points
+are pinned in EXTERNAL_BF16 in this file, not fetched.
+
+Example:
+  python scripts/quant-ladder/anchor-crosscheck.py
+
+Reads results/qwen38-27b-blind/data/quant-ladder/kld-ladder.json, and exits
+with an error naming that path if it is absent.
+
+OUTPUT. None. This script writes NO FILE; the whole result is the report on
+stdout, so redirect it if you want to keep a copy.
+"""
+
+
 if __name__ == "__main__":
+    # A help request must never start work. This script has no argument
+    # parser, so without this line --help falls through and prints the whole
+    # cross-check instead of answering.
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(USAGE.rstrip())
+        raise SystemExit(0)
     main()

@@ -29,6 +29,8 @@ REPORT-SPEC: a figure never carries a number alone. Every value plotted is also
 printed in the tables beside it; this only draws them.
 """
 
+import sys
+
 # bpw,   file,          PPL,    accuracy, empty/75, executes
 DATA = [
     (4.223, "IQ4_XS",   6.5956, 97.30,  0, True),
@@ -220,5 +222,42 @@ def main():
     return "\n".join(o)
 
 
+USAGE = """\
+The quantisation ladder as one inline SVG figure: perplexity added, accuracy
+lost and the empty-answer rate against the UD-IQ4_XS reference, over a strip
+saying whether each file's emitted JavaScript actually ran.
+
+    python scripts/quant-ladder/make-ladder-chart.py > <destination>.html
+
+Positional arguments: none. Every value is pinned in the DATA table in this
+file - eight Unsloth rungs from 4.223 down to 1.835 bpw, measured elsewhere
+and printed in the tables beside this figure. No environment variables. No
+server, no model, no GPU: nothing is measured here, the numbers are only
+drawn.
+
+Example:
+  python scripts/quant-ladder/make-ladder-chart.py \\
+      > results/qwen38-27b-blind/work/ladder-chart.svg.html
+
+OUTPUT. The <figure> block goes to STDOUT and nowhere else - this script
+opens no file for writing. The published copy is
+results/qwen38-27b-blind/work/ladder-chart.svg.html, which is that stdout
+redirected there by the caller.
+
+IT DOES NOT WRITE THE PNG. results/qwen38-27b-blind/figures/quant-ladder.png
+is a different artifact rendered by a different file,
+scripts/quant-ladder/make-ladder-png.py - which draws it at MODULE level, so
+merely importing that file rewrites the published figure. Two artifacts, two
+files; this is the one the guide page carries inline.
+"""
+
+
 if __name__ == "__main__":
+    # A help request must never start work. This script has no argument
+    # parser, so without this line --help falls through and prints the whole
+    # figure instead of answering - and a caller redirecting stdout gets a
+    # chart where the usage should have been.
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(USAGE.rstrip())
+        raise SystemExit(0)
     print(main())

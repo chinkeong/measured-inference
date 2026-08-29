@@ -23,6 +23,8 @@ REPORT-SPEC: every number here is printed in the table beside it; this only
 draws them.
 """
 
+import sys
+
 # cap W, decode t/s, mean W, SM MHz, J/token
 DATA = [
     (350, 75.61, 305.4, 1618, 4.033),
@@ -132,5 +134,36 @@ def main():
     return "\n".join(o)
 
 
+USAGE = """\
+The power-cap result as one figure: board power, SM clock and decode
+throughput drawn as a percentage of the stock 350 W setting, with the gap
+between power and throughput shaded, because that gap IS the efficiency win.
+
+    python scripts/power/make-powercap-chart.py > <destination>.html
+
+Positional arguments: none. Every value is pinned in the DATA table in this
+file - three caps at 350, 300 and 250 W, measured elsewhere and printed in
+the report table beside this figure. No environment variables. No server, no
+model, no GPU: nothing is measured here, the numbers are only drawn.
+
+Example:
+  python scripts/power/make-powercap-chart.py \\
+      > results/qwen38-27b-blind/work/powercap-chart.html
+
+OUTPUT. The <figure> block goes to STDOUT and nowhere else - this script
+opens no file for writing. The published copy is
+results/qwen38-27b-blind/work/powercap-chart.html, which is that stdout
+redirected there by the caller; redirect it yourself or the figure lands in
+your terminal.
+"""
+
+
 if __name__ == "__main__":
+    # A help request must never start work. This script has no argument
+    # parser, so without this line --help falls through and prints the whole
+    # figure instead of answering - and a caller redirecting stdout gets a
+    # chart where the usage should have been.
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(USAGE.rstrip())
+        raise SystemExit(0)
     print(main())

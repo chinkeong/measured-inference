@@ -1858,7 +1858,40 @@ def _ifeval_dry_run():
     return 1 if failed else 0
 
 
+USAGE = """\
+Download, cache, build prompts for and score the benchmark datasets - rule 21's
+seven, plus the registered adjuncts that never join a composite Mean. bench.py
+imports this; run directly it is a self-check.
+
+    python scripts/bench/datasets_io.py                    # load every set, print a sample prompt
+    python scripts/bench/datasets_io.py --ifeval-dry-run   # prove the IFEval verifier
+
+Positional arguments: none. --ifeval-dry-run is the only option. With no
+arguments every set in ALL_DATASET_NAMES is LOADED off disk and one prompt from
+each is printed - that is the point of the bare invocation, and it is why
+--help has to be answered above it rather than below.
+
+No environment variables. No server, no model, no GPU: the dry run scores
+hand-written cases against each of the 25 instruction types, both directions,
+and needs none of them. Needs `requests`, which only the network fallback calls.
+
+Example:
+  python scripts/bench/datasets_io.py --ifeval-dry-run
+
+Reads in rule 23's order: scripts/bench/datasets-frozen/, then the
+scripts/bench/datasets/ cache, then - once, and only for a set missing from
+both - the canonical public source, which is written into that cache. Writes
+nothing under results/; everything else goes to stdout.
+"""
+
+
 if __name__ == "__main__":
+    # A help request must never load anything. Everything below this line reads
+    # every frozen dataset off disk, so the guard goes ABOVE the
+    # --ifeval-dry-run dispatch: beside it, and before it.
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(USAGE.rstrip())
+        sys.exit(0)
     if "--ifeval-dry-run" in sys.argv[1:]:
         sys.exit(_ifeval_dry_run())
     for ds in ALL_DATASET_NAMES:

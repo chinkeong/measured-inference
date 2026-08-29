@@ -61,7 +61,39 @@ def two_prop_z(k1, n1, k2, n2):
     return round(z, 3), round(pv, 4)
 
 
+USAGE = """\
+Combine the two halves of the GPQA-Diamond anchor - questions 1-100 and
+questions 101-198 - into the full 198, the only form of this number that
+carries no subject-ordering caveat.
+
+    python scripts/bench/combine-gpqa-halves.py
+
+Positional arguments: none. Both halves are named in this file, and the
+combination REFUSES unless they total exactly 198, because two halves that do
+not cover the frozen file exactly once are a sample, not the benchmark.
+
+No environment variables. No server, no model, no GPU - this reads two JSON
+files, does arithmetic, and writes a third.
+
+Example:
+  python scripts/bench/combine-gpqa-halves.py
+
+Reads results/qwen38-27b-blind/data/gpqa-anchor-iq4xs.json and
+gpqa-anchor-iq4xs-tail.json. Writes gpqa-anchor-iq4xs-full198.json beside them
+and prints the pooled score, the excluding-truncated upper bound, and both
+half-against-half tests.
+"""
+
+
 def main():
+    # A help request must never start work. This script has no argument parser,
+    # so without this line --help falls through and REWRITES the published
+    # full-198 artefact - the smoke test answering a question by taking a
+    # measurement.
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(USAGE.rstrip())
+        return
+
     d = os.path.join(REPO, "results", "qwen38-27b-blind", "data")
     a = json.load(io.open(os.path.join(d, "gpqa-anchor-iq4xs.json"), encoding="utf-8"))
     b = json.load(io.open(os.path.join(d, "gpqa-anchor-iq4xs-tail.json"), encoding="utf-8"))

@@ -621,7 +621,58 @@ def _cmd_release():
     return 0
 
 
+USAGE = """\
+The machine-wide GPU mutex rule 20 rests on: one job at a time, a commit cap on
+every child, and no server outliving the process that started it. Every
+launcher in this repo goes through gpu_lock.serve(); run directly, this file is
+the operator console for the lock those launchers take.
+
+    python scripts/bench/gpu_lock.py status     # the default
+    python scripts/bench/gpu_lock.py kill
+    python scripts/bench/gpu_lock.py release
+
+Subcommands (default: status, which is also what an unrecognised word gets):
+  status    memory and commit headroom, who holds the lock, and every live
+            llama.cpp tool. Exits 0 only when the lock is free AND no server is
+            running - that is the "is the card idle" check AGENTS.md's crash
+            recovery tells a resuming agent to run before deciding anything.
+  kill      terminate every live llama.cpp tool (llama-server,
+            llama-perplexity, llama-cli, llama-bench, llama-tokenize,
+            llama-mtmd-cli, llama-completion), then clear the lock.
+  release   clear a STALE lock and nothing else. It refuses while a live pid
+            holds it, and it never touches a process.
+
+Positional arguments: the subcommand, and nothing else.
+
+THE LOCK FILE is JSON naming the holding pid, that pid's start time (so a
+reused pid cannot inherit the lock), the job's tag, its argv and when it was
+acquired. It lives at <repo>/.gpu-lock.json unless MEASURED_INFERENCE_LOCK says
+otherwise. A lock whose pid is dead is stale and the next acquire() takes it; a
+lock whose pid is alive fails the second caller in about a second, with a
+message naming the first.
+
+Environment, all optional:
+  MEASURED_INFERENCE_LOCK        the lockfile path (default <repo>/.gpu-lock.json)
+  MEASURED_INFERENCE_MEM_CAP_GB  per-job commit cap (default 0.75 x RAM)
+  MEASURED_INFERENCE_DRY_RUN=1   acquire() and serve() refuse the card outright
+  MEASURED_INFERENCE_RLIMIT_AS=1 POSIX only: opt in to RLIMIT_AS on the child
+
+Example:
+  python scripts/bench/gpu_lock.py status
+
+Takes the card: never - no subcommand here loads a model. `status` only reads;
+`kill` terminates processes and deletes the lockfile; `release` deletes the
+lockfile. Nothing under results/ is written.
+"""
+
+
 if __name__ == "__main__":
+    # Answered BEFORE the dispatch below, because that dispatch sends every
+    # unrecognised word - "--help" included - to status. Help is the one word
+    # that must not quietly mean something else.
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(USAGE.rstrip())
+        sys.exit(0)
     cmd = (sys.argv[1] if len(sys.argv) > 1 else "status").lower()
     sys.exit({"status": _cmd_status,
               "kill": _cmd_kill,

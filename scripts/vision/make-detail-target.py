@@ -39,6 +39,7 @@ Writes: detail-target.png (2560x1440) and detail-target.json (ground truth).
 import json
 import os
 import random
+import sys
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -209,5 +210,41 @@ def main():
              sum(1 for q in truth["questions"] if q["class"] == "fine")))
 
 
+USAGE = """\
+Render the 1440p detail target the image-budget probes read text off: a
+COARSE layer at 96 px that survives any downsampling, a FINE layer of 15 px
+table cells and a 12 px serial that should not, and the ground truth for
+every question, so scoring is string equality and no judge is needed.
+
+    python scripts/vision/make-detail-target.py
+
+Positional arguments: none. No environment variables. No server, no model, no
+GPU - this draws an image with Pillow. The random draw is seeded 20260825 in
+this file, so a re-render on the same fonts is byte-identical; the FONTS are
+a measurement input, resolved from MONO_CANDIDATES / SANS_CANDIDATES and
+recorded in the truth JSON, so a re-render elsewhere is a DIFFERENT target
+and says so in the artefact rather than hiding in the pixels.
+
+Example:
+  python scripts/vision/make-detail-target.py
+
+OUTPUT - and both files are COMMITTED, so re-running this rewrites frozen
+measurement inputs (rule 23) in place:
+  scripts/vision/detail-target.png    2560x1440, the target itself
+  scripts/vision/detail-target.json   ground truth, fonts used, 7 questions
+                                      (2 coarse positive control, 5 fine)
+They are committed precisely so nobody has to re-render to run a probe. You
+do not need this script to USE the target - only to change it.
+"""
+
+
 if __name__ == "__main__":
+    # A help request must never start work. This script has no argument
+    # parser, so without this line --help falls through and RE-RENDERS both
+    # committed artefacts above - a help request rewriting a frozen
+    # measurement input, on a machine whose fonts may not be the published
+    # ones. Verified: it did exactly that.
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(USAGE.rstrip())
+        raise SystemExit(0)
     main()
