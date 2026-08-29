@@ -120,7 +120,37 @@ def wait(p, timeout=600):
     return False
 
 
+USAGE = """\
+Can a 12 GB RTX 3060 run the QAT Q2_0 file, and how fast? Allocation above an
+idle baseline at five context sizes, plus one ngram-mod arm.
+
+    python scripts/quant-ladder/qat-3060-fit.py
+
+Positional arguments: none. The arms are pinned in this file -
+qwen38-27b-qat-q2_0.gguf, drafter off, q8_0 KV, -ngl 99, 400 predicted tokens,
+at -c 4096 / 8192 / 16384 / 32768 / 65536, then -c 8192 with ngram-mod.
+
+Environment, all optional:
+  LLAMA_SERVER / LLAMA_DIR       where llama-server is (scripts/lib/paths.py)
+  MODEL_DIR                      directory holding the .gguf weights
+  MEASURED_INFERENCE_DRY_RUN=1   gpu_lock refuses the card, so nothing loads
+  MEASURED_INFERENCE_MEM_CAP_GB  per-job commit cap (gpu_lock)
+  MEASURED_INFERENCE_LOCK        the one-job lockfile (gpu_lock)
+
+Takes the card: one llama-server per arm through gpu_lock.serve, on a 3090.
+VRAM allocation transfers to a 3060; SPEED does not - any 3060 figure is
+DERIVED by memory bandwidth (360 against 936 GB/s) and labelled so (rule 10).
+Writes results/qwen38-27b-blind/data/quant-ladder/qat-q2_0/qat-3060-fit.json.
+"""
+
+
 def main():
+    # A help request must never start work. This script has no argument parser,
+    # so without this line --help falls through and loads a model (rule 20).
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(USAGE.rstrip())
+        return
+
     os.makedirs(OUT, exist_ok=True)
     q = refarm.quiet_report()
     print("host: %s   (rule 27: speed needs a quiet machine)" % q["status"])

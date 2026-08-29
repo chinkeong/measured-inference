@@ -153,7 +153,37 @@ def diversity(text):
             "longest_repeated_line_run": best}
 
 
+USAGE = """\
+Is 353 t/s a drafter winning, or a model looping? Read the text, not the rate:
+distinct-trigram ratio, longest repeated block, and whether it hit the cap.
+
+    python scripts/quant-ladder/ngram-verify.py
+
+Positional arguments: none. The conditions are pinned in this file -
+Qwen3.8-27B-UD-Q2_K_XL, greedy, 400 predicted tokens, two prompts (an LRU cache
+and a four-paragraph essay) against three drafters: none, ngram-mod, draft-mtp.
+
+Environment, all optional:
+  LLAMA_SERVER / LLAMA_DIR       where llama-server is (scripts/lib/paths.py)
+  MODEL_DIR                      directory holding the .gguf weights
+  MEASURED_INFERENCE_DRY_RUN=1   gpu_lock refuses the card, so nothing loads
+  MEASURED_INFERENCE_MEM_CAP_GB  per-job commit cap (gpu_lock)
+  MEASURED_INFERENCE_LOCK        the one-job lockfile (gpu_lock)
+
+Takes the card: one llama-server per drafter through gpu_lock.serve.
+Writes results/qwen38-27b-blind/data/overnight/ngram-verify.json, and prints
+the first lines of an ngram-mod answer, because a number about degeneration
+that nobody eyeballs is how this happens again.
+"""
+
+
 def main():
+    # A help request must never start work. This script has no argument parser,
+    # so without this line --help falls through and loads a model (rule 20).
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(USAGE.rstrip())
+        return
+
     os.makedirs(OUT, exist_ok=True)
     print("Is the ngram-mod speedup real? Reading the output, not the rate.\n")
     rows = []

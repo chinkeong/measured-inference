@@ -198,7 +198,38 @@ def probe(prompt):
             "acceptance": round(da / dn, 3) if dn else None}
 
 
+USAGE = """\
+Does the wide drafter still fit once the window is FULL? Rule 13b: fill about
+90 per cent of the window with real tokens, then read board VRAM there.
+
+    python scripts/bench/drafter-deepfill.py
+
+Positional arguments: none. The arms are pinned in this file - A n4/p0.75 and
+B n10/p0.5, both at -c 122880 with the vision projector loaded, filled to
+110,592 tokens, 400 predicted tokens, 2 settled probes.
+
+Reads results/<slug>/machine.json for the board total and the desktop reserve;
+without it this probe stops before loading anything.
+
+Environment, all optional:
+  LLAMA_SERVER / LLAMA_DIR       where llama-server is (scripts/lib/paths.py)
+  MODEL_DIR                      directory holding the .gguf weights
+  MEASURED_INFERENCE_DRY_RUN=1   gpu_lock refuses the card, so nothing loads
+  MEASURED_INFERENCE_MEM_CAP_GB  per-job commit cap (gpu_lock)
+  MEASURED_INFERENCE_LOCK        the one-job lockfile (gpu_lock)
+
+Takes the card: one llama-server per arm through gpu_lock.serve.
+Writes results/qwen38-27b-blind/data/register/drafter-deepfill.json.
+"""
+
+
 def main():
+    # A help request must never start work. This script has no argument parser,
+    # so without this line --help falls through and loads a model (rule 20).
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(USAGE.rstrip())
+        return
+
     board, reserve = card()
     fence = reserve["max"]
     logdir = os.path.join(OUT, "drafter-window-logs")

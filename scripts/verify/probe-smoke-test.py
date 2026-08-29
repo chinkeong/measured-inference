@@ -38,13 +38,21 @@ WHAT IT DOES NOT CHECK. That the probe measures the right thing, that its
 artefact is correct, or that its conditions are honest. This is a smoke test.
 It answers one question - would this start? - and claims nothing else.
 
-THE BASELINE, because eighteen red lines get scrolled past. Measured
-2026-08-29 on a clean tree: 18 of 83 fail, every one for a reason older than
-whatever you just changed. That is the exact amount of noise that gets a real
-failure ignored, so the known ones are written down - one row each in
+THE BASELINE, because red lines that are always there get scrolled past, and
+that is the exact amount of noise that gets a real failure ignored. Known
+failures are written down - one row each in
 `scripts/verify/smoke-baseline.json`, with the reason, the bucket and the date
 - and reported apart from NEW. The exit code follows NEW alone; `--fail` still
 fails on any failure at all.
+
+The baseline is EMPTY as of 2026-08-29, and that is the state to keep. It held
+18 of 83 that morning; 16 were scripts with no argument parser, so `--help` did
+not get answered, it got RUN - and the missing llama-server was only where they
+happened to stop. On a machine where setup has built one, `--help` would have
+launched a real job. All 18 were fixed rather than re-baselined, and the
+`cleared` block in the baseline records what each one was. A row that starts
+passing is reported as STALE, because a baseline nobody prunes becomes the
+thing it was written to prevent.
 
 Nothing is skipped and nothing is suppressed. Every check still runs on every
 file and every failure is still printed; the baseline decides only which of

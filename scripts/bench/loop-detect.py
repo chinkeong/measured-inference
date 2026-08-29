@@ -282,5 +282,31 @@ def scan():
                                          " ".join(flagged[:6]) or "-"))
 
 
+USAGE = """\
+D5, the detector for the degeneration shapes exact matching cannot see: a
+digit-normalised immediate repeat, a line-skeleton share, a compression ratio
+and a worst-window type-token ratio.
+
+    python scripts/bench/loop-detect.py <subcommand>
+
+Subcommands (default: validate):
+  validate   prove the detector on the known cases first
+  scan       run it over every quant-ladder transcript
+
+Positional arguments: the subcommand, and nothing else. No environment
+variables. No server, no model, no GPU - this reads transcripts and prints.
+
+Example:
+  python scripts/bench/loop-detect.py validate
+
+Reads results/qwen38-27b-blind/data/rule21/ and .../data/quant-ladder/bench/
+transcript JSON. Writes no file; the verdict goes to stdout, always beside the
+reference file's value for the same item.
+"""
+
+
 if __name__ == "__main__":
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(USAGE.rstrip())
+        raise SystemExit(0)
     {"validate": validate, "scan": scan}[sys.argv[1] if len(sys.argv) > 1 else "validate"]()

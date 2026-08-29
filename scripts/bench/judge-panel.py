@@ -497,7 +497,39 @@ def compare():
     print("-> %s" % p)
 
 
+USAGE = """\
+The independent judge for rule 21's judge-gated pair: three blind Claude seats
+over the kept ALPACA and MT-Bench transcripts, rated 1-10 and normalised to
+(r - 1) / 9 * 100.
+
+    python scripts/bench/judge-panel.py <subcommand>
+
+Subcommands, in the order they run (default: build):
+  build      blinded packets plus the sealed key
+  score      ratings plus the key, to per-arm scores
+  compare    paired arm-against-arm bootstrap on the judged pair
+  rebuild    re-judge ALL of ALPACA against the rule-7 re-run answers
+  rescore    score the re-judge, and the judge against itself on the 74
+             answers that did not change
+  finalize   the publishable scores: ALPACA from the re-judge, MT-Bench pass 1
+
+Positional arguments: the subcommand, and nothing else. No environment
+variables. No server, no model, no GPU - this reads and writes JSON.
+
+Example:
+  python scripts/bench/judge-panel.py build
+
+Reads results/qwen38-27b-blind/data/rule21/ transcripts. Writes under
+results/qwen38-27b-blind/data/judge/: packets/, key-SEALED.json,
+judge-scores.json, judge-rejudge.json, judge-scores-final.json and
+judge-paired.json. `build` OVERWRITES the sealed key.
+"""
+
+
 if __name__ == "__main__":
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(USAGE.rstrip())
+        raise SystemExit(0)
     cmd = sys.argv[1] if len(sys.argv) > 1 else "build"
     {"build": build, "score": score, "compare": compare,
      "rebuild": rebuild, "rescore": rescore, "finalize": finalize}[cmd]()

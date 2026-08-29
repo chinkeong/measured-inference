@@ -164,7 +164,42 @@ def repetition(text):
     return round(1.0 - (len(set(tri)) / len(tri)), 4) if tri else 0.0
 
 
+USAGE = """\
+How much does the ngram-mod speedup depend on what you are writing? Six
+content types against three drafters, greedy, one server load per drafter.
+
+    python scripts/bench/ngram-content.py
+
+Positional arguments: none. The content types (boilerplate, code, refactor,
+json, prose, translation), the drafters (none, ngram-mod, draft-mtp) and the
+700 predicted tokens are pinned in this file.
+
+MODEL_DIR is REQUIRED off the machine this was written on: the model path
+defaults to a Windows LM Studio directory, and the file wanted inside it is
+Qwen3.8-27B-UD-Q2_K_XL.gguf.
+
+Environment, all optional:
+  LLAMA_SERVER / LLAMA_DIR       where llama-server is (scripts/lib/paths.py)
+  MODEL_DIR                      directory holding the .gguf weights
+  MEASURED_INFERENCE_DRY_RUN=1   gpu_lock refuses the card, so nothing loads
+  MEASURED_INFERENCE_MEM_CAP_GB  per-job commit cap (gpu_lock)
+  MEASURED_INFERENCE_LOCK        the one-job lockfile (gpu_lock)
+
+Takes the card: one llama-server per drafter through gpu_lock.serve.
+Writes results/qwen38-27b-blind/data/register/ngram-content.json.
+
+Greedy speculative decoding is lossless, so identical output across the three
+drafters is the check that the run is sound.
+"""
+
+
 def main():
+    # A help request must never start work. This script has no argument parser,
+    # so without this line --help falls through and loads a model (rule 20).
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(USAGE.rstrip())
+        return
+
     os.makedirs(OUT, exist_ok=True)
     log("host: %s" % refarm.quiet_report()["status"])
     log("six content types x three drafters, greedy, UD-Q2_K_XL")

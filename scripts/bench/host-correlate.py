@@ -86,7 +86,39 @@ def corr(x, y):
     return sxy / (sxx * syy) ** 0.5
 
 
+USAGE = """\
+Does the host-load index track the throughput excursions? One load, one fixed
+greedy probe repeated, a timed CPU busy loop immediately before each.
+
+    python scripts/bench/host-correlate.py
+
+Positional arguments: none. The conditions are pinned in this file - the
+reference arm (UD-IQ4_XS, draft-mtp n4/p0.75, greedy, -c 32768), 700 predicted
+tokens, n=45, with SM clock, temperature and power recorded per probe.
+
+Reads the calibrated idle CPU index from the reference band that
+`python scripts/bench/refarm.py --calibrate 16` writes; without it the
+correlation still runs and the idle baseline prints as None.
+
+Environment, all optional:
+  LLAMA_SERVER / LLAMA_DIR       where llama-server is (scripts/lib/paths.py)
+  MODEL_DIR                      directory holding the .gguf weights
+  MEASURED_INFERENCE_DRY_RUN=1   gpu_lock refuses the card, so nothing loads
+  MEASURED_INFERENCE_MEM_CAP_GB  per-job commit cap (gpu_lock)
+  MEASURED_INFERENCE_LOCK        the one-job lockfile (gpu_lock)
+
+Takes the card: one llama-server through gpu_lock.serve for the whole run.
+Writes results/qwen38-27b-blind/data/register/host-correlate.json.
+"""
+
+
 def main():
+    # A help request must never start work. This script has no argument parser,
+    # so without this line --help falls through and loads a model (rule 20).
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(USAGE.rstrip())
+        return
+
     os.makedirs(refarm.OUT, exist_ok=True)
     logdir = os.path.join(refarm.OUT, "hostcorr-logs")
     os.makedirs(logdir, exist_ok=True)

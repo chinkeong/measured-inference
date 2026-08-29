@@ -143,7 +143,36 @@ def corr(x, y):
     return round(sxy / (sxx * syy) ** 0.5, 3)
 
 
+USAGE = """\
+How wide is the speed band a real user sees? Greedy against the shipped
+sampler, alternating inside one load, drafter on at the shipped n4/p0.75.
+
+    python scripts/bench/sampler-band.py
+
+Positional arguments: none. The conditions are pinned in this file - the
+reference arm at -c 32768, 700 predicted tokens, n=25 per sampler, seeds from
+42, and a pair kept only when both its probes ran on a quiet host (CPU index
+under 1.35x the calibrated idle), to at most 60 pairs.
+
+Environment, all optional:
+  LLAMA_SERVER / LLAMA_DIR       where llama-server is (scripts/lib/paths.py)
+  MODEL_DIR                      directory holding the .gguf weights
+  MEASURED_INFERENCE_DRY_RUN=1   gpu_lock refuses the card, so nothing loads
+  MEASURED_INFERENCE_MEM_CAP_GB  per-job commit cap (gpu_lock)
+  MEASURED_INFERENCE_LOCK        the one-job lockfile (gpu_lock)
+
+Takes the card: one llama-server through gpu_lock.serve for the whole run.
+Writes results/qwen38-27b-blind/data/register/sampler-band.json.
+"""
+
+
 def main():
+    # A help request must never start work. This script has no argument parser,
+    # so without this line --help falls through and loads a model (rule 20).
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(USAGE.rstrip())
+        return
+
     os.makedirs(refarm.OUT, exist_ok=True)
     logdir = os.path.join(refarm.OUT, "samplerband-logs")
     os.makedirs(logdir, exist_ok=True)

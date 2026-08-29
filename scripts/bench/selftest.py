@@ -251,9 +251,17 @@ check("max_tokens = 16384", bench.RULE21["max_tokens"], 16384)
 check("seed = 42", bench.RULE21["seed"], 42)
 check("the seven-dataset suite", bench.RULE21["datasets"].split(","),
       ["GSM8K", "MATH-500", "HumanEval", "MBPP", "ALPACA", "MeetingBank", "MT-Bench"])
-check("every suite name is a real dataset",
+# Membership, not identity. resolve_name returns None for a name the catalogue
+# does not hold, so a suite name that fails to resolve shows up as None here.
+# Comparing the seven against dio.DATASET_NAMES compared them against the whole
+# catalogue instead, so the frozen rule-21 suite failed this check the moment
+# datasets_io grew an eighth entry it does not use (GPQA-Diamond).
+check("every suite name resolves in the catalogue",
       [dio.resolve_name(d) for d in bench.RULE21["datasets"].split(",")],
-      dio.DATASET_NAMES)
+      bench.RULE21["datasets"].split(","))
+check("the catalogue is a superset of the suite",
+      [d for d in bench.RULE21["datasets"].split(",")
+       if d not in dio.DATASET_NAMES], [])
 check("-c is sized from the longest prompt + the cap, not left at 8192",
       bench._round_up_ctx(8192 + 16384), 32768)
 

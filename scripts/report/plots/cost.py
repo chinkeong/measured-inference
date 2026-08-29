@@ -25,13 +25,17 @@ dropped too, and both counts are stated on the figure.
 """
 import os
 import subprocess
+import sys
 
 import matplotlib
 matplotlib.use("Agg")            # REQUIRED - never an interactive backend
 import matplotlib.pyplot as plt
 import numpy as np
 
-import archdata as A
+_HERE = os.path.dirname(os.path.abspath(__file__))
+if os.path.dirname(_HERE) not in sys.path:
+    sys.path.insert(0, os.path.dirname(_HERE))
+import archdata as A                                    # noqa: E402
 
 TITLE = "Energy per token, and what drives it"
 

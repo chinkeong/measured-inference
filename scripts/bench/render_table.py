@@ -314,7 +314,31 @@ def _slug(s):
     return "".join(c if c.isalnum() or c in "-_" else "_" for c in s)
 
 
+USAGE = """\
+Render benchmark results as a dark table PNG - one run file as a per-dataset
+table, several merged into one model-comparison table.
+
+    python scripts/bench/render_table.py <result.json> [<result.json> ...]
+    python scripts/bench/render_table.py --latest
+
+Positional arguments: one or more bench.py result JSON paths, in the column
+order you want them. `--latest` in first position, or no arguments at all,
+takes the newest file in scripts/bench/results/ instead.
+
+No environment variables. No server, no model, no GPU. Needs Pillow.
+
+Example:
+  python scripts/bench/render_table.py scripts/bench/results/run-a.json
+
+Writes scripts/bench/results/<slug-of-title>.png for one run, or
+scripts/bench/results/comparison.png for several.
+"""
+
+
 if __name__ == "__main__":
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(USAGE.rstrip())
+        raise SystemExit(0)
     args = sys.argv[1:]
     if not args or args[0] == "--latest":
         files = sorted(glob.glob(os.path.join(HERE, "results", "*.json")),

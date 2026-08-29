@@ -186,7 +186,42 @@ def probe():
             "predicted_n": t.get("predicted_n")}
 
 
+USAGE = """\
+Is n-max 4 the right drafter for a speed-seeker who keeps vision? Three arms,
+board VRAM at load and decode on a novel-code prompt.
+
+    python scripts/bench/drafter-vs-window.py
+
+Positional arguments: none. The arms are pinned in this file - A n4/p0.75 at
+-c 122880, B n10/p0.5 at -c 122880, C n10/p0.5 at -c 98304, all with the vision
+projector loaded, 700 predicted tokens, 3 settled probes after one discarded
+warmup (rule 12).
+
+Reads results/<slug>/machine.json for the board total and the desktop reserve;
+without it this probe stops before loading anything.
+
+Environment, all optional:
+  LLAMA_SERVER / LLAMA_DIR       where llama-server is (scripts/lib/paths.py)
+  MODEL_DIR                      directory holding the .gguf weights
+  MEASURED_INFERENCE_DRY_RUN=1   gpu_lock refuses the card, so nothing loads
+  MEASURED_INFERENCE_MEM_CAP_GB  per-job commit cap (gpu_lock)
+  MEASURED_INFERENCE_LOCK        the one-job lockfile (gpu_lock)
+
+Takes the card: one llama-server per arm through gpu_lock.serve.
+Writes results/qwen38-27b-blind/data/register/drafter-vs-window.json.
+
+Shallow-window measurement: VRAM is read at load, so the decode figures rank
+the drafter settings against each other and are not depth figures.
+"""
+
+
 def main():
+    # A help request must never start work. This script has no argument parser,
+    # so without this line --help falls through and loads a model (rule 20).
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(USAGE.rstrip())
+        return
+
     board, reserve = card()
     fence = reserve["max"]
     os.makedirs(OUT, exist_ok=True)

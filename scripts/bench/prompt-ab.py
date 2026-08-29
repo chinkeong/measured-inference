@@ -123,7 +123,35 @@ def probe(prompt, sampler):
             "finish": (r.get("choices") or [{}])[0].get("finish_reason")}
 
 
+USAGE = """\
+Two prompts, ONE server load, alternating. Which one is the odd number?
+
+    python scripts/bench/prompt-ab.py
+
+Positional arguments: none. The conditions are pinned in this file - the
+reference arm (UD-IQ4_XS, draft-mtp n4/p0.75, greedy, -c 32768), 700 predicted
+tokens, n=8 per prompt after one discarded warmup each, A and B alternating so
+any drift in the load hits both equally.
+
+Environment, all optional:
+  LLAMA_SERVER / LLAMA_DIR       where llama-server is (scripts/lib/paths.py)
+  MODEL_DIR                      directory holding the .gguf weights
+  MEASURED_INFERENCE_DRY_RUN=1   gpu_lock refuses the card, so nothing loads
+  MEASURED_INFERENCE_MEM_CAP_GB  per-job commit cap (gpu_lock)
+  MEASURED_INFERENCE_LOCK        the one-job lockfile (gpu_lock)
+
+Takes the card: one llama-server through gpu_lock.serve for the whole run.
+Writes results/qwen38-27b-blind/data/register/prompt-ab.json.
+"""
+
+
 def main():
+    # A help request must never start work. This script has no argument parser,
+    # so without this line --help falls through and loads a model (rule 20).
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(USAGE.rstrip())
+        return
+
     os.makedirs(refarm.OUT, exist_ok=True)
     logdir = os.path.join(refarm.OUT, "promptab-logs")
     os.makedirs(logdir, exist_ok=True)

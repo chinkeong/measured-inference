@@ -64,7 +64,46 @@ except AttributeError:
     pass
 
 
+USAGE = """\
+Run ONE arm of the quant-ladder equal-budget benchmark: GSM8K, HumanEval and
+MBPP at n=25, seed 42, from the frozen rule-21 prompts.
+
+    python -u scripts/quant-ladder/bench-arm.py <tag> <model-gguf> <family> [max-tokens]
+
+Positional arguments, in order:
+  tag          arm name; every artefact this run writes is keyed by it
+  model-gguf   the weights, a name paths.model_path resolves or a full path
+  family       qwen or gemma - it picks the server args, and nothing else does
+  max-tokens   16384 (default) or 32768, the rule-7 raised-cap copy of the
+               same frozen prompts
+
+NOT a rule-21 run: rule 21 is the identical SEVEN-benchmark suite and its Mean
+is a composite over all seven. This is a three-benchmark arm, and --rule21 is
+deliberately not passed.
+
+Environment:
+  MEASURED_INFERENCE_SLUG        which results/<slug>/ this arm belongs to
+                                 (default qwen38-27b-blind)
+  LLAMA_SERVER / LLAMA_DIR       where llama-server is (scripts/lib/paths.py)
+  MODEL_DIR                      directory holding the .gguf weights
+  MEASURED_INFERENCE_DRY_RUN=1   gpu_lock refuses the card, so nothing loads
+
+Example:
+  python -u scripts/quant-ladder/bench-arm.py q2kxl Qwen3.8-27B-UD-Q2_K_XL.gguf qwen
+
+Takes the card: bench.py loads one llama-server on port 1236.
+Writes results/<slug>/data/quant-ladder/bench/ - the run JSON, its transcripts,
+and arm-<tag>-wall.json.
+"""
+
+
 def main():
+    # A help request must never start work. This script has no argument parser,
+    # so without this line --help falls through and loads a model (rule 20).
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(USAGE.rstrip())
+        return
+
     if len(sys.argv) < 4:
         sys.exit("usage: bench-arm.py <tag> <model-gguf> <qwen|gemma> [max_tokens]")
     tag, model, family = sys.argv[1], sys.argv[2], sys.argv[3].lower()

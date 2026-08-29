@@ -293,7 +293,36 @@ def cell(sname, sampler, prompt, label, settled_after=None):
     return row
 
 
+USAGE = """\
+Are this page's speed numbers usable at the sampling it ships? Three drafters
+by two samplers, plus one deep-filled arm, reported as a transfer factor.
+
+    python scripts/bench/sampling-bridge.py
+
+Positional arguments: none. The conditions are pinned in this file - UD-IQ4_XS
+at -c 32768, 700 predicted tokens, drafters none / n4-p0.75 / n10-p0.5,
+samplers greedy (n=5) and shipped temperature 1.0 / top_p 0.95 / top_k 20
+(n=40), and one arm deep-filled to 28,000 tokens.
+
+Environment, all optional:
+  LLAMA_SERVER / LLAMA_DIR       where llama-server is (scripts/lib/paths.py)
+  MODEL_DIR                      directory holding the .gguf weights
+  MEASURED_INFERENCE_DRY_RUN=1   gpu_lock refuses the card, so nothing loads
+  MEASURED_INFERENCE_MEM_CAP_GB  per-job commit cap (gpu_lock)
+  MEASURED_INFERENCE_LOCK        the one-job lockfile (gpu_lock)
+
+Takes the card: one llama-server per drafter through gpu_lock.serve.
+Writes results/qwen38-27b-blind/data/register/sampling-bridge.json.
+"""
+
+
 def main():
+    # A help request must never start work. This script has no argument parser,
+    # so without this line --help falls through and loads a model (rule 20).
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(USAGE.rstrip())
+        return
+
     global GPU
     GPU = refarm.Sampler()
     GPU.start()
