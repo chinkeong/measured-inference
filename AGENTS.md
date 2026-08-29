@@ -54,7 +54,7 @@ Three failures no rule number catches:
 | starting or resuming a campaign | `skills/field-guide/SKILL.md`, then ONLY your current stage file |
 | executing Stage N | `skills/field-guide/stages/stage-N.md` — never load another stage |
 | writing, reviewing or publishing report sections | `templates/REPORT-SPEC.md` + `methodology/REASONING.md` |
-| actually writing the prose — who writes it, how it is briefed and checked | `methodology/WRITING.md` |
+| actually writing the prose — who writes it, how it is briefed, its register | `methodology/WRITING.md` + `VOICE.md` |
 | adjudicating conflicts, criticizing prior work, blind judging | `methodology/REASONING.md` |
 | a probe or a number looks wrong | grep `reference/failure-library.md` for the symptom |
 | platform trouble (PowerShell 5.1, POSIX, WSL) | grep `reference/platform-notes.md` for the exact error |

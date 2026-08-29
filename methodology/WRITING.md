@@ -24,6 +24,13 @@ in the campaign model, note in the commit message that 4.6 was unavailable, and
 queue a voice pass for when it returns. **A correct paragraph in the wrong
 voice beats a missing paragraph.** Never stop and wait; never ask.
 
+**Write it against `methodology/VOICE.md`.** That file is this page's register
+written down as rules — what may occupy a first clause, which words may not
+appear anywhere, and the checks that stop a rewrite breaking a fact while every
+digit survives. It was derived from 4.6's own prose against the prose it
+replaced, so it is what a fallback writer aims at. Run its section 8 before
+committing, whichever model wrote the draft.
+
 The orchestrating model still owns everything that is not prose: which numbers
 are true, which conditions travel with them, what the defect is, and whether
 the result may be published at all. **4.6 is the writer, not the adjudicator.**
