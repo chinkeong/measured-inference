@@ -984,6 +984,7 @@ def effective_bits(rec, all_tensors, backend, device, how, device_how):
                        ovq.SOURCE["props_description"],
                        ovq.SOURCE["device_log_line"])),
                 ground_truth=ovq.GROUND_TRUTH["how"],
+                ground_truth_measured=ovq.MEASURED,
                 warnings=prof["warnings"],
                 unrecognised_ggml_type_records=missing or None)
     return prof

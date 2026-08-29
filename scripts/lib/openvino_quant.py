@@ -74,22 +74,52 @@ and therefore changes every number below. Capture it. A profile computed for
 NPU against a run that fell back to CPU is the wrong profile, and nothing else
 in the log will say so.
 
-THE CHEAP ROUTE TO GROUND TRUTH, if you want a record instead of this table.
-The per-tensor requantisation logging already exists. It is fully written and
-commented out at `ggml/src/ggml-openvino/ggml-openvino.cpp:332-346`.
-UNCOMMENT THOSE FOUR LINES and build with debug logging on:
+GROUND TRUTH, AND IT HAS BEEN RUN. On 2026-08-29 this table was checked
+against the backend instead of against the source it was read from. The
+per-tensor logging already exists upstream and is commented out at
+`ggml-openvino.cpp:332-346`; uncommenting it and retagging it to
+`GGML_LOG_INFO` costs one build and turns the load into a 600-line record.
+Full conditions, evidence and caveats: `results/openvino-groundtruth/`.
+
+    device CPU, gemma-4-E2B-it-Q6_K.gguf, llama.cpp d7bd3bf, OpenVINO 2026.3.1
+    316 REQUANT, every one to Q8_0_C   284 SHARED   0 KEPT
+
+The run confirms the three things this module leans on hardest: the rewrite is
+real and an unpatched build says nothing about it; the non-NPU rows are right
+(Q6_K -> Q8_0_C, `token_embd.weight` -> Q8_0_C); and Q8_0_C is channel-wise --
+the logged `block_size` is the row width in every record (1536, 2048, 256,
+4096, 6144, 12288) and never 32. That last one is what makes Q6_K -> Q8_0_C
+more bits at coarser granularity rather than an upgrade, and it is now measured
+rather than inferred.
+
+It confirms nothing about NPU or GPU. `Q4_0_128` and the F16 `token_embd` case
+are the two rules that make a ladder degenerate and both are NPU-only; they
+stay derived-from-source until someone runs the hardware. Zero KEPT records
+means the branch was UNTESTED, not disproven -- a pure-Q6_K file leaves nothing
+eligible to keep. And Gemma ties `output.weight` to `token_embd.weight`, so the
+"output.weight -> Q8_0_C, always" row was never exercised here.
+
+TO REPRODUCE IT, or to get the record for a run of your own:
 
     sed -n '332,346p' ggml/src/ggml-openvino/ggml-openvino.cpp   # look first
-    # uncomment the four GGML_LOG_DEBUG calls
-    cmake -B build -DGGML_OPENVINO=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo
-    cmake --build build -j
-    ./build/bin/llama-cli -m model.gguf -v -n 1 2>&1 | tee requant.log
+    # uncomment the GGML_LOG_DEBUG calls; retag to GGML_LOG_INFO to survive
+    # an ordinary log level
+    cmake -B build -DGGML_OPENVINO=ON -DOpenVINO_DIR=$HOME/ov/runtime/cmake
+    cmake --build build -j --target llama-bench
+    export GGML_OPENVINO_DEVICE=CPU
+    # -v is NOT optional; without it you get zero records. See below.
+    ./build/bin/llama-bench -m M.gguf -ngl 99 -p 8 -n 4 -r 1 -v >log 2>&1
 
-That gives an authoritative per-tensor record at load time -- name, type in,
-type out -- against which everything this module computes is checkable. It
-costs one build. `GGML_OPENVINO_DUMP_IR=1` is the second witness (rule 4): it
-writes the OpenVINO IR that actually ran, and the IR's constant types are the
-answer independent of any log line.
+Two traps, both of which cost a diagnosis here. `llama-bench` SUPPRESSES ggml
+log output unless `-v` is passed -- without it the run completes, prints
+`backend OPENVINO` and real tokens per second, and shows zero requantisation
+records, which reads exactly like a backend that never engaged. And `llama-cli`
+produced no output at all for a model run on this build while exiting 0; it is
+not a usable witness, so do not debug the backend through it.
+
+`GGML_OPENVINO_DUMP_IR=1` is the second witness (rule 4): it writes the
+OpenVINO IR that actually ran, and the IR's constant types are the answer
+independent of any log line and of this patch.
 
 WHAT THIS MODULE WILL NOT DO. It will not size a tensor from the GGUF's own
 block table. That table lives in `scripts/quant-ladder/gguf-inspect.py` and a
@@ -118,6 +148,14 @@ SOURCE = {
     "no_requant_escape": "ggml/src/ggml-openvino/ggml-quants.cpp:1016 "
                          "(gated on use_bias, asserted test-only)",
     "commented_out_logging": "ggml/src/ggml-openvino/ggml-openvino.cpp:332-346",
+    "scale_element_type": "ggml/src/ggml-openvino/ggml-quants.cpp:94,134,179,"
+                          "239,294,363,442 (ov::element::f16 in every "
+                          "requantiser)",
+    "extra_quant_enum": "ggml/src/ggml-openvino/ggml-openvino-extra.h:18 "
+                        "(enum class ExtraQuantType { F16, Q4_0_C, Q8_1_C, "
+                        "Q4_0_128, Q8_0_C, Q8_0_32 } -- six members, of which "
+                        "get_requant_type can return three: F16, Q8_0_C, "
+                        "Q4_0_128)",
     "device_log_line": "ggml/src/ggml-openvino/ggml-openvino.cpp:1526",
     "props_description": "ggml/src/ggml-openvino/ggml-openvino.cpp:1546",
     "props_description_holds": "ov::get_openvino_version().description -- the "
@@ -144,6 +182,47 @@ GROUND_TRUTH = {
                                       "the quantisation -- but a silent "
                                       "NPU -> CPU fallback changes which rules "
                                       "fired, so capture it",
+    "gotcha_llama_cli": "llama-cli produced no output at all for a model run "
+                        "and exited 0 on the build used. Do not diagnose the "
+                        "backend through it; use llama-bench",
+    "gotcha_verbose": "llama-bench SUPPRESSES ggml log output unless -v is "
+                      "passed. Without it the run reports tokens per second "
+                      "and 'backend OPENVINO' with zero requantisation "
+                      "records, which reads exactly like a backend that never "
+                      "engaged. Pass -v",
+}
+
+# The run that turned the table above from a reading of source into a record of
+# behaviour. Evidence and full caveats: results/openvino-groundtruth/README.md.
+MEASURED = {
+    "run_utc": "2026-08-29",
+    "llama_cpp": "d7bd3bf",
+    "openvino": "2026.3.1",
+    "device": "CPU",
+    "model": "gemma-4-E2B-it-Q6_K.gguf (file type Q6_K, n_layer 35, "
+             "n_embd 1536)",
+    "command": "llama-bench -m MODEL -ngl 99 -p 8 -n 4 -r 1 -v",
+    "requant": 316,
+    "shared": 284,
+    "kept": 0,
+    "requant_targets": {"Q8_0_C": 316},
+    "confirms": (
+        "the rewrite is real and silent (316 tensors, no word of it in an "
+        "unpatched build); the non-NPU rows are correct (Q6_K -> Q8_0_C, "
+        "token_embd -> Q8_0_C); and Q8_0_C is CHANNEL-WISE -- the logged "
+        "block_size is the row width in every record (1536, 2048, 256, 4096, "
+        "6144, 12288) and never 32, which is the load-bearing claim in this "
+        "module",
+    )[0],
+    "does_not_confirm": (
+        "anything about NPU (Q4_0_128 and the F16 token_embd case stay "
+        "derived-from-source until someone runs the hardware); anything about "
+        "GPU; the KEPT branch (a pure-Q6_K file leaves nothing eligible, so "
+        "0 KEPT is expected and the branch is UNTESTED, not disproven); and "
+        "output.weight, which Gemma ties to token_embd so it never reached "
+        "the buffer path",
+    )[0],
+    "evidence": "results/openvino-groundtruth/",
 }
 
 
@@ -315,19 +394,20 @@ def role_of(name):
 # and calling a quantized tensor unquantized would understate the rewrite.
 NOT_QUANTIZED = ("F32", "F16", "BF16", "F64", "I8", "I16", "I32", "I64")
 
-# The per-block scale is fp16, as it is in ggml's own Q4_0 and Q8_0. This is
-# the one number below that is an ASSUMPTION rather than a line of source, and
-# it is carried as one: `model_profile(..., scale_bits=32)` re-runs the whole
-# profile with an f32 scale, and every profile reports both figures so the
-# assumption is bounded rather than hidden. On Q4_0_128 the choice is worth
-# 0.125 bpw of 4.125 (3.0%); on the channel-wise types, one scale per row of
-# 5,120 makes it 0.003 bpw (0.04%) and it does not matter at all.
+# The per-block scale is fp16. This was an assumption until 2026-08-29; it is
+# now a line of source. Every requantiser in `ggml-quants.cpp` takes its scale
+# array as `ov::element_type_traits<ov::element::f16>::value_type` -- lines 94,
+# 134, 179, 239, 294, 363 and 442, covering the channel-wise and the block-128
+# paths alike. `model_profile(..., scale_bits=32)` still re-runs the profile
+# with an f32 scale and every profile still reports both figures, because a
+# bound that costs nothing to carry is worth carrying past the day it stops
+# being needed. The f32 figure is now a sensitivity, not a live doubt.
 SCALE_BITS = 16
-SCALE_BITS_WHY = ("ASSUMED fp16, by analogy with ggml's own Q4_0 and Q8_0 "
-                  "block layouts and with %s's 'four times fewer scales' "
-                  "re-blocking. Not read out of the source. Bounded: every "
-                  "profile carries the f32-scale figure beside it."
-                  % SOURCE["conversion_table"])
+SCALE_BITS_WHY = ("fp16, READ FROM SOURCE at %s. Every requantiser takes its "
+                  "scale array as ov::element::f16. Confirmed against the "
+                  "measured run in results/openvino-groundtruth/. Every "
+                  "profile still carries the f32-scale figure beside it as a "
+                  "sensitivity." % SOURCE["scale_element_type"])
 
 
 def _channelwise_bytes(elements, ne0, weight_bits, scale_bits):
@@ -745,8 +825,14 @@ def model_profile(tensors, device, label=None, scale_bits=SCALE_BITS):
         % (scale_bits, SCALE_BITS_WHY,
            "%.4f" % bpw_eff_f32 if bpw_eff_f32 else "null"))
     warnings.append(
-        "DERIVED from a table, not read from the run. The authoritative record "
-        "is four commented-out log lines away: %s" % GROUND_TRUTH["how"])
+        "DERIVED from a table, not read from THIS run. The table itself was "
+        "checked against a real one on %s: %s device, %s, %d tensors "
+        "requantised (all to Q8_0_C), %d shared, %d kept -- see %s. That run "
+        "confirms the non-NPU rows and the channel-wise geometry; it says "
+        "NOTHING about NPU or GPU. To get the record for the run in hand: %s"
+        % (MEASURED["run_utc"], MEASURED["device"], MEASURED["model"],
+           MEASURED["requant"], MEASURED["shared"], MEASURED["kept"],
+           MEASURED["evidence"], GROUND_TRUTH["how"]))
     if unknown_names:
         warnings.append(
             "ggml type name(s) %s are not in the caller's block table, so the "
@@ -889,10 +975,22 @@ def _print_table(out):
     w("  the one capturable line  %s: %s\n"
       % (SOURCE["device_log_line"],
          GROUND_TRUTH["what_an_ordinary_run_tells_you"]))
-    w("\nTHE CHEAP ROUTE TO GROUND TRUTH\n")
+    w("\nGROUND TRUTH: THE TABLE ABOVE HAS BEEN CHECKED AGAINST A RUN\n")
+    w("-" * 74 + "\n")
+    w("  when      %s, llama.cpp %s, OpenVINO %s\n"
+      % (MEASURED["run_utc"], MEASURED["llama_cpp"], MEASURED["openvino"]))
+    w("  what      device %s, %s\n" % (MEASURED["device"], MEASURED["model"]))
+    w("  result    %d REQUANT (all Q8_0_C), %d SHARED, %d KEPT\n"
+      % (MEASURED["requant"], MEASURED["shared"], MEASURED["kept"]))
+    w("  confirms  %s\n" % MEASURED["confirms"])
+    w("  does NOT  %s\n" % MEASURED["does_not_confirm"])
+    w("  evidence  %s\n" % MEASURED["evidence"])
+    w("\nTO REPRODUCE IT, OR TO GET THE RECORD FOR YOUR OWN RUN\n")
     w("-" * 74 + "\n")
     w("  %s\n" % GROUND_TRUTH["how"])
     w("  %s\n" % GROUND_TRUTH["second_witness"])
+    w("  GOTCHA: %s\n" % GROUND_TRUTH["gotcha_verbose"])
+    w("  GOTCHA: %s\n" % GROUND_TRUTH["gotcha_llama_cli"])
     w("\nWHICH BACKENDS THIS IS SCOPED TO\n")
     w("-" * 74 + "\n")
     for b in sorted(PASSTHROUGH_BACKENDS):

@@ -183,6 +183,7 @@ def effective(hdr, gi, backend, device, label=None):
             % (ovq.SOURCE["commented_out_logging"],
                ovq.SOURCE["props_description"]),
         "ground_truth": ovq.GROUND_TRUTH["how"],
+        "ground_truth_measured": ovq.MEASURED,
         "warnings": prof["warnings"],
     }
 
