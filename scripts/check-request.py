@@ -1148,10 +1148,50 @@ def kv_arithmetic(cfg, elem_bytes, elem_label, c_min):
     win = src.get("sliding_window")
     swa_on = src.get("use_sliding_window", True) is not False and bool(win)
     if isinstance(types, list) and types:
-        full = sum(1 for t in types if "full" in str(t))
-        swa = sum(1 for t in types if "sliding" in str(t))
-        linear = len(types) - full - swa
-        how = "%d of %d layers, counted from layer_types" % (full, len(types))
+        # Classify by VOCABULARY, not by the substring "full". Different
+        # families name the same thing differently and there is no shared
+        # convention: qwen3-next says "full_attention"/"linear_attention",
+        # granite-4 says "attention"/"mamba", gemma says
+        # "sliding_attention"/"full_attention". A `"full" in t` test scores
+        # granite at ZERO full-attention layers and prints "KV at c=16,384:
+        # 0 B = 0 MiB" for a model whose real cost is 8 GiB at its window --
+        # and zero KV is a green light at EVERY context, which is precisely
+        # the confident-wrong PASS this gate exists to refuse.
+        full = swa = linear = 0
+        unrecognised = []
+        for t in types:
+            s = str(t).lower()
+            if "sliding" in s or "swa" in s:
+                swa += 1
+            elif "full" in s or s in ("attention", "attn", "global"):
+                full += 1
+            elif any(w in s for w in ("mamba", "linear", "recurrent",
+                                      "gated", "conv", "ssm", "rwkv")):
+                linear += 1
+            else:
+                unrecognised.append(str(t))
+        if unrecognised:
+            # An unknown token must never silently become "not attention".
+            # Overstate instead: it fails safe against a spill, and it is
+            # visible, which a silent zero is not.
+            seen = sorted(set(unrecognised))
+            full, swa, linear = n_layer, 0, 0
+            how = ("ALL %d layers assumed full-attention: layer_types carries "
+                   "%d entr%s this gate does not recognise (%s), and guessing "
+                   "them non-attention would understate KV. This is an UPPER "
+                   "BOUND -- Stage 1 must read the server's own KV figure."
+                   % (n_layer, len(unrecognised),
+                      "y" if len(unrecognised) == 1 else "ies",
+                      ", ".join(seen[:4])))
+        elif full + swa == 0:
+            how = ("NO attention layers in layer_types (%d recurrent/linear "
+                   "of %d) -- this model holds no per-token K/V cache, so the "
+                   "KV term really is zero. Verify against the server's own "
+                   "figure before trusting a window from it." % (linear, len(types)))
+        else:
+            how = ("%d full + %d sliding of %d layers, counted from "
+                   "layer_types (%d recurrent/linear hold a FIXED state, "
+                   "counted separately)" % (full, swa, len(types), linear))
     elif isinstance(interval, int) and interval > 1:
         full = n_layer // interval
         linear = n_layer - full
