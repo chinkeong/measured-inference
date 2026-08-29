@@ -1,0 +1,9 @@
+﻿context: 122880 (probe results below)
+ctx=122880  probe(temp0): 700 tok in 13.6s = 51.3 t/s
+
+low     completion= 29785 tokens  prompt=1689 tokens  wall=00:08:34  ~57.9 t/s  finish=stop
+medium  completion= 20700 tokens  prompt=1659 tokens  wall=00:05:54  ~58.5 t/s  finish=stop
+xhigh   completion= 73149 tokens  prompt=1701 tokens  wall=00:24:58  ~48.8 t/s  finish=stop
+low     pass2  completion= 16733 tokens  wall=00:04:34  ~61 t/s  finish=stop
+medium  pass2  completion= 23354 tokens  wall=00:07:04  ~55 t/s  finish=stop
+xhigh   pass2  completion= 75835 tokens  wall=00:26:48  ~47.2 t/s  finish=stop

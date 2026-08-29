@@ -7,14 +7,17 @@
     python scripts/quant-ladder/run-ladder.py --only UD-IQ1_S
     python scripts/quant-ladder/run-ladder.py --outdir <dir> --manifest <file>
 
-WHY THIS FILE EXISTS. `skills/field-guide/stages/stage-6.md` states that the
-ladder runner is Windows PowerShell and that this repository ships no POSIX
-equivalent, and METHODOLOGY rule 6 states that quants are ranked by perplexity
-over 294,912 token positions - not by accuracy, which at n<=25 detects only
-~20-point collapses. Those two sentences together say that a Linux campaign
-cannot rank its quants at all. This file is that equivalent. It is Python and
-stdlib-only, so one file serves Linux, macOS and Windows, and `run-ladder.ps1`
-stays exactly where it is as the Windows path and the reference for behaviour.
+WHY THIS FILE EXISTS. METHODOLOGY rule 6 ranks quants by perplexity over
+294,912 token positions - not by accuracy, which at n<=25 detects only
+~20-point collapses - and until this file existed the only runner that could
+produce that number was `run-ladder.ps1`, Windows PowerShell, which
+`skills/field-guide/stages/stage-6.md` named as the ladder runner with no POSIX
+equivalent shipped. Those two sentences together said that a Linux campaign
+could not rank its quants at all. This file is that equivalent, and
+`stage-6.md` names it as the runner (Stage 6a, "It is stdlib-only and runs on
+Linux, macOS and Windows"). It is Python and stdlib-only, so one file serves
+Linux, macOS and Windows, and `run-ladder.ps1` stays exactly where it is as the
+Windows original and the reference for behaviour.
 
 WHAT IT GUARANTEES, each one verifiable without a GPU (`--dry-run`):
 
@@ -811,9 +814,23 @@ def run_detectors(ctx, name):
                else "detectors.ps1 is missing", stamp()))
         return
     log("  running detectors for %s" % name)
-    subprocess.run([host, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
-                    script, "-Manifest", ctx["manifest_path"], "-Only", name,
-                    "-SkipGate"])
+    p = subprocess.run([host, "-NoProfile", "-ExecutionPolicy", "Bypass",
+                        "-File", script, "-Manifest", ctx["manifest_path"],
+                        "-Only", name, "-SkipGate"])
+    # A non-zero exit is the same reading as no PowerShell host: the axis was
+    # not measured. detectors.ps1 writes its verdicts into its OWN ledger, so
+    # without this line THIS ledger would carry a perplexity rank for the rung
+    # and nothing at all about the disqualifier probes - a skipped axis read as
+    # a measured negative, which the paragraph above forbids.
+    if p.returncode != 0:
+        ledger_append(
+            ctx["ledger"],
+            "NOTE %s | detectors EXITED %d: the probe pass did not complete. "
+            "Read the detector ledger beside this one before treating the rung "
+            "as undisqualified - detectors.ps1 writes a DETECT row for what it "
+            "reached, and a rung with no row was not probed. This rung's rank "
+            "stands; its disqualifier axis does not. | ts=%s"
+            % (name, p.returncode, stamp()))
 
 
 # ---------------------------------------------------------------------------

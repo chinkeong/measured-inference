@@ -160,7 +160,12 @@ conclusion:
    own framework held "no VRAM cost" through multiple framework-holding
    review passes, and a framework-free rerun killed it in one night. Your
    framework is your largest blind spot precisely because it is what you
-   see with.
+   see with. **`EXTERNAL-REVIEW.md` is this check run in the other
+   direction** — it records what other people's published measurements of
+   the same model do BETTER than this campaign, and what changed as a
+   result, including the campaign's single biggest methodological weakness
+   (a quality ladder anchored to a lossy 4-bit file rather than to BF16).
+   Read it before writing a paragraph that grades somebody else's numbers.
 1. **Performance.** Is this passage helping the reader or demonstrating
    your skill? Delete the parts whose only function is display.
 2. **Over-attribution.** Did you flag most of the input as wrong? Suspect

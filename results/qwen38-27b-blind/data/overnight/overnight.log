@@ -1,0 +1,216 @@
+[02:04:46] ==============================================================
+[02:04:46] OVERNIGHT QUEUE START   host: QUIET
+[02:04:46] TASK vram: reconciling the 899 MiB gap against the published 11,396 MiB
+[02:04:46] verified-clean baseline: 1665 MiB
+[02:04:56]   published flags            total  12162 MiB   allocation  10497 MiB
+[02:05:02]   without --load-mode none   total  12162 MiB   allocation  10497 MiB
+[02:05:07]   f16 KV instead of q8_0     total  13036 MiB   allocation  11371 MiB
+[02:05:07] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\vram-reconcile.json
+[02:05:07] TASK vram: done
+[02:05:07] TASK ngram: drafters on files that have no MTP layers
+[02:05:54]   UD-Q2_K_XL   none                      45.71 t/s   12162 MiB   acc -
+[02:06:15]   UD-Q2_K_XL   ngram-mod (card's own)   353.23 t/s   12200 MiB   acc 1.0
+[02:07:04]   UD-Q2_K_XL   ngram-simple              44.99 t/s   12162 MiB   acc 0.0
+[02:07:57]   UD-Q2_K_XL   ngram-cache               41.95 t/s   12164 MiB   acc 0.148
+[02:08:28]   UD-Q2_K_XL   draft-mtp                 82.60 t/s   13372 MiB   acc 0.943
+[02:08:28] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\ngram-drafters.json
+[02:09:06]   QAT-Q2_0     none                      62.92 t/s   11102 MiB   acc -
+[02:09:26]   QAT-Q2_0     ngram-mod (card's own)   249.61 t/s   11138 MiB   acc 0.935
+[02:10:03]   QAT-Q2_0     ngram-simple              61.62 t/s   11102 MiB   acc 0.042
+[02:10:39]   QAT-Q2_0     ngram-cache               62.23 t/s   11102 MiB   acc 0.062
+[02:10:48]   QAT-Q2_0     draft-mtp                NOT SUPPORTED (server refused)
+[02:10:48] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\ngram-drafters.json
+[02:11:28]   UD-IQ2_S     none                      48.05 t/s   11178 MiB   acc -
+[02:11:46]   UD-IQ2_S     ngram-mod (card's own)   266.08 t/s   11216 MiB   acc 0.909
+[02:12:25]   UD-IQ2_S     ngram-simple              46.87 t/s   11178 MiB   acc 0.042
+[02:13:04]   UD-IQ2_S     ngram-cache               46.05 t/s   11178 MiB   acc 0.0
+[02:13:13]   UD-IQ2_S     draft-mtp                NOT SUPPORTED (server refused)
+[02:13:13] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\ngram-drafters.json
+[02:13:13] TASK ngram: done
+[02:13:13] TASK depth: distractor retrieval x KV precision
+[02:13:27]   UD-Q2_K_XL   KV f16     90 records (~3027 tok)  5/5 correct
+[02:13:27] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[02:13:38]   UD-Q2_K_XL   KV f16    380 records (~10135 tok)  5/5 correct
+[02:13:38] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[02:13:55]   UD-Q2_K_XL   KV f16    780 records (~13771 tok)  5/5 correct
+[02:13:55] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[02:14:05]   UD-Q2_K_XL   KV q8_0    90 records (~3027 tok)  5/5 correct
+[02:14:05] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[02:14:17]   UD-Q2_K_XL   KV q8_0   380 records (~10135 tok)  5/5 correct
+[02:14:17] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[02:14:34]   UD-Q2_K_XL   KV q8_0   780 records (~13771 tok)  5/5 correct
+[02:14:34] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[02:14:44]   UD-Q2_K_XL   KV q4_0    90 records (~3027 tok)  5/5 correct
+[02:14:44] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[02:14:56]   UD-Q2_K_XL   KV q4_0   380 records (~10135 tok)  5/5 correct
+[02:14:56] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[02:15:13]   UD-Q2_K_XL   KV q4_0   780 records (~13771 tok)  5/5 correct
+[02:15:13] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[02:15:27]   QAT-Q2_0     KV f16     90 records (~3027 tok)  5/5 correct
+[02:15:27] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[02:15:37]   QAT-Q2_0     KV f16    380 records (~10135 tok)  5/5 correct
+[02:15:37] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[02:15:52]   QAT-Q2_0     KV f16    780 records (~13771 tok)  4/5 correct
+[02:15:52] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[02:16:02]   QAT-Q2_0     KV q8_0    90 records (~3027 tok)  5/5 correct
+[02:16:02] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[02:16:12]   QAT-Q2_0     KV q8_0   380 records (~10135 tok)  5/5 correct
+[02:16:12] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[02:16:27]   QAT-Q2_0     KV q8_0   780 records (~13771 tok)  4/5 correct
+[02:16:27] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[02:16:37]   QAT-Q2_0     KV q4_0    90 records (~3027 tok)  5/5 correct
+[02:16:37] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[02:16:47]   QAT-Q2_0     KV q4_0   380 records (~10135 tok)  5/5 correct
+[02:16:47] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[02:17:02]   QAT-Q2_0     KV q4_0   780 records (~13771 tok)  4/5 correct
+[02:17:02] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[02:17:03] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[02:17:03] TASK depth: done
+[02:17:03] TASK empties: code prompts x 6 seeds, shipped sampler
+[02:17:03]   50 code prompts recovered from the frozen suite
+[02:22:55]   UD-Q2_K_XL   seed 42 done: 0 empty of 50 so far
+[02:22:55] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[02:28:14]   UD-Q2_K_XL   seed 43 done: 0 empty of 100 so far
+[02:28:14] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[02:33:35]   UD-Q2_K_XL   seed 44 done: 0 empty of 150 so far
+[02:33:35] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[02:39:22]   UD-Q2_K_XL   seed 45 done: 0 empty of 200 so far
+[02:39:22] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[02:46:54]   UD-Q2_K_XL   seed 46 done: 0 empty of 250 so far
+[02:46:54] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[02:58:04]   UD-Q2_K_XL   seed 47 done: 0 empty of 300 so far
+[02:58:04] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[02:58:06]   UD-Q2_K_XL   FINAL 0 empty of 300 generations (0.00%)
+[02:58:06] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[03:01:39]   QAT-Q2_0     seed 42 done: 0 empty of 50 so far
+[03:01:39] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[03:07:10]   QAT-Q2_0     seed 43 done: 0 empty of 100 so far
+[03:07:10] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[03:11:46]   QAT-Q2_0     seed 44 done: 0 empty of 150 so far
+[03:11:46] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[03:15:13]   QAT-Q2_0     seed 45 done: 0 empty of 200 so far
+[03:15:13] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[03:18:29]   QAT-Q2_0     seed 46 done: 0 empty of 250 so far
+[03:18:29] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[03:24:25]   QAT-Q2_0     seed 47 done: 0 empty of 300 so far
+[03:24:25] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[03:24:26]   QAT-Q2_0     FINAL 0 empty of 300 generations (0.00%)
+[03:24:26] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[03:31:34]   UD-IQ2_S     seed 42 done: 0 empty of 50 so far
+[03:31:34] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[03:37:09]   UD-IQ2_S     seed 43 done: 0 empty of 100 so far
+[03:37:09] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[03:41:14]   UD-IQ2_S     seed 44 done: 0 empty of 150 so far
+[03:41:14] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[03:47:35]   UD-IQ2_S     seed 45 done: 0 empty of 200 so far
+[03:47:35] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[03:53:33]   UD-IQ2_S     seed 46 done: 0 empty of 250 so far
+[03:53:33] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[04:01:08]   UD-IQ2_S     seed 47 done: 0 empty of 300 so far
+[04:01:08] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[04:01:09]   UD-IQ2_S     FINAL 0 empty of 300 generations (0.00%)
+[04:01:09] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[04:01:09] TASK empties: done
+[04:01:09] OVERNIGHT QUEUE COMPLETE
+[04:05:05] ==============================================================
+[04:05:05] OVERNIGHT QUEUE START   host: QUIET
+[04:05:05] TASK depth: distractor retrieval x KV precision
+[04:06:19]   UD-Q2_K_XL   KV f16   1860 records (~61727 tok)  5/5 correct
+[04:06:19] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[04:06:20]   depth probe failed: HTTP Error 400: Bad Request
+[04:07:36]   UD-Q2_K_XL   KV q8_0  1860 records (~61727 tok)  5/5 correct
+[04:07:36] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[04:07:36]   depth probe failed: HTTP Error 400: Bad Request
+[04:08:52]   UD-Q2_K_XL   KV q4_0  1860 records (~61727 tok)  5/5 correct
+[04:08:52] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[04:08:52]   depth probe failed: HTTP Error 400: Bad Request
+[04:10:23] ==============================================================
+[04:10:23] OVERNIGHT QUEUE START   host: QUIET
+[04:10:23] TASK depth: distractor retrieval x KV precision
+[04:11:37]   UD-Q2_K_XL   KV f16   1860 records (~61727 tok)  5/5 correct
+[04:11:37] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[04:13:35]   UD-Q2_K_XL   KV f16   2700 records (~89589 tok)  5/5 correct
+[04:13:35] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[04:16:26]   UD-Q2_K_XL   KV f16   3600 records (~119435 tok)  5/5 correct
+[04:16:26] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[04:17:43]   UD-Q2_K_XL   KV q8_0  1860 records (~61727 tok)  5/5 correct
+[04:17:43] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[04:19:43]   UD-Q2_K_XL   KV q8_0  2700 records (~89589 tok)  5/5 correct
+[04:19:43] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[04:22:37]   UD-Q2_K_XL   KV q8_0  3600 records (~119435 tok)  5/5 correct
+[04:22:37] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[04:23:53]   UD-Q2_K_XL   KV q4_0  1860 records (~61727 tok)  5/5 correct
+[04:23:53] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[04:25:52]   UD-Q2_K_XL   KV q4_0  2700 records (~89589 tok)  5/5 correct
+[04:25:52] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[04:28:45]   UD-Q2_K_XL   KV q4_0  3600 records (~119435 tok)  5/5 correct
+[04:28:45] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[04:29:54]   QAT-Q2_0     KV f16   1860 records (~61727 tok)  5/5 correct
+[04:29:54] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[04:31:43]   QAT-Q2_0     KV f16   2700 records (~89589 tok)  5/5 correct
+[04:31:43] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[04:34:22]   QAT-Q2_0     KV f16   3600 records (~119435 tok)  4/5 correct
+[04:34:22] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[04:35:31]   QAT-Q2_0     KV q8_0  1860 records (~61727 tok)  5/5 correct
+[04:35:31] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[04:37:21]   QAT-Q2_0     KV q8_0  2700 records (~89589 tok)  5/5 correct
+[04:37:21] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[04:40:01]   QAT-Q2_0     KV q8_0  3600 records (~119435 tok)  4/5 correct
+[04:40:01] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[04:41:10]   QAT-Q2_0     KV q4_0  1860 records (~61727 tok)  5/5 correct
+[04:41:10] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[04:43:00]   QAT-Q2_0     KV q4_0  2700 records (~89589 tok)  5/5 correct
+[04:43:00] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[04:45:40]   QAT-Q2_0     KV q4_0  3600 records (~119435 tok)  4/5 correct
+[04:45:40] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[04:45:41] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\depth-retrieval.json
+[04:45:41] TASK depth: done
+[04:45:41] OVERNIGHT QUEUE COMPLETE
+[12:11:19] ==============================================================
+[12:11:19] OVERNIGHT QUEUE START   host: QUIET
+[12:11:19] TASK empties: code prompts x 6 seeds, shipped sampler
+[12:11:19]   50 code prompts recovered from the frozen suite
+[12:27:53]   UD-IQ2_XXS   seed 42 done: 0 empty of 50 so far
+[12:27:53] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[12:33:36]   UD-IQ2_XXS   seed 43 done: 0 empty of 100 so far
+[12:33:36] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[12:40:02]   UD-IQ2_XXS   seed 44 done: 0 empty of 150 so far
+[12:40:02] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[12:46:45]   UD-IQ2_XXS   seed 45 done: 0 empty of 200 so far
+[12:46:45] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[12:53:08]   UD-IQ2_XXS   seed 46 done: 0 empty of 250 so far
+[12:53:08] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[13:03:27]   UD-IQ2_XXS   seed 47 done: 1 empty of 300 so far
+[13:03:27] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[13:03:28]   UD-IQ2_XXS   FINAL 1 empty of 300 generations (0.33%)
+[13:03:28] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[13:30:04]   UD-IQ1_M     seed 42 done: 0 empty of 50 so far
+[13:30:04] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[13:52:56]   UD-IQ1_M     seed 43 done: 1 empty of 100 so far
+[13:52:56] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[14:22:34]   UD-IQ1_M     seed 44 done: 2 empty of 150 so far
+[14:22:34] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[14:37:22]   UD-IQ1_M     seed 45 done: 3 empty of 200 so far
+[14:37:22] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\empties-power.json
+[00:05:43] ==============================================================
+[00:05:43] OVERNIGHT QUEUE START   host: QUIET
+[00:05:43] TASK vram: reconciling the 899 MiB gap against the published 11,396 MiB
+[00:08:28] ==============================================================
+[00:08:29] OVERNIGHT QUEUE START   host: QUIET
+[00:08:29] TASK vram: reconciling the 899 MiB gap against the published 11,396 MiB
+[00:53:37] ==============================================================
+[00:53:37] OVERNIGHT QUEUE START   host: QUIET
+[00:53:37] TASK vram: reconciling the 899 MiB gap against the published 11,396 MiB
+[00:53:37] verified-clean baseline: 1647 MiB
+[00:53:46]   published flags            total  12155 MiB   allocation  10508 MiB
+[00:53:54]   without --load-mode none   total  12152 MiB   allocation  10505 MiB
+[00:53:59]   f16 KV instead of q8_0     total  12998 MiB   allocation  11351 MiB
+[00:53:59] -> E:\AI\measured-inference\results\qwen38-27b-blind\data\overnight\vram-reconcile.json
+[00:53:59] TASK vram: done
+[00:53:59] TASK ngram: drafters on files that have no MTP layers
+[10:24:44] ==============================================================
+[10:24:45] OVERNIGHT QUEUE START   host: QUIET
+[10:24:45] TASK vram: reconciling the 899 MiB gap against the published 11,396 MiB
+[10:30:22] ==============================================================
+[10:30:22] OVERNIGHT QUEUE START   host: QUIET
+[10:30:22] TASK vram: reconciling the 899 MiB gap against the published 11,396 MiB

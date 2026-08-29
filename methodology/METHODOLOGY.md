@@ -4,6 +4,16 @@ Distilled from the reference campaign (Qwen3.8-27B on RTX 3090, 2026-08-22;
 published as templates/example-report.html). Each rule earned its place by a
 measured failure.
 
+**Rule numbers are stable and are never reused or renumbered**, because they
+are cited by name from probe headers, campaign logs and published pages, and a
+citation that silently changes meaning is worse than one that dangles. One
+number was overloaded and is now split: **rule 27 is QUIET MACHINE**, and the
+Stage-0 interview rule — cited throughout this repository as "rule 27" until
+2026-08-30, while carrying no text here at all — **is rule 31**. A "rule 27"
+citation written before that date means rule 31 where its sentence is about
+asking the user a question, and rule 27 where it is about host load or machine
+state, which is what it always meant here.
+
 ## Epistemics
 1. **Measured, cited, or labeled-derived.** Nothing else ships.
    (a) A number labeled **measured** resolves to a NAMED RUN in the Sources
@@ -369,6 +379,42 @@ beyond its retrieval-tested depth is labeled
     silencing it costs one written sentence in `instrument-guard-allow.txt`
     naming the command that remakes the file, and the difficulty of writing
     that sentence is the measurement.
+
+31. **Questions to the user happen at Stage 0 ONLY; after the interview closes
+    the campaign is autonomous to the end.** This rule is the product's shape
+    rather than a post-mortem: a campaign that may stop and ask is a campaign
+    that needs a human awake for the whole of it, and the whole of it is hours
+    to days. Everything is asked in ONE round, up front, and auto-detected
+    facts are handed back FILLED IN for correction rather than asked as open
+    questions. After the round closes, mid-run uncertainty about what the user
+    wants resolves in this order and no other: **the interview record in
+    `campaign.md` → the measured default → record the assumption and
+    proceed.** A campaign triggered on a Friday evening must hold finished
+    results on Monday morning; a wrong-but-recorded assumption costs minutes
+    to correct, and a GPU weekend spent blocked on a question nobody was awake
+    to answer cannot be re-run.
+    - **What can only be learned by asking is proved while asking is still
+      legal.** A gated HuggingFace repo answers 401 at Stage-1 download time,
+      by which point the round has closed — so access is proved INSIDE the
+      round with a range request on one chosen file
+      (`curl -sI -r 0-1023 <resolve-url>` → 206/200, not 401/403; the listing
+      API succeeds on gated repos, so a listing is not proof), and a token is
+      handed over and confirmed in the same round.
+      `scripts/check-request.py` exists for this shape of question: it runs
+      the network, arithmetic and architecture checks whose failure would
+      otherwise need one, at the one moment a question is still allowed.
+    - **Three answers cannot be defaulted away**, because no machine holds
+      them: what the model will be used for, how many hours it gets, and
+      quality-first or latency-first. Everything else on the sheet — the quant
+      roster, the machine block, the slug, the installed-agent roster — is
+      detected and printed already filled in, marked as assumed. A user who
+      edits three fields and pastes the sheet back has closed the interview.
+    - **Recording is the discipline the rule rests on.** An assumption never
+      written into `campaign.md` is indistinguishable afterwards from a
+      measurement, which is rule 1's failure reached by another road. The
+      campaign log's deviations register is where it goes (rule 20).
+    `skills/field-guide/SKILL.md` carries the seven questions and the answer
+    sheet; `PROMPTS.md` carries the templates that close the round.
 
 ## Power
 24. **Every watt carries its instrumentation tier; every joule carries its

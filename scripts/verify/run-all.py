@@ -1,0 +1,302 @@
+#!/usr/bin/env python3
+"""Every check this repository can run without a GPU, in one command.
+
+    python scripts/verify/run-all.py
+    python scripts/verify/run-all.py --list
+    python scripts/verify/run-all.py --only arms --verbose
+
+WHY THIS EXISTS. The checks were there and the command was not. This runner has
+seven members, each answering a different question with no card, no weights and
+no network - four of them in `scripts/verify/`, three beside the instrument each
+one checks - and until 2026-08-30 the only way to run them was to know all seven
+file names, so an agent on a fresh clone ran the one it had been told about and
+shipped past the other six. `scripts/verify/test-arms.py` was named in no
+markdown file in the repository at all: the lane that proves the sweep runner
+still records, resumes, discards, orders and stops the way the rules require
+existed for exactly as long as somebody remembered it. The list below is the
+whole membership and `--list` prints it; where a check lives decides nothing,
+and two more no-GPU programs are left out ON PURPOSE, named at the end with the
+reason.
+
+WHAT IT RUNS, cheapest first, and the question each one answers:
+
+  detect-machine   does the memory-topology classifier still read every
+                   recorded box shape the same way? Its own `--self-test`,
+                   fixtures only, no hardware and nothing written: that
+                   verdict decides whether a model is priced against board
+                   memory or against system RAM (rules 13, 14)
+  openvino-quant   is the arithmetic behind every bpw_effective right? Replays
+                   the 600 per-tensor records in results/openvino-groundtruth/
+                   through scripts/lib/openvino_quant.py (rules 1 and 3)
+  ladder-png       can the renderer of the published quant-ladder figure still
+                   be pointed somewhere else? Four --out cases in a temporary
+                   directory; loads no source and draws nothing. It needs
+                   matplotlib and scipy, which `probe-smoke` already needs in
+                   order to import that file at all
+  bench-selftest   does the benchmark harness still agree with rule 21 - the
+                   seven-set suite, the cap, the -c sizing?
+  instrument-guard does anything published lean on a file git does not have?
+                   (rule 29: an ignore rule is a claim about re-creatability)
+  probe-smoke      would every probe in the tree actually START? Parses,
+                   imports and asks --help of all of them (rule 25: cheap
+                   probes before expensive hours)
+  arms-lane        does scripts/arms.py still record, resume, discard, order
+                   and stop the way a sweep depends on? Real subprocesses
+                   against a stub server (rules 7, 12, 20, 25, 28, 30)
+
+ALL OF THEM RUN, ALWAYS. A runner that stops at the first failure reports one
+problem and hides the rest, and the ones it hides are the ones nobody looks for
+after the first red line. The exit code is 1 if any check failed and 0
+otherwise; `--fail-fast` is there for a hook that wants the other behaviour and
+is not the default.
+
+WHAT IT DOES NOT RUN, and why, because a list of exclusions nobody wrote down
+becomes a list of checks nobody runs:
+
+  scripts/verify/portability-audit.py   a REPORT, not a verdict. It exits 0
+        with 70 blockers listed and only fails under --fail-on-blocker, so
+        putting it here would add a member that cannot go red. Run it by hand
+        before taking this repository to a machine it has not run on.
+  scripts/verify/condition-check.py     needs a target document, and the only
+        one here is the closed worked example. A runner that always checks one
+        shipped page is checking that page, not the tree.
+  scripts/verify/close-three.py         measures. It launches a server and
+        reads RAM and watts, which is a GPU job under rule 20.
+  scripts/verify/energy-four-sets.py    measures. Four benchmark runs.
+  scripts/verify/fake-llama-server.py   a fixture, exercised by arms-lane.
+
+`instrument-guard` IS THE MEMBER MOST LIKELY TO GO RED ON YOUR MACHINE, and
+that is the check working rather than noise. It compares what tracked files NAME
+against what git HAS and what is on your disk, so its verdict depends on files a
+checkout may or may not carry. It failed here on 2026-08-30 on two files, and
+each was closed the way this check demands - by adding the file, or by writing
+down how it is remade - rather than by dropping the member:
+
+  results/qwen38-27b-blind/data/overnight/overnight.log   the transcript of the
+        overnight measurement queue in scripts/quant-ladder/overnight.py, which
+        wrote four of the five tracked JSONs beside it. It carries the per-probe
+        readings and the host state each was taken under, and re-running the
+        queue measures the card again rather than remaking the file, so it is
+        in git. `*.log` at .gitignore:21 names it, so the scoped negation that
+        keeps a plain `git add` honest belongs beside the
+        `!results/openvino-groundtruth/*.log` one, for the same stated reason
+        (rule 29). The guard reaches it by BASENAME, through PROMPTS.md's
+        overnight recipe - which names a DIFFERENT file,
+        results/<SLUG>/work/overnight.log, the detached sweep's stdout, and
+        PROMPTS.md:1250 is right that that one is a working file
+  results/qwen38-27b-blind/figures/quant-ladder.png       a derived figure, and
+        the one case the allow-list is for: `python scripts/quant-ladder/
+        make-ladder-png.py` remakes it byte-identically - md5
+        11159d63745bb9e3267516d93b5e165d, two fresh renders against the copy on
+        disk, measured 2026-08-30 - so it is allow-listed with that sentence
+        rather than committed as 280,937 bytes
+
+WHETHER A CLEAN CLONE OF THE SAME COMMIT IS GREEN IS NOT ESTABLISHED. The
+figure is absent from a checkout that has never run anything, which would turn
+its row into the "named but nowhere on disk" warning the same check prints
+without failing - but the clone taken to confirm that did not check out on this
+filesystem, so it is an expectation and not a reading. Read the names the check
+prints before deciding a row is not yours, and clear one by adding the file or
+by writing in `scripts/verify/instrument-guard-allow.txt` how it would be
+remade - never by dropping the member.
+
+ONE GPU JOB AT A TIME STILL APPLIES (rule 20). Nothing here takes the card, but
+`arms-lane` launches stub servers through the same `gpu_lock` a real sweep uses,
+so it refuses to start while a live sweep holds the lock and says so. Check with
+`python scripts/bench/gpu_lock.py status` before reading that failure as a
+defect in the lane.
+
+Stdlib only. Each check runs as its own subprocess with this interpreter, from
+the repository root, WITH THE ENVIRONMENT PASSED THROUGH UNCHANGED, because each
+member already decides what its own children see: `arms-lane` STRIPS
+MEASURED_INFERENCE_DRY_RUN (scripts/verify/test-arms.py:225) since it wants a
+real stub launch, and arms.py refuses at argument-parse time when that variable
+is set without --dry-run (scripts/arms.py:1971) - before any launch, and so
+before gpu_lock is ever consulted; and `probe-smoke` SETS it for both of its
+own subprocesses so that nothing it starts can reach the card. Neither of them
+cares what you exported; running this under MEASURED_INFERENCE_DRY_RUN=1 changes
+no member's verdict.
+"""
+
+import argparse
+import os
+import subprocess
+import sys
+import time
+
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# (name, script relative to the repo, extra argv, timeout seconds, one line
+# saying what a failure MEANS). Ordered cheapest first, measured 2026-08-30 on
+# Windows 11 / Python 3.11: 0.1, 0.1, 0.7, 2.3, 2.9, 20.8 and 23.5 s, 50 s the
+# whole way through. Order is a courtesy only - every member runs regardless.
+CHECKS = (
+    ("detect-machine", "scripts/detect-machine.py", ("--self-test",), 300,
+     "the memory-topology classifier changed its mind about a recorded box "
+     "shape, so plan-campaign.py would price a model against the wrong "
+     "memory pool"),
+    ("openvino-quant", "scripts/verify/test-openvino-quant.py", (), 300,
+     "a published bits-per-weight for an OpenVINO run is computed from a "
+     "table that no longer matches the run that checked it"),
+    ("ladder-png", "scripts/quant-ladder/make-ladder-png.py", ("--self-test",),
+     300,
+     "the renderer of the published quant-ladder figure mishandles --out, "
+     "and the crash lands after every source is read and the figure drawn"),
+    ("bench-selftest", "scripts/bench/selftest.py", (), 300,
+     "the benchmark harness and rule 21 disagree about what the suite is"),
+    ("instrument-guard", "scripts/verify/instrument-guard.py", (), 300,
+     "something tracked names a file git does not have, so a published claim "
+     "is one disk wipe from unreproducible (rule 29) - read the names it "
+     "prints, they may be yours"),
+    ("probe-smoke", "scripts/verify/probe-smoke-test.py", (), 900,
+     "a probe in this tree cannot start, and it would have failed AFTER a "
+     "human committed GPU hours to it"),
+    ("arms-lane", "scripts/verify/test-arms.py", (), 900,
+     "the sweep runner stopped recording, resuming, discarding, ordering or "
+     "stopping the way results/ depends on"),
+)
+
+
+def run_check(name, rel, extra, timeout, verbose):
+    """(ok, seconds, exit code, output). Never raises."""
+    cmd = [sys.executable, os.path.join(REPO, *rel.split("/"))] + list(extra)
+    t0 = time.time()
+    try:
+        if verbose:
+            # Straight to the terminal, unbuffered, so a long check can be
+            # watched rather than waited on.
+            rc = subprocess.call(cmd, cwd=REPO, timeout=timeout)
+            return rc == 0, time.time() - t0, rc, ""
+        p = subprocess.run(cmd, cwd=REPO, capture_output=True, text=True,
+                           errors="replace", timeout=timeout)
+        return (p.returncode == 0, time.time() - t0, p.returncode,
+                (p.stdout or "") + (p.stderr or ""))
+    except subprocess.TimeoutExpired:
+        return (False, time.time() - t0, None,
+                "did not finish in %d s. A no-GPU check that hangs is a check "
+                "nobody will keep running; find out what it is waiting for."
+                % timeout)
+    except OSError as exc:
+        return False, time.time() - t0, None, "could not start: %s" % exc
+
+
+def _head_and_tail(out, n):
+    """The first n and last n lines, with one line saying what was dropped.
+
+    A failing checker states its findings first and its verdict last, so a tail
+    alone prints the verdict of a list the reader cannot see - which is what
+    the first version of this runner did to instrument-guard's output.
+    """
+    lines = out.rstrip().splitlines()
+    if len(lines) <= 2 * n:
+        return lines
+    return (lines[:n]
+            + ["    ... %d line(s) not shown; --verbose runs it with its own "
+               "output" % (len(lines) - 2 * n)]
+            + lines[-n:])
+
+
+def _summary_line(out):
+    """The last line of a passing check that says anything.
+
+    These checkers close with a rule of `=` characters, so the literal last
+    line is a separator on every one of them.
+    """
+    for line in reversed(out.splitlines()):
+        if any(ch.isalnum() for ch in line):
+            return line.strip()
+    return ""
+
+
+def main():
+    ap = argparse.ArgumentParser(
+        description="Run every no-GPU check in this repository, in order, and "
+                    "exit non-zero if any of them fails.")
+    ap.add_argument("--only", metavar="SUBSTRING", default=None,
+                    help="run only checks whose name contains this")
+    ap.add_argument("--list", action="store_true",
+                    help="list the checks, their scripts and what a failure "
+                         "means, and run nothing")
+    ap.add_argument("--verbose", action="store_true",
+                    help="let each check write straight to this terminal "
+                         "instead of capturing it (the default prints the "
+                         "tail of a failing check and the last line of a "
+                         "passing one)")
+    ap.add_argument("--lines", type=int, default=20, metavar="N",
+                    help="lines to print from EACH END of a failing check's "
+                         "output (default: %(default)s; the whole of it with "
+                         "--verbose). Both ends, because a checker states its "
+                         "findings at the top and its verdict at the bottom, "
+                         "and a tail alone shows the verdict of a list you "
+                         "cannot see")
+    ap.add_argument("--fail-fast", action="store_true",
+                    help="stop at the first failure. NOT the default: a "
+                         "runner that stops at the first red line reports one "
+                         "problem and hides the rest")
+    a = ap.parse_args()
+
+    chosen = [c for c in CHECKS if not a.only or a.only in c[0]]
+    if a.list:
+        for name, rel, extra, timeout, why in CHECKS:
+            print("%-17s %s %s" % (name, rel, " ".join(extra)))
+            print("%-17s failure means: %s" % ("", why))
+        return 0
+    if not chosen:
+        print("no check matches %r. Known: %s"
+              % (a.only, ", ".join(c[0] for c in CHECKS)))
+        return 2
+
+    print("=" * 78)
+    print("NO-GPU VERIFICATION LANE - %d check(s), cheapest first" % len(chosen))
+    print("=" * 78)
+    print("python : %s" % sys.executable)
+    print("repo   : %s" % REPO)
+    print("Nothing here takes the card. arms-lane goes through gpu_lock all the")
+    print("same, so it refuses while a live sweep holds it (rule 20).\n")
+
+    results, t_all = [], time.time()
+    for name, rel, extra, timeout, why in chosen:
+        sys.stdout.write("  running %-17s %s ... " % (name, rel))
+        sys.stdout.flush()
+        if a.verbose:
+            print("")
+        ok, secs, rc, out = run_check(name, rel, extra, timeout, a.verbose)
+        results.append((name, rel, ok, secs, rc, out, why))
+        if a.verbose:
+            print("  %-9s %-17s %6.1fs" % ("ok" if ok else "FAILED", name, secs))
+        elif ok:
+            print("ok   %6.1fs  %s" % (secs, _summary_line(out)[:64]))
+        else:
+            print("FAILED %4.1fs  exit %s" % (secs, rc))
+        if not ok and a.fail_fast:
+            print("\n--fail-fast: stopping here. %d check(s) not run."
+                  % (len(chosen) - len(results)))
+            break
+
+    failed = [r for r in results if not r[2]]
+    if failed and not a.verbose:
+        for name, rel, ok, secs, rc, out, why in failed:
+            print("")
+            print("-" * 78)
+            print("FAILED  %s  (exit %s, %.1f s)" % (name, rc, secs))
+            print("what it means: %s" % why)
+            print("re-run it alone: python %s" % rel)
+            print("-" * 78)
+            for line in _head_and_tail(out, a.lines):
+                print("    %s" % line)
+
+    print("")
+    print("=" * 78)
+    if failed:
+        print("%d of %d FAILED in %.0f s: %s"
+              % (len(failed), len(results), time.time() - t_all,
+                 ", ".join(r[0] for r in failed)))
+    else:
+        print("all %d passed in %.0f s. No GPU, no weights, no network."
+              % (len(results), time.time() - t_all))
+    print("=" * 78)
+    return 1 if failed else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

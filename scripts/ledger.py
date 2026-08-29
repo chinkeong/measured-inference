@@ -978,6 +978,13 @@ def extract_arms_ledger(lines, source, campaign):
             "sweep": sweep, "arm": rec.get("arm"), "rep": rec.get("rep"),
             "arm_pos": rec.get("pos"), "order_mode": rec.get("order_mode"),
             "probe": rec.get("probe"), "probe_index": rec.get("probe_index"),
+            # Rule 12 counts from the SERVER LOAD, not from the arm, and after
+            # a mid-arm --resume the two stop agreeing: probe_index 1 can be
+            # the first thing a fresh server answered. arms.py discards by
+            # this number, so it is the only field on the row that says which
+            # reading was taken on ramping clocks. A field that never reaches
+            # a row cannot do its job.
+            "load_probe_index": rec.get("load_probe_index"),
             "ctx": rec.get("ctx_size"), "ctx_source": rec.get("ctx_source"),
             "flags": " ".join(str(f) for f in flags) or None,
             # Pulled out by name because the gate compares FIELDS: the drafter

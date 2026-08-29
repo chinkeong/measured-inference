@@ -23,8 +23,18 @@
 #   (c) small code task -> does it OPEN and CLOSE a fenced block
 #
 # Rung verdict: FAIL on any of D1/D2/json/fence; REVIEW if only D3/D4 fired.
+# Two verdicts are facts about the MACHINE and not about the quant, and both
+# are written per rung so no rung is left ranked-but-unexamined with nothing in
+# the ledger to say so: SRVFAIL, the server would not come up, and NOTRUN, this
+# machine has no llama-server to come up at all.
 param(
-    [string]$Manifest = 'E:\AI\measured-inference\scripts\quant-ladder\ladder-manifest.json',
+    # The manifest that ships beside this script. It used to read
+    # 'E:\AI\measured-inference\scripts\quant-ladder\ladder-manifest.json' -
+    # this repository's own path, typed out, correct on exactly one clone.
+    # $PSScriptRoot names the same file on every clone, and -Manifest still
+    # takes any other one. (In a param() default $PSScriptRoot is the directory
+    # of the script being invoked, which is this one; verified on PS 5.1.)
+    [string]$Manifest = (Join-Path $PSScriptRoot 'ladder-manifest.json'),
     [string]$Only = '',
     [switch]$SkipGate,
     [switch]$Force,
@@ -224,6 +234,49 @@ foreach ($R in ($M.rungs | Sort-Object { [int]$_.order })) {
     $targets += $R
 }
 Write-Log ('detectors: {0} rung(s) to probe' -f $targets.Count)
+
+# Resolve the server binary before the gate wait, not inside the first rung.
+# Wait-GpuGate blocks for up to -DeadlineMinutes (default 8 h); discovering
+# there that this machine has no llama.cpp would spend the whole window to
+# learn something knowable in a millisecond. Get-LlamaServerBin throws with the
+# fix attached, and memoises the answer, so this costs the loop nothing.
+#
+# Failing earlier is only an improvement if it fails with MORE evidence than
+# the late failure it replaces (rule 2). The late failure was legible: the
+# launch died, Start-Srv's health loop returned nothing, and Invoke-Detectors
+# wrote  DETECT <rung> | verdict=SRVFAIL | ...  for every rung, so the
+# detector ledger recorded that the axis had been attempted and had failed and
+# summarize.py printed that verdict in the rung's detectors column. A bare
+# throw here writes nothing into THIS ledger. run-ladder.py:825 does read the
+# exit code and appends a NOTE when it is non-zero, so the failure is no longer
+# invisible on that side - but that NOTE lands in the LADDER ledger and names no
+# rung, while the column a reader is actually looking at is the detector one.
+# Without the rows below, every rung would still carry a perplexity rank with no
+# disqualifier evidence beside it - the exact reading run-ladder.py's own
+# docstring forbids, a skipped axis read as a measured negative. The two are
+# belt and braces: one says the pass died, these say which rungs went unasked. So the throw is caught, one row per targeted rung is
+# written carrying the resolver's message, and only then does this exit
+# non-zero. The row is a DETECT so it lands in the column a reader is already
+# looking at; like the SRVFAIL row it replaces, it marks the rung answered, so
+# a rerun after the toolchain is installed needs -Force, and the row says so.
+if ($targets.Count -gt 0) {
+    try {
+        $null = Get-LlamaServerBin
+    } catch {
+        # The message carries the fix, so an operator sees it laid out; the
+        # ledger gets the same text collapsed onto one line, because a row a
+        # report writer reads months later cannot depend on a console that
+        # scrolled away (rule 28).
+        foreach ($ln in ("$_" -split "`r?`n")) { Write-Log $ln }
+        $why = (("$_" -split "`r?`n" | Where-Object { $_.Trim() }) -join ' / ') -replace '\s{2,}', ' '
+        foreach ($R in $targets) {
+            Write-Ledger $DET ('DETECT {0} | verdict=NOTRUN | no llama-server on this machine, so none of the disqualifier probes ran: this rung carries a perplexity rank and NO disqualifier evidence - report it as undisqualified, never as passing. Rerun with -Force once the toolchain resolves. | resolver={1} | ts={2}' -f `
+                ([string]$R.name), $why, (Get-Date -Format 's'))
+        }
+        Write-Log 'DETECTORS ABORTED - no llama-server; one NOTRUN row written per rung above'
+        exit 1
+    }
+}
 
 foreach ($R in $targets) {
     if ((Get-Date) -ge $DEADLINE) { Write-Log 'deadline reached'; break }

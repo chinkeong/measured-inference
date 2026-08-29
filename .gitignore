@@ -29,6 +29,18 @@ bin/
 # a reader could check it against, which is the exact shape rule 1 forbids.
 !results/openvino-groundtruth/*.log
 
+# EXCEPT the overnight measurement queue's transcript. The *.log clause is a
+# statement about cost, and this file answers it the other way: re-running
+# scripts/quant-ladder/overnight.py measures the card again rather than
+# remaking the file. It is the transcript of nine queue runs, last written
+# 2026-08-29 - the per-probe readings and the host state each was taken
+# under (rule 27) - and it names four of the five tracked JSONs
+# beside it as its own outputs (not ngram-verify.json). Ignored, those four
+# keep their numbers and lose the conditions, which is the shape rule 3
+# forbids. The per-probe server logs under data/overnight/logs/ stay
+# ignored: the harness remakes those.
+!results/qwen38-27b-blind/data/overnight/overnight.log
+
 # opaque byte caches, not readings: llama-perplexity --kl-divergence-base
 # logit dumps (25 GB of the 25 GB under results/), model shards, arrays
 *.dat

@@ -96,6 +96,35 @@ Harness background tasks may be killed near 10 minutes; a detached process is
 not. Watch the log for a DONE marker. `Stop-Process -Name llama-server` ends a
 stranded server.
 
+### `$PSScriptRoot` inside a dot-sourced function is the LIBRARY's directory
+
+Verified on PS 5.1, 2026-08-30. Inside a function, `$PSScriptRoot` is the
+directory of the file the function was **defined** in, not the directory of the
+script that dot-sourced it, and it is bound inside a `param()` default as well.
+That is what makes a path resolver legal in a library rather than only in a
+runner: `Get-LlamaToolBin` in `scripts/quant-ladder/ladder-lib.ps1` and the
+`-Manifest` default in `detectors.ps1` both derive from `$PSScriptRoot`, and
+the archived `results/qwen38-27b-blind/work/*.ps1` runners that dot-source
+`ladder-lib.ps1` by absolute path still resolve to the right repository.
+
+**No launcher in `scripts/quant-ladder/` resolves `E:\AI\llama.cpp` any more
+except `gemma-ppl-diag.ps1:25`, which still names it and is a live BLOCKER in
+`scripts/verify/portability-audit.py` (69 blockers, 2026-08-30).** The library
+resolves `llama-server`, `llama-perplexity` and `llama-tokenize` through
+`Get-LlamaToolBin`: `-Explicit` → `$env:LLAMA_SERVER` (server only, exactly as
+`paths.py`'s `llama_bin()` scopes it) → `$env:LLAMA_DIR` → `PATH` →
+`<repo>/bin/llama.cpp/` (release and cmake layouts, with and without `.exe`),
+skipping any candidate whose first bytes say it is a Linux ELF — which is the
+state of `bin/llama.cpp/llama-server` in a checkout built under WSL.
+`Get-LlamaServerBin` is the `llama-server` wrapper around it, and the
+`ppl.exe` / `tokenize.exe` values in `ladder-manifest.json` are tool names put
+through the same chain by `Get-Manifest` when the manifest loads, so
+`run-ladder.ps1` launches a resolved path without knowing it. So either export
+`LLAMA_SERVER` or `LLAMA_DIR`, or run `scripts/setup.ps1` so `bin/llama.cpp/`
+holds a Windows build. A "not found" from these scripts lists every candidate
+it tried and the reason it rejected each one, which is `scripts/lib/paths.py`'s
+contract restated in PowerShell.
+
 ### Two 5.1 limits that forced a rewrite into Python
 
 Both are full entries in `failure-library.md` — they look like model or server
@@ -124,11 +153,22 @@ that has nothing to do with the model (rule 3; rule 30 — never compare across)
 The script refuses rather than installing a Vulkan build quietly, as it used to.
 
 ```bash
-sudo apt-get install -y nvidia-cuda-toolkit cmake build-essential git
+sudo apt-get install -y nvidia-cuda-toolkit cmake build-essential git \
+                        python3-venv python-is-python3
 ./scripts/setup.sh --cuda            # shallow-clones the pinned tag, builds, ~10-25 min
 ./scripts/setup.sh --cuda --cuda-arch 121a-real   # DGX Spark GB10 -- see below; 121 is refused
 MEASURED_INFERENCE_ALLOW_VULKAN=1 ./scripts/setup.sh   # deliberate, non-comparable
 ```
+
+**`python3-venv` and `python-is-python3` are not optional on stock Ubuntu
+24.04, which ships neither.** Without the first, `setup.sh` reaches step 11 and
+dies with **exit 6** — `python -m venv failed. Ubuntu: sudo apt-get install -y
+python3-venv` — after the ~10-25 minute CUDA build has already run. Without the
+second, the setup itself is fine (its interpreter loop tries `python3` first
+and only falls through to a bare `python`), but nothing else is: every `python
+scripts/...` line in `README.md`, `PROMPTS.md` and the stage files is then
+command-not-found. Both are one apt away and neither is worth discovering after
+the build.
 
 On an Intel box the answer is a different backend, not an override:
 
@@ -244,40 +284,50 @@ before launching (`AIDER_BENCH_SKIP_CONTAINER_CHECK=1` skips it). Related, and a
 different failure: WSL2 in **mirrored** networking mode also puts the LAN router
 on the default route — set `LLAMA_HOST` explicitly there.
 
-### SYMPTOM: probe-smoke-test.py fails 18 of 83 on a tree you have not touched
+### SYMPTOM: probe-smoke-test.py prints red on a tree you have not touched
 
-Known failures, all eighteen, recorded in `scripts/verify/smoke-baseline.json`
-with a reason, a bucket and a date. Until 2026-08-29 the tool ended `18 of 83
-FAILED` and exited 0; it now reports them as `known`, reports anything else as
-`NEW`, and **exits non-zero on NEW alone** — `--fail` restores
-"any failure fails", which is what a hook wants and what makes the overnight
-pre-check red on a clean tree. Read the summary, not the colour:
+**The baseline is empty, so any red line is yours.** Measured 2026-08-30, on
+this tree with nothing built:
 
-```bash
-python scripts/verify/probe-smoke-test.py            # 0 NEW → exit 0
-python scripts/verify/probe-smoke-test.py --fail     # 18 known → exit 1
+```
+0 NEW. 0 known, 89 start, of 89 checked.
 ```
 
-Nothing is skipped: every check still runs on every file and every failure is
-still printed. A row whose probe starts passing prints as `STALE … PASSES NOW -
+`scripts/verify/smoke-baseline.json`'s `entries[]` carries nothing. It once
+carried eighteen known failures — the tool ended `18 of 83 FAILED` and exited 0
+until 2026-08-29 — and those eighteen were fixed rather than re-recorded; they
+survive in the file's `cleared` block as history. So `--fail` ("any failure
+fails", which is what a hook wants) and the bare run ("exit non-zero on NEW
+alone") now agree, because there is nothing left for them to disagree about.
+The roster comes from `git ls-files`, so **89 moves with the tree** — it read
+87 an hour earlier, before two verify scripts were added — and it is not the
+number to watch. NEW and known are.
+
+Nothing is skipped: every check runs on every file and every failure is
+printed. A row whose probe starts passing prints as `STALE … PASSES NOW -
 delete this row`, and a row whose recorded cause has stopped being true counts
 as NEW. To add one, prove it is older than your work (`git log -1
 --format=%cd -- <path>`), then write the row — never by deleting a check.
 
-**Ten of the eighteen end in a missing `llama-server` path and are still not
-"environment".** Each has no argument parser, so `--help` is not answered, it is
-RUN, and the missing binary is only where the run stops first; building
-llama.cpp moves the stop point rather than clearing the row (DERIVED — measured
-only on a box with no build). That is the same class as the destroyed result
-`scripts/quant-ladder/three-file-12gb-fit.py` documents. Twenty-five of the 83
-are in that state; the checker prints the count, sets
-`MEASURED_INFERENCE_DRY_RUN=1` on both subprocesses so none of them can take the
-card, and diffs `git status --porcelain` around the run so a file a probe writes
-is named in the output. Measured 2026-08-29: one run wrote the campaign's
-280,937-byte quant-ladder figure at the IMPORT stage, from
-`scripts/quant-ladder/make-ladder-png.py`, whose whole body is top level and
-which the checker calls a library module — and the new untracked figure then
-trips `instrument-guard.py`. Delete it; any run remakes it.
+**One file of the roster has no argument parser**, so `--help` is not answered by
+it, it is RUN — and that is how a smoke test once overwrote a published result.
+It is `scripts/lib/openvino_quant.py`, and the checker now names it, says
+plainly that it is a LIBRARY rather than a probe (nothing under `scripts/lib`
+is launched by a stage; it is on the roster because every probe imports from
+it), and reports what it did to the tree: `git status --porcelain` unchanged
+across its `--help`, measured around that one subprocess. `MEASURED_INFERENCE_DRY_RUN=1`
+is set on both subprocesses, so nothing on the roster can take the card.
+
+The one file that DID write during a run is fixed. Measured 2026-08-29: one run
+rewrote the campaign's published 280,937-byte quant-ladder figure at the IMPORT
+stage, because `scripts/quant-ladder/make-ladder-png.py` had its whole 400-line
+body at module level — so importing it drew the figure, and the new untracked
+file then tripped `instrument-guard.py`. Fixed 2026-08-30: that body sits in
+`main()` behind a parser with `--out` and `--check` (`--check` loads every
+source and runs every cross-check without drawing), importing it writes
+nothing, and the checker reports it at the `--help` stage like any other probe.
+If you are holding an untracked copy of the figure from before the fix, delete
+it — a real run reproduces it byte for byte (md5 `11159d63` over three runs).
 
 ---
 
@@ -532,6 +582,49 @@ rule 10's decode estimate takes.
 Note the vendor-native alternative (vLLM with NVFP4) and what switching buys
 before committing a campaign to llama.cpp here.
 
+### SYMPTOM: `machine.json` says `memory_topology: system` on a Windows box with an Intel Arc part
+
+The box has a GPU and has been profiled as a machine without one, which is the
+worst of the three wrong answers because it is the only one that does not
+refuse: `shared-igpu` refuses until somebody records the driver's share cap
+with `--igpu-share-limit-mib N`, `discrete` refuses until somebody records a
+board size with `--board-total-mib N`, and `system` prices the fit against host
+RAM and **PASSES**.
+
+CAUSE. On Windows there is no `/sys/class/drm` and no Intel vendor tool that
+answers, and `Win32_VideoController`'s `AdapterRAM` is 32 bits wide and wrong
+above 4 GB — so `board_total_mib` is 0 and the adapter NAME is the whole of the
+evidence. Until 2026-08-30 the name test required `arc\s+\d+\w*\s+graphics`,
+a plain space where every string Windows actually returns writes `Arc(TM)`
+(`Intel(R) Arc(TM) B390 Graphics`). So no Arc-branded part matched at all; 0 is
+falsy, so the miss then fell past the step-7 board-is-a-fraction-of-host-RAM
+test as well, and the box landed on the CPU-only fallback.
+
+FIX. Re-run `python scripts/detect-machine.py --slug <slug>` and read
+`provenance.memory_topology` — it names the adapter string it matched and the
+branch it took. The patched classifier separates the trademark mark from the
+space (`Arc(TM)`, `Arc(R)`, `Arc™`, `Arc®` and a plain `Arc` all match) and asks
+the BOARD question first, because both vendors sell the iGPU and the add-in
+card under one brand: `Arc Pro`, `Arc A<nnn>` (Alchemist shipped discrete only)
+and `Arc B5xx` through `B9xx` are boards — the pattern is `b[5-9]\d{2}[a-z]?`,
+so the four bands above the shipped B570/B580 are claimed in advance — while
+the Core Ultra's integrated Battlemage parts are `B3xx`. A box listing both
+runs its campaign on the board. Then give it the size it cannot read:
+`--board-total-mib N` on a board, `--igpu-share-limit-mib N` on an iGPU — and
+note that an iGPU's share limit is NOT `MemTotal`.
+
+The same symptom has an AMD shape, with the same cause and the same fix:
+`rocm-smi` does not exist on Windows either, so the adapter name is again the
+whole of the evidence. Until 2026-08-30 a Ryzen box answered `system` in all
+three shapes — `AMD Radeon(TM) Graphics` alone (the APU's iGPU), that string
+beside `AMD Radeon(TM) RX 7900 XTX`, and the board with no APU listed. All
+three now classify from the name: `Radeon Pro`, `Radeon RX`, `Instinct` and
+`MI<nnn>` are boards, `AMD Radeon(TM) Graphics` alone is an iGPU, and the pair
+is `discrete` because that is the part the campaign runs on. The
+`shared-igpu-radeon` and `discrete-radeon` fixtures in
+`python scripts/detect-machine.py --self-test` pin the first two, and that
+self-test is the first member of `scripts/verify/run-all.py`.
+
 ---
 
 ## Per-platform hardware notes
@@ -542,12 +635,29 @@ before committing a campaign to llama.cpp here.
   path and wins prefill 3-4x; the Vulkan build is the comparison arm (SYCL has
   known Battlemage perf bugs; IPEX-LLM archived). Verify KV-quant support in the
   build. Read the OpenVINO section above before designing a quant arm — the file
-  is not the weights that ran.
+  is not the weights that ran. **On Windows the topology is derived from the
+  adapter NAME and the board size is unreadable**, so the campaign needs
+  `python scripts/detect-machine.py --slug <slug> --board-total-mib N` before
+  any fit resolves; `check-request.py`'s memory plan refuses on
+  `board_total_mib: 0` rather than passing.
 - **Intel iGPU (unified memory)**: the window is borrowed RAM, not a wall —
   document the Shared GPU Memory Override path; the effort ceiling is patience,
   not memory. State RAM speed/channels with every number. Decode here is
   bandwidth-bound and near-identical across Vulkan, SYCL and OpenVINO, so pick
-  the backend on prefill and on what the campaign is measuring.
+  the backend on prefill and on what the campaign is measuring. **On Windows
+  the topology is derived from the adapter NAME**, `Arc B3xx` and `Arc <n>V`
+  parts being integrated where `Arc Pro` / `A<nnn>` / `B5xx`–`B9xx` are boards;
+  the driver's share cap is unreadable, so the campaign needs
+  `python scripts/detect-machine.py --slug <slug> --igpu-share-limit-mib N` —
+  which is NOT `MemTotal` — before any fit resolves.
+- **AMD Radeon, on Windows**: `rocm-smi` does not ship there, so **the topology
+  is derived from the adapter NAME** exactly as it is for Intel. `AMD
+  Radeon(TM) Graphics` alone is an APU's iGPU and needs
+  `python scripts/detect-machine.py --slug <slug> --igpu-share-limit-mib N`;
+  a `Radeon RX` / `Radeon Pro` / `Instinct` / `MI<nnn>` string is a board and
+  needs `--board-total-mib N`; a box listing both is the board. On Linux
+  `rocm-smi` answers and neither flag is needed. `check-request.py`'s memory
+  plan refuses on the unrecorded size rather than passing.
 - **Intel NPU**: Lunar Lake and Panther Lake only — Arrow Lake segfaults. Needs
   an explicit `-c`, `--parallel 1`, and Ubuntu 24.04. No quant ladder: every
   arm is the same weights. Full entries in "Intel NPU" above.

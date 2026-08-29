@@ -1,0 +1,20 @@
+﻿GROUND-TRUTH CONTEXT CEILING (this desktop state, current serve-qwen.bat flags):
+largest spill-free context: 212992
+first degraded/failed context: 217088
+reference: 122880 = 55.4 t/s, floor = 41.6 t/s
+
+probe log:
+ctx=122880  55.4 t/s  vram=23700MiB
+ctx=131072  54.9 t/s  vram=24052MiB
+ctx=139264  52.6 t/s  vram=24228MiB
+ctx=147456  45.1 t/s  vram=24170MiB
+ctx=155648  53 t/s  vram=24187MiB
+ctx=163840  52.9 t/s  vram=24193MiB
+ctx=172032  51.4 t/s  vram=24221MiB
+ctx=180224  47.1 t/s  vram=24287MiB
+ctx=188416  52.5 t/s  vram=24214MiB
+ctx=196608  50.8 t/s  vram=24190MiB
+ctx=204800  51.9 t/s  vram=24221MiB
+ctx=212992  51.8 t/s  vram=24213MiB
+ctx=221184  19.5 t/s  vram=24215MiB
+ctx=217088  41.2 t/s  vram=24177MiB

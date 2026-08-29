@@ -7,14 +7,16 @@
   "corpus_bytes": 1290590,
   "corpus_md5": "7c0137fc034ddbc56a296bce31b4f7fb",
   "ppl": {
-    "exe": "E:\\AI\\llama.cpp\\llama-perplexity.exe",
+    "exe": "llama-perplexity",
+    "exe_note": "A TOOL NAME, not an address. ladder-lib.ps1 Get-Manifest and run-ladder.py resolve_bin both put this value through the llama.cpp resolution chain - the hint first, then $env:LLAMA_DIR, PATH, <repo>/bin/llama.cpp - and replace it with what this machine actually has, so one manifest runs unedited on two rigs. A value that IS a file here is honoured as that hint. Until 2026-08-30 this key read E:\\AI\\llama.cpp\\llama-perplexity.exe, which run-ladder.ps1 launched literally: on every other clone that died at the launch, AFTER the GPU gate had been waited on.",
     "flags": ["-ngl", "99", "-c", "8192", "-fa", "on", "--load-mode", "mmap"],
     "n_ctx": 8192,
     "kv": "f16 (default) - the anchors 6.5348 / 6.5956 / 6.8774 were measured with f16 KV",
     "note": "phase-6 conditions; -fa on + --load-mode mmap reproduced the no-fa anchor bit-for-bit (6.5956 both ways)"
   },
   "tokenize": {
-    "exe": "E:\\AI\\llama.cpp\\llama-tokenize.exe",
+    "exe": "llama-tokenize",
+    "exe_note": "A TOOL NAME, resolved exactly as ppl.exe above is. Until 2026-08-30 it read E:\\AI\\llama.cpp\\llama-tokenize.exe.",
     "flags": ["--show-count"],
     "note": "each model's OWN token count for the corpus - rule 6 requires it for bits-per-byte"
   },

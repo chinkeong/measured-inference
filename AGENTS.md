@@ -8,8 +8,8 @@ the situation below triggers it.
 
 ## THE INVARIANTS
 
-`methodology/METHODOLOGY.md`'s 30 rules, one line each, plus the interview rule
-— enough to know WHEN a decision is governed. Open the rule before acting on it.
+`methodology/METHODOLOGY.md`'s 31 rules, one line each — enough to know WHEN a
+decision is governed. Open the rule before acting on it. Numbers never move.
 
 1. Measured, cited, or labeled-derived — there is no fourth category [1]
 2. No reader measures less than promised; a best case ships labeled as one, with the condition that produced it [2]
@@ -37,10 +37,11 @@ the situation below triggers it.
 24. Every watt carries its instrumentation tier and every joule its phase; energy is measured or it is absent — TDP is not a measurement [24]
 25. Cheap probes buy the map; the map locks the recipes; only locked recipes earn expensive hours — no expensive run before the written RECIPE LOCK [25]
 26. Publish the noise floor ONCE, page-wide, with the class of claim that survives it; printed precision respects the band, and the report's one reproduction check carries a PASS BAND derived from it [26]
-27. Questions to the user happen at Stage 0 ONLY; after the interview closes the campaign is autonomous to the end — mid-run uncertainty resolves interview-record → measured default → record-the-assumption-and-proceed, never by stopping to ask [interview rule]
+27. A speed measurement requires a QUIET MACHINE and every probe records SM clock, board power and temperature — a busy HOST costs decode invisibly to any clock log (−5.4% mean, −24.0% worst, r = −0.924 in the wild); arms that cannot share a load interleave the reference arm [27]
 28. The RUN is the scarce thing, not the sampling — widening a query already being issued costs nothing, and a field not written down during the run cannot be recovered at any price [28]
 29. An ignore rule is a claim about re-creatability and it has to be true — ignore by EXTENSION or by a directory of pure bulk, never by a directory of mixed content [29]
 30. Throughput on this rig has two levels ~13% apart and nothing recorded predicts which — compare arms INSIDE one sweep, alternate arm order, publish the level a reader usually gets, and never name a cause (seven candidates tested, all eliminated) [30]
+31. Questions to the user happen at Stage 0 ONLY; after the interview closes the campaign is autonomous to the end — mid-run uncertainty resolves interview-record → measured default → record-the-assumption-and-proceed, never by stopping to ask [31]
 
 Three failures no rule number catches:
 - Separate "the effect is real" from "the explanation is right" — independent claims, judged separately (81.7 t/s was a real number with a wrong story; the "debunked" verdict was wrong too).
@@ -51,7 +52,7 @@ Three failures no rule number catches:
 
 | Situation | Read this — and only this |
 |---|---|
-| starting or resuming a campaign | `skills/field-guide/SKILL.md`, then ONLY your current stage file |
+| starting or resuming a campaign | `skills/field-guide/SKILL.md` (it defines `<slug>`), then ONLY your current stage file |
 | executing Stage N | `skills/field-guide/stages/stage-N.md` — never load another stage |
 | what the model IS, and which stages it may run | `scripts/inspect-model.py` → `model-*.json` (header: arch, window, KV/token, mmproj, draft head, effort knob); `scripts/plan-campaign.py` → `plan.json` (fit, ceiling rungs, RUNS/SKIPPED per stage) |
 | writing, reviewing or publishing report sections | `templates/REPORT-SPEC.md` + `methodology/REASONING.md` |
@@ -59,8 +60,10 @@ Three failures no rule number catches:
 | adjudicating conflicts, criticizing prior work, blind judging | `methodology/REASONING.md` |
 | a probe or a number looks wrong | grep `reference/failure-library.md` for the symptom |
 | platform trouble (PowerShell 5.1, POSIX, WSL) | grep `reference/platform-notes.md` for the exact error |
+| before any GPU time, or after touching a probe | `python scripts/verify/run-all.py` — every no-GPU check; `--list` names them and says what each failure means |
 | running the benchmark suite | `scripts/bench/README.md` + rule 21 |
-| running a sweep, or resuming one after a crash | `scripts/arms.py --help` — arm files, per-probe ledger, heartbeat, `--resume` |
+| running a sweep, or resuming one after a crash | `scripts/arms.py --help` — arm files, per-probe ledger, provenance, `--resume`, `--retry-failed` |
+| comparing numbers across campaigns, or building the ledger | `scripts/ledger.py --help` — one row per measurement, and a gate that refuses illegal comparisons |
 | launching a llama-server from any script | `scripts/bench/gpu_lock.py` header — one job, capped, no orphans |
 | power / energy work | `scripts/power/README.md` + rule 24 |
 | the agentic bucket | `agentic/setup-log.md` + rule 22 |
@@ -100,15 +103,12 @@ skills/field-guide/SKILL.md  campaign map + the Stage 0 interview (start here)
 skills/field-guide/stages/   stage-0..7.md — load exactly one
 methodology/                 METHODOLOGY.md (the law) · REASONING.md (how to think)
 templates/                   REPORT-SPEC.md + example-report.html (worked example)
-reference/                   platform-notes.md · failure-library.md — grep, never read whole
-scripts/                     arms.py + arms/ (sweeps as data) · lib/paths.py · bench/
-                             power/ · detect-machine.py · setup.* · reference-3090/ (archive)
+reference/                   platform-notes.md · failure-library.md · ledger-notes.md — grep only
+scripts/                     arms.py + arms/ (sweeps as data) · ledger.py · lib/paths.py
+                             bench/ · power/ · verify/ · detect-machine.py · setup.* · reference-3090/
 bin/ models/                 gitignored: runtimes and weights live here
 results/<slug>/              campaign.md · campaign.json · machine.json · model-*.json · plan.json · work/ · data/ · index.html
 ```
-`<slug>` = the repo name, lowercased, **one path component** (no slashes),
-`-GGUF`/`-gguf` dropped: `.../unsloth/SomeNew-32B-GGUF` → `somenew-32b`. Pick it
-once in Stage 0, write it into `campaign.md`, reuse it verbatim after a restart.
 
 ## THE CONTEXT BUDGET RULE
 

@@ -7,7 +7,8 @@ its order, the model each arm runs, the probe prompt character for character,
 the caps, the repeat counts and the discard protocol. All 27 flag lists and all
 33 probe specifications reproduce from their sources. Twelve arms carry a
 reconstruction that the shipped launcher contradicts, and four of those twelve
-name windows nothing shipped records as measured.
+name windows the reference campaign is now known never to have measured —
+settled 2026-08-30 against `results/reference-3090/sweep-summary.txt`.
 
 A wrong flag does not fail loudly. It produces a real number for a
 configuration nobody chose, and rule 3 says a number without its true
@@ -22,6 +23,7 @@ re-measurement.
 | CONFIRMED | Every token reproduces from the `.ps1` the arm names in `derived_from`. |
 | RECONSTRUCTED-PLAUSIBLE | The `.ps1` never stated it; the value comes from `serve-menu-example.bat` entry [4] and is consistent with everything else shipped. |
 | SUSPECT | Cannot be derived from anything shipped, or contradicts the original. |
+| NEVER MEASURED | The arm's flags reproduce, and the original never ran it. There is nothing to reproduce and nothing to doubt: a run of it is a first measurement, dated today. |
 
 Four checks produced the grades, all read-only and none touching a GPU:
 
@@ -168,33 +170,67 @@ it into a uniform ladder. The floor rule matches the source line
 | `effort-pass1-low` / `-medium` / `-xhigh` | RECONSTRUCTED-PLAUSIBLE | `sweep-efforts.ps1` passes the effort and nothing else, so `-c 122880` is entry [4]'s own default. Flags reproduce from entry [4]. Uncapped, no sampler keys — `sweep-efforts.ps1` sends neither `max_tokens` nor `temperature`, which is verified by grep, and the arms carry `n_predict: -1` with no sampler block. |
 | `effort-pass2-low` / `-medium` / `-xhigh` | RECONSTRUCTED-PLAUSIBLE | `sweep-pass2.ps1` passes `<effort> 122880`, so the window is stated by the original and only the entry number is reconstructed. |
 | `tune-ctx-probe-c122880` | RECONSTRUCTED-PLAUSIBLE | `sweep-tune.ps1` phase 1 probes 122,880 first. Warm-up `Say OK.` at 16 tokens with no sampler, then the marine-aquarium essay at 700 tokens, temp 0, top_k 1; `discard_first: true` drops the warm-up, which is rule 12 in the original's hand-rolled form. |
-| `tune-ctx-probe-c98304` / `-c81920` / `-c65536` / `-c49152` | RECONSTRUCTED-PLAUSIBLE † | The `-c` values are literals in `sweep-tune.ps1`; the flags are entry [4]'s. **† The original reaches these four only on a condition nothing shipped records as met — see the last section.** |
+| `tune-ctx-probe-c98304` / `-c81920` / `-c65536` / `-c49152` | NEVER MEASURED † | The `-c` values are literals in `sweep-tune.ps1`; the flags are entry [4]'s. **† The original reaches these four only when the 122,880 probe misses its 40 t/s target, and `results/reference-3090/sweep-summary.txt` records that probe at 51.3 t/s — so the walk did not run in the pass that wrote that file, and no reference reading exists for any of the four.** Running them is a new measurement under its own date; see the last section. |
 | `gsm8k200-low` / `-medium` / `-xhigh` | CONFIRMED | `effort-gsm8k.ps1` builds its own argv: `-c 32768`, no projector, `--chat-template-kwargs` per level. Diff empty. Bench line reproduces `--datasets GSM8K --samples 200 --max-tokens 4096 --greedy --score`. |
 | `gsm8k200-xhigh-16k` | CONFIRMED | `xhigh-16k.ps1`, diff empty, cap 16,384. Rule 7's raise-the-cap-and-rerun-that-arm-only, and the arm's own `derived_from` states why low and medium need no rerun in the `.ps1`'s own words. |
 
-One note in this file was wrong and is now fixed. It described the
+One note in this file was wrong and is fixed. It described the
 `tune-ctx-probe` group as *"sweep-tune.ps1 phase 1's published
 throughput-vs-window curve"*. No such curve is published: `81,920` appears
 nowhere in `templates/example-report.html`, and neither does any five-point
-window curve from `sweep-tune.ps1`. The note now states what the five values
-are — literals in the `.ps1` — and that four of the five may never have run.
+window curve from `sweep-tune.ps1`. What `scripts/arms/effort-sweep.json:47`
+carries in its place, since commit `2c1cdc0`, is that the five values are that
+phase's own x-axis written into the `.ps1`, plus a hedge on whether they ran:
+*"FOUR OF THE FIVE RUNGS MAY NEVER HAVE RUN … nothing shipped records that it
+did"*. The hedge was accurate on the day it was written and is answered by
+entry 1 of the next section, where the artefact that records it — shipped
+2026-08-30, after that note — is quoted. The JSON note has not been rewritten
+to name that artefact, so read it against entry 1 rather than on its own.
 
 ## Do not publish these numbers without a re-measurement
 
-Six entries. Each names what is unsettled and what would settle it.
+Six entries. Each names what is unsettled and what would settle it. **Entry 1
+is now settled** and is kept, answered, rather than deleted: the question it
+asked was the right one, and a reader arriving from a citation of it needs to
+land on the answer instead of on nothing (rule 5).
 
 **1. `tune-ctx-probe-c98304`, `-c81920`, `-c65536`, `-c49152` — four windows
-the reference campaign probably never measured.** `sweep-tune.ps1` phase 1
-probes 122,880 first and walks down to these four only when that probe measures
-below its 40 t/s target, breaking at the first rung that clears it. So the
-original took between zero and four of them, decided at runtime by the desktop
-VRAM load of the day, and no artefact in this repo records which. `arms.py`
-walks no data-dependent stop rule, so a plain run takes all five. Publish a
-reading from any of the four as a new measurement of that window, under the
-date it was taken, never as a reproduction of a reference figure (rule 1).
-*Settled by:* the `sweep-summary.txt` or `ctx-limit-result.txt` the originals wrote to
-`E:\AI\aider\qwen\`, neither of which is in the repo. Absent those, treat the
-four as unmeasured and say so.
+with no reference reading. SETTLED 2026-08-30, and the count of surviving
+readings is ZERO.** `sweep-tune.ps1` phase 1 probes 122,880 first and walks down to these
+four only when that probe measures below its 40 t/s target, breaking at the
+first rung that clears it. The artefact it wrote is now in this repository, at
+`results/reference-3090/sweep-summary.txt`, and its probe log holds **exactly
+one line**, under a header naming the window that was chosen:
+
+```
+context: 122880 (probe results below)
+ctx=122880  probe(temp0): 700 tok in 13.6s = 51.3 t/s
+```
+
+51.3 t/s against a 40 t/s target, so the branch that walks down was never
+taken. `$probeLog` is appended to by `Probe()` (`sweep-tune.ps1:56`) and by
+nothing else, so a walk that had happened would have left four more lines in
+that file. **None of the four windows was probed by the run that wrote this
+file.** That scope is the finding's one weak point and it is not removable:
+`sweep-tune.ps1:110` writes the summary with `Set-Content`, which truncates,
+so a *previous* `sweep-tune.ps1` run that did walk down was overwritten
+without a trace. What the shipped file does fix is which script wrote it last
+— the `context:` header and the blank line before the effort rows are
+`sweep-tune.ps1:88`'s layout, not `sweep-efforts.ps1:57`'s, and the three
+`pass2` rows below them are `sweep-pass2.ps1:46`'s `Add-Content` — so the
+surviving whole-file write is a `sweep-tune.ps1` run holding one probe line.
+It cannot exclude an earlier one. They are therefore not readings whose conditions are
+in doubt; they are windows with no reference reading at all. `arms.py` walks no
+data-dependent stop rule, so a plain run takes all five — which is the right
+behaviour and needs no guard, because the instruction was already written for
+this case: publish a reading from any of the four as a new measurement of that
+window, under the date it was taken, never as a reproduction of a reference
+figure (rule 1).
+*Evidence:* `results/reference-3090/sweep-summary.txt`, 614 bytes, written
+2026-08-22 11:38, copied in byte for byte from the author machine's `E:\AI\aider\qwen\`; `results/reference-3090/README.md` states what it does and does not
+settle. `ctx-limit-result.txt` came in beside it and settles nothing here — it
+is `ctx-limit-sweep.ps1`'s own fourteen-rung walk, and it is the evidence for
+the published context ceiling instead.
 
 **2. Every arm launched through `serve-menu-example.bat` entry [4] — twelve
 arms.** `q4km-mmproj-c{rung.c}`, the six `effort-pass*` arms and all five
@@ -206,7 +242,11 @@ ceiling ladder and weaker for the effort sweeps, where it rests on
 the inference that one launcher had one default on one day. Numbers from these
 arms carry the model as a reconstructed condition, not a measured one.
 *Settled by:* the real `serve-qwen.bat` as it stood on 2026-08-22, or any
-server log from those runs naming its `-m` path.
+server log from those runs naming its `-m` path. **Checked and did not settle
+it:** the two artefacts filed under `results/reference-3090/` on 2026-08-30.
+`ctx-limit-result.txt` names only "current serve-qwen.bat flags" and
+`sweep-summary.txt` names nothing, so neither carries a model path or an
+`-ngl`, and this entry stands exactly where it did.
 
 **3. The pass-1 effort figures, if any are carried forward rather than
 re-run.** `confirm-benchmarks.ps1`'s header records a live doubt about exactly
@@ -285,7 +325,13 @@ semantics-preserving. `scripts/probe-config.sh` drops `--api-key` the same way
 and `scripts/bench/bench.py` injects the transport the same way, so the two
 departures are the repo's convention rather than this port's invention.
 
-What is not settled is which menu entry four PowerShell scripts selected on
-2026-08-22, and whether four of the five `tune-ctx-probe` windows were ever
-measured at all. Those are the two questions to answer before any number from
-the twelve reconstructed arms is published as a reproduction.
+Settled 2026-08-30: **four of the five `tune-ctx-probe` windows were never
+measured.** `results/reference-3090/sweep-summary.txt` records the 122,880
+probe at 51.3 t/s against `sweep-tune.ps1`'s 40 t/s target, so the branch that
+walks down to 98,304 / 81,920 / 65,536 / 49,152 was never taken, and those four
+arms have no reference reading to be compared against.
+
+What is still not settled is which menu entry four PowerShell scripts selected
+on 2026-08-22 — the two artefacts filed on the same day name no model path and
+no `-ngl`. That is the one question left to answer before any number from the
+twelve reconstructed arms is published as a reproduction.

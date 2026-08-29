@@ -21,7 +21,7 @@ CUDA from source, which is the NVIDIA path on Linux — there is no official Lin
 CUDA binary; `MEASURED_INFERENCE_ALLOW_VULKAN=1` overrides deliberately, and the
 backend it installs is then a condition of every number the campaign publishes.
 
-**Write the machine half first — `campaign.json` and `machine.json`.** Rule 27
+**Write the machine half first — `campaign.json` and `machine.json`.** Rule 31
 gives no second chance: every path, port and file name a later stage needs is
 decided here or not at all.
 
@@ -33,7 +33,7 @@ decided here or not at all.
   logically and carry no paths, so this is the only place those names become
   files: without it `scripts/lib/paths.py` falls back to the environment and
   `PATH`, the roster resolves to nothing, and the stage stops on exactly the
-  mid-run question rule 27 forbids.
+  mid-run question rule 31 forbids.
 - **`results/<slug>/machine.json`**, written by
   `python scripts/detect-machine.py --slug <slug>`. It replaces `BOARD = 24576`
   and `RESERVE = 1796`, the reference 3090's pair that four probes carried: on a
@@ -46,7 +46,7 @@ decided here or not at all.
   idle-desktop reserve is not a fence for a loaded desktop (rule 14).
 
 **Prove the request before the interview closes.** Two things fail at Stage 1 and
-cannot be asked about once rule 27 has closed the round: a gated repo, and a
+cannot be asked about once rule 31 has closed the round: a gated repo, and a
 quant that does not fit the card. Both are network and arithmetic, so settle
 them here:
 

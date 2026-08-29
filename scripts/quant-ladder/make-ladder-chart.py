@@ -246,9 +246,14 @@ redirected there by the caller.
 
 IT DOES NOT WRITE THE PNG. results/qwen38-27b-blind/figures/quant-ladder.png
 is a different artifact rendered by a different file,
-scripts/quant-ladder/make-ladder-png.py - which draws it at MODULE level, so
-merely importing that file rewrites the published figure. Two artifacts, two
-files; this is the one the guide page carries inline.
+scripts/quant-ladder/make-ladder-png.py, which loads its sources and draws
+them inside main() behind an argument parser: importing that file reads no
+file and writes none, and the figure moves only when somebody types the
+command. Until 2026-08-30 its whole body was module level, so merely
+importing it rewrote the published figure - which is how the cheap pre-check
+in scripts/verify/probe-smoke-test.py rewrote a 280,937-byte published
+artefact on 2026-08-29. Two artifacts, two files; this is the one the guide
+page carries inline.
 """
 
 

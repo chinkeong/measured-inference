@@ -101,6 +101,30 @@ the spec sweep, the ceiling sweep, the depth series, the effort runs — into an
 energy arm *for free*. Re-running those later just for watts is hours you do
 not need to spend.
 
+**Something now checks that it is still alive, and it is not this script.**
+The logger is a detached `nvidia-smi` that does not survive a reboot, and until
+2026-08-30 no runner ever looked unasked — `-List` above answers the question,
+but only to an operator who thought to ask it. A sweep run after a restart
+produced a complete ledger, no energy at all, and no record anywhere that there
+had been none. `scripts/arms.py` now looks at sweep start — is there a non-empty
+`.csv` under `results/<slug>/data/power/` holding a sample newer than 300 s? —
+and writes `power_logging` true|false plus the whole `power_logging_check` block
+(directory, file count, newest file, age by the last row's own timestamp AND by
+mtime, which of the two answered, the threshold, and the sentence that states
+the verdict in words) onto its `sweep_start` line. The two ages are kept
+separately because each is wrong in a way the other is not: mtime knows nothing
+about time zones, and a row timestamp survives a filesystem that has not noticed
+the appends yet. The fresher of the two wins, and the freshest file wins over
+the others.
+
+**It does not start a logger, and that is deliberate.** Launching one
+mid-sweep would change the machine the numbers are being taken on. It prints
+the command instead — the `-Start` line above, with the campaign's own CSV path
+filled in — at the START of the sweep, where acting on it costs the arms
+already run and nothing else. Rule 24 says energy is measured or it is absent;
+`power_logging: false` on a `sweep_start` line is that absence written down at
+the time it happened, rather than inferred by a later stage that found no rows.
+
 ### How `-Stop` decides what to kill (the safety contract)
 
 `-Stop` **never** kills by process name. A logger is addressed by **the CSV it

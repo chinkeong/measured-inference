@@ -15,7 +15,10 @@ the backend did to 600 tensors.
     command     llama-bench -m MODEL -ngl 99 -p 8 -n 4 -r 1 -v
 
 `run-full.log` is the whole run. `requant.log` is the 600 per-tensor records
-plus the header lines that fix the conditions.
+plus the header lines that fix the conditions. All 600 are replayed against
+`scripts/lib/openvino_quant.py` by `scripts/verify/test-openvino-quant.py`
+(no GPU, no model, no network — `python scripts/verify/run-all.py` includes
+it): the module has to predict every record, and the test fails if it stops.
 
 ## The patch that made it visible
 

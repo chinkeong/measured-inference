@@ -12,18 +12,26 @@ at a Stage-5 cap, inside a Stage-5 window. Checkpoint-commit each sub-stage.
   (METHODOLOGY rule 6 — the wikitext-2-raw test split, 294,912 token positions
   = 36 × 8,192-token chunks). This is NOT an arm sweep: perplexity runs
   `llama-perplexity`, a different tool, which `scripts/arms.py` does not drive.
-  The runner is `powershell -NoProfile -ExecutionPolicy Bypass -File
-  scripts/quant-ladder/run-ladder.ps1 -Manifest <manifest>`, one rung per quant
-  file on the model of `scripts/quant-ladder/ladder-manifest.json`; it is
-  resumable (a rung whose RESULT or FAILED line is already in the ledger is
-  skipped) and `-Once` does one rung per invocation if the platform kills long
-  tasks. **That runner is Windows PowerShell and this repo ships no POSIX
-  equivalent** — a Linux campaign drives `llama-perplexity` itself at the
-  manifest's conditions (`-ngl 99 -c 8192 -fa on --load-mode mmap`, f16 KV, the
-  md5-pinned corpus), and budgets that port before the hours. The report's
-  ranking table lists the screened-out files too, marked "screened out at the
-  Stage-1 gate" with their screen numbers, so no reader mistakes a pruned file
-  for an untested one. Verify the KV-quant claim while here (fp16 vs q8_0
+  The runner is `python scripts/quant-ladder/run-ladder.py --manifest
+  <manifest>`, one rung per quant file on the model of
+  `scripts/quant-ladder/ladder-manifest.json`. It is stdlib-only and runs on
+  Linux, macOS and Windows; `run-ladder.ps1` is the Windows original and the
+  reference for behaviour, and either is resumable (a rung whose RESULT or
+  FAILED line is already in the ledger is skipped) and will do one rung per
+  invocation — `--once` / `-Once` — if the platform kills long tasks. Run
+  `--dry-run` first: it hashes the corpus against the manifest's `corpus_md5`,
+  resolves every binary and rung file through `scripts/lib/paths.py` (the
+  manifest's literal is a HINT, never a command — that is what lets one manifest
+  run on the reference rig and on a fresh clone), proves the GPU gate, and
+  touches no card. Conditions are fixed by the manifest and never by the runner:
+  `-ngl 99 -c 8192 -fa on --load-mode mmap`, f16 KV, 36 × 8,192 = 294,912 token
+  positions, the md5-pinned wikitext-2-raw test split. One number the Python
+  runner MEASURES where the PowerShell one took it on trust: bits-per-weight's
+  denominator comes from the file's own GGUF tensor table via `measure-bpw.py`,
+  and a row that had to fall back says `params_src=manifest-declared`. The
+  report's ranking table lists the screened-out files too, marked "screened out
+  at the Stage-1 gate" with their screen numbers, so no reader mistakes a pruned
+  file for an untested one. Verify the KV-quant claim while here (fp16 vs q8_0
   cache). **q4_0 K-cache is not a free next step** — never recommend it without
   its own measured PPL check; absent the check, say "unverified here".
 - **Size ladder (optional, when the use case asks "how small can this model
@@ -66,7 +74,13 @@ Pulling the HTML answer out of each sweep output has NO runner equivalent
 RECONSTRUCTED** — its flag sets were derived from `serve-menu-example.bat`, not
 read off the launcher the originals called, so check them before publishing a
 number from these arms. The Windows originals are archived in
-`scripts/reference-3090/`.
+`scripts/reference-3090/`, and **`results/ARM-PROVENANCE.md` grades every arm in
+every shipped file** — read it before quoting a number one of them produces. The
+four lower `tune-ctx-probe` rungs are the sharpest case: the reference campaign
+left no reading for any of them (settled 2026-08-30 against
+`results/reference-3090/sweep-summary.txt`), so a reading from `-c 98304`,
+`81920`, `65536` or `49152` is a new measurement under today's date, never a
+reproduction of a published figure.
 
 - Cost: 2 runs per level on a hard generative task — tokens, wall, t/s. The
   reference task ships as `templates/effort-task-example.md` (the aquarium
@@ -195,7 +209,17 @@ its arithmetic with no GPU). Any JSONL carrying `t_start_iso`, `prompt_ms`,
 already recording those needs no PowerShell — and `scripts/arms.py`'s
 per-probe ledger carries all six, verified on Linux 2026-08-29. Pass
 `--events results/<slug>/data/arms/<stem>.jsonl` and every arm sweep is
-already an energy arm; only the power CSV still needs a sampler. The integrator
+already an energy arm; only the power CSV still needs a sampler.
+**Whether one was running is now recorded rather than assumed.** At sweep
+start `arms.py` looks in `results/<slug>/data/power/` for a `.csv` holding a
+sample newer than 300 s — by the last row's own timestamp and by the file's
+mtime, the fresher winning — and writes `power_logging` true|false plus the
+whole `power_logging_check` block onto its `sweep_start` line. It does NOT
+start a logger: launching one mid-sweep would change the machine the numbers
+are being taken on. It prints the command instead, at the start, where losing
+a logger costs the arms run so far and not the night. A sweep whose
+`sweep_start` says `power_logging: false` has no energy rows and says so,
+which is rule 24's "measured or absent" written down at the time. The integrator
 is Python because the PowerShell one tripped over 5.1's `TryParseExact` overload
 resolution.
 

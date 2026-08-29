@@ -39,3 +39,11 @@ scripts/bench/datasets/meetingbank_test.jsonl  # downloaded corpus, same
 # --- per-run bench output, re-made by re-running the arm. The DERIVED
 # --- summaries that the page cites are tracked separately.
 scripts/bench/results/  # per-run bench output directory (one JSON, one PNG and one transcript per arm), all re-made by re-running the arm. Every number the published page quotes from a bench arm is carried into a tracked summary under results/, and it is the summary that gets cited.
+
+# --- the published quant-ladder figure. A derived picture, not a reading: the
+# --- renderer holds no numbers of its own, it loads every value at render time
+# --- from the per-rung JSON and arm files under
+# --- results/qwen38-27b-blind/data/, which git HAS - and it raises rather than
+# --- draws if a source is missing or disagrees. Two fresh renders on
+# --- 2026-08-30 matched the copy on disk byte for byte.
+results/qwen38-27b-blind/figures/quant-ladder.png  # derived figure, remade byte-identically by `python scripts/quant-ladder/make-ladder-png.py` - md5 11159d63745bb9e3267516d93b5e165d, two fresh renders against the copy on disk, measured 2026-08-30. Its inputs are tracked; committing the 280,937-byte output would commit a pure function of files git already carries, once per revision of the picture.

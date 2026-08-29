@@ -94,7 +94,7 @@ skipped in silence rather than guessed at:
 |---|---|---|
 | `bench-suite/v1` | `suite_hash` + `results` — `scripts/bench/bench.py` | none; the artefact does not name one |
 | `arm-sweep/v1` | `{"arms":[…]}` — `attribute-power.py`, the drafter and ts-pick sweeps, the head-to-heads | the file: those arms ran together |
-| `arms-ledger/v1` | `kind:"probe"` lines — `scripts/arms.py` | `armfile:sweep`, already on every line |
+| `arms-ledger/v1` | `kind:"probe"` and `kind:"arm_failed"` lines, under the `kind:"sweep_start"` header that supplies provenance — `scripts/arms.py` | `armfile:sweep`, already on every line |
 
 Only `results/<slug>/<data_dir>/` is scanned. `work/` is declared scratch by
 `results/TEMPLATE-campaign.json` — "safe to lose" — and a number whose source
@@ -306,12 +306,24 @@ cannot be recovered at any price.
 1. `python scripts/detect-machine.py --slug <slug>` before anything else. Every
    row whose artefact names no box falls back to `machine.json`, and the
    fallback is recorded as `conditions.machine_source` so it stays visible.
-2. Put `provenance.toolchain(server_path, model_path)` at the top level of
-   every artefact a probe writes. That one block supplies the machine and the
-   build for the gate.
+2. Put `provenance.toolchain(server_path, model_path, server_log=...)` at the
+   top level of every artefact a probe writes. That one block supplies the
+   machine, the build and the EXECUTION context — which backend decoded, and
+   which device it resolved — for the gate. Where the box cannot answer the
+   backend question, NAME it: `backend=` on the call, or
+   `scripts/arms.py --backend cuda|vulkan|openvino|rocm|sycl|metal|cpu` at the
+   runner, which is what an operator actually types. On Linux with an NVIDIA
+   card it is never derivable, because `scripts/setup.sh` installs the Vulkan
+   build unless `--cuda` was given.
 3. Run multi-arm work through `scripts/arms.py`. Its per-probe ledger already
    carries the sweep, the arm, the pass, the position, the window and the
-   window's source on every line.
+   window's source on every line — and, since 2026-08-30, the toolchain on
+   `sweep_start` plus `backend`, `device`, `model_file`, `gpu` and the whole
+   `execution` block on every probe line, taken once per arm launch after
+   `/health` so the arm's own server log can be read for the device OpenVINO
+   actually resolved. A line that says `toolchain: "NOT RECORDED: <reason>"`
+   instead of those five is a line whose provenance import failed; fix that
+   before the sweep, not after.
 4. Write sampling as **fields**, not as a prose `conditions` line. The gate
    compares fields; `temperature: 0.0, top_k: 1, top_p: 1.0` is readable to it
    and `"greedy, temp 0 / top_k 1"` is not. Keep the prose line as well.
@@ -353,8 +365,14 @@ cannot be recovered at any price.
 ## Registering it
 
 `AGENTS.md` is capped at 120 lines and a new tool registers ONE routing line.
-The line this tool needs, for the row after the arms.py one:
+This tool's line is IN the router, as of 2026-08-30, immediately after the
+arms.py row:
 
 ```
 | comparing numbers across campaigns, or building the ledger | `scripts/ledger.py --help` — one row per measurement, and a gate that refuses illegal comparisons |
 ```
+
+It was paid for by deleting the `<slug>` derivation paragraph from that file's
+LAYOUT section, which restated `skills/field-guide/SKILL.md` item 6 — a Stage-0
+procedure, in a router whose first row already sends every campaign start and
+every resume to that file.

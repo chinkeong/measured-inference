@@ -10,6 +10,13 @@ reference model.
 paths and models there, and run the copy. That is what keeps the example
 report's numbers reproducible.
 
+**Two of the files these scripts WROTE are in the repo**, at
+`results/reference-3090/`: `sweep-summary.txt` from `sweep-tune.ps1` plus
+`sweep-pass2.ps1`, and `ctx-limit-result.txt` from `ctx-limit-sweep.ps1`. They
+are the primary records for two questions `results/ARM-PROVENANCE.md` asks, and
+its README there states exactly what each one settles and what it does not.
+Everything else those scripts produced stayed on the author machine.
+
 ## Two path substitutions you will make in every script
 
 - **`serve-qwen.bat`** — referenced by `ctx-limit-sweep.ps1`,
@@ -53,8 +60,32 @@ that work today. The **Stage** column below is that mapping applied — open
 
 ## Adapting on POSIX
 
-Every script here is PowerShell — the reference machine was Windows.
-`scripts/probe-config.sh` is a bash port of `probe-config.ps1`, provided as the
-adaptation seed for Linux/macOS campaigns. The POSIX equivalents for
-detaching, parse-checking and VRAM diagnostics live in
-`reference/platform-notes.md` — grep it by symptom.
+Every script here is PowerShell except `serve-menu-example.bat`, which is cmd —
+the reference machine was Windows. Three things have portable implementations
+already:
+
+- **nine of the twenty-three `.ps1` files here** — `scripts/arms.py` is the one
+  runner for the arms derived from `accept-demo.ps1`, `ctx-limit-sweep.ps1`,
+  `iq4-ctx-sweep.ps1`, `nuance-suite.ps1`, `deep-decode-probe.ps1`,
+  `sweep-efforts.ps1`, `sweep-pass2.ps1`, `sweep-tune.ps1` and `spec-sweep.ps1`,
+  driven by the arm files under `scripts/arms/`, and `results/ARM-PROVENANCE.md`
+  grades each arm against the `.ps1` it came from. Counted 2026-08-30 against
+  `ls *.ps1` here and the `derived_from` fields in `scripts/arms/*.json`.
+  `effort-gsm8k.ps1` and `xhigh-16k.ps1` are ported as `effort-sweep.json`'s
+  `bench_arms`, which `scripts/bench/bench.py` drives and `arms.py` never runs —
+  it reads the `arms` key and nothing else. `probe-config.ps1` is the shared
+  probe helper those sweeps shell out to, and its port is the third bullet
+  below. That leaves eleven with no runner: `confirm-benchmarks.ps1`,
+  `dflash-real-code.ps1`, `entry17-clockramp-test.ps1`, `extract-html.ps1`,
+  `iq4-accuracy.ps1`, `probe-diag.ps1`, `probe-diag2.ps1`, `quant-accuracy.ps1`,
+  `spec-sweep2.ps1`, `verify-recommend.ps1` — adapted by hand — and
+  `ppl-compare.ps1`, whose portable counterpart is the next bullet.
+- **the perplexity ladder** — `scripts/quant-ladder/run-ladder.py`, stdlib-only,
+  the portable counterpart of `ppl-compare.ps1` and
+  `scripts/quant-ladder/run-ladder.ps1`.
+- **the base probe** — `scripts/probe-config.sh`, a bash port of
+  `probe-config.ps1`, and the adaptation seed for anything else here. It also
+  defaults `-ngl` correctly, which `probe-config.ps1` does not.
+
+The POSIX equivalents for detaching, parse-checking and VRAM diagnostics live
+in `reference/platform-notes.md` — grep it by symptom.

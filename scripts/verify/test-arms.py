@@ -33,6 +33,12 @@ WHAT EACH TEST PROTECTS, by the rule it belongs to:
   resume-after-retry THE 2026-08-29 BUG. An arm that failed and then succeeded
                      is complete, not failed. Written so it fails against the
                      old sticky-failed read_ledger.
+  resume-mid-arm     a crash INSIDE a multi-probe arm. 1 of 3 probes is not a
+                     complete unit and is never skipped as one; the two probes
+                     that never ran are reissued and the one that did is not,
+                     so the ledger keeps three lines with no repeated
+                     probe_index and the saved body of the recorded probe is
+                     not rewritten (checked by mtime, not only by bytes)
   discard-first      rule 12: the ramp probe is dropped from the summary and
                      STILL written to the ledger
   parse-check        rule 25: a server that does not report the timings the
@@ -364,9 +370,12 @@ class Sandbox(object):
 
     # -- reading what it wrote ----------------------------------------------
 
-    def ledger(self, stem):
-        path = os.path.join(self.root, "results", SLUG, "data", "arms",
+    def ledger_path(self, stem):
+        return os.path.join(self.root, "results", SLUG, "data", "arms",
                             stem + ".jsonl")
+
+    def ledger(self, stem):
+        path = self.ledger_path(stem)
         if not os.path.exists(path):
             raise Failure("no ledger at %s - arms.py wrote nothing" % path)
         out = []
@@ -701,6 +710,165 @@ def t_resume_after_retry(sb):
          "resume reran a completed arm: %d probe lines"
          % len(sb.probes("retry")))
     return "failed-then-succeeded arm resumes as complete, not as failed"
+
+
+def t_resume_mid_arm(sb):
+    """A crash INSIDE a 3-probe arm resumes at the PROBE, not at the arm.
+
+    Two failure modes point in opposite directions and one test has to rule out
+    both, which is why this checks a count from above and from below:
+
+      * A unit holding 1 of 3 probes counted COMPLETE publishes an arm measured
+        on a third of its probes, and nothing downstream can tell: the ledger
+        carries three arms and one of them is a third of an arm.
+      * The same unit RESTARTED from probe 0 writes a second line carrying
+        probe_index 0 and overwrites the response file the first line still
+        names. The ledger then says four probes where three happened, two of
+        them point at one body, and scripts/ledger.py averages the duplicate
+        in. Under greedy decoding the rewritten body is the same characters and
+        the damage is invisible; under any sampler it is a different
+        generation, and rule 28 says the first one cannot be recovered at any
+        price.
+
+    The crash is simulated the way one happens: the ledger is truncated to
+    sweep_start plus the probe_index 0 line - a process that died between the
+    first probe returning and the second being issued - and the two response
+    bodies that pass never wrote go with it. The surviving body's bytes AND
+    its mtime are recorded before the resume, because "not overwritten" is a
+    statement about the file, not about its contents: a rewrite that happens to
+    produce the same characters is still a rewrite, and it is the one a stub
+    with deterministic output would hide.
+    """
+    port = free_port()
+    probes = [{"id": "p%d" % i, "prompt": "probe %d of three" % i,
+               "n_predict": 24} for i in (1, 2, 3)]
+    arms = [sb.arm("arm-3probe", probes=probes)]
+    f = sb.arm_file("partial", arms, port)
+
+    rc, out = sb.run("--arms", f, "--slug", SLUG)
+    need(rc == 0, "first pass exited %d:\n%s" % (rc, out[-1200:]))
+    first = sb.probes("partial")
+    need([r["probe_index"] for r in first] == [0, 1, 2],
+         "the first pass did not write three probes in order: %r"
+         % [r["probe_index"] for r in first])
+    ddir = sb.responses_dir("partial")
+    need(len(os.listdir(ddir)) == 3,
+         "the first pass wrote %d response bodies for three probes"
+         % len(os.listdir(ddir)))
+    n_launches = len(sb.launches())
+
+    # THE CRASH. Keep sweep_start and the one probe that had returned; drop
+    # everything after it, and with it the two bodies that pass never wrote.
+    keep, kept_probe = [], None
+    for rec in sb.ledger("partial"):
+        if rec.get("kind") == "sweep_start":
+            keep.append(rec)
+        elif rec.get("kind") == "probe" and rec.get("probe_index") == 0:
+            keep.append(rec)
+            kept_probe = rec
+            break
+    need(kept_probe is not None, "no probe_index 0 line to truncate to")
+    with open(sb.ledger_path("partial"), "w", encoding="utf-8",
+              newline="\n") as fh:
+        for rec in keep:
+            fh.write(json.dumps(rec) + "\n")
+
+    ledger_dir = os.path.dirname(sb.ledger_path("partial"))
+    survivor = os.path.join(ledger_dir, *kept_probe["response_file"].split("/"))
+    survivor_bytes = open(survivor, "rb").read()
+    survivor_mtime = os.stat(survivor).st_mtime
+    for name in os.listdir(ddir):
+        if os.path.join(ddir, name) != survivor:
+            os.remove(os.path.join(ddir, name))
+    # Rounded to whole seconds by the ISO timestamps in the ledger, so a
+    # rewrite has to be at least a second later than the file it replaces for
+    # the mtime comparison below to mean anything. It always is: the resumed
+    # sweep launches a server first.
+    time.sleep(1.1)
+
+    rc, out = sb.run("--arms", f, "--slug", SLUG, "--resume")
+    need(rc == 0, "resume exited %d:\n%s" % (rc, out[-1200:]))
+    need("SKIPPED, already complete" not in out,
+         "A UNIT HOLDING 1 OF 3 PROBES WAS COUNTED COMPLETE. That arm would "
+         "be published as measured on one probe, and nothing downstream could "
+         "tell:\n%s" % out[-1200:])
+    need("RESUMING MID-ARM" in out and "2 of 3 left to run" in out,
+         "the resumed sweep does not say it is picking the arm up mid-way, so "
+         "a reader cannot tell this arm from one that ran whole:\n%s"
+         % out[-1500:])
+    need("probe_index 0 is already in the ledger" in out,
+         "the resumed pass did not say it was skipping the recorded probe - "
+         "it re-issued it, or it said nothing:\n%s" % out[-1500:])
+    need(len(sb.launches()) == n_launches + 1,
+         "the resumed arm launched %d server(s), not one"
+         % (len(sb.launches()) - n_launches))
+
+    # EXACTLY THREE LINES, ONE PER PROBE. Not four, not two.
+    recs = sb.probes("partial")
+    need(len(recs) == 3,
+         "the resumed ledger holds %d probe lines for a three-probe arm: %r"
+         % (len(recs), [(r["probe"], r["probe_index"]) for r in recs]))
+    idx = [r["probe_index"] for r in recs]
+    need(sorted(idx) == [0, 1, 2],
+         "probe indices are %r, and duplicates are what a restarted arm "
+         "leaves behind" % idx)
+    need(len(set(idx)) == len(idx),
+         "probe_index %r appears twice: two ledger lines for one probe, both "
+         "naming one response file"
+         % [i for i in set(idx) if idx.count(i) > 1])
+    need(len(set(r["probe"] for r in recs)) == 3,
+         "three lines, %d distinct probe ids"
+         % len(set(r["probe"] for r in recs)))
+
+    # The surviving line is the ORIGINAL, not a fresh one wearing its index.
+    zero = [r for r in recs if r["probe_index"] == 0][0]
+    need(zero["ts"] == kept_probe["ts"],
+         "probe 0's line was rewritten: ts %s, the crash recorded %s"
+         % (zero["ts"], kept_probe["ts"]))
+
+    # NO OVERWRITTEN RESPONSE FILE. Same bytes and the same mtime: a rewrite
+    # that reproduced the text is still a rewrite, and under any sampler it
+    # would not have reproduced it.
+    need(os.path.exists(survivor),
+         "the resumed pass deleted %s, which the surviving ledger line names"
+         % survivor)
+    need(open(survivor, "rb").read() == survivor_bytes,
+         "probe 0's saved body CHANGED across the resume, and its ledger line "
+         "still counts the old one")
+    need(os.stat(survivor).st_mtime == survivor_mtime,
+         "probe 0's saved body was rewritten (mtime %r -> %r). The bytes may "
+         "match because this stub decodes greedily; a sampler would have put "
+         "a different generation under a line that measured the first"
+         % (survivor_mtime, os.stat(survivor).st_mtime))
+
+    # And the two that DID rerun wrote fresh bodies that match their lines.
+    for r in recs:
+        rel = r.get("response_file")
+        need(rel, "%s: no response_file on the resumed record" % r["probe"])
+        path = os.path.join(ledger_dir, *rel.split("/"))
+        need(os.path.exists(path),
+             "%s: the ledger names %s and it is not on disk" % (r["probe"], rel))
+        body = open(path, encoding="utf-8").read()
+        need(len(body) == r["response_chars"],
+             "%s: the file is %d chars and its ledger line counted %d"
+             % (r["probe"], len(body), r["response_chars"]))
+    need(len(os.listdir(ddir)) == 3,
+         "%d response bodies on disk for three probes: %r"
+         % (len(os.listdir(ddir)), sorted(os.listdir(ddir))))
+
+    # The repair took: the unit is complete now, and a further resume is free.
+    rc, out = sb.run("--arms", f, "--slug", SLUG, "--resume")
+    need(rc == 0, "the second resume exited %d:\n%s" % (rc, out[-1200:]))
+    need("SKIPPED, already complete" in out,
+         "the repaired arm is still not complete, so every later resume "
+         "reruns it:\n%s" % out[-1200:])
+    need(len(sb.probes("partial")) == 3,
+         "the second resume added lines: %d now, 3 before"
+         % len(sb.probes("partial")))
+    need(len(sb.launches()) == n_launches + 1,
+         "the second resume launched a server for a unit the ledger has")
+    return ("crash after probe 1 of 3: 2 reissued, 3 lines, no duplicate "
+            "index, probe 0's body untouched")
 
 
 def t_discard_first(sb):
@@ -1151,6 +1319,7 @@ TESTS = (
     ("clean-sweep+heartbeat", t_clean_sweep),
     ("resume-skips", t_resume_skips),
     ("resume-after-retry", t_resume_after_retry),
+    ("resume-mid-arm", t_resume_mid_arm),
     ("discard-first", t_discard_first),
     ("parse-check", t_parse_check_stops_the_sweep),
     ("failed-arm-continues", t_failed_arm_continues),

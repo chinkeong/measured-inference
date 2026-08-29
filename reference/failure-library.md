@@ -571,3 +571,54 @@ pagefile, 59.8 GB commit limit). Four llama-server pids alive; the top three
 wanted ~53 GB. The last log line of any kind was 00:23:38; the power button was
 pressed at 00:31:59, eight minutes into a dead box. First warning had been at
 23:59:11, twenty-four minutes earlier, while the desktop was still usable.
+
+## Every row of an arms.py sweep is REFUSED by the ledger's comparability gate
+
+SYMPTOM: `python scripts/ledger.py compare --metric throughput.decode`
+prints "REFUSED ... backend NOT NAMED / device NOT NAMED" for rows that
+came out of results/<slug>/data/arms/*.jsonl, and the same sweep run on
+another box cannot be stood beside this one at all.
+CAUSE: the sweep recorded no provenance. Before 2026-08-30 arms.py never
+called scripts/bench/provenance.py, so no line named a backend, a device
+or a build, and "unknown" is never equal to "unknown".
+FIX: re-run under a runner that stamps it, and NAME the backend where the
+box cannot: `python scripts/arms.py --arms <file> --backend cuda`. On an
+NVIDIA card on Linux the backend is not derivable - scripts/setup.sh
+installs the Vulkan build unless --cuda was given - so ledger.py leaves
+such a row unnamed and blocked, which is correct: two backends running
+one file are two experiments. arms.py warns at sweep_start when nothing
+named it, and records what it used as sweep_start.backend_cited.
+Installing through setup.sh answers it the other way, by writing
+bin/llama.cpp/INSTALL.json.
+EARNED BY: the Windows-to-Ubuntu comparison this campaign exists to make,
+which the gate would have refused on arrival.
+
+## --resume duplicated probe lines after a crash MID-ARM
+
+SYMPTOM: a 3-probe arm shows FOUR probe lines in the ledger, probe_index
+0 twice, both naming one response_file; ledger.py emits four
+throughput.decode rows for three probes that happened, and the body on
+disk is the second generation while the first line's response_chars
+still describes the first.
+CAUSE: --resume skipped whole (arm, rep) units only. A unit with some but
+not all of its probes recorded fell through every branch and RESTARTED
+the arm, re-appending the probes it already had.
+FIX: fixed in arms.py 2026-08-30, in two halves. The duplicate: a resumed
+unit skips the probe indices the ledger already holds at that spec hash
+and issues only the rest, and says RESUMING MID-ARM when it does. The
+rule 12 half: the discard follows the POSITION IN THE LOAD, not the
+probe number, so on a discard_first arm the first probe the fresh server
+answers is discarded even though its probe_index is not 0. Read
+load_probe_index on the resulting lines to see which probe that was; the
+runner has already dropped it, so nothing is left for you to correct by
+hand. The cost of the crash is that the arm ends one KEPT probe short of
+a run that never crashed - rerun the whole arm if you need the full n.
+EARNED BY: two defects in one code path. The duplicate was reproduced
+against scripts/verify/fake-llama-server.py, indices [0, 0, 1, 2]. The
+rule 12 half was reproduced the same way after the first fix landed: the
+cold probe was kept and the summary published it as 55.00 t/s n=1 while
+the warm probe read 100.00 - the stub's own constants (--rate 100, ramp
+factor 0.55), so that gap IS rule 12's 45%, arriving as a number a
+reader would have used. The regression test for the duplicate half is
+the resume-mid-arm case in scripts/verify/test-arms.py; it uses no
+discard_first arm, so it does not yet cover the rule 12 half.

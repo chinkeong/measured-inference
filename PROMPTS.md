@@ -14,7 +14,7 @@ desktop app, and a web session.
 
 **If you read one thing, read [the fill-in form](#the-fill-in-form).** It is the
 Stage 0 interview as an answer sheet: fill it in one pass, paste it once, and the
-campaign runs to the end without stopping to ask you anything (rule 27). Every
+campaign runs to the end without stopping to ask you anything (rule 31). Every
 field prints its default, so you can delete any line you do not care about.
 
 > **Before any of this works**, the machine needs a runtime. On an NVIDIA box
@@ -46,7 +46,7 @@ field prints its default, so you can delete any line you do not care about.
   - [Running it unattended overnight](#running-it-unattended-overnight)
 - [Beyond the basics](#beyond-the-basics)
   - [Price a sweep before you run it](#price-a-sweep-before-you-run-it)
-  - [Prove every probe still starts — four seconds, no GPU](#prove-every-probe-still-starts--four-seconds-no-gpu)
+  - [Prove every probe still starts — the whole no-GPU lane](#prove-every-probe-still-starts--the-whole-no-gpu-lane)
   - [A campaign where energy is the point](#a-campaign-where-energy-is-the-point)
   - [Energy on Linux: the sampler is PowerShell, the integrator is not](#energy-on-linux-the-sampler-is-powershell-the-integrator-is-not)
   - [A screenshot-loop campaign — and the hallucinated-sight hunt](#a-screenshot-loop-campaign--and-the-hallucinated-sight-hunt)
@@ -84,7 +84,11 @@ git rev-parse --show-toplevel
 nvidia-smi -L
 
 # 3. HUMAN STEP — the agent cannot type sudo. Linux + NVIDIA only; skip on Windows/macOS.
-sudo apt-get install -y nvidia-cuda-toolkit cmake build-essential git
+#    Stock Ubuntu 24.04 has neither python3-venv nor a bare `python`: without the
+#    first, step 4 exits 6 at `python -m venv`; without the second, step 5 and
+#    every other `python ...` line in this file is command-not-found.
+sudo apt-get install -y nvidia-cuda-toolkit cmake build-essential git \
+                        python3-venv python-is-python3
 
 # 4. Installs llama.cpp into bin/llama.cpp/ and creates the repo-local .venv. Nothing global.
 #    ~4 min measured on an RTX 3090. Add --dry-run first to see the plan without touching anything.
@@ -163,7 +167,7 @@ Publish to: results/<somenew-32b>/index.html
 Run the Stage 0 interview in ONE round: propose the quant roster from the repo's
 file listing, prove download access with a range request before the interview
 closes, and show me the machine detection to confirm. Then run autonomously to
-the end — after Stage 0 closes, do not stop to ask me anything (rule 27).
+the end — after Stage 0 closes, do not stop to ask me anything (rule 31).
 ```
 
 The opening line is not decoration. Claude Code auto-loads `CLAUDE.md`, opencode auto-loads
@@ -203,7 +207,7 @@ and paste it back, and that closes the interview.
 
 You get back a sheet with Q1, Q2, Q6 and Q7 populated and Q3, Q4, Q5 blank. Edit those three,
 fix anything the detection got wrong, paste the whole sheet back. The campaign then runs to
-the end without asking you anything else (rule 27).
+the end without asking you anything else (rule 31).
 
 This is also the safest order: the range-request access check happens **before** the interview
 closes. Discover a gated repo afterwards and the no-questions rule has already locked the
@@ -221,7 +225,7 @@ campaign.
 === MEASURED-INFERENCE STAGE-0 ANSWER SHEET v1 ===
 Read AGENTS.md, then skills/field-guide/SKILL.md. Treat this sheet as the CLOSED
 Stage 0 interview: record it in results/<slug>/campaign.md and run autonomously
-to the end (rule 27). Any line I deleted takes the default printed beside it.
+to the end (rule 31). Any line I deleted takes the default printed beside it.
 Three fields are MANDATORY: Q1 repo URL, Q4 time budget, Q6 slug.
 
 Q1  MODEL  (repo URL MANDATORY)
@@ -495,11 +499,13 @@ worse is dropped there, before it earns expensive hours, and the report lists it
 as "screened out at the Stage-1 gate" with the numbers that screened it out — so
 no reader mistakes a pruned file for an untested one.
 
-Run the ranking with scripts/quant-ladder/run-ladder.ps1 driven by a manifest
-modelled on scripts/quant-ladder/ladder-manifest.json, one rung per file. If this
-machine is not Windows, that runner does not exist for it: drive llama-perplexity
-yourself at the manifest's conditions (-ngl 99 -c 8192 -fa on --load-mode mmap,
-f16 KV, the md5-pinned corpus) and budget that port BEFORE spending the hours.
+Run the ranking with scripts/quant-ladder/run-ladder.py, driven by a manifest
+modelled on scripts/quant-ladder/ladder-manifest.json, one rung per file. That
+runner is stdlib-only Python and runs on Linux, macOS and Windows;
+run-ladder.ps1 is the Windows original and the reference for behaviour. Prove
+the plan with --dry-run first: it hashes the corpus against the manifest's
+corpus_md5, resolves every binary and rung file, and proves the GPU gate,
+without touching the card.
 
 Checkpoint-commit after every stage.
 ```
@@ -510,11 +516,16 @@ Checkpoint-commit after every stage.
   gaps live in that last band. A 25-question cell cannot see them.
 - **Include a rung you expect to fail.** A ladder whose every rung passes has not found
   the floor, it has just run out of files.
-- **`run-ladder.ps1` is Windows PowerShell and this repo ships no POSIX equivalent.** The
-  prompt above says so out loud so the agent budgets the port instead of discovering it
-  at hour six. It is resumable either way (a rung whose RESULT or FAILED line is already
-  in the ledger is skipped), and `-Once` does one rung per invocation if your harness
-  kills long tasks.
+- **Two runners, one protocol.** `run-ladder.py` is the portable one and
+  `run-ladder.ps1` is the Windows original; both are resumable (a rung whose RESULT or
+  FAILED line is already in the ledger is skipped) and both do one rung per invocation
+  on request — `--once` in Python, `-Once` in PowerShell — if your harness kills long
+  tasks. Three things the Python runner fixes rather than reproduces: it resolves paths
+  through `scripts/lib/paths.py` instead of reading the manifest's author-machine
+  literals, it MEASURES the parameter count out of the GGUF tensor table instead of
+  taking the manifest's typed one (which is 1.174% low on the reference IQ4_XS file, and
+  therefore inflates its published bits-per-weight by more than the gap between adjacent
+  rungs), and it writes no thousands separators, which `summarize.py` silently dropped.
 - **Perplexity is a within-family tool only.** It is tokenizer-dependent, so it ranks
   quants of one model and nothing else. See shape 3 for what to do across models.
 - **Weights arrive by hand.** Same as shape 1: `curl` into `models/`, verify byte sizes
@@ -563,6 +574,11 @@ Rule 6 binds the QUALITY comparison: raw perplexity is tokenizer-dependent and
 compares nothing across model families. For the cross-model quality row use
 bits-per-byte (each model's OWN token count) or the rule-21 scored benchmarks —
 both tokenizer-independent. Raw PPL is allowed only WITHIN one model's two quants.
+
+Before fixing the benchmark set, read methodology/NEXT-MODELS.md: it picks the
+shared benchmarks ONCE from what the candidate models' own cards report, so the
+published figures validate the harness, instead of discovering per model that
+nothing overlaps.
 
 The deliverable is a comparison document, not three field guides — SKILL.md scopes
 the report to one model on one machine. Write it as a comparison and say in its
@@ -717,7 +733,7 @@ Three facts govern all of them, and every template below leans on one:
   probe returns. An interruption costs at most the arm in flight. Rule 28.
 - **Questions happen at Stage 0 only.** After the interview closes the campaign
   is autonomous, so the prompt has to carry everything the run needs *before* it
-  starts. Rule 27. Every template ends by saying so out loud.
+  starts. Rule 31. Every template ends by saying so out loud.
 
 ---
 
@@ -787,7 +803,7 @@ Steps, in order:
    only - greedy decoding makes the other arms byte-identical, so it is cheap.
    Never filter the truncating questions out.
 
-Do not ask me questions after this message; rule 27 closed the interview.
+Do not ask me questions after this message; rule 31 closed the interview.
 Record any assumption you have to make in campaign.md and keep going.
 ```
 
@@ -852,7 +868,7 @@ words: "This run scored <DATASETS> only. Its Mean is a composite index over
 that set and is NOT comparable with a rule-21 Mean." Do not place a subset Mean
 in a column beside a full-suite Mean.
 
-Do not ask me questions; rule 27 closed the interview.
+Do not ask me questions; rule 31 closed the interview.
 ```
 
 **What a first-timer gets wrong here.**
@@ -924,7 +940,7 @@ scripts/arms.py has NO deadline flag. You hold the clock. Do this:
    - publish only what completed. An arm that did not run is reported as not
      run - never interpolated from its neighbours.
 
-Do not ask me questions; rule 27 closed the interview. Record assumptions in
+Do not ask me questions; rule 31 closed the interview. Record assumptions in
 campaign.md and continue.
 ```
 
@@ -1063,7 +1079,7 @@ do NOT start a new campaign.
 5. Append a dated "shift start" line to campaign.md, then run the one next
    command the handover named - adding --resume if it is an arms.py command.
 
-Rule 27: the interview is closed. Resolve uncertainty from the campaign.md
+Rule 31: the interview is closed. Resolve uncertainty from the campaign.md
 record, then the measured default, then record the assumption and proceed.
 ```
 
@@ -1077,9 +1093,10 @@ record, then the measured default, then record the assumption and proceed.
   `the arm SPEC CHANGED (<old> -> <new>) - rerunning`. If the departing shift
   edited the arm file, that message is the guard doing its job, not a bug.
 - An arm the ledger records as **failed** is skipped rather than retried:
-  `SKIPPED, the ledger records it FAILED (delete that line to retry it)`. Read
-  that record's `server_log_tail` and understand the failure before you delete
-  anything.
+  `SKIPPED, the ledger records it FAILED (--retry-failed reruns it; deleting the
+  line also works)`. Read that record's `server_log_tail` and understand the
+  failure before doing either — on a ceiling ladder, "this rung never loaded" IS
+  the answer, and rerunning it erases the answer.
 
 ---
 
@@ -1113,7 +1130,21 @@ second campaign.
 
 4. Re-run the SAME command, with --resume:
      python scripts/arms.py --arms scripts/arms/<ARMFILE>.json --slug <SLUG> --resume
-   It prints every unit it skips and why.
+   It prints every unit it skips and why. A crash BETWEEN two probes of one arm
+   costs those probes, not the arm: it prints RESUMING MID-ARM and issues only
+   the probe indices the ledger does not already hold.
+
+   Two flags for this recipe, neither of them a default:
+     --wait-for-lock 3600   queue behind another GPU job for up to an hour
+                            instead of exiting. Right for a detached resume,
+                            wrong interactively, where you want to be told.
+     --retry-failed         also rerun units the ledger records as arm_failed.
+                            Use it after a TRANSIENT load failure (a busy card,
+                            an OOM under a desktop). Do NOT use it on a ceiling
+                            ladder: ctx-ceiling.json's stop rule reads "this
+                            rung never loaded" as "this rung is over the limit",
+                            and retrying erases the answer. It requires
+                            --resume, and refuses without it.
 
 WHAT IS LOST - check each of these before concluding anything is gone:
   - arms.py: nothing but the in-flight arm. Every probe was appended and
@@ -1128,7 +1159,7 @@ WHAT IS LOST - check each of these before concluding anything is gone:
   - Anything outside arms.py and bench.py may not resume at all. Check, do not
     assume.
 
-Rule 27: do not ask me questions. Record assumptions in campaign.md.
+Rule 31: do not ask me questions. Record assumptions in campaign.md.
 ```
 
 **What a first-timer gets wrong here.**
@@ -1162,10 +1193,15 @@ not die with it, then tell me exactly what to check in the morning.
   platform: <LINUX / WINDOWS>
 
 BEFORE detaching - all cheap, all no-GPU:
-  python scripts/verify/probe-smoke-test.py --fail
+  python scripts/verify/run-all.py
   python scripts/lib/paths.py
   python scripts/arms.py --arms scripts/arms/<ARMFILE>.json --slug <SLUG> --dry-run
   python scripts/bench/gpu_lock.py status
+run-all.py runs every no-GPU check cheapest-first and runs all of them even
+after one fails: the memory-topology fixtures, the OpenVINO quant table, the
+quant-ladder figure's --out self-test, the bench self-test, the instrument
+guard, probe-smoke-test and the arms lane. `--list` names them and says what
+each failure means. Non-zero if any failed.
 Parsing is not loading. A script that parses is not a script that runs, and
 finding that out at 02:00 costs the whole night.
 
@@ -1196,22 +1232,37 @@ Success is "state": "finished" in the heartbeat AND a sweep_end line at the end
 of the ledger. Anything else: read the last ledger line, then re-run the same
 command with --resume.
 
-Rule 27: do not ask me questions overnight. Record assumptions in campaign.md
+Rule 31: do not ask me questions overnight. Record assumptions in campaign.md
 and keep going.
 ```
 
 **What a first-timer gets wrong here.**
 
+- **After a mid-arm resume, `probe_index` no longer says where in the ramp a
+  probe sat.** Rule 12 is a statement about position in a server LOAD, and a
+  resumed arm reloads. The `probe`, `probe_failed` and `parse_check_failed`
+  lines therefore carry `load_probe_index` as well, and the probe reading 0 is
+  the one on ramping clocks whatever its `probe_index` says. `arms.py` discards
+  by that field, so a resumed `discard_first` arm drops the cold reading on its
+  own and ends one KEPT probe short of a run that never crashed. Nothing is
+  left for you to correct by hand; rerun the whole arm if you need the full n.
 - **The heartbeat is rewritten per probe, not on a timer.** A probe that
   legitimately runs for twenty minutes leaves a twenty-minute-old heartbeat, so
   any staleness alarm has to sit above your longest legitimate probe — and an
   uncapped effort probe can run a very long time. Its `state` field is one of
   `running`, `ok`, `arm_failed`, `finished`.
-- `*.log` is gitignored: the overnight log is a working file, not a record. What
-  the report cites is the ledger, and the ledger *is* tracked. The per-arm server
-  log lives at `results/<SLUG>/work/arms/<STEM>/<ARM ID>-rep1.log`; `bench.py`'s
-  server log is `scripts/bench/results/llama-server.log` and is **truncated on
-  every run**, so copy it before starting the next one if it matters.
+- `*.log` is gitignored: `results/<SLUG>/work/overnight.log`, the detached
+  sweep's stdout, is a working file and not a record. What the report cites is
+  the ledger, and the ledger *is* tracked. Do not confuse it with
+  `results/<SLUG>/data/overnight/overnight.log`, which is a different file with
+  the same basename - the transcript of the overnight measurement QUEUE
+  (`scripts/quant-ladder/overnight.py`), carrying the per-probe readings and
+  the host state each was taken under. That one is a record, `.gitignore`
+  negates it by name, and the worked example ships it tracked. The per-arm
+  server log lives at `results/<SLUG>/work/arms/<STEM>/<ARM ID>-rep1.log`;
+  `bench.py`'s server log is `scripts/bench/results/llama-server.log` and is
+  **truncated on every run**, so copy it before starting the next one if it
+  matters.
 - **Killing the detached run: do not `kill` the pid and walk away** (Linux).
   SIGTERM ends Python without running its cleanup and POSIX has no job object, so
   `llama-server` keeps the model resident and the next run loads on top of it.
@@ -1293,8 +1344,11 @@ printed its ledger as `results\qwen38-27b-blind\data\arms\acceptance.jsonl`. Tha
 example must never be continued or appended to.
 
 **The five arm files, so you know what you are pricing:** `ctx-ceiling.json`
-(25 arms, two groups `q4km-ceiling` / `iq4xs-ceiling`, `order: fixed` because a
-ladder's walk depends on its order), `effort-sweep.json` (11 arms, three groups),
+(two rung TEMPLATES, groups `q4km-ceiling` / `iq4xs-ceiling`, `order: fixed`
+because a ladder's walk depends on its order — the arm COUNT is whatever
+`plan.json` derives for this file on this card, and `--dry-run` prints it
+against the reference campaign's 18-rung ladder as REPRODUCED or DIFFERENT),
+`effort-sweep.json` (11 arms, three groups),
 `spec-sweep.json` (6, one group), `acceptance.json` (2), `depth-series.json` (2,
 and its 7 frozen prompt hashes are re-rendered and checked before a single server
 starts — rule 23).
@@ -1304,13 +1358,32 @@ environment variable, under which any launch raises rather than taking the card.
 If that variable is already set in your shell and you *didn't* pass `--dry-run`,
 arms.py refuses to start rather than failing eight arms in.
 
-A 25-arm ceiling sweep is also the case for holding the clock yourself: arms.py
+A long ceiling ladder is also the case for holding the clock yourself: arms.py
 has **no deadline flag**, so a hard stop means running one arm at a time with
 `--only <arm-id> --resume` and checking the time before each invocation.
 
+**Queue behind another GPU job instead of failing at it.** Rule 20 allows one
+job on the card, and arms.py exits rather than starting beside one. For a
+detached overnight run that is the wrong shape of refusal, so pass
+`--wait-for-lock <SECONDS>`: it retries the machine-wide lock every 2 s for that
+long and then gives up. The default is 0 — fail fast — because an interactive
+run wants to be told, not to sit there. It waits for the one job; it never runs
+beside it.
+
+**Name the backend, or the ledger will not compare the sweep.** Pass
+`--backend cuda|vulkan|openvino|rocm|sycl|metal|cpu` on any box where the
+backend cannot be read off the build record: on Linux `scripts/setup.sh`
+installs the **Vulkan** build unless `--cuda` was given, so an NVIDIA card there
+proves nothing about what decoded. `scripts/ledger.py` refuses to stand two
+throughput rows side by side when either does not name its backend, and that
+refusal is correct — two backends running one file are two experiments. arms.py
+warns at sweep start when nothing named it, and records the value it used as
+`sweep_start.backend_cited`. Installing through `setup.sh` is the other way to
+answer it: `bin/llama.cpp/INSTALL.json` then describes the binary that runs.
+
 ---
 
-### Prove every probe still starts — four seconds, no GPU
+### Prove every probe still starts — the whole no-GPU lane
 
 Parsing is not loading. A syntax check proves the text is Python; it does not
 prove the module's top level runs, that its imports resolve, or that argparse can
@@ -1327,7 +1400,14 @@ report each verbatim:
 
   python scripts/lib/paths.py
   python scripts/bench/gpu_lock.py status
-  python scripts/verify/probe-smoke-test.py
+  python scripts/verify/run-all.py
+
+run-all.py is the whole no-GPU lane in one command - probe-smoke-test plus the
+arms lane (scripts/verify/test-arms.py: the real runner against a stub server,
+checking the ledger, resume, discard, ordering and failure handling), the
+memory-topology fixtures, the OpenVINO quant table, the quant-ladder figure's
+--out self-test, the bench self-test and the instrument guard. `--list` names
+every member. Report its per-check lines first, then work through the two below.
 
 paths.py is the readiness check: it prints what resolves and why — repo root,
 campaign.json, machine.json, llama-server / llama-perplexity / llama-tokenize,
@@ -1346,13 +1426,19 @@ still in bucket (b) is a probe I must not schedule GPU time against. Append both
 lists and the diff to results/<SLUG>/campaign.md.
 ```
 
-**A big red number on a fresh clone is normal — read it before believing it.**
-Measured on this repo with llama.cpp not yet built: **18 of 74 failed, and 10 of
-those 18 ended in the `llama-server` path** — bucket (a), every one. The rest were
-genuine bucket-(b) findings (a script whose `--help` raises `KeyError`, one that
-needs a positional argument, an import that does not resolve). The whole point of
-the two buckets is that "18 FAILED" and "18 broken probes" are not the same
-sentence.
+**Sort the reds before believing any of them — but expect none here.**
+Measured on this repo 2026-08-30 with llama.cpp not yet built: **`0 NEW. 0
+known, 89 start, of 89 checked.`** An earlier reading on the same tree was 18
+of 83, taken 2026-08-29 before the fixes. `scripts/verify/smoke-baseline.json`
+records both readings, and its `cleared` block sorts all eighteen into bucket
+(b). Ten of them READ as bucket (a) — the message ended in the path of a
+missing `llama-server` — and were not: each of those ten had no argument
+parser, so `--help` was not answered, it was RUN, and the missing binary was
+only where the run stopped first. All eighteen were fixed on 2026-08-29 and
+the baseline's `entries[]` is empty, so a red line on a fresh clone is either
+environment or yours — which is what the two buckets are for. "18 FAILED" and
+"18 broken probes" were never the same sentence, and that is exactly why the
+eighteen could be cleared rather than tolerated.
 
 `--fail` makes it exit non-zero, for a hook or CI. It checks only whether a probe
 would *start* — not whether it measures the right thing, and not whether its
@@ -1360,12 +1446,17 @@ conditions are honest. It is a smoke test and claims nothing else.
 
 **It takes no GPU** — the import stage runs each module in a subprocess with the
 gpu_lock dry-run variable set, so a probe that regressed into launching something
-raises instead. It is not, however, guaranteed side-effect-free on disk: a module
-that does work at import time does that work here too. Observed on this repo
-2026-08-29, the run left one new untracked PNG under
-`results/qwen38-27b-blind/figures/`. Check `git status` after the run and delete
-anything it created; a module that writes a file merely by being imported is
-itself a bucket-(b) finding worth recording.
+raises instead. It is not, however, guaranteed side-effect-free on disk: a
+module that does work at import time does that work here too. Observed on this
+repo 2026-08-29, the run left one new untracked PNG under
+`results/qwen38-27b-blind/figures/` — `make-ladder-png.py` had its whole body at
+module level, so importing it redrew the published figure. Fixed 2026-08-30:
+that body is behind a parser now, and the checker measures `git status
+--porcelain` around the one remaining file it has to RUN rather than
+`--help` (`scripts/lib/openvino_quant.py`, a library, which writes nothing) and
+prints what it saw. Check `git status` after the run anyway and delete anything
+it created; a module that writes a file merely by being imported is itself a
+bucket-(b) finding worth recording.
 
 ---
 
@@ -1671,27 +1762,37 @@ scripts/lib/paths.py` and confirm `board` and `desktop` now print numbers.
 **4. A gated HuggingFace repo that passed the interview fails at download time.**
 There is no model downloader script and no HF-token plumbing in this repo: the
 listing API succeeds on gated repos, so a listing is not proof of access, and by
-Stage 1 the no-questions rule (rule 27) has locked the agent out of asking for a
+Stage 1 the no-questions rule (rule 31) has locked the agent out of asking for a
 token. Fix: prove access *inside* the interview with a range request on one
 chosen file — `curl -sI -r 0-1023 <resolve-url>` must return 206/200, not
 401/403 — and if it 401s, hand over the token in that same round and confirm it
 works with `Authorization: Bearer <token>` before the interview closes.
 
 **5. `probe-smoke-test.py` reports failures you did not cause.**
-On a fresh clone before setup, most FAILs are environment, not defects — measured
-here: 18 of 74, of which 10 named the missing `llama-server` binary. Fix: run it
-once before setup and once after, diff the lists, and treat only what survives
-setup as a real defect; a probe still failing on `--help` or on import is one you
-must not schedule GPU time against.
+Not any more, and that changes how to read it: **the baseline is empty**, so any
+red line is yours. Measured 2026-08-30 on this tree, nothing built:
+`0 NEW. 0 known, 89 start, of 89 checked.` The eighteen known failures the
+baseline used to carry were fixed on 2026-08-29 and moved into its `cleared`
+block as history; `--fail` and the bare run now agree, because there is nothing
+left for them to disagree about. The roster comes from `git ls-files`, so the
+89 moves with the tree — the two counts that matter are NEW and known. Fix: run
+it once before setup and once after and diff the lists anyway, because a FAIL on
+a fresh clone can still be environment (a llama.cpp binary, a dataset, a module
+this box has not installed); what survives setup is a defect, and a probe still
+failing on `--help` or on import is one you must not schedule GPU time against.
 
 **6. A sweep will not resume where you expected.**
-Two different causes, two different messages. If the arm file changed since the
-unit ran, resume prints `the arm SPEC CHANGED (<old> -> <new>) - rerunning` and
-re-runs it — correct behaviour, because the recorded numbers describe a
-configuration that no longer exists. If the ledger records the unit as FAILED,
-resume prints `SKIPPED, the ledger records it FAILED` and moves on. Fix: for the
-first, accept the rerun or restore the arm file byte-for-byte; for the second,
-delete that ledger line in `results/<slug>/data/arms/<stem>.jsonl` to retry it.
+Three causes, three messages. If the arm file changed since the unit ran, resume
+prints `the arm SPEC CHANGED (<old> -> <new>) - rerunning` and re-runs it —
+correct behaviour, because the recorded numbers describe a configuration that no
+longer exists; accept the rerun, or restore the arm file byte for byte. If the
+ledger records the unit as FAILED, resume prints `SKIPPED, the ledger records it
+FAILED (--retry-failed reruns it; deleting the line also works)`; read its
+`server_log_tail` first, and on a ceiling ladder do neither, because a rung that
+never loaded is the ladder's answer. If the crash landed BETWEEN two probes of
+one arm, resume prints `RESUMING MID-ARM: probe index … already in the ledger`
+and issues only the rest — the arm is not restarted, and the probes it already
+holds keep their lines and their saved response bodies.
 `results/<slug>/work/heartbeat.json` names the arm that was in flight.
 
 **Three more a first run hits, from `reference/failure-library.md`:**

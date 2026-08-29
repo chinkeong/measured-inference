@@ -60,7 +60,7 @@ starts, who consumes its result; a run nothing consumes is cut.
 
 | File | Job |
 |---|---|
-| `methodology/METHODOLOGY.md` | **The law** — 26 rules, each earned by a measured failure |
+| `methodology/METHODOLOGY.md` | **The law** — 31 rules, each earned by a measured failure |
 | `methodology/REASONING.md` | **The judgment** — how to think so the rules get applied honestly; never pauses a running campaign |
 | `templates/REPORT-SPEC.md` | **The contract** — recipes-first page structure, the "Plain words" box, standardized industry metrics, the two-voice writing law |
 | `AGENTS.md` | **The router** — always loaded; routes agents to the right document at the right moment |
@@ -108,7 +108,7 @@ measured-inference/
 ├─ AGENTS.md                 Tier-0 router: invariants + routing table (start here)
 ├─ README.md                 the pitch and the pledge
 ├─ methodology/
-│  ├─ METHODOLOGY.md         the 26 rules
+│  ├─ METHODOLOGY.md         the 31 rules
 │  └─ REASONING.md           how to think while applying them
 ├─ skills/field-guide/
 │  ├─ SKILL.md               campaign map: interview + stage table

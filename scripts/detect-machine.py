@@ -738,9 +738,67 @@ def windows_video_controllers():
             "Get-CimInstance Win32_VideoController")
 
 
+# The gap between two words of a product name, which is where the trademark
+# marks live. Windows hands back the marketing string verbatim -- `Intel(R)
+# Arc(TM) B390 Graphics`, `AMD Radeon(TM) Graphics` -- and every mark sits
+# BETWEEN the brand word and the word after it, exactly where the patterns
+# below assumed a plain space. That is how a name test comes to pass on Linux,
+# where the name is a PCI id, and fail on Windows, where the name is prose,
+# without anybody deciding that it should. Every multi-word name pattern in
+# this module is built from _SEP, because one branch broken by a mark while
+# the others go on working is the state this file was in until 2026-08-30,
+# and it is exactly the shape of failure nobody looks for.
+_SEP = r"\s*(?:\((?:tm|r)\)|[\u2122\u00ae])?\s+"
+
+# Names that say "this GPU owns no memory". The Arc alternative is the BRAND
+# and nothing more, because Intel ships Arc both ways: a Core Ultra's iGPU is
+# `Arc Graphics`, `Arc 140V Graphics`, or the `Arc B390` named in
+# REPORT-SPEC.md 7's card roster, and the add-in boards carry the same word.
+# The model number is the only thing separating them, so _DISCRETE_INTEL_RE
+# below names the boards and is asked FIRST.
+#
+# Until 2026-08-30 this branch read `arc\s+\d+\w*\s+graphics`, which matches
+# no adapter name Windows has ever returned -- all of them write `Arc(TM)` --
+# so every Arc-branded part fell straight through the Windows branch. With no
+# Intel vendor tool to answer, board_total_mib is 0 on such a box, 0 is falsy,
+# and the miss then fell past the size-ratio test as well and landed on the
+# CPU-only fallback: a machine with a GPU profiled as a machine without one,
+# and a campaign plan priced against the wrong pool with nothing looking wrong.
 _IGPU_NAME_RE = re.compile(
-    r"\b(uhd graphics|hd graphics|iris|arc\s+\d+\w*\s+graphics|"
-    r"radeon\s+graphics|vega\s+graphics|integrated)\b", re.I)
+    r"\b(uhd" + _SEP + r"graphics|hd" + _SEP + r"graphics|iris|arc|"
+    r"radeon" + _SEP + r"graphics|vega" + _SEP + r"graphics|integrated)\b",
+    re.I)
+
+# Intel's DISCRETE boards, by name, because on Windows the name is the whole
+# of the evidence: no Intel vendor tool answers, so there is no board size to
+# read and the size-ratio test at step 7 never runs. Three families:
+#
+#   Arc Pro <n>    the professional add-in boards -- A40/A50/A60, and the
+#                  B50/B70 of REPORT-SPEC.md 7's roster. "Pro" is the whole
+#                  tell; no integrated part carries it.
+#   Arc A<nnn>     Alchemist, which shipped only as discrete parts (A310
+#                  through A770, plus the mobile A___M suffixes). No
+#                  integrated GPU carries an A number.
+#   Arc B5xx-B9xx  the Battlemage desktop cards that have shipped (B570,
+#                  B580) plus every band above them, claimed in advance by
+#                  `b[5-9]\d{2}`. The Core Ultra's integrated Battlemage parts
+#                  are numbered B3xx -- the B390 of the roster is one -- so
+#                  here it is the BAND, not the letter, that tells a board
+#                  from an iGPU, and B6xx through B9xx sit on the board side
+#                  because guessing that way costs one refusal and guessing
+#                  the other way costs "system" (both below).
+#
+# Those three lines are assertions about Intel's naming rather than
+# measurements, and they are what to re-read when a new part appears. The
+# pattern fails safe in both directions when they go stale: an Arc board it
+# misses is called shared-igpu, where check-request.py:memory_plan() refuses
+# until somebody records the driver's share cap, and an iGPU it matches by
+# mistake is called discrete, where the same function refuses until somebody
+# records a board size. Either refusal costs one command. What both replace --
+# "system", a box with no GPU at all -- costs a campaign plan, because
+# "system" does not refuse: it prices the fit against host RAM and passes.
+_DISCRETE_INTEL_RE = re.compile(
+    r"\barc" + _SEP + r"(?:pro\b|a\d{3}[a-z]?\b|b[5-9]\d{2}[a-z]?\b)", re.I)
 
 # NVIDIA product lines that are discrete boards by construction. NVIDIA's
 # unified-memory parts are exactly the Tegra/Jetson line plus GB10, and those
@@ -752,9 +810,13 @@ _DISCRETE_NVIDIA_RE = re.compile(
     r"\b(geforce|quadro|tesla|titan|rtx|gtx|nvs|"
     r"[ahlv]\d{2,3}[a-z]?|p\d{2,3}|t\d{1,3}|k\d{2})\b", re.I)
 # AMD discrete boards. "Radeon Graphics" with no model number is an APU's
-# integrated part and is deliberately NOT here -- _IGPU_NAME_RE has it.
+# integrated part and is deliberately NOT here -- _IGPU_NAME_RE has it. The
+# separator is _SEP for the same reason the Intel patterns use it: a Windows
+# box calls a board `AMD Radeon(TM) RX 7900 XTX`, and `radeon\s+rx` does not
+# match that string.
 _DISCRETE_AMD_RE = re.compile(
-    r"\b(instinct|mi\d{2,3}[a-z]?|radeon\s+(pro|rx)\b|rx\s?\d{3,4})\b", re.I)
+    r"\b(instinct|mi\d{2,3}[a-z]?|radeon" + _SEP + r"(?:pro|rx)\b|"
+    r"rx\s?\d{3,4})\b", re.I)
 
 
 def classify_topology(gpu_name, board_mib, host_total_mib, drm, win_gpus,
@@ -792,8 +854,15 @@ def classify_topology(gpu_name, board_mib, host_total_mib, drm, win_gpus,
                 "Metal's working-set limit is a policy over it, not a separate "
                 "board." % platform.machine(), ev)
 
-    # 3. The firmware names the board and it is an SoC.
-    if dt_model and re.search(r"jetson|dgx spark|tegra|orin|thor",
+    # 3. The firmware names the board and it is an SoC. `dgx spark` is built
+    #    from _SEP like every other multi-word name here, which costs nothing
+    #    and keeps the claim above true: the device tree writes `NVIDIA DGX
+    #    Spark` with one plain space and that still matches, because _SEP only
+    #    ADDS the marked and multi-space forms. A branch whose one input is a
+    #    firmware string nobody here has read on real hardware yet is exactly
+    #    where a lone plain space survives a sweep, to be found by the next
+    #    box rather than by this file.
+    if dt_model and re.search(r"jetson|dgx" + _SEP + r"spark|tegra|orin|thor",
                               dt_model, re.I):
         return ("unified",
                 "the device tree names this board %r, which is an SoC with one "
@@ -851,15 +920,57 @@ def classify_topology(gpu_name, board_mib, host_total_mib, drm, win_gpus,
                     % ", ".join("%s %s" % (c["vendor"], c["card"])
                                 for c in rendering), ev)
 
-    # 6. Windows, where there is no /sys/class/drm to read.
+    # 6. Windows, where there is no /sys/class/drm to read and no vendor tool
+    #    answering either, so the adapter NAME is the whole of the evidence
+    #    and AdapterRAM is not usable (it is 32 bits wide and wrong above
+    #    4 GB). The BOARD question is asked first, because BOTH vendors sell
+    #    the iGPU and the add-in card under one brand -- `Intel(R) Arc(TM)
+    #    B390 Graphics` beside `Intel(R) Arc(TM) B580 Graphics`, `AMD
+    #    Radeon(TM) Graphics` beside `AMD Radeon(TM) RX 7900 XTX`, and the
+    #    integrated half of each pair answers to _IGPU_NAME_RE -- and a box
+    #    that lists both is a box whose campaign runs on the board. Getting
+    #    this order wrong prices an add-in card against the host's RAM, which
+    #    is a pass, not a refusal.
+    #
+    #    Asking the board question for INTEL alone did exactly that to every
+    #    Ryzen desktop with a Radeon card in it: widening _IGPU_NAME_RE's
+    #    separator on 2026-08-30 brought `AMD Radeon(TM) Graphics` into this
+    #    branch for the first time, and an Intel-only board list then answered
+    #    shared-igpu, naming the APU's iGPU on a box whose campaign runs on
+    #    the RX board. Both discrete patterns are consulted here for that
+    #    reason, and fixture-topo-discrete-radeon pins it.
     if win_gpus and not have_nvidia and not have_rocm:
         names = [str(g.get("Name") or "") for g in win_gpus]
-        hits = [n for n in names if _IGPU_NAME_RE.search(n)]
-        if hits:
+        boards = [n for n in names if _DISCRETE_INTEL_RE.search(n)
+                  or _DISCRETE_AMD_RE.search(n)]
+        shared = [n for n in names
+                  if n not in boards and _IGPU_NAME_RE.search(n)]
+        if boards:
+            intel = bool(_DISCRETE_INTEL_RE.search(boards[0]))
+            family = ("an Intel add-in board: Arc Pro, an Alchemist A-series "
+                      "part or a Battlemage desktop card"
+                      if intel else
+                      "an AMD add-in board: a Radeon RX, a Radeon Pro or an "
+                      "Instinct part")
+            beside = ((" %r is listed beside it and is the integrated part "
+                       "that carries the same brand, which is why the board "
+                       "question is asked first." % shared[0])
+                      if shared else "")
+            return ("discrete",
+                    "Win32_VideoController names %r, %s.%s It has memory of "
+                    "its own behind PCIe, and no %s vendor tool answered "
+                    "here, so the board size read here is %r and the fit "
+                    "refuses until it is recorded with --board-total-mib N."
+                    % (boards[0], family, beside,
+                       "Intel" if intel else "AMD", board_mib), ev)
+        if shared:
             return ("shared-igpu",
-                    "Win32_VideoController names %r and no discrete adapter "
-                    "answered a vendor tool, so the GPU maps a share of system "
-                    "RAM." % hits[0], ev)
+                    "Win32_VideoController names %r, no vendor tool answered "
+                    "for a discrete card, and no adapter name here is an "
+                    "Intel or AMD add-in board -- so the GPU maps a share of "
+                    "system RAM rather than owning any. The share the driver "
+                    "allows is NOT MemTotal: record it with "
+                    "--igpu-share-limit-mib N." % shared[0], ev)
 
     # 7. The measurement that needs no name: a discrete board is a FRACTION of
     #    the host's memory, and one pool counted twice is not. This is the
@@ -1025,6 +1136,48 @@ def sample_used_mib(index, n, interval, log=None):
 # ---------------------------------------------------------------------------
 # assembling the profile
 # ---------------------------------------------------------------------------
+
+# board_total_mib's provenance on a box where no GPU vendor tool answered, and
+# the three sentences that can only be written once the topology is settled.
+# They are module constants because two places quote them: detect(), which
+# writes the field BEFORE classify_topology() has looked at a single adapter
+# name, and the TOPO_FIXTURES below, whose whole purpose is to be the artefact
+# a real box of that shape would emit. A fixture that hand-writes a provenance
+# string the code cannot produce is a test that passes while the thing it names
+# is broken, and that is what the discrete-arc fixture was until 2026-08-30.
+#
+# What the absence of a vendor tool proves is that there is no board SIZE to
+# read. WHETHER there is a board is a different question, settled later and by
+# other evidence, and until 2026-08-30 this string answered that one too --
+# "so this is a CPU box and there is no board memory". On the Windows Arc box
+# the 2026-08-30 classifier change was written for, that put "this is a CPU
+# box" on the board field of the same machine.json that carries
+# memory_topology 'discrete' two fields above it, and nothing warned: the
+# board-on-a-shared-pool warning below tests `board_mib` for truth, and 0 is
+# not true.
+_BOARD_ZERO_NO_TOOL = (
+    "no GPU vendor tool answered, so there is no board size to read. 0 makes "
+    "every board-shaped fit check refuse rather than pass. If this box has a "
+    "board, install the vendor tool and re-run, or record the size with "
+    "--board-total-mib N.")
+
+_BOARD_ZERO_ON_DISCRETE = (
+    "memory_topology is 'discrete' and this is 0: the topology is known and "
+    "the board size is not. scripts/check-request.py:memory_plan() refuses on "
+    "that pair rather than passing. Record the board's memory with "
+    "--board-total-mib N and re-run.")
+
+_BOARD_ZERO_ON_SHARED = (
+    "memory_topology is 'shared-igpu', so there is no board here for a size "
+    "to be missing from. The fit is priced against host_mem_total_mib minus "
+    "host_reserve_mib, capped by igpu_share_limit_mib -- see "
+    "scripts/check-request.py:memory_plan().")
+
+_BOARD_ZERO_ON_SYSTEM = (
+    "memory_topology is 'system': nothing here answered for a GPU pool, so "
+    "the 0 is the whole answer rather than a reading that is missing, and the "
+    "fit is priced against host_mem_total_mib minus host_reserve_mib.")
+
 
 def detect(args, log):
     p = Profile()
@@ -1197,11 +1350,7 @@ def detect(args, log):
             p.unknown("gpu_name",
                       "no nvidia-smi and no rocm-smi on PATH; if this box has "
                       "a GPU, its vendor tool is not installed")
-            p.derived("board_total_mib", 0,
-                      "no GPU vendor tool answered, so this is a CPU box and "
-                      "there is no board memory. If that is wrong, install the "
-                      "vendor tool and re-run -- 0 makes every fit check "
-                      "refuse rather than pass.")
+            p.derived("board_total_mib", 0, _BOARD_ZERO_NO_TOOL)
             p.unknown("driver", "no GPU vendor tool to ask")
             p.unknown("power_default_limit_w",
                       "no GPU vendor tool to ask; a CPU run has no board "
@@ -1292,6 +1441,21 @@ def _measure_topology(p, args, have_nvidia, have_rocm, today, log):
             "host_mem_total_mib minus host_reserve_mib instead -- see "
             "scripts/check-request.py:memory_plan()."
             % (topology, _c(board_mib))))
+
+    # The mirror image, and the reason the warning above cannot catch it: a
+    # board reading of 0 is falsy, so it passes that test whatever the
+    # topology says. The 0 has exactly one writer -- the no-vendor-tool branch
+    # of detect() -- and it is written before this classifier has run, so all
+    # it can say is that nothing here could size a board. What it MEANS
+    # depends on the topology, which exists by this line and did not by that
+    # one, so the sentence that depends on it is attached here.
+    if board_mib == 0:
+        if topology == "discrete":
+            p.note("board_total_mib", warning=_BOARD_ZERO_ON_DISCRETE)
+        elif topology == "shared-igpu":
+            p.note("board_total_mib", note=_BOARD_ZERO_ON_SHARED)
+        elif topology == "system":
+            p.note("board_total_mib", note=_BOARD_ZERO_ON_SYSTEM)
 
     # ---- the host reserve, measured the same way the desktop one is -------
     _measure_host_reserve(p, args, topology, today, log)
@@ -1689,14 +1853,21 @@ def _measure_reserve(p, args, have_nvidia, today, log):
 #
 # A classifier whose whole job is to refuse in the ambiguous case cannot be
 # checked by running it on the one box that happens to be here. These are the
-# four topologies plus the two refusals, each as (a) the inputs
-# classify_topology() sees and (b) a machine.json the planner and the Stage-0
-# gate can be pointed at, so that "the arithmetic differs per topology" is a
-# thing a reader can run rather than a thing this file claims.
+# four topologies, the two refusals, and the four Windows boxes where an Arc-
+# or Radeon-branded NAME is the only evidence there is -- each as (a) the
+# inputs classify_topology() sees and (b) a machine.json the planner and the
+# Stage-0 gate can be pointed at, so that "the arithmetic differs per
+# topology" is a thing a reader can run rather than a thing this file claims.
+#
+# The four Windows boxes come in two pairs, iGPU alone and iGPU beside a
+# board, because on Windows the two shapes differ by ONE adapter name and the
+# classifier has nothing else to go on: each pair pins both halves of step 6's
+# ordering, and a fix to one vendor's pattern that changes the other verdict
+# fails here rather than in a campaign plan.
 #
 # WHAT IS MEASURED AND WHAT IS CONSTRUCTED, per fixture, is stated in its own
 # provenance and in its FIXTURE.md. The discrete one is this repository's
-# reference rig, measured. The other five are constructed from published
+# reference rig, measured. The other nine are constructed from published
 # specifications and say so on every field -- a constructed number that admits
 # it is a fixture; a constructed number that does not is the failure this whole
 # workstream is about.
@@ -1750,6 +1921,33 @@ def _fx(topology, gpu_name, board, host_total, host_reserve, **kw):
 
 
 _REF_DESKTOP_RESERVE = {"min": 412, "max": 1796, "n": 9, "date": "2026-08-27"}
+
+# The two Windows adapters the Arc fixtures below are built from, written the
+# way Get-CimInstance Win32_VideoController actually answers: the trademark
+# mark sits inside the name, and AdapterRAM is recorded and used for nothing.
+# Both names are Arc and only the model number says which is which. The
+# board's 4,293,918,720 is the clamped value a 32-bit field returns for a card
+# it cannot describe, which is why windows_video_controllers() reads the name
+# and ignores the size.
+_WIN_ARC_IGPU = {"Name": "Intel(R) Arc(TM) B390 Graphics",
+                 "AdapterCompatibility": "Intel Corporation",
+                 "AdapterRAM": 1073741824}
+_WIN_ARC_BOARD = {"Name": "Intel(R) Arc(TM) B580 Graphics",
+                  "AdapterCompatibility": "Intel Corporation",
+                  "AdapterRAM": 4293918720}
+
+# And the AMD pair, which is the same trap under a different brand: a Ryzen
+# APU's integrated part is `AMD Radeon(TM) Graphics` with no model number at
+# all, and the add-in card beside it is `AMD Radeon(TM) RX 7900 XTX`. Both
+# begin `AMD Radeon(TM)`, so the RX and the digits are the whole of what tells
+# them apart -- exactly the Arc situation, and the reason step 6 asks the
+# board question against _DISCRETE_AMD_RE as well as _DISCRETE_INTEL_RE.
+_WIN_RADEON_IGPU = {"Name": "AMD Radeon(TM) Graphics",
+                    "AdapterCompatibility": "Advanced Micro Devices, Inc.",
+                    "AdapterRAM": 536870912}
+_WIN_RADEON_BOARD = {"Name": "AMD Radeon(TM) RX 7900 XTX",
+                     "AdapterCompatibility": "Advanced Micro Devices, Inc.",
+                     "AdapterRAM": 4293918720}
 
 TOPO_FIXTURES = {}
 
@@ -1952,6 +2150,254 @@ TOPO_FIXTURES["shared-igpu-unmeasured"] = {
                    }),
 }
 
+TOPO_FIXTURES["shared-igpu-arc"] = {
+    "expect": "shared-igpu",
+    "what": "A Core Ultra box on Windows: the Arc B390-class iGPU named in "
+            "REPORT-SPEC.md 7's card roster, mapping a share of 64 GiB of "
+            "LPDDR5X. There is no /sys/class/drm to read here and no Intel "
+            "vendor tool to ask, so the adapter NAME carries the whole "
+            "classification -- and the name Windows returns has a trademark "
+            "mark sitting in the middle of it.",
+    "inputs": dict(gpu_name=None, board_mib=0, host_total_mib=65536, drm=[],
+                   win_gpus=[dict(_WIN_ARC_IGPU)], dt_model=None,
+                   have_nvidia=False, have_rocm=False),
+    "note": "CONSTRUCTED. board_mib is 0 because no vendor tool answers on "
+            "this box, and that 0 is why the fixture is here: until "
+            "2026-08-30 the Arc branch of _IGPU_NAME_RE required `Arc "
+            "<digits> Graphics` with a plain space, so it missed `Arc(TM) "
+            "B390 Graphics` -- and every other Arc name Windows returns -- "
+            "and the falsy 0 then carried the box past the size-ratio test as "
+            "well, onto the CPU-only fallback. The profile that came out said "
+            "memory_topology 'system': a machine with a GPU described as a "
+            "machine without one, priced against the wrong pool, with nothing "
+            "in the artefact looking wrong.",
+    "machine": _fx("shared-igpu", "Intel(R) Arc(TM) B390 Graphics", 0, 65536,
+                   5120, backend="openvino", ram_channels=2,
+                   igpu_share_limit_mib=32768, spec_bandwidth_gbs=153.6,
+                   os="Windows-10-10.0.26200-SP0", arch="AMD64",
+                   provenance={
+                       "memory_topology": {
+                           "how": "DERIVED: Win32_VideoController names "
+                                  "'Intel(R) Arc(TM) B390 Graphics', an "
+                                  "integrated Arc, and no adapter here is an "
+                                  "Intel add-in board."},
+                       "gpu_name": {
+                           "how": "FIXTURE: the Win32_VideoController name. "
+                                  "detect-machine.py fills gpu_name from "
+                                  "nvidia-smi or rocm-smi only, so a real box "
+                                  "of this shape records gpu_name null and "
+                                  "carries this string in the topology "
+                                  "evidence instead."},
+                       "board_total_mib": {
+                           "how": "DERIVED: " + _BOARD_ZERO_NO_TOOL,
+                           "note": _BOARD_ZERO_ON_SHARED},
+                       "igpu_share_limit_mib": {
+                           "how": "CITED: dxdiag 'Shared Memory' / OpenVINO "
+                                  "GPU_DEVICE_TOTAL_MEM_SIZE, 32 GiB -- half "
+                                  "of the 64 GiB system, which is where WDDM "
+                                  "leaves it by default"},
+                       "spec_bandwidth_gbs": {
+                           "how": "DERIVED: 2 channels x 8 B x 9600 MT/s / "
+                                  "1000 = 153.6 GB/s (LPDDR5X-9600), the "
+                                  "memory controller's theoretical peak and "
+                                  "not a measurement. REPORT-SPEC.md 7 "
+                                  "attaches the caveat this row must carry: "
+                                  "one channel, or slower RAM, halves it."},
+                       "desktop_reserve_mib": {
+                           "how": "UNKNOWN",
+                           "why": "not applicable: there is no board VRAM. "
+                                  "The desktop's footprint is inside "
+                                  "host_reserve_mib"},
+                   }),
+}
+
+TOPO_FIXTURES["discrete-arc"] = {
+    "expect": "discrete",
+    "what": "The same Windows box with an Intel add-in board in it: an Arc "
+            "B580 beside the Core Ultra's integrated Arc B390. Both adapters "
+            "are Arc-branded, so the board is told from the iGPU by its MODEL "
+            "NUMBER and by nothing else -- and the board is the part the "
+            "campaign would run on.",
+    "inputs": dict(gpu_name=None, board_mib=0, host_total_mib=65536, drm=[],
+                   win_gpus=[dict(_WIN_ARC_IGPU), dict(_WIN_ARC_BOARD)],
+                   dt_model=None, have_nvidia=False, have_rocm=False),
+    "note": "CONSTRUCTED, and the second adapter is the whole point of it: "
+            "both names are Arc, so a classifier that asks 'is any of these "
+            "an iGPU?' first answers shared-igpu and prices an add-in board "
+            "against 64 GiB of host RAM. The board question is asked first "
+            "instead. board_total_mib stays 0 because no Intel vendor tool "
+            "answers on Windows, which leaves this box with its topology "
+            "KNOWN and its board size NOT: check-request.py:memory_plan() "
+            "refuses on exactly that pair rather than passing, and the "
+            "classifier verdict beside it names the flag that closes the "
+            "gap -- --board-total-mib N, one command from a fit rather than "
+            "a day spent inside a wrong one. That board_total_mib provenance "
+            "is _BOARD_ZERO_NO_TOOL and _BOARD_ZERO_ON_DISCRETE verbatim, the "
+            "two strings detect() and _measure_topology() emit on a real box "
+            "of this shape, so what this artefact asserts cannot drift from "
+            "what the script writes.",
+    "machine": _fx("discrete", "Intel(R) Arc(TM) B580 Graphics", 0, 65536,
+                   5120, backend="openvino", ram_channels=2,
+                   os="Windows-10-10.0.26200-SP0", arch="AMD64",
+                   provenance={
+                       "memory_topology": {
+                           "how": "DERIVED: Win32_VideoController names "
+                                  "'Intel(R) Arc(TM) B580 Graphics', a "
+                                  "Battlemage desktop card, beside the "
+                                  "integrated 'Intel(R) Arc(TM) B390 "
+                                  "Graphics'. The board is the discrete part "
+                                  "and is the one a campaign runs on."},
+                       "gpu_name": {
+                           "how": "FIXTURE: the Win32_VideoController name of "
+                                  "the board. detect-machine.py fills "
+                                  "gpu_name from nvidia-smi or rocm-smi only, "
+                                  "so a real box of this shape records "
+                                  "gpu_name null."},
+                       "board_total_mib": {
+                           "how": "DERIVED: " + _BOARD_ZERO_NO_TOOL,
+                           "warning": _BOARD_ZERO_ON_DISCRETE},
+                       "igpu_share_limit_mib": {
+                           "how": "UNKNOWN",
+                           "why": "not applicable on a discrete board"},
+                       "spec_bandwidth_gbs": {
+                           "how": "UNKNOWN",
+                           "why": "no published bandwidth on file for this "
+                                  "part, and detect-machine.py measures none. "
+                                  "Rule 10's decode estimate needs one: pass "
+                                  "--spec-bandwidth-gbs N --bandwidth-source "
+                                  "before publishing a scaled row for it"},
+                       "desktop_reserve_mib": {
+                           "how": "UNKNOWN",
+                           "why": "reading board VRAM already in use needs a "
+                                  "vendor tool that reports it, and "
+                                  "nvidia-smi is the only one this script "
+                                  "has. On an Intel board the reserve is "
+                                  "unmeasured, so the fit refuses rather than "
+                                  "fencing against a constant (rule 14)"},
+                   }),
+}
+
+TOPO_FIXTURES["shared-igpu-radeon"] = {
+    "expect": "shared-igpu",
+    "what": "A Ryzen box on Windows with nothing in the PCIe slot: the APU's "
+            "integrated Radeon, mapping a share of 32 GiB of DDR5. rocm-smi "
+            "is not on PATH here, which is the ordinary state of a Windows "
+            "AMD box, so the adapter NAME is the whole of the evidence -- and "
+            "the name has a trademark mark where the pattern wanted a space.",
+    "inputs": dict(gpu_name=None, board_mib=0, host_total_mib=32768, drm=[],
+                   win_gpus=[dict(_WIN_RADEON_IGPU)], dt_model=None,
+                   have_nvidia=False, have_rocm=False),
+    "note": "CONSTRUCTED. Until 2026-08-30 the iGPU pattern read `radeon\\s+"
+            "graphics`, which does not match `AMD Radeon(TM) Graphics`, so "
+            "this box classified 'system' -- a GPU box profiled as a CPU box, "
+            "priced against the wrong pool, with nothing in the artefact "
+            "looking wrong. igpu_share_limit_mib is null on purpose: no "
+            "driver here publishes the mappable share to an unprivileged "
+            "process, MemTotal over-promises it by about 2x, and the fit is "
+            "meant to REFUSE until the number is read rather than assume one.",
+    "machine": _fx("shared-igpu", "AMD Radeon(TM) Graphics", 0, 32768, 3072,
+                   backend="vulkan", ram_channels=2, spec_bandwidth_gbs=89.6,
+                   os="Windows-10-10.0.26200-SP0", arch="AMD64",
+                   provenance={
+                       "memory_topology": {
+                           "how": "DERIVED: Win32_VideoController names 'AMD "
+                                  "Radeon(TM) Graphics', an APU's integrated "
+                                  "part, and no adapter here is an Intel or "
+                                  "AMD add-in board."},
+                       "gpu_name": {
+                           "how": "FIXTURE: the Win32_VideoController name. "
+                                  "detect-machine.py fills gpu_name from "
+                                  "nvidia-smi or rocm-smi only, so a real box "
+                                  "of this shape records gpu_name null and "
+                                  "carries this string in the topology "
+                                  "evidence instead."},
+                       "board_total_mib": {
+                           "how": "DERIVED: " + _BOARD_ZERO_NO_TOOL,
+                           "note": _BOARD_ZERO_ON_SHARED},
+                       "igpu_share_limit_mib": {
+                           "how": "UNKNOWN",
+                           "why": "no driver here publishes the mappable "
+                                  "share to an unprivileged process. Read it "
+                                  "from dxdiag's 'Shared Memory' or from "
+                                  "`clinfo` CL_DEVICE_GLOBAL_MEM_SIZE, then "
+                                  "pass --igpu-share-limit-mib N"},
+                       "spec_bandwidth_gbs": {
+                           "how": "DERIVED: 2 channels x 8 B x 5600 MT/s / "
+                                  "1000 = 89.6 GB/s (DDR5-5600), the memory "
+                                  "controller's theoretical peak and not a "
+                                  "measurement. One channel, or slower RAM, "
+                                  "halves it."},
+                       "desktop_reserve_mib": {
+                           "how": "UNKNOWN",
+                           "why": "not applicable: there is no board VRAM. "
+                                  "The desktop's footprint is inside "
+                                  "host_reserve_mib"},
+                   }),
+}
+
+TOPO_FIXTURES["discrete-radeon"] = {
+    "expect": "discrete",
+    "what": "The Ryzen desktop with a card in the slot: an RX 7900 XTX beside "
+            "the APU's integrated Radeon, 64 GiB of DDR5, and no rocm-smi. "
+            "Both adapters are Radeon-branded, so the board is told from the "
+            "iGPU by `RX` and its model number and by nothing else -- and the "
+            "board is the part the campaign would run on.",
+    "inputs": dict(gpu_name=None, board_mib=0, host_total_mib=65536, drm=[],
+                   win_gpus=[dict(_WIN_RADEON_IGPU), dict(_WIN_RADEON_BOARD)],
+                   dt_model=None, have_nvidia=False, have_rocm=False),
+    "note": "CONSTRUCTED, and it pins the AMD half of step 6's ordering. On "
+            "2026-08-30 the iGPU pattern was widened to match `AMD Radeon(TM) "
+            "Graphics` while the board question was still asked against the "
+            "Intel pattern alone, so this box -- every Ryzen desktop with a "
+            "Radeon card in it -- answered shared-igpu and named the APU's "
+            "iGPU on a machine whose campaign runs on the 24 GiB board. Both "
+            "discrete patterns are consulted now. board_total_mib stays 0 "
+            "because no AMD vendor tool answers here, which leaves the "
+            "topology KNOWN and the board size NOT, and "
+            "check-request.py:memory_plan() refuses on that pair rather than "
+            "passing: --board-total-mib 24576 closes it in one command.",
+    "machine": _fx("discrete", "AMD Radeon(TM) RX 7900 XTX", 0, 65536, 5120,
+                   backend="vulkan", ram_channels=2,
+                   os="Windows-10-10.0.26200-SP0", arch="AMD64",
+                   provenance={
+                       "memory_topology": {
+                           "how": "DERIVED: Win32_VideoController names 'AMD "
+                                  "Radeon(TM) RX 7900 XTX', an add-in board, "
+                                  "beside the APU's integrated 'AMD "
+                                  "Radeon(TM) Graphics'. The board is the "
+                                  "discrete part and is the one a campaign "
+                                  "runs on."},
+                       "gpu_name": {
+                           "how": "FIXTURE: the Win32_VideoController name of "
+                                  "the board. detect-machine.py fills "
+                                  "gpu_name from nvidia-smi or rocm-smi only, "
+                                  "so a real box of this shape records "
+                                  "gpu_name null."},
+                       "board_total_mib": {
+                           "how": "DERIVED: " + _BOARD_ZERO_NO_TOOL,
+                           "warning": _BOARD_ZERO_ON_DISCRETE},
+                       "igpu_share_limit_mib": {
+                           "how": "UNKNOWN",
+                           "why": "not applicable on a discrete board"},
+                       "spec_bandwidth_gbs": {
+                           "how": "UNKNOWN",
+                           "why": "no published bandwidth on file for this "
+                                  "part, and detect-machine.py measures none. "
+                                  "Rule 10's decode estimate needs one: pass "
+                                  "--spec-bandwidth-gbs N --bandwidth-source "
+                                  "before publishing a scaled row for it"},
+                       "desktop_reserve_mib": {
+                           "how": "UNKNOWN",
+                           "why": "reading board VRAM already in use needs a "
+                                  "vendor tool that reports it, and "
+                                  "nvidia-smi is the only one this script "
+                                  "has. On a Radeon board with no rocm-smi "
+                                  "the reserve is unmeasured, so the fit "
+                                  "refuses rather than fencing against a "
+                                  "constant (rule 14)"},
+                   }),
+}
+
 TOPO_FIXTURES["system"] = {
     "expect": "system",
     "what": "A dual-socket Xeon with no GPU at all: 512 GiB of DDR5 across 16 "
@@ -1971,10 +2417,8 @@ TOPO_FIXTURES["system"] = {
                            "how": "DERIVED: no GPU vendor tool answered, "
                                   "/sys/class/drm lists no card"},
                        "board_total_mib": {
-                           "how": "DERIVED: no GPU vendor tool answered, so "
-                                  "this is a CPU box and there is no board "
-                                  "memory. 0 makes every board-shaped fit "
-                                  "check refuse rather than pass."},
+                           "how": "DERIVED: " + _BOARD_ZERO_NO_TOOL,
+                           "note": _BOARD_ZERO_ON_SYSTEM},
                        "spec_bandwidth_gbs": {
                            "how": "DERIVED: 16 channels x 8 B x 4800 MT/s / "
                                   "1000 = 614.4 GB/s (theoretical peak)"},
@@ -2011,6 +2455,28 @@ TOPO_FIXTURES["unknown"] = {
 }
 
 
+# Every fixture's memory_topology provenance is the classifier's OWN sentence
+# for those inputs, taken from classify_topology() here rather than written out
+# again beside it. A hand-copied paraphrase is the same defect as a hand-copied
+# board_total_mib provenance: it reads as the artefact a real box emits while
+# saying something the code does not, and it goes on saying it after the branch
+# it describes has been rewritten -- which is what both Arc fixtures did inside
+# one day of being written. What is NOT reproduced here is the evidence block a
+# real machine.json carries beside the sentence (drm_cards,
+# windows_video_controllers, board_over_host_ratio and the rest of `ev`); the
+# "inputs" entry beside each fixture is that evidence, in the form the
+# classifier reads it.
+for _name in TOPO_FIXTURES:
+    _prov = TOPO_FIXTURES[_name]["machine"]["provenance"]["memory_topology"]
+    _verdict = classify_topology(**TOPO_FIXTURES[_name]["inputs"])
+    if _verdict[0]:
+        _prov["how"] = "DERIVED: " + _verdict[1]
+        _prov.pop("why", None)
+    else:
+        _prov["how"] = "UNKNOWN"
+        _prov["why"] = _verdict[1]
+
+
 def self_test(out):
     """Run classify_topology over every fixture and print the decision table."""
     out.write("\ntopology classifier self-test  (%d fixtures)\n\n"
@@ -2024,6 +2490,15 @@ def self_test(out):
         out.write("  %-24s expect %-12s got %-12s %s\n"
                   % (name, fx["expect"] or "REFUSE", got or "REFUSE",
                      "ok" if ok else "*** MISMATCH ***"))
+        # The verdict and the artefact beside it are two different objects,
+        # and the artefact is the one a planner gets pointed at. A fixture
+        # whose machine.json disagrees with its own classifier verdict is a
+        # decision table that documents a decision nothing makes.
+        written = fx["machine"].get("memory_topology")
+        if written != got:
+            bad += 1
+            out.write("      *** the machine.json beside it records "
+                      "memory_topology %r ***\n" % written)
         for chunk in _wrap_text(how, 74):
             out.write("      %s\n" % chunk)
         out.write("\n")
@@ -2226,13 +2701,13 @@ def main(argv=None):
                     help="where --spec-bandwidth-gbs came from. Rule 1: a "
                          "number without a provenance is refused, not recorded")
     ap.add_argument("--self-test", action="store_true",
-                    help="run the topology classifier against the four "
-                         "recorded topology fixtures and print the decision "
-                         "table; measures nothing, writes nothing")
+                    help="run the topology classifier against every recorded "
+                         "topology fixture and print the decision table; "
+                         "measures nothing, writes nothing")
     ap.add_argument("--write-fixtures", action="store_true",
-                    help="write results/fixture-topo-*/machine.json for the "
-                         "four topologies, so the planner and the Stage-0 gate "
-                         "can be exercised on each")
+                    help="write results/fixture-topo-*/machine.json for every "
+                         "recorded topology fixture, so the planner and the "
+                         "Stage-0 gate can be exercised on each")
     ap.add_argument("--clean-fixtures", action="store_true",
                     help="remove exactly the fixture campaigns --write-"
                          "fixtures created, and nothing else")

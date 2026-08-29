@@ -5,6 +5,7 @@
     python scripts/arms.py --arms scripts/arms/spec-sweep.json --dry-run
     python scripts/arms.py --arms scripts/arms/spec-sweep.json --slug qwen38-27b
     python scripts/arms.py --arms scripts/arms/spec-sweep.json --resume
+    python scripts/arms.py --arms ... --resume --wait-for-lock 3600 --backend cuda
 
 WHY THIS FILE EXISTS. Thirteen PowerShell sweeps under scripts/reference-3090/
 carried the reference campaign, and every one of them is the same program:
@@ -133,7 +134,7 @@ sweeps. Injecting a house default would quietly convert one into the other.
 "n_predict": -1 means uncapped - llama.cpp generates until the window ends -
 and is sent by omitting max_tokens, which is what the .ps1 originals did.
 
-THE SIX THINGS A HAND-WRITTEN SWEEP FORGETS, and this one cannot:
+THE EIGHT THINGS A HAND-WRITTEN SWEEP FORGETS, and this one cannot:
 
   LEDGER (rule 28). One JSON line per probe, appended and fsynced the moment
   the probe returns, to results/<slug>/data/arms/<armfile-stem>.jsonl. Never
@@ -141,11 +142,19 @@ THE SIX THINGS A HAND-WRITTEN SWEEP FORGETS, and this one cannot:
   measurement because its results existed only in scrollback is the reason this
   is not optional.
 
-  RESUME. --resume reads that ledger and skips arm/repeat units already
-  complete, so a reboot costs at most the arm in flight. It refuses to skip a
-  unit whose arm SPEC has changed since it ran (each line carries a spec hash),
-  because skipping a changed arm would publish numbers from a configuration
-  that no longer exists.
+  RESUME. --resume reads that ledger and skips everything it already holds:
+  whole arm/repeat units that are complete, and INSIDE a half-finished unit,
+  the individual probe indices already recorded - so a crash mid-arm costs the
+  probes that had not run and nothing else. Re-issuing a recorded probe would
+  append a SECOND line carrying the same probe_index and overwrite the
+  response file the first line points at, which is a ledger claiming four
+  probes where three happened. It refuses to skip a unit whose arm SPEC has
+  changed since it ran (each line carries a spec hash), because skipping a
+  changed arm would publish numbers from a configuration that no longer
+  exists. A unit the ledger records as FAILED is left alone unless
+  --retry-failed says otherwise: ctx-ceiling.json's stop rule reads "a rung
+  that never loads" as "over the limit", and a runner that retried it by
+  default would erase that answer.
 
   HEARTBEAT (rule 20). results/<slug>/work/heartbeat.json is rewritten every
   probe. An agent resuming after a session loss reads eleven fields instead of
@@ -154,7 +163,15 @@ THE SIX THINGS A HAND-WRITTEN SWEEP FORGETS, and this one cannot:
   DISCARD (rule 12). The first probe after a server load reads up to 45% low -
   the clocks are still ramping. With "discard_first" it is dropped from the
   summary and STILL written to the ledger, flagged discarded, because a
-  discarded probe is a measurement of the ramp and must not vanish.
+  discarded probe is a measurement of the ramp and must not vanish. WHICH
+  probe gets discarded is decided by position in the LOAD, not by probe
+  number, so every line ABOUT A PROBE - kind probe, probe_failed and
+  parse_check_failed; not the arm- and sweep-level lines - carries
+  load_probe_index, which probe of ITS OWN server load it was. That is the
+  same thing as probe_index every time except after a mid-arm --resume, where
+  the ramp has moved to the first probe the fresh server answers and nothing
+  else on the line would say so. The discard moves with it: a resumed arm ends
+  one KEPT probe short rather than averaging a cold reading in.
 
   RESPONSES (rule 28, and METHODOLOGY's artifact read-back). Every generated
   body is written verbatim to <ledger-stem>-responses/, named by arm, pass and
@@ -173,6 +190,25 @@ THE SIX THINGS A HAND-WRITTEN SWEEP FORGETS, and this one cannot:
   "order": "alternate" (the default) the order within a group reverses on every
   second pass, so a position in the sweep cannot masquerade as an effect. The
   order actually used is recorded on every line.
+
+  PROVENANCE (rule 3). scripts/bench/provenance.py's block: build and commit,
+  the binary's and the ggml libraries' own sizes and mtimes, driver, card,
+  board power limit, the weight file's size and mtime, and the EXECUTION
+  CONTEXT - which backend decoded, and which device it RESOLVED. Taken once
+  for the sweep and once per arm launch, never per probe, and stamped on the
+  sweep_start line and on every line an arm writes. Until it was, every row an
+  arms.py sweep produced was REFUSED by scripts/ledger.py's comparability
+  gate, and that is not pedantry: a throughput figure whose build and backend
+  are unrecorded cannot be stood beside the same sweep run on another machine,
+  and standing exactly those two side by side is what this campaign is for.
+
+  POWER (rule 24). Whether anything was logging the watts when the sweep
+  started, written on the sweep_start line as power_logging true|false. The
+  detached nvidia-smi logger does not survive a reboot and nothing ever
+  checked it, so a sweep run after a restart produced a full ledger, no energy
+  at all, and no record that there had been none. The runner does not start
+  one - launching a logger mid-sweep would change the machine the numbers are
+  being taken on - it looks, and writes down what it saw.
 
 THE FILLER. deep-decode-probe.ps1 and nuance-suite.ps1 both carry the same
 deterministic note generator, and the depth numbers this campaign published
@@ -227,6 +263,20 @@ except ImportError as _e:
              "file and says nothing about it." % _e)
 import gpu_lock
 
+# Provenance (rule 3), and provenance.py's own docstring names this file by
+# path as the caller it expects. It is imported SOFTLY, exactly as the six
+# one-off probes under scripts/bench/ import it: scripts/verify/test-arms.py
+# runs this runner out of a mirror holding three files - arms.py, lib/paths.py
+# and bench/gpu_lock.py - and a sweep runner that refused to start without a
+# fourth would take the whole no-GPU lane down with it. Where the module is
+# absent the ABSENCE is recorded on every line rather than dropped, in
+# provenance.py's own "NOT RECORDED: <reason>" shape, because a missing key
+# reads as "not applicable" to whoever finds the ledger later.
+try:
+    import provenance as _prov
+except Exception:                                    # pragma: no cover
+    _prov = None
+
 # progress must stay visible when stdout is redirected: a multi-hour sweep with
 # fully buffered output is indistinguishable from a hung one
 try:
@@ -240,6 +290,22 @@ DEFAULT_REQUEST_TIMEOUT_S = 3600    # a 27k-depth probe is minutes, not seconds
 DEFAULT_STOP_GRACE_S = 3            # every reference sweep waits 3 s after a kill
 DEFAULT_SETTLE_S = 0                # q2-vs-q4-headtohead.py waits 5 s after a discard
 VRAM_SAMPLE_S = 2.0                 # nvidia-smi cadence while a probe runs
+
+# The power logger writes results/<slug>/data/power/*.csv every 500 ms
+# (scripts/power/README.md). Five minutes is therefore not "a bit behind", it
+# is six hundred missed samples: generous enough that a busy box or a flushed
+# buffer is not called dead, short enough that a logger killed by the last
+# reboot cannot pass for a live one.
+POWER_SUBDIR = "power"
+POWER_FRESH_S = 300
+
+# The installer THIS box actually has. The two are twins - setup.ps1's own
+# header says "the POSIX twin is scripts/setup.sh; the two write the SAME
+# bin/llama.cpp/INSTALL.json" - but an operator told to run the other one has
+# been handed a remedy that does not exist where they are standing, and the
+# warning below is the message a Windows operator is most likely to meet.
+# scripts/lib/paths.py picks the same way, for the same reason.
+SETUP_SCRIPT = "scripts\\setup.ps1" if os.name == "nt" else "scripts/setup.sh"
 
 # Keys `defaults` may set at the ARM level, and at the PROBE level. They are
 # disjoint on purpose: "repeat" is a property of an arm, "temperature" is a
@@ -1057,6 +1123,211 @@ def log_tail(path, n=30):
 
 
 # ---------------------------------------------------------------------------
+# What it was measured WITH (rule 3)
+#
+# scripts/ledger.py's comparability gate asks five things of a throughput row
+# before it may stand beside another - backend, device, machine, build and the
+# sweep it belongs to - and until this section existed an arms.py ledger
+# answered exactly one of them. Every row a real sweep produced was refused,
+# including the only comparison this campaign is being ported to Ubuntu to
+# make: the same arm file, the same weights, two boxes.
+# ---------------------------------------------------------------------------
+
+def toolchain_block(server_bin, model_path_, server_log, backend):
+    """provenance.py's whole block for ONE arm launch, or a recorded absence.
+
+    Called once per arm LAUNCH and never per probe. It shells out - to
+    `llama-server --version` and to nvidia-smi - which is a second or two
+    against a model load that takes tens of them, and would be an hour against
+    a four-hundred-probe sweep.
+
+    server_log is this arm's own work/<arm>-rep<N>.log, and passing it is the
+    entire point on OpenVINO: the device the backend RESOLVED is printed there
+    once (ggml-openvino.cpp:1526) and nowhere else, after the availability
+    fallback - so it is the only thing that can tell a run that asked for the
+    NPU and got it from one that asked for the NPU and silently got the CPU.
+    GGML_OPENVINO_DEVICE says what was asked for; the log says what was given.
+
+    A provenance failure never takes the sweep down - losing hours of
+    measurement because the block DESCRIBING it could not be built would be
+    worse than the missing block - but a silent loss would be worse than
+    either, so the reason comes back in provenance.py's own "NOT RECORDED:"
+    shape and is written onto every line the arm produces.
+    """
+    if _prov is None:
+        return "NOT RECORDED: provenance module unavailable"
+    try:
+        return _prov.toolchain(server_path=server_bin, model_path=model_path_,
+                               server_log=server_log, backend=backend)
+    except Exception as e:                           # pragma: no cover
+        return ("NOT RECORDED: provenance.toolchain() raised %s: %s"
+                % (type(e).__name__, e))
+
+
+def toolchain_stamp(block):
+    """The half of a provenance block that belongs on every probe LINE.
+
+    Split rather than copied whole, and the split is by what can CHANGE
+    between two lines of one sweep. The constant half - the build and commit,
+    the ggml library mtimes, the interpreter, the platform - is one binary on
+    one box for the whole run and sits once on the sweep_start line; repeating
+    its two kilobytes four hundred times would say nothing new on line two.
+    What rides every line is the half no later reader could reconstruct from
+    that header:
+
+      execution   what decoded and on which device, read out of THIS arm's own
+                  server log. scripts/ledger.py prefers this per-probe copy
+                  over the header's precisely because a sweep may relaunch the
+                  server on another device between arms - which is the backend
+                  sweep this repository is about to run.
+      backend
+      device      the same two fields as scalars, so one grep of one line
+                  answers "what ran this?" without walking a sub-object.
+      model_file  the size and mtime of the weight file THIS arm loaded. A
+                  sweep whose arms are two quants has two of them, and a
+                  re-quantised file under an unchanged name is invisible
+                  without the pair.
+      gpu         driver, card, board power limit, and whether that limit is
+                  at its stock value. Persistent hardware state that outlives
+                  the process and can be changed between arms by anything on
+                  the box - and rule 30 has seven eliminated candidates for
+                  the two throughput levels and no eighth, which is the last
+                  argument anyone should want for leaving a condition out.
+    """
+    if not isinstance(block, dict):
+        # The module was unavailable or it raised. The reason goes on every
+        # line rather than nowhere: ledger.py's gate reads an absent backend
+        # as unknown, and unknown is never equal to unknown, so the rows are
+        # refused either way - the difference is whether the operator can see
+        # WHY without rerunning anything.
+        return {"toolchain": block}
+    ex = block.get("execution")
+    ex = ex if isinstance(ex, dict) else {}
+    return {"execution": block.get("execution"),
+            "backend": ex.get("backend"), "device": ex.get("device"),
+            "model_file": block.get("model_file"), "gpu": block.get("gpu")}
+
+
+# ---------------------------------------------------------------------------
+# Was anything measuring the watts? (rule 24)
+# ---------------------------------------------------------------------------
+
+# "2026/08/23 13:19:37.436" - nvidia-smi's own stamp, in LOCAL time, at the
+# head of every row it writes. Dashes are accepted too because a hand-rolled
+# logger elsewhere in this repo could write them, and the second half of the
+# row is not parsed at all: this asks when the last sample landed, not what it
+# said. scripts/power/attribute-power.py is what reads the values.
+_POWER_TS_RE = re.compile(
+    r"^\s*(\d{4})[/-](\d{2})[/-](\d{2})[ T](\d{2}):(\d{2}):(\d{2})")
+
+
+def _last_sample_age_s(path, now):
+    """Seconds since the last timestamped row of a power CSV, or None.
+
+    Reads the TAIL, not the file: campaign-power.csv is about a megabyte a day
+    at 500 ms, and this runs at sweep start where nothing may be slow. Scanning
+    backwards is what makes a 4 KiB window safe - the only row that can be
+    truncated is the window's first, and it is the last one looked at.
+    """
+    try:
+        with open(path, "rb") as fh:
+            fh.seek(0, os.SEEK_END)
+            size = fh.tell()
+            fh.seek(max(0, size - 4096))
+            blob = fh.read().decode("utf-8", "replace")
+    except OSError:
+        return None
+    for line in reversed(blob.splitlines()):
+        m = _POWER_TS_RE.match(line)
+        if m:
+            try:
+                return (now - datetime.datetime(
+                    *(int(g) for g in m.groups()))).total_seconds()
+            except ValueError:            # a row whose date does not exist
+                continue
+    return None
+
+
+def power_logging(slug, fresh_s=POWER_FRESH_S):
+    """Is anything logging the watts right now, and how is that known?
+
+    The power logger is a detached nvidia-smi that does not survive a reboot,
+    and nothing in this repository has ever checked whether it was still
+    alive. A sweep run after a restart therefore produced a complete ledger,
+    no energy at all, and no record anywhere that there had been none - and
+    rule 24 says energy is measured or it is absent, which makes the absence a
+    FACT the run has to write down rather than a silence a later stage
+    discovers.
+
+    This only looks. It does not start a logger: launching one mid-sweep would
+    change the machine the numbers are being taken on, and the honest move is
+    to tell the operator, who can start one and lose only the arms so far.
+
+    Two independent pieces of evidence, and the FRESHER of them wins, because
+    each is wrong in a way the other is not. The file's mtime knows nothing
+    about time zones - a logger writing UTC rows on a UTC+8 box would look
+    eight hours dead by its rows alone. The last row's own timestamp survives
+    a filesystem that has not noticed the appends yet. Both stale is the one
+    thing that means the same either way: nothing has been written for
+    minutes, which is what a dead logger looks like.
+    """
+    d = os.path.join(paths.repo_root(), "results", str(slug), "data",
+                     POWER_SUBDIR)
+    rec = {"logging": False, "dir": _rel(d), "threshold_s": fresh_s,
+           "checked_utc": _iso(), "files": 0, "newest": None, "age_s": None,
+           "age_source": None, "age_by_mtime_s": None,
+           "age_by_last_row_s": None,
+           "why": "there is no such directory, so no logger has ever written "
+                  "here"}
+    if not os.path.isdir(d):
+        return rec
+    try:
+        csvs = [os.path.join(d, f) for f in sorted(os.listdir(d))
+                if f.lower().endswith(".csv")]
+    except OSError as e:
+        rec["why"] = "the directory could not be read: %s" % e
+        return rec
+    rec["files"] = len(csvs)
+    if not csvs:
+        rec["why"] = "the directory holds no .csv at all"
+        return rec
+
+    now, now_epoch, best = datetime.datetime.now(), time.time(), None
+    for path in csvs:
+        try:
+            st = os.stat(path)
+        except OSError:
+            continue
+        if st.st_size == 0:
+            continue                  # a file with no rows in it is no sample
+        by_mtime = now_epoch - st.st_mtime
+        by_row = _last_sample_age_s(path, now)
+        age = min(a for a in (by_mtime, by_row) if a is not None)
+        if best is None or age < best[0]:
+            best = (age, path, by_mtime, by_row)
+    if best is None:
+        rec["why"] = ("all %d .csv here are empty or unreadable" % len(csvs))
+        return rec
+
+    age, path, by_mtime, by_row = best
+    rec.update({
+        "logging": age <= fresh_s,
+        "newest": os.path.basename(path),
+        "age_s": round(age, 1),
+        "age_source": ("the last row's own timestamp"
+                       if by_row is not None and by_row <= by_mtime
+                       else "the file's mtime"),
+        "age_by_mtime_s": round(by_mtime, 1),
+        "age_by_last_row_s": None if by_row is None else round(by_row, 1),
+    })
+    rec["why"] = ("%s was last written %.0f s ago by %s, which is %s the %d s "
+                  "freshness threshold"
+                  % (rec["newest"], age, rec["age_source"],
+                     "inside" if rec["logging"] else "beyond", fresh_s))
+    return rec
+
+
+# ---------------------------------------------------------------------------
 # VRAM, sampled WHILE the probe runs
 # ---------------------------------------------------------------------------
 
@@ -1266,7 +1537,13 @@ def write_heartbeat(path, rec):
 
 
 def read_ledger(path):
-    """{(arm, rep): {probes: set, spec: sha, failed: bool}} from the ledger."""
+    """{(arm, rep): {probes: set, spec: sha, failed: bool}} from the ledger.
+
+    `probes` is the set of probe_index values already recorded for that unit
+    UNDER ITS CURRENT SPEC, which is what --resume skips one by one; `spec` is
+    the newest spec hash seen for it, and `failed` says whether the last word
+    on it was a failure to load.
+    """
     done = {}
     if not os.path.exists(path):
         return done
@@ -1287,7 +1564,15 @@ def read_ledger(path):
             key = (rec.get("arm"), rec.get("rep"))
             slot = done.setdefault(key, {"probes": set(), "spec": None,
                                          "failed": False})
-            slot["spec"] = rec.get("spec_sha") or slot["spec"]
+            sha = rec.get("spec_sha")
+            if sha and slot["spec"] and sha != slot["spec"]:
+                # The arm file was edited between runs. The indices recorded
+                # under the OLD spec describe a configuration that no longer
+                # exists, so they are not "already done" for this one - and a
+                # resume that counted them would leave the new arm short by
+                # exactly the probes it had never run.
+                slot["probes"] = set()
+            slot["spec"] = sha or slot["spec"]
             if kind == "arm_failed":
                 slot["failed"] = True
             else:
@@ -1577,8 +1862,37 @@ def main():
                          "must match this campaign - one model's ladder on "
                          "another model is refused, not warned about")
     ap.add_argument("--resume", action="store_true",
-                    help="skip arm/repeat units the ledger already records as "
-                         "complete, and print which ones were skipped")
+                    help="skip what the ledger already records: complete "
+                         "arm/repeat units, and inside a half-finished unit "
+                         "the probes it already holds. Prints every skip")
+    ap.add_argument("--retry-failed", action="store_true",
+                    help="with --resume, also rerun units the ledger records "
+                         "as arm_failed at the CURRENT spec hash. Off by "
+                         "default and deliberately so: a ceiling ladder reads "
+                         "'this rung never loaded' as 'this rung is over the "
+                         "limit', and a runner that retried it by default "
+                         "would erase that answer. Use it after a transient "
+                         "load failure - a busy card, an OOM under a desktop "
+                         "- which otherwise needs an fsynced JSONL edited by "
+                         "hand")
+    ap.add_argument("--wait-for-lock", type=float, default=0.0,
+                    metavar="SECONDS",
+                    help="queue behind another GPU job instead of exiting: "
+                         "retry the machine-wide lock every 2 s for this "
+                         "long. Default 0, fail fast. Rule 20 still holds - "
+                         "this waits for the one job, it does not run beside "
+                         "it")
+    ap.add_argument("--backend", default=None, metavar="NAME",
+                    help="the llama.cpp backend that will decode - cuda, "
+                         "vulkan, openvino, rocm, sycl, metal or cpu - "
+                         "recorded beside every number as CITED. Name it "
+                         "wherever it cannot be read off the box: "
+                         "scripts/setup.sh installs the VULKAN build on Linux "
+                         "unless --cuda was given, so an NVIDIA card there "
+                         "proves nothing, and scripts/ledger.py refuses to "
+                         "compare rows whose backend is unnamed. An OpenVINO "
+                         "run is detected from the server log whatever this "
+                         "says, because that is what ran")
     ap.add_argument("--only", metavar="ID", default=None,
                     help="run just this arm id - what a raised-cap rerun and a "
                          "data-dependent ladder walk both need")
@@ -1622,6 +1936,24 @@ def main():
                     help="list the arms and probes in the file and exit; "
                          "resolves no paths, so it runs anywhere")
     args = ap.parse_args()
+
+    # Refused here, before a file is opened, because each of these is a
+    # command that cannot mean what it says.
+    if args.wait_for_lock < 0:
+        _fail("--wait-for-lock %g is not a number of seconds. Use 0 to fail "
+              "fast, which is the default." % args.wait_for_lock)
+    if args.retry_failed and not args.resume:
+        _fail("--retry-failed clears FAILED units out of the ledger's own "
+              "record of this sweep, and without --resume nothing reads that "
+              "record: every unit would rerun, appending a second line for "
+              "every probe that already has one. Add --resume.")
+    backend = (args.backend or "").strip().lower() or None
+    if backend and _prov is not None and backend not in _prov.BACKENDS:
+        _fail("--backend %r is not a llama.cpp backend. The ones there are: "
+              "%s.\nIt is recorded beside every number in this sweep and read "
+              "back by scripts/ledger.py, which treats a name it does not "
+              "know as no name at all - so a typo here is silently the same "
+              "as passing nothing." % (args.backend, ", ".join(_prov.BACKENDS)))
 
     spec, raw_arms = read_arm_file(args.arms)
     order_mode = (spec.get("order")
@@ -1772,13 +2104,46 @@ def main():
     # guard below simply adopts this one and still releases it at the end.
     # Caught rather than raised: an operator who collides with another job
     # needs the holder's name and one command, not a stack trace.
+    if args.wait_for_lock:
+        print("waiting up to %g s for the machine-wide GPU lock (rule 20: one "
+              "GPU job at a time)" % args.wait_for_lock)
     try:
-        gpu_lock.acquire("arms:%s" % stem)
+        gpu_lock.acquire("arms:%s" % stem, wait_s=args.wait_for_lock)
     except gpu_lock.GpuBusy as e:
         print("cannot start: %s" % e)
         print("\nNothing was launched and the ledger was not touched. When the "
               "other job is done, re-run this exact command with --resume.")
+        if args.wait_for_lock:
+            print("It was still held after the %g s --wait-for-lock allowed."
+                  % args.wait_for_lock)
+        else:
+            print("Or queue behind it rather than failing: --wait-for-lock "
+                  "SECONDS retries every 2 s for that long. An overnight "
+                  "campaign that dies because another job held the card for "
+                  "ninety seconds is what that flag is for.")
         return 2
+
+    # rule 3, taken once for the whole sweep. One binary serves every arm -
+    # paths.llama_bin() resolves it once - so the build, the driver and the
+    # box are properties of the SWEEP and belong on its opening line, which is
+    # where scripts/ledger.py reads the machine and the build from. The weight
+    # file is not a property of the sweep: an arm file whose arms are two
+    # quants has two, and each arm's own rides that arm's probe lines instead.
+    # There is no server log to hand yet - nothing has launched - so on
+    # OpenVINO this line's device is "NOT RECORDED" and the per-arm blocks
+    # below are the ones that name it.
+    model_paths = sorted({resolved[a["id"]]["model_path"] for a in arms})
+    sweep_block = toolchain_block(
+        resolved[arms[0]["id"]]["server_bin"],
+        model_paths[0] if len(model_paths) == 1 else None, None, backend)
+    if isinstance(sweep_block, dict) and len(model_paths) != 1:
+        sweep_block["model_file"] = (
+            "NOT RECORDED here: this sweep loads %d different weight files, "
+            "so there is no one file for its opening line to name; each arm's "
+            "own is on that arm's probe lines" % len(model_paths))
+    sweep_backend = ((sweep_block.get("execution") or {}).get("backend")
+                     if isinstance(sweep_block, dict) else None)
+    power = power_logging(slug)
 
     append_ledger(ledger_path, {
         "kind": "sweep_start", "ts": started, "slug": slug,
@@ -1814,16 +2179,49 @@ def main():
         # claim made from it later (rule 3), so it is on the sweep's own line.
         "save_responses": bool(args.save_responses),
         "responses_dir": responses_dir,
-        "resume": bool(args.resume), "only": args.only,
+        "resume": bool(args.resume), "retry_failed": bool(args.retry_failed),
+        "only": args.only,
         "pid": os.getpid(), "argv": sys.argv,
         # rule 3: the conditions travel with the numbers, in the same file
         "machine": machine,
+        # What the numbers about to be taken were measured WITH. Everything
+        # scripts/ledger.py's gate needs that does not change between arms -
+        # the box and the build - is read from here.
+        "toolchain": sweep_block,
+        "backend_cited": backend,
+        # rule 24: energy is measured or it is absent, so its absence is a
+        # fact and not a silence. true|false, plus how that was decided, on
+        # the sweep's own line - the one place a reader looking at these
+        # numbers a month from now will already be.
+        "power_logging": bool(power["logging"]),
+        "power_logging_check": power,
     })
 
     print("sweep file %s: %d arms, %d loads, %d probes -> %s"
           % (file_name, len(arms), len(units), total_probes, ledger_path))
     print("%d frozen prompt(s) verified against the arm file (rule 23)"
           % checked)
+    if power["logging"]:
+        print("power log  : %s, last sample %.0f s ago by %s"
+              % (power["newest"], power["age_s"], power["age_source"]))
+    else:
+        # Said at the start, where it can still be acted on: a logger started
+        # now costs the arms already run and nothing else, while the same
+        # discovery after the sweep costs every one of them.
+        print("power log  : NONE - %s" % power["why"])
+        print("             This sweep will record timings and no watts "
+              "(rule 24). One logger turns every arm below into an energy arm "
+              "for free:")
+        print("             pwsh scripts/power/sample-power.ps1 -Start -Csv "
+              "results/%s/data/power/campaign-power.csv" % slug)
+    if not sweep_backend or str(sweep_backend).startswith("NOT RECORDED"):
+        print("WARNING: nothing names the BACKEND that will decode. "
+              "scripts/ledger.py refuses to compare rows whose backend is "
+              "unnamed - two backends running one file are two experiments, "
+              "and on OpenVINO they are not even the same weights. Pass "
+              "--backend cuda|vulkan|openvino|..., or install through "
+              "%s so bin/llama.cpp/INSTALL.json describes the "
+              "binary that runs." % SETUP_SCRIPT)
     if ladders:
         print_ladders(ladders, plan, plan_path)
     for a in arms:
@@ -1836,27 +2234,48 @@ def main():
             r = resolved[arm["id"]]
             sha = spec_hash(arm)
             prior = already.get((arm["id"], rep))
+            # The probe indices this unit ALREADY holds at this spec. Empty
+            # unless --resume found a half-finished arm; the probe loop below
+            # skips exactly these and issues the rest.
+            done_idx = set()
             if prior is not None:
                 if prior["spec"] and prior["spec"] != sha:
                     print("[%d/%d] %s pass %d: in the ledger, but the arm SPEC "
                           "CHANGED (%s -> %s) - rerunning"
                           % (k + 1, len(units), arm["id"], rep, prior["spec"],
                              sha))
-                elif prior["failed"]:
+                elif prior["failed"] and not args.retry_failed:
                     print("[%d/%d] %s pass %d: SKIPPED, the ledger records it "
-                          "FAILED (delete that line to retry it)"
+                          "FAILED (--retry-failed reruns it; deleting the line "
+                          "also works)"
                           % (k + 1, len(units), arm["id"], rep))
                     failed_arms.append("%s/pass%d (previously)"
                                        % (arm["id"], rep))
                     done_probes += len(arm["probes"])
                     continue
-                elif len(prior["probes"]) >= len(arm["probes"]):
-                    print("[%d/%d] %s pass %d: SKIPPED, already complete "
-                          "(%d probes in the ledger)"
-                          % (k + 1, len(units), arm["id"], rep,
-                             len(prior["probes"])))
-                    done_probes += len(arm["probes"])
-                    continue
+                else:
+                    # A crash between two probes of one arm lands here, and
+                    # before this branch existed it fell through all three and
+                    # RESTARTED the arm: a second line with probe_index 0, a
+                    # response file silently overwritten under the path the
+                    # first line still names, and four throughput rows out of
+                    # scripts/ledger.py for three probes that happened.
+                    # bool is an int subclass, hence the second test.
+                    done_idx = set(i for i in prior["probes"]
+                                   if isinstance(i, int)
+                                   and not isinstance(i, bool))
+                    if len(done_idx) >= len(arm["probes"]):
+                        print("[%d/%d] %s pass %d: SKIPPED, already complete "
+                              "(%d probes in the ledger)"
+                              % (k + 1, len(units), arm["id"], rep,
+                                 len(done_idx)))
+                        done_probes += len(arm["probes"])
+                        continue
+                    if prior["failed"]:
+                        print("[%d/%d] %s pass %d: the ledger records it "
+                              "FAILED and --retry-failed was passed - "
+                              "rerunning it"
+                              % (k + 1, len(units), arm["id"], rep))
 
             base_url = "http://%s:%s" % (arm["host"], arm["port"])
             log_path = os.path.join(work_dir, "%s-rep%d.log"
@@ -1887,6 +2306,32 @@ def main():
                      unit["pos"] + 1, len(unit["order"]),
                      " -> ".join(unit["order"])))
             print("       %s" % " ".join(r["argv"]))
+            if done_idx:
+                print("       RESUMING MID-ARM: probe index %s already in the "
+                      "ledger at spec %s, %d of %d left to run"
+                      % (", ".join(str(i) for i in sorted(done_idx)), sha,
+                         len(arm["probes"]) - len(done_idx),
+                         len(arm["probes"])))
+                if arm["discard_first"] and 0 in done_idx:
+                    # Rule 12 is a statement about POSITION IN A LOAD, and a
+                    # mid-arm resume moves it: the ramp probe was answered by
+                    # the server that then died, and the first probe this
+                    # fresh one answers is on ramping clocks whatever its
+                    # probe_index says. The discard moves with it (see
+                    # load_index below), so the cost of the crash is one KEPT
+                    # probe, not a cold reading in the mean - and that cost is
+                    # said here, where the operator can decide to rerun the
+                    # whole arm instead.
+                    print("       NOTE: this arm discards its first probe, and "
+                          "that ramp probe is already in the ledger. The "
+                          "server below is a FRESH load, so the next probe it "
+                          "answers is itself a ramp reading - up to 45% low "
+                          "(rule 12) - and it is discarded too, by position in "
+                          "the LOAD and not by probe number. This arm "
+                          "therefore ends with one kept probe fewer than a run "
+                          "that never crashed. Every line says which probe of "
+                          "its own load it was, in load_probe_index; the ones "
+                          "that read 0 are the cold ones.")
 
             # Nothing may already be listening there. See port_occupied():
             # probing a leftover server records perfect-looking numbers under
@@ -1916,6 +2361,13 @@ def main():
                                       stdout=logfh, stderr=subprocess.STDOUT)
                 load_s = wait_ready(proc, base_url, arm["health_timeout_s"])
                 print("       healthy in %.0f s" % load_s)
+                # ONE provenance call per arm launch, and it happens HERE -
+                # after /health, before the first probe. After, because an
+                # OpenVINO server prints the device it resolved during init
+                # and this reads that log; before, because every line the arm
+                # is about to write carries the answer (rule 3).
+                common.update(toolchain_stamp(toolchain_block(
+                    r["server_bin"], r["model_path"], log_path, backend)))
             except (RuntimeError, gpu_lock.GpuBusy, OSError) as e:
                 # An arm that will not load is a RESULT, not a reason to stop
                 # and wait for a human. Record it, with the server's own last
@@ -1926,6 +2378,14 @@ def main():
                 if logfh:
                     logfh.close()
                 tail = log_tail(log_path)
+                # The same stamp on the failure line, for the same reason: an
+                # arm that would not load becomes a load.failed row, and that
+                # row is gated on backend, device, machine and build like
+                # every other one. "This configuration does not load" is a
+                # claim about a box, a build and a device, or it is not a
+                # claim - and a ceiling ladder is read from exactly these.
+                common.update(toolchain_stamp(toolchain_block(
+                    r["server_bin"], r["model_path"], log_path, backend)))
                 append_ledger(ledger_path, dict(
                     common, kind="arm_failed", ts=_iso(), error=str(e),
                     server_log_tail=tail))
@@ -1943,9 +2403,33 @@ def main():
                 continue
 
             try:
+                in_load = 0     # probes THIS server load has actually answered
                 for j, p in enumerate(arm["probes"]):
+                    if j in done_idx:
+                        # Its line is already written and fsynced. Issuing the
+                        # probe again would append a second line carrying this
+                        # same probe_index and overwrite the response file the
+                        # first line names - a ledger that says two probes
+                        # where one happened, pointing both at one body.
+                        print("       probe %-20s SKIPPED, probe_index %d is "
+                              "already in the ledger" % (p["id"], j))
+                        done_probes += 1
+                        continue
                     text, src = render_prompt(p, arm_dir)
-                    discarded = (j == 0 and arm["discard_first"])
+                    # Which probe this was OF THIS LOAD. Equal to probe_index
+                    # every time except after a mid-arm resume, and that is
+                    # the case it exists for: rule 12's up-to-45%-low reading
+                    # belongs to the first probe after a load, not to the
+                    # first probe of an arm, and once a crash has separated
+                    # the two nothing else on the line can tell them apart.
+                    load_index = in_load
+                    in_load += 1
+                    # So the discard follows the LOAD. On an arm that runs
+                    # whole these two are the same probe; after a --resume
+                    # that skipped probe 0 they are not, and keying off j
+                    # would keep the reading taken on ramping clocks and
+                    # average it into the arm's mean (rule 12).
+                    discarded = (load_index == 0 and arm["discard_first"])
                     body = probe_body(p, text, arm["sampling"])
                     request = {kk: vv for kk, vv in body.items()
                                if kk != "messages"}
@@ -1965,7 +2449,8 @@ def main():
                         elapsed = round(time.time() - t0, 2)
                         append_ledger(ledger_path, dict(
                             common, kind="probe_failed", ts=_iso(),
-                            probe=p["id"], probe_index=j, discarded=discarded,
+                            probe=p["id"], probe_index=j,
+                            load_probe_index=load_index, discarded=discarded,
                             n_predict=p["n_predict"], prompt_source=src,
                             prompt_chars=len(text), request=request,
                             elapsed_s=elapsed, error=str(e)))
@@ -1987,6 +2472,7 @@ def main():
                             append_ledger(ledger_path, dict(
                                 common, kind="parse_check_failed", ts=_iso(),
                                 probe=p["id"], probe_index=j,
+                                load_probe_index=load_index,
                                 problems=problems,
                                 response_keys=sorted(resp.keys()),
                                 timings=resp.get("timings")))
@@ -2044,7 +2530,12 @@ def main():
                         # energy arm for free and Stage 6e needs no PowerShell.
                         t_start_iso=t_start_iso,
                         label="%s/%s" % (arm["id"], p["id"]),
-                        probe_index=j, discarded=discarded,
+                        probe_index=j,
+                        # Rule 12 is about position in a LOAD: this is that
+                        # position, and it stops agreeing with probe_index the
+                        # moment --resume picks an arm up half-finished.
+                        load_probe_index=load_index,
+                        discarded=discarded,
                         n_predict=p["n_predict"], prompt_source=src,
                         prompt_chars=len(text),
                         prompt_sha256=p.get("prompt_sha256"),

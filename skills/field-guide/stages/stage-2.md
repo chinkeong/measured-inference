@@ -16,29 +16,50 @@ Stage 5 needs to size recipes on paper.
   898 MiB more at n-max 10 vs 4; the reference guide's "no VRAM cost" was a
   published error a blind run caught).
 - **Ceiling sweep per surviving file, on `plan.json`'s rungs, with deep-fill
-  probes.** Do not run the shipped ladder as it stands:
-  `scripts/arms/ctx-ceiling.json` is 25 arms holding 18 distinct `-c` values
-  from 122,880 to 262,144, every one of them sized for ONE 27B on ONE 24 GB
-  card. A different model needs the derived ladder —
-  `plan.json`'s `rungs.per_file[].rungs[].c`, DERIVED per file from the fit
-  table and the model's own `context_length`, with `rungs.step_rule` stating the
-  rule that produced it. Measured 2026-08-29 against the reference 3090's
-  `machine.json`: the reference 27B derives 12 rungs at step 8,192, 16,384 to
-  212,992; `unsloth/Qwen3-1.7B-GGUF` derives ONE, at its whole 40,960-token
-  window, because the arithmetic holds 198,618 tokens and there is no ceiling to
-  find. A one-rung plan is not "no ceiling work" — it is a ceiling the
-  arithmetic already found, and it still earns its deep-fill probe.
+  probes.** `scripts/arms/ctx-ceiling.json` runs UNEDITED and is not copied
+  anywhere: since 2026-08-29 its two arms are rung TEMPLATES, and `arms.py`
+  expands each into one arm per rung out of `results/<slug>/plan.json`, which
+  `scripts/plan-campaign.py` derives from that file's own GGUF header
+  (`context_length`, KV bytes/token, weights) and this machine's `machine.json`
+  (board total, desktop reserve). Run the plan first, then the sweep:
 
-  Copy `scripts/arms/ctx-ceiling.json` to `results/<slug>/work/ctx-ceiling.json`,
-  put the derived rungs in place of its `-c` values, keep its `stop_rule` (walk
-  in file order, stop at the first rung below 0.75 × the reference arm, then
-  binary-refine between the last good and the first bad rung at 4,096-token
-  resolution), and run `python scripts/arms.py --arms
-  results/<slug>/work/ctx-ceiling.json`. Its flags are RECONSTRUCTED from
-  `serve-menu-example.bat`, so check them before publishing a ceiling; the
-  Windows originals are archived in scripts/reference-3090/. Nothing else in
-  this bullet changes with the swap: step `-c` upward with short probes + VRAM
-  readings. Report BOTH ceilings:
+  ```
+  python scripts/plan-campaign.py --slug <slug>
+  python scripts/arms.py --arms scripts/arms/ctx-ceiling.json --slug <slug> --dry-run
+  python scripts/arms.py --arms scripts/arms/ctx-ceiling.json --slug <slug>
+  ```
+
+  **Do not hand-substitute the rungs into a copy of the file.** Writing the
+  derived `-c` values in as literals produces the same servers and destroys the
+  record of where they came from: every probe line would carry
+  `ctx_source: "literal"` instead of `"plan"`, and lose the rung record, the
+  plan's path, its slug, its generation time and its `rungs.step_rule` — the
+  derivation, which is what makes the ceiling a labeled-derived number rather
+  than a bare one (rules 1, 3 and 28). There is no fallback and that is
+  deliberate: without a plan the file ABORTS and names the command that writes
+  one, because a ladder sized for one 27B on one 24 GB card, run against
+  something else, would be recorded as if it had been derived for it.
+
+  Measured 2026-08-29 against the reference 3090's `machine.json`: the reference
+  27B derives 12 rungs at step 8,192, 16,384 to 212,992; `unsloth/Qwen3-1.7B-GGUF`
+  derives ONE, at its whole 40,960-token window, because the arithmetic holds
+  198,618 tokens and there is no ceiling to find. A one-rung plan is not "no
+  ceiling work" — it is a ceiling the arithmetic already found, and it still
+  earns its deep-fill probe. `--dry-run` prints the derived ladder beside the
+  reference campaign's own 18 rungs, as REPRODUCED or DIFFERENT; read it before
+  committing the hours, because numbers measured on a different ladder are not
+  arm-for-arm comparable with the published ones (rule 30).
+
+  The file's `stop_rule` is the walk this stage performs and `arms.py` does not:
+  run the rungs in file order (the plan emits them ascending), STOP at the first
+  rung below 0.75 × the reference arm — the LOWEST rung of the sweep, not
+  122,880 — then binary-refine between the last good and the first bad rung at
+  4,096-token resolution, one arm at a time with `--only`, or by adding the
+  refined rungs to the file as LITERAL arms beside the templates. A file may mix
+  the two. Its flags are RECONSTRUCTED from `serve-menu-example.bat`, so check
+  them before publishing a ceiling; the Windows originals are archived in
+  `scripts/reference-3090/` and `results/ARM-PROVENANCE.md` grades every arm.
+  Report BOTH ceilings:
   fully resident (dedicated VRAM fills) and shallow-safe (probes stay fast on
   overcommitted windows), plus the collapse point. Label per file, per
   mmproj-on/off, AND per drafter-on/off — a ceiling belongs to a configuration,

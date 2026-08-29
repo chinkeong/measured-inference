@@ -107,12 +107,12 @@ Record all answers in `results/<slug>/campaign.md` (the campaign log — append
 decisions, findings, and timestamps to it throughout; it is your recovery point
 after any restart).
 
-**After this round closes, the campaign is autonomous to the end.** Mid-run
-uncertainty about what the user wants resolves in this order: the interview
-record in `campaign.md` → the measured default → **record the assumption and
-proceed**. Never stop to ask. A campaign triggered on a Friday evening must hold
-finished results on Monday morning; a wrong-but-recorded assumption costs
-minutes to correct, a stalled GPU weekend cannot be re-run.
+**After this round closes, the campaign is autonomous to the end (rule 31).**
+Mid-run uncertainty about what the user wants resolves in this order: the
+interview record in `campaign.md` → the measured default → **record the
+assumption and proceed**. Never stop to ask. A campaign triggered on a Friday
+evening must hold finished results on Monday morning; a wrong-but-recorded
+assumption costs minutes to correct, a stalled GPU weekend cannot be re-run.
 
 ## Standing rules (campaign-wide — memorize before Stage 1)
 
@@ -127,6 +127,19 @@ minutes to correct, a stalled GPU weekend cannot be re-run.
   completed stage because the machine may be shared or crash.
 - **The GPU is single-file**: one measurement job at a time; serialize via
   completion markers.
+- **Every sweep names the backend that decoded it.** `scripts/arms.py` stamps
+  `scripts/bench/provenance.py`'s toolchain and execution blocks on the
+  `sweep_start` line and on every probe line, but on Linux the BACKEND is not
+  derivable — `scripts/setup.sh` installs the Vulkan build unless `--cuda` was
+  given — so pass `--backend cuda|vulkan|openvino|rocm|sycl|metal|cpu` wherever
+  the box cannot answer. `scripts/ledger.py` refuses to compare two throughput
+  rows when either does not name it, which is correct and is what makes the
+  Windows-against-Ubuntu comparison possible at all.
+- **A shipped arm file is not automatically a reproduction.**
+  `results/ARM-PROVENANCE.md` grades every arm in `scripts/arms/` — CONFIRMED,
+  RECONSTRUCTED-PLAUSIBLE, SUSPECT, NEVER MEASURED — and lists the six numbers
+  that may not be published without a re-measurement. Read it before quoting a
+  figure one of those arms produces as a reference result.
 - **Verify your own probes**: a metric that divides tokens by wall time including
   prefill will lie to you at depth. Prefer the server's own `timings` fields
   (prompt_per_second / predicted_per_second / draft acceptance).
@@ -160,7 +173,7 @@ references**.
 | **4** | APPETITE PROBES — two cheap probes per effort level | ~30 min | the thinking-appetite distribution per level (skip only if there is no effort knob) | `stages/stage-4.md` |
 | **5** | **RECIPE LOCK** — turn the map into recipe cards | **no GPU** | **the hard gate**: no expensive run may start above the dated RECIPE LOCK line | `stages/stage-5.md` |
 | **6** | CHARACTERIZATION — 6a quality · 6b effort · 6c vision · 6d agents · 6e energy | ~6–10 h | every arm on a locked recipe, at a locked cap, inside a locked window | `stages/stage-6.md` |
-| **7** | PUBLISH + review gates | ~1 h | four fresh-subagent passes (numeric, structural, reader-experience) applied, then ship | `stages/stage-7.md` |
+| **7** | PUBLISH + review gates | ~1 h | four fresh-subagent passes (numeric, structural, reader-experience, internal consistency) applied, then ship | `stages/stage-7.md` |
 
 **The sequencing law — METHODOLOGY rule 25, read it before Stage 1.** Cheap
 probes buy the map; the map locks the recipes; only locked recipes earn
