@@ -20,13 +20,17 @@ field prints its default, so you can delete any line you do not care about.
 > **Before any of this works**, the machine needs a runtime. On an NVIDIA box
 > that is one `sudo` line and `./scripts/setup.sh --cuda` — see
 > [Pre-flight](#pre-flight--prove-the-machine-is-ready-before-you-type-a-word-to-the-agent).
-> The agent cannot run `sudo` for you.
+> An agent in an ordinary shell cannot run `sudo` for you. An agent you launched
+> from a root shell or an Administrator `cmd.exe` can, and that is a supported
+> choice with its own price:
+> [The elevated, fully-automated flow](#the-elevated-fully-automated-flow--what-root-buys-and-what-it-costs).
 
 
 ## Contents
 
 - [Start here](#start-here)
   - [Pre-flight — prove the machine is ready before you type a word to the agent](#pre-flight--prove-the-machine-is-ready-before-you-type-a-word-to-the-agent)
+  - [The elevated, fully-automated flow — what root buys and what it costs](#the-elevated-fully-automated-flow--what-root-buys-and-what-it-costs)
   - [The simplest prompt that works](#the-simplest-prompt-that-works)
   - [Ask for the form pre-filled — the shortest path](#ask-for-the-form-pre-filled--the-shortest-path)
   - [The fill-in form](#the-fill-in-form)
@@ -48,7 +52,7 @@ field prints its default, so you can delete any line you do not care about.
   - [Price a sweep before you run it](#price-a-sweep-before-you-run-it)
   - [Prove every probe still starts — the whole no-GPU lane](#prove-every-probe-still-starts--the-whole-no-gpu-lane)
   - [A campaign where energy is the point](#a-campaign-where-energy-is-the-point)
-  - [Energy on Linux: the sampler is PowerShell, the integrator is not](#energy-on-linux-the-sampler-is-powershell-the-integrator-is-not)
+  - [Energy on Linux — the logger has a POSIX twin](#energy-on-linux--the-logger-has-a-posix-twin)
   - [A screenshot-loop campaign — and the hallucinated-sight hunt](#a-screenshot-loop-campaign--and-the-hallucinated-sight-hunt)
   - [Numbers for a card you do not have](#numbers-for-a-card-you-do-not-have)
   - [Troubleshooting: six failures, symptom then fix](#troubleshooting-six-failures-symptom-then-fix)
@@ -64,11 +68,19 @@ coding agent; the agent interviews you **once**, then runs for hours to days wit
 anything again. The shape of the run is fixed: cheap probes buy the map (~4 h), the map locks
 the recipes (no GPU at all), and only locked recipes earn the expensive hours.
 
-There is one part the agent cannot do for you. On Linux + NVIDIA there are no official CUDA
-binaries of llama.cpp, so the bootstrap refuses to install a Vulkan build behind your back and
-exits 3 instead — you run `sudo apt-get install -y nvidia-cuda-toolkit cmake build-essential git`
-yourself (an agent cannot type `sudo`), then `./scripts/setup.sh --cuda`, which builds from
-source in about 4 minutes on an RTX 3090. Do that before you paste anything.
+There is one part an agent in an ordinary shell cannot do for you. On Linux + NVIDIA there are
+no official CUDA binaries of llama.cpp, so the bootstrap refuses to install a Vulkan build behind
+your back and exits 3 instead — you run `sudo apt-get install -y nvidia-cuda-toolkit cmake
+build-essential git` yourself, then `./scripts/setup.sh --cuda`, which builds from source in
+about 4 minutes on an RTX 3090. Do that before you paste anything.
+
+**Unless you launch the agent elevated, which is the other supported shape of this run.** An
+agent started from an Administrator `cmd.exe`, or under an Ubuntu root account that can already
+`sudo`, runs that step itself and the campaign never stops for you. It also unlocks the one
+energy axis that needs root, and it costs one field in exchange.
+[The elevated, fully-automated flow](#the-elevated-fully-automated-flow--what-root-buys-and-what-it-costs) is the whole trade in one
+section. Read it before you choose: the choice is a condition of every number the run
+produces, and it is recorded as one.
 
 ### Pre-flight — prove the machine is ready before you type a word to the agent
 
@@ -83,7 +95,8 @@ git rev-parse --show-toplevel
 # 2. The driver sees the card. If this prints nothing, no amount of prompting fixes it.
 nvidia-smi -L
 
-# 3. HUMAN STEP — the agent cannot type sudo. Linux + NVIDIA only; skip on Windows/macOS.
+# 3. Needs root: a HUMAN STEP unless you launched the agent elevated (see the next
+#    section). Linux + NVIDIA only; skip on Windows/macOS.
 #    Stock Ubuntu 24.04 has neither python3-venv nor a bare `python`: without the
 #    first, step 4 exits 6 at `python -m venv`; without the second, step 5 and
 #    every other `python ...` line in this file is command-not-found.
@@ -146,6 +159,96 @@ ambiguity is gone.
   always CRLF rewriting. It matters because two reports only compare when their suite hashes
   match. Fix the checkout, or proceed knowingly with `MEASURED_INFERENCE_ALLOW_CRLF=1`.
 - **exit 6** — no usable Python 3.10+ or venv: `sudo apt-get install -y python3 python3-venv python3-pip`.
+
+### The elevated, fully-automated flow — what root buys and what it costs
+
+**Both shapes of this run are supported, and neither is the careless one.** The default
+assumes an agent in an ordinary shell: it cannot type `sudo`, so pre-flight step 3 is yours
+to run and the campaign starts after you have run it. The other shape is an agent launched
+from an **Administrator `cmd.exe`**, or under an **Ubuntu root account that can already
+`sudo`** — chosen deliberately, by people who want the run to go from paste to published
+page with nobody at the keyboard, and by people who need power registers that read only as
+root. Nothing in this repository refuses that, warns about it, or treats it as a mistake.
+It records it, because an elevated run can do things an unelevated one cannot, and that
+makes it a condition of every number (rule 3).
+
+**What elevation buys.**
+
+- **Step 3 stops being a human step.** The `sudo apt-get install` line runs itself, and so
+  does anything else the bootstrap needs. On a rented box reached over SSH at midnight, that
+  is the difference between a campaign that finishes and one that waits.
+- **The board power cap becomes measurable.** `nvidia-smi -pl <W>` needs root and is the one
+  setting in the whole energy chapter that lowers the board's draw rather than shortening the
+  time it draws. `scripts/power/power-cap-arms.py` is the arm that turns it: 350 / 300 / 250 W
+  measured on the reference 3090 on 2026-08-25 read **75.61 / 71.82 / 65.90 t/s** at
+  **305.4 / 271.2 / 229.6 W**, so J/decode-token fell **4.033 → 3.771 → 3.479**. That entry
+  sat open for the whole campaign for a privilege, not a hardware limit. Unelevated it is a
+  row reading "unmeasured on this machine (requires administrator)", and rule 24 forbids
+  estimating it.
+- **Registers on other tiers.** Intel RAPL package energy and Apple `powermetrics` read only
+  as root — `reference/platform-notes.md`, "Energy counters by platform".
+
+**What elevation costs, and it is exactly one field.** `scripts/detect-machine.py` asks
+whether the power limit is writable **without** elevation, by setting it to the value already
+in force, so nothing moves either way. From a root shell it declines to run and records why:
+a set that succeeds because the shell was privileged says nothing about a user who is not.
+`machine.json` then carries `pl_writable_without_elevation: null` with that reason, and **an
+all-elevated campaign never learns the answer** — it is the field that would have told a
+reader on the same card whether they can run the cap arms without root. Rule 28: a question
+not asked during the run cannot be asked afterwards at any price. If you want it answered,
+run `python scripts/detect-machine.py --slug <slug>` once as an ordinary user; that costs no
+GPU time and loads no model.
+
+**What elevation does not change: the watts.** Reading board power needs no privilege at all.
+The same `nvidia-smi --query-gpu=power.draw ... -lms 500` samples identically at euid 1000 and
+at euid 0, so a power log started unelevated and one started under `sudo` are the same
+measurement of the same board. What changes is visibility: `/proc/<pid>/fd` is readable by the
+process owner and root only, so an unelevated `list` can see a root-started logger but not the
+file it writes — and says that is what it is seeing. An unelevated `stop --csv <path>` on one
+therefore finds **nothing** and exits 5: it cannot read that fd, so it will not claim the path.
+`stop --pid <n>` does find the loop, fails on EPERM, prints the `sudo` hint and exits 3.
+Neither reports a success it did not have. Measured 2026-08-30 against a root-owned logger
+started in an elevated WSL shell.
+
+**It is on every line, so a reader can tell.** `execution.elevated`, `execution.sudo_nopasswd`
+and `execution.privilege_path` ride every probe line and the `sweep_start` header; the same
+three are in `machine.json`; and `sample-power.sh` puts `euid`, `elevated` and
+`enforced_power_limit_w` — the cap in force when the log began — into the
+`<csv>.logger.json` sidecar. `elevated` and `sudo_nopasswd` are `true`, `false` or `null`,
+never a string; `privilege_path` is `"direct"`, `"sudo -n"` or `null`. On all three, **`null`
+means unrecorded, never unelevated**.
+
+**How to read two runs whose elevation differs.** They are not automatically incomparable —
+the watts do not move with the shell. What is not comparable is an arm taken at one enforced
+power limit set beside an arm taken at another, and only an elevated run can have changed that
+limit. **A power-cap arm from an elevated sweep standing beside a stock arm from an unelevated
+one is a condition difference, and it may not be ignored**; rule 3 puts that burden on the
+place quoting the number, not on the place that measured it. Rows written before 2026-08-30
+carry no elevation field at all and cannot be given one.
+
+To make the choice explicit to the agent, add one line to any prompt in this file:
+
+```
+I launched you from an elevated shell (Administrator cmd.exe / Ubuntu root). Run the
+sudo bootstrap yourself, measure the power-cap arms (350/300/250 W) with
+scripts/power/power-cap-arms.py, and record elevated: true as a condition on every
+line. Note in campaign.md that pl_writable_without_elevation will stay null and why.
+```
+
+or, for the default shape:
+
+```
+I am running you as an ordinary user. Do not attempt sudo anywhere. Where a step needs
+it, write the exact command and the reason into campaign.md and carry on: mark the
+power-cap row "unmeasured on this machine (requires administrator)" rather than
+estimating it, and record elevated: false as a condition on every line.
+```
+
+Neither block stops the run. Rule 31 holds in both: after Stage 0 closes the campaign is
+autonomous to the end, and a privilege it does not have is recorded as an absence and passed
+over, never turned into a question and never into an estimate.
+
+---
 
 ### The simplest prompt that works
 
@@ -326,6 +429,9 @@ field you deleted that was mandatory.
 - **Minute 3–5.** Runs `python scripts/detect-machine.py --slug <slug> --desktop-state "<...>"`
   and writes `results/<slug>/machine.json`. It reads the board and briefly rewrites the power
   limit to the value already in force to learn whether that needs elevation; no model is loaded.
+  Under an elevated shell that test declines to run and says so, because a set that succeeds
+  because the shell was privileged says nothing about an ordinary user, so
+  `pl_writable_without_elevation` stays `null` — expected, not a fault.
   This file replaces the reference 3090's hardcoded board size — without it, a 12 GB card would
   happily report comfortable free VRAM while spilling to host RAM.
 - **Minute 5–6.** Copies `results/TEMPLATE-campaign.json` to `results/<slug>/campaign.json` and
@@ -458,7 +564,8 @@ Below the block, the things a first-timer gets wrong:
   CUDA one. Building from source is `./scripts/setup.sh --cuda` (~4 min of build measured
   on an RTX 3090; `stages/stage-1.md` budgets 10–25 min including the toolchain install),
   and it needs `sudo apt-get install -y nvidia-cuda-toolkit cmake build-essential git`
-  first — **the agent cannot run that sudo**, so do it yourself before you paste.
+  first — **an unelevated agent cannot run that sudo**, so do it yourself before you paste, or
+  launch the agent elevated and it does it itself ([the elevated flow](#the-elevated-fully-automated-flow--what-root-buys-and-what-it-costs)).
 - **Do not point a new campaign at `results/qwen38-27b-blind/`.** It ships as the closed
   worked example. It is not resumable and a new campaign must not continue it.
 
@@ -1283,7 +1390,9 @@ and keep going.
   do with the model. `./scripts/setup.sh --cuda` builds from source (~4 min
   measured on an RTX 3090) but needs
   `sudo apt-get install -y nvidia-cuda-toolkit cmake build-essential git` first —
-  and **the agent cannot sudo**. Same for the weights: there is no downloader
+  and **an unelevated agent cannot sudo**. An agent launched from a root shell does it
+  itself, which is the flow to use when nobody will be awake. Same for the weights:
+  there is no downloader
   script here, so the `.gguf` must be on disk before you detach.
 
 ---
@@ -1481,8 +1590,10 @@ most, so Stage 6e is the point of this campaign, not an appendix.
 STAGE 0, before the first model load:
   - start the 500 ms power logger and leave it running for the entire campaign:
       Windows: .\scripts\power\sample-power.ps1 -Start -Csv results\<SLUG>\data\power\campaign-power.csv
-      Linux:   the sampler is PowerShell — use the nvidia-smi loop in the next
-               template instead, and record its pid in campaign.md
+      POSIX:   bash scripts/power/sample-power.sh start --csv results/<SLUG>/data/power/campaign-power.csv
+               (same columns 1-11 plus a twelfth, same 500 ms, a sidecar of
+                the same name carrying a superset of the .ps1's keys; never
+                hand-roll nvidia-smi -f on Linux, it buffers until exit)
   - take the COLD, no-server idle baseline. Discard the first 60 s (a board still
     cooling from earlier work reads high — one reference log's first 10 samples
     averaged 58.0 W against a 33.2 W cold reading). Write it into campaign.md with
@@ -1495,13 +1606,19 @@ STAGE 1: take the LOADED idle baseline — server up, model resident, answering
 nothing — dated, in campaign.md. Every idle-subtracted figure downstream depends
 on these two numbers, so a remembered constant is not acceptable.
 
-THEN RUN THE CAMPAIGN NORMALLY. Every arms.py sweep is already an energy arm: its
-per-probe ledger writes t_start_iso and label alongside the server's own timings,
-which is exactly what the integrator's --events wants. After each sweep:
+THEN RUN THE CAMPAIGN NORMALLY. Every arms.py sweep is already an energy arm, but
+its ledger needs one conversion first: t_start_iso and label are written flat,
+while prompt_ms / predicted_ms / prompt_n / predicted_n are nested under
+"timings", where the integrator does not look. Handed the raw ledger,
+attribute-power.py raises KeyError: 't_start_iso' on the first sweep_start line
+and, with the non-probe lines filtered out, reports 0 J for every label
+(measured 2026-08-30). Flatten the probe lines with the converter in
+scripts/power/README.md section 7 - tested end to end there - then, after each
+sweep:
 
   python scripts/power/attribute-power.py \
     --power results/<SLUG>/data/power/campaign-power.csv \
-    --events results/<SLUG>/data/arms/<ARM FILE STEM>.jsonl \
+    --events results/<SLUG>/data/power/<ARM FILE STEM>-events.jsonl \
     --idle-w <THE MEASURED LOADED IDLE W> --drop-first \
     --json results/<SLUG>/data/power/<STEM>-energy.json
 
@@ -1522,9 +1639,15 @@ On a single-GPU box, E_comm is stated as "N/A — single GPU, no interconnect",
 not omitted.
 
 THE POWER CAP: nvidia-smi -pl <W> (3090 stock 350 W; Linux may need -pm 1 first)
-needs an elevated shell. If you can elevate, sweep it (350/300/250/200 W) into
-the same matrix. If you cannot, print the command and the stock cap and mark the
-row "unmeasured on this machine (requires administrator)". Do not estimate it.
+needs an elevated shell, and scripts/power/power-cap-arms.py is the arm that
+turns it: the setting is persistent and outlives the process, so it reads the
+default first, restores it in a finally, and verifies the restore by reading the
+value back. Elevated, sweep it (350/300/250/200 W) into the same matrix.
+Unelevated, print the command and the stock cap and mark the row "unmeasured on
+this machine (requires administrator)". Do not estimate it. Either way record
+execution.elevated on every line - it is the condition that explains how two
+rows came to sit at different caps, and rows that predate 2026-08-30 do not
+carry it and cannot be given it.
 ```
 
 **Why `--drop-first` is not optional.** A request fired at a cold or idle board
@@ -1548,40 +1671,69 @@ J/prompt-token number the second time you send the same prompt.
 
 ---
 
-### Energy on Linux: the sampler is PowerShell, the integrator is not
+### Energy on Linux — the logger has a POSIX twin
 
-`scripts/power/sample-power.ps1` and `capture-request.ps1` are PowerShell and do
-not run on Linux. `attribute-power.py` is stdlib Python and runs everywhere —
-and since `arms.py`'s ledger already carries the six fields the join needs
-(`t_start_iso`, `prompt_ms`, `predicted_ms`, `prompt_n`, `predicted_n`, `label`),
-the only piece a Linux box actually has to replace is the CSV logger.
+`scripts/power/sample-power.sh` is the POSIX starter: the same eleven columns in
+the same order plus a twelfth (`clocks_event_reasons.active`, which rule 28 wants
+and the `.ps1` does not yet collect), the same 500 ms period, a
+`<csv>.logger.json` sidecar of the same name carrying a sixteen-key superset of
+the `.ps1`'s nine, and the same refusals, so `attribute-power.py` joins a Linux
+log exactly as it joins a Windows one.
+
+**`capture-request.ps1` has no POSIX twin, and the arms ledger is not a drop-in
+for one.** It carries two of the six fields the join wants flat — `t_start_iso`
+and `label` — and `prompt_ms`, `predicted_ms`, `prompt_n` and `predicted_n`
+nested under `timings`, where `attribute-power.py` does not look. Pointed
+straight at a raw ledger the integrator dies with `KeyError: 't_start_iso'` on
+the first `sweep_start` line, and with the non-probe lines filtered out it
+reports zero joules for every label (measured 2026-08-30). Flatten the probe
+lines first: `scripts/power/README.md` section 7 carries the converter and the
+run that shows it working.
 
 ```
 Read AGENTS.md, then skills/field-guide/SKILL.md, then scripts/power/README.md.
 
-This is Linux, so the PowerShell sampler is unavailable. Replace ONLY the logger,
-keep everything else.
+This is Linux. Use the POSIX logger; everything downstream is unchanged.
 
-1. Start the logger yourself, with the same columns and cadence the PowerShell
-   one uses, and record its pid in campaign.md:
+1. Start the logger, and record in campaign.md what it reports:
 
-     nvidia-smi \
-       --query-gpu=timestamp,power.draw,power.draw.instant,clocks.sm,clocks.mem,utilization.gpu,utilization.memory,memory.used,memory.reserved,temperature.gpu,pstate \
-       --format=csv,nounits -lms 500 \
-       -f results/<SLUG>/data/power/campaign-power.csv &
+     bash scripts/power/sample-power.sh start \
+       --csv results/<SLUG>/data/power/campaign-power.csv
 
-   Note in campaign.md that this is a hand-started logger: scripts/power's -Stop
-   deliberately refuses to kill a logger it did not start, so stopping this one
-   is `kill <pid>` and nothing else.
+   Verbs are start / stop / list. It refuses a second logger on that CSV and an
+   existing non-empty CSV (--force overrides both), watches the file GROW before
+   it reports success, and writes euid, elevated and the enforced power limit
+   into the sidecar as conditions of the run.
 
-2. Everything downstream is unchanged:
+   DO NOT hand-roll `nvidia-smi ... -f file &` on Linux: -f block-buffers there
+   and flushes only at exit, so the CSV reads as empty while the logger runs and
+   arms.py's freshness check sees no power logging at all. The script uses a
+   line-buffered stdout redirect for exactly that reason.
+
+   If a logger is already running that this script did not start, `list` shows
+   it and `stop --pid <n>` ends it. On Linux `stop --csv <path>` can end a
+   hand-started redirect logger too, which is the one place the POSIX contract
+   is wider than the Windows one.
+
+2. The integrator is unchanged, but its --events input is NOT the arms ledger as
+   written. Flatten the probe lines first - scripts/power/README.md section 7 has
+   the converter, tested end to end - then:
      python scripts/power/attribute-power.py --selftest
      python scripts/power/attribute-power.py \
        --power results/<SLUG>/data/power/campaign-power.csv \
-       --events results/<SLUG>/data/arms/<STEM>.jsonl \
+       --events results/<SLUG>/data/power/events-from-arms.jsonl \
        --idle-w <MEASURED LOADED IDLE> --drop-first --json <out.json>
+   Pointing --events at results/<SLUG>/data/arms/<STEM>.jsonl instead raises
+   KeyError: 't_start_iso' on the first sweep_start line, and yields 0 J once
+   those lines are filtered out, because the four timings fields are nested.
 
-3. If this machine is NOT NVIDIA, name the counter and its scope before using it:
+3. The power CAP is the one axis that needs root: nvidia-smi -pl <W>, driven by
+   scripts/power/power-cap-arms.py, which restores the default in a finally and
+   verifies the restore by reading the value back. Elevated, measure it.
+   Unelevated, print the command and the stock cap and mark the row "unmeasured
+   on this machine (requires administrator)". Never estimate it.
+
+4. If this machine is NOT NVIDIA, name the counter and its scope before using it:
    Intel Arc / iGPU on Linux = RAPL (/sys/class/powercap/intel-rapl/*/energy_uj,
    differenced over the window: J = delta_uJ/1e6, kWh = J/3.6e6) — that is PACKAGE
    scope, not board, and the table must say so. On Windows, HWiNFO64 sensor
@@ -1594,7 +1746,26 @@ keep everything else.
 The integrator is deliberately tolerant of what a hand-rolled logger produces: it
 reads both `--format=csv,nounits` and the older unit-suffixed style, with or
 without a header row, drops `[N/A]` samples, strips the UTF-8 BOM PowerShell 5.1
-writes, and merges and de-duplicates multiple `--power` files.
+writes, and merges and de-duplicates multiple `--power` files. The two shipped
+loggers need almost none of that tolerance: columns 1–11 of their `--query-gpu`
+lists are identical, so the only difference between a Linux CSV and a Windows one
+in those columns is the line terminator `nvidia-smi` itself writes, and Python's
+universal newlines absorb that before the integrator ever sees it. **Nothing in
+the repository compares the two query strings**, so that alignment is held by
+whoever edits one of them remembering the other.
+
+**One rule-28 field is in the POSIX logger and missing from the PowerShell
+one.** `clocks_event_reasons.active` is what rule 28 requires beside
+`power.draw` so a bandwidth-starved run and a power-clipped one can be told apart
+at equal J/token. `sample-power.sh` gained it on 2026-08-30, appended LAST so
+columns 1–11 stay identical; `sample-power.ps1` must gain the same field in the
+same last position. `refarm.py`, `power-cap-arms.py` and `energy-four-sets.py`
+already collect it. The column mismatch does not harm the integrator — it
+re-picks the power column by header name per file, and an eleven-column log, a
+twelve-column log and the two merged all integrate to the same number (measured
+2026-08-30) — so this is a debt on the `.ps1`, not a reason to hold the field
+back. Until it lands, say so beside any J/token taken from a Windows
+`campaign-power.csv`.
 
 ---
 
@@ -1738,8 +1909,8 @@ machine, not two reports.
 Working as designed — there are no official Linux CUDA binaries, and a silent
 Vulkan build would move every throughput, acceptance and VRAM number for a reason
 that has nothing to do with the model. Fix: `sudo apt-get install -y
-nvidia-cuda-toolkit cmake build-essential git` (the sudo is a human step, the
-agent cannot do it), then `./scripts/setup.sh --cuda` — measured at ~4 min on an
+nvidia-cuda-toolkit cmake build-essential git` (a human step unless the agent was
+launched elevated), then `./scripts/setup.sh --cuda` — measured at ~4 min on an
 RTX 3090; the script's own message quotes 10–25 min as typical, so budget for the
 wider range on a slower box. To take a non-comparable backend deliberately and on
 the record:

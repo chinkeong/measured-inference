@@ -65,7 +65,7 @@ Three failures no rule number catches:
 | running a sweep, or resuming one after a crash | `scripts/arms.py --help` — arm files, per-probe ledger, provenance, `--resume`, `--retry-failed` |
 | comparing numbers across campaigns, or building the ledger | `scripts/ledger.py --help` — one row per measurement, and a gate that refuses illegal comparisons |
 | launching a llama-server from any script | `scripts/bench/gpu_lock.py` header — one job, capped, no orphans |
-| power / energy work | `scripts/power/README.md` + rule 24 |
+| power / energy work, or a run in an ELEVATED shell | `scripts/power/README.md` — `.ps1` and `.sh` loggers, what root buys and costs — + rule 24 |
 | the agentic bucket | `agentic/setup-log.md` + rule 22 |
 | the full text of any invariant above | `methodology/METHODOLOGY.md`, rule N |
 

@@ -115,6 +115,20 @@ try:
 except Exception:                                              # pragma: no cover
     gpu_lock = None
 
+# elevated() is defined ONCE, in scripts/bench/provenance.py, and imported
+# here across the same edge gpu_lock came over. The full reasoning is written
+# out in that file's "THE PRIVILEGE THE RUN HAD" section; the short version is
+# that a second copy of a permission predicate drifts on the platform nobody
+# ran it on, and this caller is the one that fails in the dangerous direction:
+# a wrong answer turns a set that succeeded because the shell was elevated
+# into a published pl_writable_without_elevation: true. Guarded like gpu_lock
+# because this script has to run on a fresh clone; a failed import is answered
+# null, never guessed.
+try:
+    import provenance as _provenance                           # noqa: E402
+except Exception:                                              # pragma: no cover
+    _provenance = None
+
 # subprocess text-mode kwargs. On Windows a bare text=True decodes child output
 # as cp1252, and one UTF-8 byte from a child then kills the reader mid-read.
 # Copied from bench.py's _TEXT for exactly that reason.
@@ -224,7 +238,8 @@ FIELD_ORDER = (
     "host_ram_gb", "host_mem_total_mib", "host_reserve_mib",
     "igpu_share_limit_mib", "spec_bandwidth_gbs", "cuda_arch", "compute_cap",
     "ram_channels", "os", "arch", "power_default_limit_w",
-    "pl_writable_without_elevation", "desktop_reserve_mib",
+    "pl_writable_without_elevation", "elevated", "sudo_nopasswd",
+    "privilege_path", "desktop_reserve_mib",
 )
 
 
@@ -1036,16 +1051,72 @@ def _c(n):
 # ---------------------------------------------------------------------------
 
 def elevated():
-    """True/False, or None when the question cannot be answered here."""
-    if os.name == "nt":
-        try:
-            return bool(ctypes.windll.shell32.IsUserAnAdmin())
-        except Exception:                          # pragma: no cover
-            return None
-    try:
-        return os.geteuid() == 0
-    except AttributeError:                         # pragma: no cover
+    """True/False, or None when the question cannot be answered here.
+
+    Delegated, not copied. The predicate lives in scripts/bench/provenance.py,
+    which every probe in this tree already imports, so a sweep line and this
+    machine profile can never disagree about what "elevated" meant on one box.
+    A missing import is answered None and pl_write_test() refuses on None, so
+    the failure is a field this script declines to fill rather than a claim it
+    gets wrong.
+    """
+    if _provenance is None:                        # pragma: no cover
         return None
+    return _provenance.elevated()
+
+
+def record_elevation(p):
+    """elevated / sudo_nopasswd / privilege_path onto the profile.
+
+    WHY THE PRIVILEGE IS A FIELD OF THIS RECORD AND NOT A FOOTNOTE ON ONE.
+    Some of the fields beside it can only be read by a privileged process, so
+    elevation is a condition of the machine profile itself and not only of the
+    sweeps that quote it later. The clearest case is the one this port walks
+    into: on Linux the SMBIOS table at /sys/firmware/dmi/tables/DMI is
+    root-readable only, so `ram_channels` is MEASURED in a root shell and null
+    in a user shell on the same box, and rule 3 names RAM channels as a
+    condition of every offload and iGPU speed. pl_writable_without_elevation
+    is the other: it is a claim about the unelevated case and it is only
+    filled by an unelevated run.
+
+    The values come from scripts/bench/provenance.py, which is what stamps
+    them onto every probe LINE, so a machine.json and the sweep lines taken on
+    the same box say the same thing in the same words rather than two things
+    that have to be reconciled. Nothing here judges the answer: an elevated
+    run is an operating mode a campaign chooses so that the power-limit knob
+    (rule 24) can be driven with nobody at the keyboard.
+    """
+    if _provenance is None:                        # pragma: no cover
+        for key in ("elevated", "sudo_nopasswd", "privilege_path"):
+            p.unknown(key, "scripts/bench/provenance.py did not import, and "
+                           "this script keeps no second copy of the "
+                           "predicate - see elevated()")
+        return
+    # Dispatched on the LABEL the other module wrote, never on a fall-through
+    # to measured. provenance.py labels every `how` with one of the four this
+    # script uses, and a label it does not recognise is a label this script
+    # must not upgrade: writing an unrecognised one down as MEASURED is how a
+    # value that was never measured acquires a provenance, which is the defect
+    # the whole privilege block exists to prevent. Unknown keeps the reason
+    # whole so the next reader can see the label that was not understood.
+    for key, value, how in _provenance.elevation():
+        label, _sep, why = how.partition(": ")
+        why = why or how
+        if value is None or label == "UNKNOWN":
+            # null is not false: the field is absent, and `why` says which
+            # question went unanswered and why it was not asked.
+            p.unknown(key, why)
+        elif label == "DERIVED":
+            p.derived(key, value, why)
+        elif label == "MEASURED":
+            p.measured(key, value, why)
+        elif label == "CITED":
+            p.cited(key, value, why)
+        else:                                      # pragma: no cover
+            p.unknown(key, "provenance.py labelled this %r, which is not one "
+                           "of MEASURED / DERIVED / CITED / UNKNOWN, so the "
+                           "value it carried is not written down here: %s"
+                           % (label, how))
 
 
 def pl_write_test(index, current_w):
@@ -1064,6 +1135,19 @@ def pl_write_test(index, current_w):
                       "(root/Administrator), and a successful set under "
                       "elevation says nothing about the unelevated case. "
                       "Re-run without elevation to answer it."), {}
+    if is_root is None:
+        # Null is not false, and this is where the difference costs something.
+        # The field is NAMED for a condition - "without elevation" - so a
+        # process that cannot say whether it was elevated cannot fill it: a
+        # set that succeeded because the shell was privileged would be written
+        # down as the card allowing it, and rule 3 says a number whose
+        # condition is unknown is unfalsifiable. Nothing is run.
+        return None, ("this process cannot tell whether it is elevated - "
+                      "neither IsUserAnAdmin() nor os.geteuid() answered, or "
+                      "scripts/bench/provenance.py did not import - and this "
+                      "field is a claim about the UNELEVATED case, so it is "
+                      "left unfilled rather than answered from a run whose "
+                      "privileges are unknown. Nothing was set."), {}
     cmd = ["nvidia-smi", "-i", str(index), "-pl", "%g" % current_w]
     rc, out = _run(cmd, timeout=30)
     after = nvidia_query(("power.limit",), index=index)
@@ -1358,6 +1442,13 @@ def detect(args, log):
 
     # ---- backend ----------------------------------------------------------
     _detect_backend(p, args, have_nvidia)
+
+    # ---- the privilege this profile was measured under --------------------
+    # Recorded before the power-limit test because that test's answer depends
+    # on it, and recorded whether or not the test runs: --no-pl-test and a box
+    # with no nvidia-smi both skip the test, and neither is a reason to lose
+    # the condition (rule 28 - not written during the run, not recoverable).
+    record_elevation(p)
 
     # ---- power limit writability -----------------------------------------
     if not have_nvidia:
@@ -1907,6 +1998,11 @@ def _fx(topology, gpu_name, board, host_total, host_reserve, **kw):
         "power_default_limit_w": kw.get("power_default_limit_w"),
         "pl_writable_without_elevation": None,
         "desktop_reserve_mib": kw.get("desktop_reserve_mib"),
+        # A fixture is constructed, so it has no shell and no privileges to
+        # report. Null with a why, never false.
+        "elevated": None,
+        "sudo_nopasswd": None,
+        "privilege_path": None,
         "provenance": {},
     }
     prov = kw.get("provenance") or {}
@@ -1917,6 +2013,10 @@ def _fx(topology, gpu_name, board, host_total, host_reserve, **kw):
             {"how": "FIXTURE: constructed, not measured"})
     rec["provenance"]["pl_writable_without_elevation"] = {
         "how": "UNKNOWN", "why": "fixtures run no power-limit probe"}
+    for key in ("elevated", "sudo_nopasswd", "privilege_path"):
+        rec["provenance"][key] = {
+            "how": "UNKNOWN",
+            "why": "a fixture is constructed, so no shell produced it"}
     return rec
 
 

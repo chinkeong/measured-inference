@@ -307,6 +307,15 @@ POWER_FRESH_S = 300
 # scripts/lib/paths.py picks the same way, for the same reason.
 SETUP_SCRIPT = "scripts\\setup.ps1" if os.name == "nt" else "scripts/setup.sh"
 
+# Same reason as SETUP_SCRIPT above, and the same trap. Until 2026-08-30 the
+# only logger in this repository was PowerShell, so the "no power log" remedy
+# named the .ps1 on every platform. A Linux operator who hit it was handed a
+# command that cannot run there, which is worse than no remedy at all: it
+# reads as "your box is wrong" rather than "run this".
+POWER_START = ("pwsh scripts/power/sample-power.ps1 -Start -Csv"
+               if os.name == "nt" else
+               "bash scripts/power/sample-power.sh start --csv")
+
 # Keys `defaults` may set at the ARM level, and at the PROBE level. They are
 # disjoint on purpose: "repeat" is a property of an arm, "temperature" is a
 # property of a request, and a file that says {"repeat": 1, "temperature": 0}
@@ -2212,8 +2221,9 @@ def main():
         print("             This sweep will record timings and no watts "
               "(rule 24). One logger turns every arm below into an energy arm "
               "for free:")
-        print("             pwsh scripts/power/sample-power.ps1 -Start -Csv "
-              "results/%s/data/power/campaign-power.csv" % slug)
+        print("             %s "
+              "results/%s/data/power/campaign-power.csv"
+              % (POWER_START, slug))
     if not sweep_backend or str(sweep_backend).startswith("NOT RECORDED"):
         print("WARNING: nothing names the BACKEND that will decode. "
               "scripts/ledger.py refuses to compare rows whose backend is "

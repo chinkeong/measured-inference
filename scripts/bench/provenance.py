@@ -27,6 +27,12 @@ WHAT IS CAPTURED, and why each:
   GPU name and board limit     the card, and whether its cap is at stock
   model file size and mtime    catches a re-quantised file under the same name
   python version and platform  the harness itself
+  the PRIVILEGE the run had    elevated true/false/null, and on POSIX whether
+                               a passwordless sudo exists - an elevated run
+                               can set the board power limit and read counters
+                               an unelevated one cannot, so an elevated sweep
+                               and an unelevated one are not automatically the
+                               same conditions - see below
   the EXECUTION CONTEXT        the backend, the RESOLVED device, the CUDA
                                architecture the kernels were compiled for, the
                                OpenVINO runtime version and its stateful flag,
@@ -83,8 +89,10 @@ guess. GGML_OPENVINO_DUMP_IR=1 proves what actually ran when the log is gone.
 import os
 import platform
 import re
+import shutil
 import subprocess
 import sys
+import time
 
 
 def _run(args, timeout=20):
@@ -94,6 +102,24 @@ def _run(args, timeout=20):
         return ((p.stdout or "") + (p.stderr or "")).strip()
     except Exception as exc:
         return "NOT RECORDED: %s: %s" % (type(exc).__name__, exc)
+
+
+def _run_rc(args, timeout=20):
+    """(returncode, combined output), or (None, reason) when it will not run.
+
+    _run() above answers "what did it print", which is what a version string
+    is. This one answers "did it succeed", which is the whole result of a
+    permission probe: `sudo -n true` prints almost nothing and says everything
+    in its exit status. The encoding is pinned for the same reason bench.py
+    pins it - on Windows a bare text=True decodes child output as cp1252 and
+    one UTF-8 byte then kills the reader mid-read.
+    """
+    try:
+        p = subprocess.run(args, capture_output=True, timeout=timeout,
+                           text=True, encoding="utf-8", errors="replace")
+    except Exception as exc:
+        return None, "%s: %s" % (type(exc).__name__, exc)
+    return p.returncode, ((p.stdout or "") + (p.stderr or "")).strip()
 
 
 def _stat(path):
@@ -171,6 +197,325 @@ def gpu_state():
     except ValueError:
         out["cap_at_stock"] = "NOT RECORDED: power limits unparseable"
     return out
+
+
+# ---------------------------------------------------------------------------
+# THE PRIVILEGE THE RUN HAD
+#
+# WHY IT IS A CONDITION AND NOT A NOTE. An elevated run can do things an
+# unelevated one cannot, and two of them move numbers this campaign publishes.
+# It can set the board power limit - `nvidia-smi -pl`, which rule 24 names as
+# the direct efficiency knob and prices in the same J/token and EDP table as
+# every other axis - and it can read instrumentation an unelevated process is
+# refused, so the two do not even collect the same fields. Two sweeps of the
+# same arm, one elevated and one not, are therefore not automatically the same
+# conditions, and rule 3 says a number without its conditions is unfalsifiable.
+#
+# Running elevated is an operating mode, chosen deliberately: an Administrator
+# cmd.exe on Windows, or a root shell on Ubuntu, is what lets a campaign drive
+# the cap and read those registers with nobody at the keyboard, which is the
+# point of an autonomous flow (rule 31). This module records WHICH mode
+# produced the number. It takes no view on the choice, and nothing here warns
+# about it - the field is a condition, exactly like the KV dtype.
+#
+# WHY IT IS WRITTEN DURING THE RUN. Rule 28, in its extreme form: a field not
+# written down while the workload is in front of you cannot be recovered
+# afterwards at any price, and there is nothing on disk to re-read for this
+# one. The ledger row, the server log, the GGUF and the box are byte-identical
+# whether the shell was elevated or not. The two syscalls below cost
+# microseconds; the sudo probe, which is the one thing here that starts a
+# process, runs ONCE PER INTERPRETER rather than once per arm - the note above
+# SUDO_PROBE has the measurement that forced that.
+#
+# WHY THE PREDICATE LIVES HERE, AND scripts/detect-machine.py IMPORTS IT.
+# There is one definition, because a second copy of a predicate is a second
+# thing that can be wrong, and this is the kind that drifts unseen: it is
+# wrong only on the platform nobody ran it on, and its two callers fail in
+# opposite directions - a wrong answer here mislabels every line of a sweep,
+# while a wrong answer in detect-machine.py:pl_write_test() turns a privileged
+# success into a published "the power limit is writable WITHOUT elevation".
+#
+# The direction is the edge that already exists. detect-machine.py:112 already
+# puts scripts/bench on sys.path and imports gpu_lock from it, for reasons it
+# states there; importing provenance across the same edge adds no dependency
+# between directories that was not there. The reverse edge is worse three
+# ways: `detect-machine.py` carries a hyphen, so no import statement can reach
+# it and every probe would need importlib.util.spec_from_file_location;
+# loading it runs a 2,800-line argparse tool that inserts two sys.path entries
+# and imports paths and gpu_lock, all to reach six lines; and this module is
+# imported by arms.py, bench.py and six sweep scripts, so anything that can
+# raise inside that import is something that can take down every probe in the
+# tree.
+# ---------------------------------------------------------------------------
+
+
+def elevated():
+    """True/False, or None when the question cannot be answered here.
+
+    THE VALUE IS A STRICT TRISTATE, and so are the two privilege fields
+    below it: none of `elevated`, `sudo_nopasswd` and `privilege_path` is
+    ever written as a "NOT RECORDED: <reason>" string, where `build_tag`,
+    `cuda_arch` and `device` in this same module all are. A non-empty string
+    is truthy, so a single `if row["elevated"]:` downstream would read "could
+    not tell" as "was elevated" - the one misreading that matters here,
+    because it is the direction that invents a privilege the run did not
+    have. The same trap catches a `if row["sudo_nopasswd"]:` and a
+    `if row["privilege_path"]:`, which is why the rule covers all three and
+    not this field alone. Null is not false either: false is a measurement
+    that this process holds no privileges; null is the absence of that
+    measurement. The reason rides beside the value in the execution block's
+    `how` map, where every other field's provenance already lives.
+    """
+    if os.name == "nt":
+        try:
+            # ctypes is imported here and not at module scope so that a Python
+            # built without it cannot break the import that every probe in
+            # this tree performs. detect-machine.py imports it at the top
+            # because GetSystemFirmwareTable needs it regardless.
+            import ctypes
+            return bool(ctypes.windll.shell32.IsUserAnAdmin())
+        except Exception:                              # pragma: no cover
+            return None
+    try:
+        return os.geteuid() == 0
+    except AttributeError:                             # pragma: no cover
+        return None
+
+
+# `sudo -n true` never prompts: it either succeeds against a NOPASSWD rule or
+# a cached credential, or it exits non-zero at once. `true` is the smallest
+# command there is, so a success elevates nothing and changes nothing. The
+# timeout is short because a sudoers backed by an unreachable LDAP or SSSD
+# directory blocks where a local /etc/sudoers answers instantly, and a probe
+# that hangs inside an arm launch costs the whole arm.
+#
+# IT RUNS ONCE PER INTERPRETER, AND THAT IS RULE 27 RATHER THAN AN
+# OPTIMISATION. Every sudo invocation is an authentication event ON THE BOX
+# BEING MEASURED. Measured 2026-08-30, WSL2 Ubuntu 24.04, sudo 1.9.15p5, uid
+# 1000 in group 27(sudo), password required: three sudo_nopasswd() calls in
+# one interpreter left
+# three sudo processes and three authpriv records in the journal - 11:33:48,
+# pids 1409, 1410 and 1411 - while /var/log/auth.log showed ONE, because
+# rsyslog collapses identical repeats and journald does not, so the cheaper
+# log understates the cost. arms.py calls toolchain() once per arm LAUNCH and
+# never per probe (scripts/arms.py:2136, :2369, :2387), all inside one
+# interpreter, so an uncached probe writes one auth record per arm - hundreds
+# across a sweep - into the machine whose quietness the sweep is measuring.
+# That is the measured case, where the user IS in sudoers. For a user with no
+# sudoers entry at all the same call also mails root - CITED, sudoers(5):
+# "mail_no_user: if set, mail will be sent to the mailto user if the invoking
+# user is not in the sudoers file. This flag is on by default." Cached, a
+# whole sweep costs one record either way.
+#
+# NO CHEAPER CHECK ANSWERS THE SAME QUESTION. Both candidates were run on that
+# box before this was settled:
+#
+#   `sudo -n -l`      the same sudoers policy evaluation through the same
+#                     binary. Measured: rc 1 and one more journal record,
+#                     `COMMAND=list` at 11:34:53 - identical cost, no extra
+#                     answer.
+#   sudo/wheel group  a different question, and here the two DISAGREE: uid
+#                     1000 is in group 27(sudo) and `sudo -n true` returns 1,
+#                     so the group says only "a route, with a password".
+#                     Worse, the group cannot see the answer that matters - a
+#                     NOPASSWD line in /etc/sudoers.d names a user and needs
+#                     no group at all, which is how an unattended flow is
+#                     configured - so reading the group would record FALSE
+#                     where the true answer is true. That is the direction
+#                     that costs a campaign the `nvidia-smi -pl` it could have
+#                     had.
+#
+# Reading /etc/sudoers instead is not open to this branch: it is 0440
+# root:root on that box (`-r--r----- root root`), and this probe only runs
+# when the process is NOT root.
+SUDO_PROBE = ("sudo", "-n", "true")
+SUDO_TIMEOUT_S = 5
+
+# (value, how) from the one probe this interpreter makes, None before it. The
+# sentinel is None and a cached answer is always a 2-tuple, so "not yet asked"
+# and "asked, and it did not answer" never collide. A test that needs a second
+# probe clears it.
+_SUDO_ANSWER = None
+
+
+def sudo_nopasswd():
+    """(value, how) - can a privileged command run here WITHOUT a password?
+
+    A DIFFERENT QUESTION FROM elevated(), and both are conditions of the run.
+    An agent that is not root can still set the board power limit when a
+    passwordless sudo is configured, and that is the whole difference between
+    a flow that completes unattended and one that stops at a prompt; an agent
+    that IS root reaches the same command with no sudo at all. Neither field
+    answers for the other, so both are recorded.
+
+    PROBED ONCE PER INTERPRETER, and every later caller in it - every arm
+    launch of a sweep - is answered from that one probe, for the rule-27
+    reason measured above SUDO_PROBE. The `how` string carries the time the
+    probe ran, so a later arm row says WHEN its answer was taken instead of
+    reading as though it had just been measured.
+
+    EVERY BRANCH CARRIES A LABEL, the Windows one included. The labels are the
+    four this module uses everywhere else - MEASURED, DERIVED, CITED, UNKNOWN
+    - and there is no fifth, so a field that does not apply on this platform
+    is UNKNOWN with "not applicable" as its reason, which is how
+    detect-machine.py:1611 already writes one. An unlabelled `how` is read by
+    a consumer that splits on the label as no label at all, and it is the
+    label that scripts/power/README.md promises a reader for all three
+    privilege fields.
+    """
+    if os.name == "nt":
+        return None, ("UNKNOWN: not applicable - sudo is the POSIX sudoers "
+                      "mechanism and Windows has no NOPASSWD equivalent; "
+                      "elevation there is granted to the shell before this "
+                      "process starts, which is what elevated() reads. A "
+                      "`sudo` on a Windows PATH is a different program with "
+                      "different semantics and is deliberately not run: a "
+                      "probe on an unattended machine never risks an "
+                      "interactive dialog.")
+    if elevated():
+        return None, ("UNKNOWN: not asked. This process is already root, so "
+                      "`sudo -n true` would return 0 for that reason alone "
+                      "and would say nothing about the unelevated case - the "
+                      "same reason detect-machine.py:pl_write_test() refuses "
+                      "to run the power-limit write test under elevation.")
+    if shutil.which("sudo") is None:
+        return False, ("MEASURED: no `sudo` on PATH, so there is no "
+                       "passwordless route from this process to a privileged "
+                       "command through sudo")
+    global _SUDO_ANSWER
+    if _SUDO_ANSWER is None:
+        _SUDO_ANSWER = _sudo_probe()
+    return _SUDO_ANSWER
+
+
+def _sudo_probe():
+    """The one `sudo -n true` this interpreter runs. sudo_nopasswd() caches it.
+
+    A probe that returned NO answer is cached too, and deliberately: a sudoers
+    behind an unreachable LDAP or SSSD directory is the case that costs the
+    most - SUDO_TIMEOUT_S out of every arm launch - and retrying it per arm
+    would pay that price hundreds of times to re-ask a question the box has
+    already declined to answer once. What the row records is when it was
+    asked.
+    """
+    at = time.strftime("%Y-%m-%d %H:%M:%S")
+    rc, out = _run_rc(list(SUDO_PROBE), timeout=SUDO_TIMEOUT_S)
+    first = (out or "").splitlines()[0] if out else "no output"
+    stamp = ("PROBED ONCE, at %s local time: every later caller in this "
+             "interpreter - every arm launch of this sweep - is answered from "
+             "that one probe, so this is the state AT THAT TIME and not at "
+             "the arm carrying it. Rule 27: an uncached probe writes one "
+             "authentication record per arm into the box being measured."
+             % at)
+
+    def when(reason):
+        """The reason, then the stamp, with exactly one sentence break.
+
+        The reason can end in a period (the branches below) or in a raw
+        subprocess line that does not (the timeout branch), and a `how` that
+        runs two sentences together is the sort of string a reader skims past.
+        """
+        return reason.rstrip(" .") + ". " + stamp
+
+    if rc is None:
+        return None, when("UNKNOWN: `sudo -n true` would not run: %s" % out)
+    if rc == 0:
+        return True, when(
+            "MEASURED: `sudo -n true` returned 0, so a privileged command "
+            "runs here without a password. This cannot tell a NOPASSWD "
+            "sudoers rule from a credential a human cached minutes ago, and "
+            "a cached one expires (sudoers timestamp_timeout, 15 minutes by "
+            "default), so a sweep that outlives the timestamp keeps carrying "
+            "this answer rather than the `false` a fresh probe would now "
+            "return.")
+    return False, when("MEASURED: `sudo -n true` returned %d, so a privileged "
+                       "command needs a password this process does not have: "
+                       "%s" % (rc, first))
+
+
+def privilege_path(is_elevated, sudo_ok):
+    """(value, how) - the route this run has to a privileged command.
+
+    DERIVED, and labelled so (rule 1). It exists because it is the one field
+    an autonomous agent actually reads before deciding whether to attempt
+    `nvidia-smi -pl`: rule 31 says mid-run uncertainty resolves from the
+    record rather than by stopping to ask, and this is that record.
+
+    IT NEVER REPORTS AN UNANSWERED QUESTION AS AN ANSWER, and the branch order
+    below is what enforces it: the two inputs are tristates, so there are four
+    ways to reach the unknown half of this function and they do not say the
+    same thing. Until 2026-08-30 they did. `is_elevated is None` was tested
+    first and its reason read "...and no passwordless sudo route was found",
+    so a platform that answered NEITHER question - elevation undetermined and
+    the sudo probe timed out - published a sentence saying a sudo route had
+    been looked for and not found. Nothing had looked. That is the same defect
+    class this whole block exists to prevent, one level down, and it is why
+    the both-unknown case is now the first branch and each remaining branch
+    names only the question it actually has an answer to.
+    """
+    if is_elevated is True:
+        return "direct", ("DERIVED: elevated is true, so a privileged command "
+                          "runs in this process with no sudo in front of it")
+    if sudo_ok is True:
+        return "sudo -n", ("DERIVED: `sudo -n true` returned 0, so this "
+                           "process reaches a privileged command by prefixing "
+                           "it" + ("" if is_elevated is False else
+                                   " - and elevation itself is unrecorded "
+                                   "here, so this is the only route this "
+                                   "block can name"))
+    if is_elevated is None and sudo_ok is None:
+        return None, ("UNKNOWN: neither question was answered here - "
+                      "elevation could not be determined on this platform, "
+                      "and the `sudo -n true` probe returned no answer "
+                      "either. This block did not look for a route and find "
+                      "none; it could not look. `elevated` and "
+                      "`sudo_nopasswd` carry the two reasons.")
+    if is_elevated is None:
+        return None, ("UNKNOWN: elevation could not be determined on this "
+                      "platform, so the direct route is unrecorded rather "
+                      "than absent. The one route this block does test - a "
+                      "passwordless sudo - was MEASURED absent, and "
+                      "`sudo_nopasswd` says how; that is not enough to name a "
+                      "route or to rule one out.")
+    if sudo_ok is None:
+        return None, ("UNKNOWN: this process is not elevated and the `sudo -n "
+                      "true` probe returned no answer, so whether a route "
+                      "exists is unrecorded rather than absent - "
+                      "sudo_nopasswd carries the reason the probe said "
+                      "nothing.")
+    return None, ("UNKNOWN: this process is not elevated and no passwordless "
+                  "sudo is available here - sudo_nopasswd says which - so no "
+                  "route was found HERE. That is not the same as no route "
+                  "existing - a polkit rule, a file "
+                  "capability or a device permission can also carry a "
+                  "privileged command, and nothing in this block tests for "
+                  "one. What it does mean is that an `nvidia-smi -pl` fired "
+                  "from this process is expected to be refused, and rule 24 "
+                  "says an unmeasured knob is documented, never estimated.")
+
+
+def elevation():
+    """The privilege fields as (key, value, how) triples, in read order.
+
+    Triples rather than a dict so that execution() puts every one of them
+    through its own labelled path: no value in that block exists without a
+    `how` beside it, and this block is not the place to start.
+    """
+    is_elevated = elevated()
+    sudo_ok, sudo_how = sudo_nopasswd()
+    path, path_how = privilege_path(is_elevated, sudo_ok)
+    if is_elevated is None:
+        how = ("UNKNOWN: %s did not answer, so the privilege this run had is "
+               "unrecorded. It is not a record of an unelevated run."
+               % ("ctypes.windll.shell32.IsUserAnAdmin()" if os.name == "nt"
+                  else "os.geteuid()"))
+    elif os.name == "nt":
+        how = "MEASURED: ctypes.windll.shell32.IsUserAnAdmin()"
+    else:
+        how = "MEASURED: os.geteuid() == 0"
+    return (("elevated", is_elevated, how),
+            ("sudo_nopasswd", sudo_ok, sudo_how),
+            ("privilege_path", path, path_how))
 
 
 # ---------------------------------------------------------------------------
@@ -531,6 +876,22 @@ def execution(server_path=None, server_log=None, env=None, backend=None,
                                          or "INSTALL.json describes another "
                                             "install"),
             "UNKNOWN")
+
+    # ---- the privilege the run had
+    #
+    # It rides in `execution` rather than at the top level of the block, and
+    # that placement is the whole point: scripts/arms.py:toolchain_stamp()
+    # copies five keys out of a provenance block onto EVERY probe line, and
+    # `execution` is one of them, so this reaches every row of every sweep
+    # with no change to arms.py at all. A sixth top-level key would have
+    # reached only the sweep_start header, where a reader comparing two rows
+    # never looks.
+    #
+    # The other reason it belongs in this block: `execution` is where a field
+    # cannot exist without a `how` beside it, and a tristate whose null means
+    # "could not tell" is unreadable without one.
+    for key, value, how in elevation():
+        put(key, value, how)
 
     # ---- OpenVINO specifics
     if be == "openvino":

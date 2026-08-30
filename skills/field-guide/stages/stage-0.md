@@ -44,6 +44,15 @@ decided here or not at all.
   the reason it is null. Name what the desktop is doing with `--desktop-state`,
   and pass `--ram-channels` / `--backend` for what this box cannot report: an
   idle-desktop reserve is not a fence for a loaded desktop (rule 14).
+  It also records the PRIVILEGE this run had — `elevated`, `sudo_nopasswd`,
+  `privilege_path` — because an elevated run can do things an unelevated one
+  cannot, and that is a condition of every number (rule 3). Running the campaign
+  from a root shell or an Administrator prompt is a supported choice; the one
+  thing it forfeits is `pl_writable_without_elevation`, which stays `null` by
+  design because a power-limit set that succeeds under root says nothing about
+  an ordinary user. Rule 28 makes that permanent for this campaign, so if the
+  answer matters, run `detect-machine.py` once as a normal user before the
+  elevated run. `scripts/power/README.md` section 4 carries the whole trade.
 
 **Prove the request before the interview closes.** Two things fail at Stage 1 and
 cannot be asked about once rule 31 has closed the round: a gated repo, and a
@@ -109,20 +118,28 @@ need to spend.
 
 ```powershell
 # Windows — detached; survives harness session restarts
-$q = "timestamp,power.draw,power.draw.instant,clocks.current.sm," +
-     "clocks.current.memory,utilization.gpu,utilization.memory," +
-     "memory.used,memory.reserved,temperature.gpu,pstate"
-Start-Process nvidia-smi -WindowStyle Hidden `
-  -ArgumentList "--query-gpu=$q","--format=csv","-lms","500" `
-  -RedirectStandardOutput results/<slug>/data/power/campaign-power.csv
+.\scripts\power\sample-power.ps1 -Start -Csv results\<slug>\data\power\campaign-power.csv
 ```
 ```bash
-# POSIX
-nohup nvidia-smi --query-gpu=timestamp,power.draw,power.draw.instant,\
-clocks.current.sm,clocks.current.memory,utilization.gpu,utilization.memory,\
-memory.used,memory.reserved,temperature.gpu,pstate \
-  --format=csv -lms 500 > results/<slug>/data/power/campaign-power.csv &
+# POSIX — the same eleven columns plus a twelfth, the same 500 ms
+bash scripts/power/sample-power.sh start --csv results/<slug>/data/power/campaign-power.csv
 ```
+**Use the shipped starters rather than a hand-rolled `nvidia-smi` line.**
+Columns 1–11 of their `--query-gpu` lists are identical, so a Windows log and a
+Linux log integrate and merge as one measurement; the POSIX one appends
+`clocks_event_reasons.active` as column 12, which rule 28 wants and the
+PowerShell one still owes. Each watches the CSV GROW before reporting success,
+refuses a second logger on the same path and an existing non-empty CSV
+(`-Force` / `--force`), and drops a `<csv>.logger.json` sidecar recording the
+pid, the query, the tier label, and — on POSIX — `euid`, `elevated` and
+`enforced_power_limit_w`, the cap in force when the log began. **On Linux never
+hand-roll `nvidia-smi ... -f <file>`**: it block-buffers and flushes only at
+exit, so the CSV reads as empty for the whole run and `arms.py` records
+`power_logging: false` while a logger is in fact running (measured 2026-08-30;
+`reference/platform-notes.md`). `list` shows every telemetry loop on the box and
+kills nothing; `stop --csv <path>` / `-Stop -Csv <path>` ends one by the file it
+writes, never by process name.
+
 Clocks, pstate and util are in the query on purpose: they are how you prove a
 low-watt sample was a **ramping** board (rule 24's clock-ramp caveat) rather
 than an efficient one. One file per stage is fine — record each filename and its

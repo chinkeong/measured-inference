@@ -205,11 +205,16 @@ join point — and `python scripts/power/attribute-power.py --power <power.csv>
 --events <events.jsonl> --idle-w <Step 1 loaded idle> --drop-first --json
 <out.json>` integrates the windows and emits the metrics (`--selftest` checks
 its arithmetic with no GPU). Any JSONL carrying `t_start_iso`, `prompt_ms`,
-`predicted_ms`, `prompt_n`, `predicted_n` and `label` works, so a harness
-already recording those needs no PowerShell — and `scripts/arms.py`'s
-per-probe ledger carries all six, verified on Linux 2026-08-29. Pass
-`--events results/<slug>/data/arms/<stem>.jsonl` and every arm sweep is
-already an energy arm; only the power CSV still needs a sampler.
+`predicted_ms`, `prompt_n`, `predicted_n` and `label` **flat** works, so a
+harness already recording those needs no PowerShell. **`scripts/arms.py`'s
+per-probe ledger is not yet one of them.** It carries `t_start_iso` and `label`
+flat and the other four nested under `timings`, so `--events
+results/<slug>/data/arms/<stem>.jsonl` raises `KeyError: 't_start_iso'` on the
+first `sweep_start` line and, with the non-probe lines filtered out, integrates
+to zero joules (measured 2026-08-30; an earlier edition of this paragraph said
+the ledger carried all six). Flatten the probe lines first — the converter is
+in `scripts/power/README.md` section 7, run end to end there — and then every
+arm sweep is an energy arm; only the power CSV still needs a sampler.
 **Whether one was running is now recorded rather than assumed.** At sweep
 start `arms.py` looks in `results/<slug>/data/power/` for a `.csv` holding a
 sample newer than 300 s — by the last row's own timestamp and by the file's

@@ -359,6 +359,47 @@ cannot be recovered at any price.
   same `.gguf` produce rows whose `model_file` matches and whose `sha256` is
   not recorded here; `scripts/inspect-model.py` writes it into `model-*.json`
   and joining the two is not yet done.
+- **The elevation fields stop at the ledger boundary.** `provenance.py` records
+  `elevated`, `sudo_nopasswd` and `privilege_path` inside the `execution` block
+  of every probe line, but `from_execution()` copies only the six names in the
+  fixed `EXEC_CONDITIONS` allowlist out of that block. Checked 2026-08-30 by
+  calling it with an `execution` block carrying `elevated: true`: it returns
+  `conditions == {}` and `'elevated' in cond` is False. So the fields reach the
+  artefact and never become `conditions.elevated`, and `--where` cannot select
+  on them. Adding the three names to that tuple is the whole change — the
+  absence semantics already handle the tristate, since `named(None)` drops as
+  an absence, which is what `null` should mean, and `present(False)` is True,
+  so a measured "not elevated" is a present, falsifiable condition and is not
+  reported as thin.
+- **Elevation belongs in `thin`, not in a gate, for every class.** What moves a
+  number is the board's power limit, not the shell that set it, and the cap is
+  already on every row: `from_provenance()` lifts `power_limit_w` into the
+  machine fields. Elevation is the explanation for how two rows came to sit at
+  different caps, not the difference itself, so gating on it would refuse
+  comparisons that are legal — the same cap, one run in a root shell and one
+  not — which is the "refuses again, on different rows, and reads like a bug"
+  failure this tool already warns against. PUTTING `conditions.elevated` into the `thin`
+  tuple for `energy` and `throughput` WOULD state the missing condition and
+  still let the row compare; neither tuple carries it today — `energy`'s `thin`
+  is `("conditions.idle_w_used", "conditions.coverage")`. For `energy` in particular, because rule 24 makes power-limit
+  capping a first-class axis and only an elevated run can have moved it. This
+  is reasoning, recorded so it can be argued with rather than taken on trust.
+- **The `energy` class does not gate on the board power limit.** It gates on
+  backend, device, machine, build, `conditions.sweep`, `conditions.tier` and
+  `conditions.phase`; `machine_id()` is gpu | driver | os, with the cap
+  deliberately excluded. `power_limit_w` is recorded on the row as a machine
+  field and nothing checks it, so two energy rows measured at 350 W and at
+  250 W pass the gate today and stand in one comparison — while rule 24 names
+  `nvidia-smi -pl` as the direct efficiency knob that trades t/s for J/token,
+  and this machine measured 4.033 against 3.479 J/decode-token across exactly
+  that span on 2026-08-25. A stronger candidate for a gate field than elevation
+  is, and independent of it: this was true before the elevation fields existed.
+- **Rows written before 2026-08-30 carry no elevation field and cannot be given
+  one.** Rule 28: a field not written down during the run is not recoverable
+  afterwards at any price. Older rows read as ABSENT on `conditions.elevated`,
+  and **absent must not be read as unelevated** — the gate's own NOT NAMED rule
+  says unknown is never equal to unknown. A comparison that crosses that date
+  boundary says so.
 
 ---
 

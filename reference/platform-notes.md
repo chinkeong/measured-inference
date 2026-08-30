@@ -182,6 +182,87 @@ On an Intel box the answer is a different backend, not an override:
 changes nothing. `--tag bNNNNN` pins the llama.cpp release so an Ubuntu rerun
 matches the Windows campaign it is being compared against.
 
+### SYMPTOM: the power CSV exists but is empty while the logger is running
+
+`nvidia-smi -f <file>` **block-buffers on Linux** and flushes only when the
+process exits. Measured 2026-08-30 (RTX 3090, driver 596.36, WSL2 Ubuntu
+24.04): a `-f` logger showed 0 rows after 6 s and dumped all 13 at exit, while
+the redirected form showed 7 rows after 3 s and 13 after 6 s. A file that
+materialises only at exit defeats `scripts/power/attribute-power.py`, which
+cannot integrate a window that has not been written, and reads as **no logger
+at all** to `scripts/arms.py`, whose freshness check looks at the last row's own
+timestamp and at the file's mtime.
+
+```bash
+stdbuf -oL nvidia-smi --query-gpu=... --format=csv,nounits -lms 500 > power.csv
+```
+
+`scripts/power/sample-power.sh` does that for you, keeps `-f` only as a
+fallback, proves either mode by watching the file GROW before it reports
+success, and recovers the destination from `/proc/<pid>/fd/1` — a redirected
+logger has no path in its command line, and the kernel is the only thing that
+knows where its stdout went. On Windows the preference is the other way round
+and is correct there: `scripts/power/README.md` section 3.
+
+### SYMPTOM: `arms.py` prints "power log : NONE" and the fix it offers is PowerShell
+
+The remedy line is `pwsh scripts/power/sample-power.ps1 -Start -Csv ...` on
+every platform, so on Linux the one place the sweep runner tells an operator how
+to repair a missing power log names a file that will not run there. The POSIX
+starter writes the same CSV, in the same place, with the same eleven columns in
+the same order and one more after them (`clocks_event_reasons.active`, which
+rule 28 wants and `sample-power.ps1` does not yet collect):
+
+```bash
+bash scripts/power/sample-power.sh start --csv results/<slug>/data/power/campaign-power.csv
+```
+
+Start it, then run the sweep. The sweep that already ran without it keeps
+`power_logging: false` on its `sweep_start` line and that stays true of it: rule
+24 wants the absence written down at the time it happened, not repaired
+retroactively.
+
+### SYMPTOM: `machine.json` says `null` for `pl_writable_without_elevation`
+
+Expected when the campaign runs elevated, and it is not a regression. The field
+is a claim about the **unelevated** case, and `scripts/detect-machine.py`'s
+`pl_write_test()` declines to answer it from a root shell: a set that succeeds
+because the shell was privileged says nothing about a user who is not. It also
+declines when elevation could not be determined at all — the field is named for
+a condition, so a process that cannot say whether it was elevated cannot fill
+it, and nothing is set. The reason travels in the record beside the null, and
+says which of the two it was. Only an unelevated process can
+fill it — `python scripts/detect-machine.py` once as an ordinary user — and rule
+28 applies, so an all-elevated campaign never learns the answer and cannot
+recover it from the artefacts afterwards.
+
+The same run records `elevated`, `sudo_nopasswd` and `privilege_path` in
+`machine.json` and inside the `execution` block on every probe line. On all
+three, **`null` means unrecorded, never unelevated**; each carries its
+`MEASURED` / `DERIVED` / `UNKNOWN` reason in `execution.how`.
+
+### SYMPTOM: the bootstrap needs `sudo` and there is no human at the keyboard
+
+Launch the agent from a root shell, or from an account whose `sudo` needs no
+password, and pre-flight step 3 stops being a human step. That is a supported
+operating mode, chosen deliberately for a fully automated run and for the power
+registers that read only as root. `PROMPTS.md`, "The elevated, fully-automated
+flow", carries both paths and what each costs; `scripts/power/README.md` section
+4 carries what elevation buys, the one field it forfeits, and how a reader
+compares an elevated run against an unelevated one.
+
+`sudo -n true` is the probe that answers whether this session can elevate
+without prompting — it never prompts, and `true` sets nothing. **It is not
+free.** Every `sudo` invocation is an authentication event on the box being
+measured, so `scripts/bench/provenance.py` runs it **once per interpreter** and
+answers every later arm launch of that sweep from the one probe. Measured
+2026-08-30 (WSL2 Ubuntu 24.04, sudo 1.9.15p5, uid 1000 in group 27): three calls
+left three `authpriv` records in the journal while `/var/log/auth.log` showed
+one, because rsyslog collapses identical repeats — **count in the journal, not
+the file**, or the probe reads as cheaper than it is. Rule 27. Under WSL see
+"`sudo -n true` fails" below, which documents the no-password root path that is
+the WSL init switching users rather than a sudo bypass.
+
 ### SYMPTOM: perplexity or a suite hash disagrees with the published one
 
 Check the bytes before the model: `setup.sh`/`setup.ps1` compare every file
@@ -687,6 +768,11 @@ self-test is the first member of `scripts/verify/run-all.py`.
 ### Energy counters by platform (rule 24 tiers)
 
 - **NVIDIA**: NVML via `nvidia-smi --query-gpu=power.draw` — in-band GPU board.
+  Start the logger with `scripts/power/sample-power.ps1` on Windows or
+  `scripts/power/sample-power.sh` on POSIX; both write the same CSV. Never with
+  a bare `-f` on Linux — see "the power CSV exists but is empty" above. Reading
+  board power needs no elevation; setting a cap with `nvidia-smi -pl` does, and
+  it moves every watt taken afterwards.
 - **Intel Arc/iGPU**: HWiNFO64 (sensor logging to CSV) on Windows, or RAPL on
   Linux (package scope).
 - **Apple Silicon**: `sudo powermetrics --samplers gpu_power,cpu_power -i 1000`.
