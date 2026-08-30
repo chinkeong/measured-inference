@@ -192,6 +192,15 @@ HINTS = (
      "LLAMA_SERVER / LLAMA_DIR (see scripts/lib/paths.py)"),
 )
 
+# The publish-side three. A box that only COLLECTS is correctly configured
+# without them (requirements-min.txt is the default and its own header says
+# COLLECTION ONLY), so a report script that cannot import numpy here is a fact
+# about the BOX, not a defect in the tree. It is reported as `env` and does not
+# reach the exit code. This is deliberately not a baseline row: a row would
+# make it "known" on the publishing machine too, where the same line WOULD be
+# a regression, and the baseline is a statement about the tree.
+PUBLISH_ONLY = re.compile(r"No module named '(numpy|matplotlib|scipy)'")
+
 # A baseline row states WHY a probe fails, and a reason that has stopped being
 # true is not a baseline, it is cover. Where the stated cause is checkable from
 # the source without running anything, it is rechecked on every run.
@@ -433,6 +442,7 @@ def main():
     print("")
 
     known, new, ok_paths, runs_instead, on_import = [], [], [], [], []
+    env = []
     tree = before
     for rel in files:
         src = io.open(os.path.join(REPO, rel), encoding="utf-8",
@@ -470,6 +480,12 @@ def main():
             print(textwrap.fill(row.get("reason", ""), width=84,
                                 initial_indent=" " * 10,
                                 subsequent_indent=" " * 10))
+        elif PUBLISH_ONLY.search(detail or ""):
+            env.append((rel, stage, detail))
+            print("  env     %-46s %s" % (rel, stage))
+            print("          %s" % (detail or "")[:160])
+            print("          (a publish-side package this box does not have, "
+                  "not a defect)")
         else:
             new.append((rel, stage, detail, why))
             print("  NEW     %-46s %s" % (rel, stage))
@@ -508,6 +524,16 @@ def main():
         print("Parsing is not loading; this checked loading. Every known failure is")
         print("a row in %s with its reason and date."
               % shortpath(a.baseline))
+
+    if env:
+        print("")
+        print("%d probe(s) could not import a PUBLISH-SIDE package (numpy, "
+              "matplotlib," % len(env))
+        print("scipy). This box installed requirements-min.txt, which is what")
+        print("`setup.sh` installs and what its own header calls COLLECTION ONLY.")
+        print("On a machine that only measures, that is the correct state and")
+        print("these are not failures. To run the report side here:")
+        print("    setup.sh --publish        (adds requirements.txt)")
 
     if stale:
         print("")
@@ -576,7 +602,7 @@ def main():
 
     print("=" * 74)
 
-    if new or (a.fail and known):
+    if new or (a.fail and (known or env)):
         sys.exit(1)
 
 

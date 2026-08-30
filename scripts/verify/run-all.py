@@ -160,10 +160,19 @@ def _missing_module(out):
     found a box that has not run setup. The two read identically in an exit
     code and must not read identically in the report.
     """
-    for line in (out or "").splitlines():
-        line = line.strip()
-        if line.startswith("ModuleNotFoundError: No module named"):
-            return line.split("named", 1)[1].strip().strip("'\"")
+    lines = [x.rstrip() for x in (out or "").splitlines()]
+    lines = [x for x in lines if x.strip()]
+    if not lines:
+        return None
+    # ONLY the last line. A check that DIED on an import ends on the error; a
+    # check that merely REPORTS one -- probe-smoke names every script in this
+    # tree that cannot import, which is its whole job -- ends on its own
+    # summary. Scanning the whole output confuses the two and would let this
+    # runner skip the very check that exists to catch a probe that cannot
+    # start, on the machine where that matters most.
+    last = lines[-1].strip()
+    if last.startswith("ModuleNotFoundError: No module named"):
+        return last.split("named", 1)[1].strip().strip("'\"")
     return None
 
 

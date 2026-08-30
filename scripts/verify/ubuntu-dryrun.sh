@@ -67,11 +67,19 @@ step "4. what setup actually produced"
 [ -f bin/llama.cpp/INSTALL.json ] && cat bin/llama.cpp/INSTALL.json || echo "no INSTALL.json"
 ls -la bin/llama.cpp/ 2>/dev/null | head -12
 
+# THE interpreter, not any interpreter. setup.sh provisions .venv and installs
+# requirements into it; the system python3 has none of them. Running the gate
+# with the wrong one reports a clean setup as three failures, which is exactly
+# what it did on 2026-08-30 before this line existed.
+PY=python3
+[ -x .venv/bin/python ] && PY=./.venv/bin/python
+echo "interpreter: $PY"
+
 step "5. the resolver's own answer"
-python3 scripts/lib/paths.py || echo "paths.py exit=$?"
+$PY scripts/lib/paths.py || echo "paths.py exit=$?"
 
 step "6. the no-GPU gate"
-python3 scripts/verify/run-all.py
+$PY scripts/verify/run-all.py
 GATE_RC=$?
 
 step "7. verdict"
