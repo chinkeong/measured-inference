@@ -619,7 +619,21 @@ ov_prepare_prefix() {
   if mkdir -p "$OV_PREFIX" 2>/dev/null && [ -w "$OV_PREFIX" ]; then OV_SUDO=""; return 0; fi
   if have sudo; then
     OV_SUDO=sudo
-    sudo -n true 2>/dev/null || info "$OV_PREFIX needs root; sudo will prompt."
+    if sudo -n true 2>/dev/null; then return 0; fi
+    # A password prompt is fine for a human and fatal for an agent: the harness
+    # runs this with no TTY, sudo blocks reading a password nobody can type,
+    # and the run hangs rather than fails. The usual way this repo gets driven
+    # is a clone plus a prompt to a coding agent, so refuse EARLY and name the
+    # two ways out instead of stalling on a tty check nobody sees.
+    if [ ! -t 0 ]; then
+      die "$OV_PREFIX needs root and sudo would prompt for a password, but this
+     is running without a terminal, so nothing can answer it. Either install
+     where you already have write access, which needs no root at all:
+         ./scripts/setup.sh --openvino --openvino-dir $ROOT/bin/openvino
+     or have a human run this once, then re-run:
+         sudo install -d -o \"\$USER\" $OV_PREFIX" 4
+    fi
+    info "$OV_PREFIX needs root; sudo will prompt."
     return 0
   fi
   die "cannot write $OV_PREFIX and there is no sudo here. Either install the runtime somewhere you own -- ./scripts/setup.sh --openvino --openvino-dir $ROOT/bin/openvino -- or have an administrator create $OV_PREFIX and chown it to you." 4
