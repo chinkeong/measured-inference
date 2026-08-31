@@ -1,0 +1,44 @@
+{
+ "_schema": "stage2-memory-map v1",
+ "slug": "ornith-1.5-9b-mtp",
+ "board_total_mib": 24576,
+ "desktop_reserve_mib": 454,
+ "budget_mib": 24122,
+ "ctx": 32768,
+ "ngl": 99,
+ "settle_s": 20,
+ "scope": "rule 13: <file + drafter + projector + desktop>",
+ "note": "memory.used includes the desktop. Subtract desktop_reserve_mib for the server's own footprint.",
+ "pairs": {
+  "Q8_0-bare": {
+   "model": "Q8_0",
+   "projector": false,
+   "drafter": false,
+   "ctx": 32768,
+   "server_log": "results/ornith-1.5-9b-mtp/work/stage2-Q8_0-bare.log",
+   "settled": {
+    "median_mib": 10002.0,
+    "min_mib": 10002.0,
+    "max_mib": 10002.0,
+    "n": 9,
+    "power_median_w": 28.27
+   },
+   "server_mib": 9548.0
+  },
+  "Q8_0-proj": {
+   "model": "Q8_0",
+   "projector": true,
+   "drafter": false,
+   "ctx": 32768,
+   "server_log": "results/ornith-1.5-9b-mtp/work/stage2-Q8_0-proj.log",
+   "settled": {
+    "median_mib": 11132.0,
+    "min_mib": 11132.0,
+    "max_mib": 11132.0,
+    "n": 9,
+    "power_median_w": 27.7
+   },
+   "server_mib": 10678.0
+  }
+ }
+}

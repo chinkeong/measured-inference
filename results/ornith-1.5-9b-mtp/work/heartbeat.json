@@ -1,14 +1,12 @@
 {
  "_schema": "heartbeat v1",
  "slug": "ornith-1.5-9b-mtp",
- "written_utc": "2026-08-31T16:35:33Z",
+ "written_utc": "2026-08-31T17:05:53Z",
  "operator_instruction": "keep going for 24 hours (2026-09-01)",
- "stage": "1 -> 2",
+ "stage": "2 (interrupted)",
  "in_flight": {
-  "what": "rule-6 PPL ladder, 36 chunks x 8192 = 294,912 positions",
-  "script": "results/ornith-1.5-9b-mtp/work/ppl-rule6-ladder.py",
-  "output": "results/ornith-1.5-9b-mtp/data/ppl-rule6-ladder.json",
-  "resumable": "yes -- an arm already in the JSON is skipped on re-run"
+  "what": "none -- all jobs stopped",
+  "gpu": "idle, lock free"
  },
  "done": [
   "Stage 0 CLOSED (commit 03d17dc)",
@@ -27,5 +25,12 @@
   "b10717 logs no KV-size/offload line -- stage-1.md's rule-4 cross-check has no source in this build.",
   "stage-0.md's cold-idle recipe reads 34% high on this box (~150 s settling tail inside P8)."
  ],
- "recovery": "Read results/ornith-1.5-9b-mtp/campaign.md end to end, then `git log --oneline`. The highest checkpoint commit is ground truth."
+ "recovery": "Read results/ornith-1.5-9b-mtp/campaign.md end to end, then `git log --oneline`. The highest checkpoint commit is ground truth.",
+ "status": "INTERRUPTED -- three background jobs killed together; machine verified clean (lock free, no servers, VRAM 454 MiB)",
+ "resume_points": {
+  "bf16_arbiter": "curl -sL -C - -o models/vendor-Ornith-1.5-9B-BF16.gguf https://huggingface.co/ornith-ai/Ornith-1.5-9B-GGUF/resolve/main/Ornith-1.5-9B-BF16.gguf   (partial: 1157517312 of ~18.41e9 bytes) then: PPL_ARMS='BF16=vendor-Ornith-1.5-9B-BF16.gguf' PPL_OUT='ppl-crosscheck-bf16.json' PPL_CHUNKS=36 .venv/bin/python results/ornith-1.5-9b-mtp/work/ppl-rule6-ladder.py",
+  "stage2": ".venv/bin/python results/ornith-1.5-9b-mtp/work/stage2-memory-map.py   (resumable: skips any pair already in data/stage2-memory-map.json)",
+  "stage3": ".venv/bin/python scripts/arms.py --arms results/ornith-1.5-9b-mtp/work/spec-sweep-ornith.json --slug ornith-1.5-9b-mtp --resume"
+ },
+ "blocking_finding": "Q8_0 is 1.10 PPL WORSE than Q4_K_M across TWO independent lineages (agree to 0.06 sigma). BF16 is the arbiter and did not finish. NO quant recommendation may be published from the ladder until it does (rule 2). Pruning gate stays open, nothing dropped."
 }

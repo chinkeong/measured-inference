@@ -31,7 +31,7 @@ import gpu_lock         # noqa: E402
 
 CAMP = paths.load_campaign()
 SLUG = CAMP["slug"]
-OUT = os.path.join(REPO, "results", SLUG, "data", "ppl-rule6-ladder.json")
+OUT = os.path.join(REPO, "results", SLUG, "data", os.environ.get("PPL_OUT","ppl-rule6-ladder.json"))
 WORK = os.path.join(REPO, "results", SLUG, "work")
 CORPUS = os.path.join(REPO, CAMP.get("corpus", "corpora/wikitext-2-raw-test.raw"))
 PPL = paths.llama_bin("llama-perplexity")
@@ -40,9 +40,16 @@ CTX = int(os.environ.get("PPL_CTX", 8192))
 CHUNKS = int(os.environ.get("PPL_CHUNKS", 4))                      # 4 x 8,192 = 32,768 token positions, identical per arm
 NGL = 99                        # rule 15
 
-ARMS = [("Q8_0", "Ornith-1.5-9B-MTP-Q8_0.gguf"),
-        ("Q4_K_M", "Ornith-1.5-9B-MTP-Q4_K_M.gguf"),
-        ("IQ2_M", "Ornith-1.5-9B-MTP-IQ2_M.gguf")]
+# PPL_ARMS="label=file.gguf,label2=file2.gguf" overrides the roster, so the
+# same instrument can ladder a cross-check file from another lineage without a
+# second copy of this script drifting away from it (rule 4).
+_env = os.environ.get("PPL_ARMS")
+if _env:
+    ARMS = [tuple(x.split("=", 1)) for x in _env.split(",") if "=" in x]
+else:
+    ARMS = [("Q8_0", "Ornith-1.5-9B-MTP-Q8_0.gguf"),
+            ("Q4_K_M", "Ornith-1.5-9B-MTP-Q4_K_M.gguf"),
+            ("IQ2_M", "Ornith-1.5-9B-MTP-IQ2_M.gguf")]
 
 FINAL = re.compile(r"Final estimate:\s*PPL\s*=\s*([0-9.]+)\s*\+/-\s*([0-9.]+)")
 EST = re.compile(r"\[(\d+)\]\s*([0-9.]+)")

@@ -375,3 +375,58 @@ quantisation lineage of the same weights.
 
 Either way rule 5 applies: the dead claim is kept as a dated case study, because
 how it misled is worth more than the number was.
+
+### The cross-check: the file is NOT defective, and the finding is bigger — 2026-09-01
+
+The same 294,912-position ladder, same corpus, same chunks, same build, against
+the **vendor's own** Q8_0 from `ornith-ai/Ornith-1.5-9B-GGUF` — an independent
+quantisation lineage of the same weights:
+
+| arm | lineage | PPL | ± |
+|---|---|---|---|
+| Q8_0 | protoLabsAI MTP | 9.0519 | 0.0692 |
+| **Q8_0** | **ornith-ai (first-party)** | **9.0460** | 0.0691 |
+| Q4_K_M | protoLabsAI MTP | **7.9544** | 0.0553 |
+| IQ2_M | protoLabsAI MTP | 8.6629 | 0.0586 |
+
+**The two Q8_0 lineages agree to 0.06 sigma.** The "protoLabsAI's file is
+defective" hypothesis is dead — the second hypothesis this campaign has had to
+kill in a day, and it died the same way the first did: cheaply, because it was
+tested instead of assumed.
+
+What survives is a stronger and stranger claim: **on this model, Q8_0 is ~1.10
+PPL worse than its own Q4_K_M and 0.39 worse than the 2-bit file, reproducibly,
+across independent quantisation runs by different people.** An 8-bit quant is
+the least aggressive thing on the roster and is meant to be near-lossless.
+
+**BF16 is the arbiter and it was not finished.** Only the unquantised reference
+says which end of the ladder is the anomaly:
+- BF16 ≈ 7.95 → Q8_0 is the outlier: 8-bit quantisation of this hybrid loses
+  something real, and everyone running the vendor's own Q8_0 is getting worse
+  output than the 5.78 GB file.
+- BF16 ≈ 9.05 → Q4_K_M is the outlier, scoring better than the original
+  weights, which points at the corpus or at how this hybrid is evaluated.
+
+Until BF16 lands, **no quant recommendation may be published from this ladder**
+(rule 2: no reader measures less than the report promised) and the Stage-1
+pruning gate stays open with nothing dropped.
+
+### INTERRUPTED — 2026-09-01, mid-Stage-2
+
+Three background jobs were killed together: the BF16 download, the Stage-2
+memory map, and a stale waiter. State on inspection, all verified rather than
+assumed:
+
+- `gpu_lock.py status` → **lock free, servers: none**; VRAM back to 454 MiB and
+  38.91 W, i.e. the desktop alone. `gpu_lock.serve()`'s "the child cannot
+  outlive this process" guarantee held under an abrupt kill for the **second**
+  time today. Nothing orphaned, nothing holding the card.
+- `models/vendor-Ornith-1.5-9B-BF16.gguf` — partial, 1,157,517,312 of
+  ~18.41 GB. `curl -C -` resumes it; nothing else reads it, so a partial file
+  cannot be mistaken for a complete one by any later stage.
+- `data/stage2-memory-map.json` — header only, no arm completed. The script
+  skips any pair already recorded, so re-running costs only what was not done.
+
+**Nothing measured has been lost.** Everything through the vendor cross-check is
+committed; the ladder, the floors, the speculation result and both idle
+baselines are on disk and in git.
