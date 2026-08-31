@@ -340,9 +340,29 @@ def model_path(name_or_path, slug=None):
             if os.path.isfile(cand):
                 return os.path.abspath(cand)
 
-    names = [os.path.basename(raw)]
-    if not names[0].endswith(".gguf"):
-        names.append(names[0] + ".gguf")
+    # What the "models" map RESOLVED TO is searched under the roots as well, not
+    # just the name that was asked for. The map's documented shape is
+    # {"alias": "/full/path.gguf"}, and an absolute path is already answered by
+    # the loop above -- but a campaign that writes the natural thing,
+    # {"Q4_K_M": "Ornith-1.5-9B-MTP-Q4_K_M.gguf"}, got a bare name, which
+    # os.path.isfile() resolves against the CWD and therefore never finds. It
+    # then fell through to here and searched the roots for the ALIAS
+    # ("models/Q4_K_M.gguf"), which does not exist either, so the file was
+    # unfindable by any means and the error listed the correct filename among
+    # the things it had "Looked at" without ever having joined it to a root.
+    # Measured 2026-09-01: arms.py died on exactly this in a live campaign.
+    # A mapped bare name is now searched under every root, ahead of the alias.
+    names = []
+    for mapped in entries:
+        if isinstance(mapped, str):
+            mb = os.path.basename(os.path.expanduser(mapped))
+            if mb and mb not in names:
+                names.append(mb)
+    asked = os.path.basename(raw)
+    if asked not in names:
+        names.append(asked)
+    if not asked.endswith(".gguf") and asked + ".gguf" not in names:
+        names.append(asked + ".gguf")
 
     roots = [camp.get("model_dir"), os.environ.get("MODEL_DIR"),
              os.path.join(repo_root(), "models")]

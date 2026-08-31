@@ -1,0 +1,34 @@
+0.00.048.266 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.048.604 W srv  llama_server: -----------------
+0.00.048.606 W srv  llama_server: CORS is set to allow all origins ('*') and no API key is set
+0.00.048.606 W srv  llama_server: this can be a security risk (cross-origin attacks)
+0.00.048.606 W srv  llama_server: more info: https://github.com/ggml-org/llama.cpp/pull/25655
+0.00.048.606 W srv  llama_server: -----------------
+0.00.049.881 I srv    load_model: loading model '/root/Workspace/measured-inference/models/Ornith-1.5-9B-MTP-Q4_K_M.gguf'
+0.00.655.479 W model has unused tensor blk.32.attn_norm.weight (size = 16384 bytes) -- ignoring
+0.00.655.483 W model has unused tensor blk.32.post_attention_norm.weight (size = 16384 bytes) -- ignoring
+0.00.655.488 W model has unused tensor blk.32.attn_q.weight (size = 18874368 bytes) -- ignoring
+0.00.655.490 W model has unused tensor blk.32.attn_k.weight (size = 2359296 bytes) -- ignoring
+0.00.655.491 W model has unused tensor blk.32.attn_v.weight (size = 3440640 bytes) -- ignoring
+0.00.655.497 W model has unused tensor blk.32.attn_output.weight (size = 9437184 bytes) -- ignoring
+0.00.655.499 W model has unused tensor blk.32.attn_q_norm.weight (size = 1024 bytes) -- ignoring
+0.00.655.500 W model has unused tensor blk.32.attn_k_norm.weight (size = 1024 bytes) -- ignoring
+0.00.655.502 W model has unused tensor blk.32.ffn_gate.weight (size = 28311552 bytes) -- ignoring
+0.00.655.504 W model has unused tensor blk.32.ffn_down.weight (size = 41287680 bytes) -- ignoring
+0.00.655.505 W model has unused tensor blk.32.ffn_up.weight (size = 28311552 bytes) -- ignoring
+0.00.655.508 W model has unused tensor blk.32.nextn.eh_proj.weight (size = 18874368 bytes) -- ignoring
+0.00.655.509 W model has unused tensor blk.32.nextn.enorm.weight (size = 16384 bytes) -- ignoring
+0.00.655.511 W model has unused tensor blk.32.nextn.hnorm.weight (size = 16384 bytes) -- ignoring
+0.00.655.516 W model has unused tensor blk.32.nextn.shared_head_norm.weight (size = 16384 bytes) -- ignoring
+0.01.106.875 I cmn          init: llama threadpool init, n_threads = 6
+0.01.151.780 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 65536, kv_unified = 'false'
+0.01.154.488 I srv  llama_server: model loaded
+0.01.154.492 I srv  llama_server: listening on http://127.0.0.1:1234
+0.20.843.663 I slot get_availabl: id  0 | task -1 | selected slot by LRU, t_last = -1
+0.20.843.946 I slot launch_slot_: id  0 | task 0 | processing task, is_child = 0
+0.22.565.869 I slot print_timing: id  0 | task 0 | prompt eval time =      64.75 ms /    22 tokens (    2.94 ms per token,   339.76 tokens per second)
+0.22.565.871 I slot print_timing: id  0 | task 0 |        eval time =    1657.12 ms /   200 tokens (    8.33 ms per token,   120.09 tokens per second)
+0.22.565.872 I slot print_timing: id  0 | task 0 |       total time =    1721.87 ms /   222 tokens
+0.22.565.876 I slot print_timing: id  0 | task 0 |    graphs reused =        199
+0.22.565.896 I slot      release: id  0 | task 0 | stop processing: n_tokens = 221, truncated = 0
+0.34.422.782 I srv    operator(): operator(): cleaning up before exit...

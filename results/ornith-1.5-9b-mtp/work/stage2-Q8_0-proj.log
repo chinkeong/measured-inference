@@ -1,0 +1,32 @@
+0.00.054.008 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.054.348 W srv  llama_server: -----------------
+0.00.054.350 W srv  llama_server: CORS is set to allow all origins ('*') and no API key is set
+0.00.054.350 W srv  llama_server: this can be a security risk (cross-origin attacks)
+0.00.054.350 W srv  llama_server: more info: https://github.com/ggml-org/llama.cpp/pull/25655
+0.00.054.350 W srv  llama_server: -----------------
+0.00.055.599 I srv    load_model: loading model '/root/Workspace/measured-inference/models/Ornith-1.5-9B-MTP-Q8_0.gguf'
+0.00.707.877 W model has unused tensor blk.32.attn_norm.weight (size = 16384 bytes) -- ignoring
+0.00.707.881 W model has unused tensor blk.32.post_attention_norm.weight (size = 16384 bytes) -- ignoring
+0.00.707.886 W model has unused tensor blk.32.attn_q.weight (size = 35651584 bytes) -- ignoring
+0.00.707.887 W model has unused tensor blk.32.attn_k.weight (size = 4456448 bytes) -- ignoring
+0.00.707.889 W model has unused tensor blk.32.attn_v.weight (size = 4456448 bytes) -- ignoring
+0.00.707.895 W model has unused tensor blk.32.attn_output.weight (size = 17825792 bytes) -- ignoring
+0.00.707.896 W model has unused tensor blk.32.attn_q_norm.weight (size = 1024 bytes) -- ignoring
+0.00.707.898 W model has unused tensor blk.32.attn_k_norm.weight (size = 1024 bytes) -- ignoring
+0.00.707.900 W model has unused tensor blk.32.ffn_gate.weight (size = 53477376 bytes) -- ignoring
+0.00.707.901 W model has unused tensor blk.32.ffn_down.weight (size = 53477376 bytes) -- ignoring
+0.00.707.903 W model has unused tensor blk.32.ffn_up.weight (size = 53477376 bytes) -- ignoring
+0.00.707.905 W model has unused tensor blk.32.nextn.eh_proj.weight (size = 35651584 bytes) -- ignoring
+0.00.707.907 W model has unused tensor blk.32.nextn.enorm.weight (size = 16384 bytes) -- ignoring
+0.00.707.909 W model has unused tensor blk.32.nextn.hnorm.weight (size = 16384 bytes) -- ignoring
+0.00.707.914 W model has unused tensor blk.32.nextn.shared_head_norm.weight (size = 16384 bytes) -- ignoring
+0.01.590.167 I cmn          init: llama threadpool init, n_threads = 6
+0.01.624.470 W load_hparams: Qwen-VL models require at minimum 1024 image tokens to function correctly on grounding tasks
+0.01.624.471 W load_hparams: if you encounter problems with accuracy, try adding --image-min-tokens 1024
+0.01.624.472 W load_hparams: more info: https://github.com/ggml-org/llama.cpp/issues/16842
+
+0.03.392.663 I srv    load_model: loaded multimodal model, '/root/Workspace/measured-inference/models/mmproj-Ornith-1.5-9B-BF16.gguf'
+0.03.409.777 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 32768, kv_unified = 'false'
+0.03.412.383 I srv  llama_server: model loaded
+0.03.412.387 I srv  llama_server: listening on http://127.0.0.1:1234
+0.28.783.276 I srv    operator(): operator(): cleaning up before exit...

@@ -1,0 +1,21 @@
+0.00.141.272 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.141.767 W srv  llama_server: -----------------
+0.00.141.769 W srv  llama_server: CORS is set to allow all origins ('*') and no API key is set
+0.00.141.769 W srv  llama_server: this can be a security risk (cross-origin attacks)
+0.00.141.769 W srv  llama_server: more info: https://github.com/ggml-org/llama.cpp/pull/25655
+0.00.141.769 W srv  llama_server: -----------------
+0.00.195.123 I srv    load_model: loading model '/root/Workspace/measured-inference/models/Ornith-1.5-9B-MTP-Q8_0.gguf'
+0.02.401.934 I cmn          init: llama threadpool init, n_threads = 6
+0.02.432.955 I common_speculative_init_result: loading draft model '/root/Workspace/measured-inference/models/mtp-Ornith-1.5-9B-head-Q8_0.gguf'
+0.07.050.561 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 8192, kv_unified = 'false'
+0.07.078.033 I srv  llama_server: model loaded
+0.07.078.038 I srv  llama_server: listening on http://127.0.0.1:1234
+0.07.993.966 I slot get_availabl: id  0 | task -1 | selected slot by LRU, t_last = -1
+0.07.994.110 I slot launch_slot_: id  0 | task 0 | processing task, is_child = 0
+0.09.781.849 I slot print_timing: id  0 | task 0 | prompt eval time =      70.60 ms /    21 tokens (    3.36 ms per token,   297.45 tokens per second)
+0.09.781.851 I slot print_timing: id  0 | task 0 |        eval time =    1717.10 ms /   200 tokens (    8.63 ms per token,   115.89 tokens per second)
+0.09.781.852 I slot print_timing: id  0 | task 0 |       total time =    1787.70 ms /   221 tokens
+0.09.781.855 I slot print_timing: id  0 | task 0 |    graphs reused =         11
+0.09.781.859 I slot print_timing: id  0 | task 0 | draft acceptance = 0.69832 (  125 accepted /   179 generated), mean len =  3.12
+0.09.781.898 I slot      release: id  0 | task 0 | stop processing: n_tokens = 220, truncated = 0
+0.09.782.584 I srv    operator(): operator(): cleaning up before exit...

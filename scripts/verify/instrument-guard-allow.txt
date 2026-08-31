@@ -47,3 +47,12 @@ scripts/bench/results/  # per-run bench output directory (one JSON, one PNG and 
 # --- draws if a source is missing or disagrees. Two fresh renders on
 # --- 2026-08-30 matched the copy on disk byte for byte.
 results/qwen38-27b-blind/figures/quant-ladder.png  # derived figure, remade byte-identically by `python scripts/quant-ladder/make-ladder-png.py` - md5 11159d63745bb9e3267516d93b5e165d, two fresh renders against the copy on disk, measured 2026-08-30. Its inputs are tracked; committing the 280,937-byte output would commit a pure function of files git already carries, once per revision of the picture.
+
+# --- the GPU mutex itself. gpu_lock.py names its own lock file in the message
+# --- it prints when a second caller is refused, so the guard sees a tracked
+# --- file citing an untracked one. It is a RUNTIME lock, not a record: it is
+# --- created by acquire(), deleted by release(), names a pid and a start time
+# --- that are meaningless once that process is gone, and a stale one is taken
+# --- over by the next caller by design. Nothing published reads it; the
+# --- campaign artefacts record their own conditions.
+.gpu-lock.json  # runtime GPU mutex, recreated by any gpu_lock.acquire() and cleared by release(); its contents (pid, start time, tag) describe a process that no longer exists by the time anyone would read the file.

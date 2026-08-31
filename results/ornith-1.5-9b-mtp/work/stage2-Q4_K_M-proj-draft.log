@@ -1,0 +1,18 @@
+0.00.055.037 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.055.374 W srv  llama_server: -----------------
+0.00.055.375 W srv  llama_server: CORS is set to allow all origins ('*') and no API key is set
+0.00.055.375 W srv  llama_server: this can be a security risk (cross-origin attacks)
+0.00.055.375 W srv  llama_server: more info: https://github.com/ggml-org/llama.cpp/pull/25655
+0.00.055.376 W srv  llama_server: -----------------
+0.00.056.633 I srv    load_model: loading model '/root/Workspace/measured-inference/models/Ornith-1.5-9B-MTP-Q4_K_M.gguf'
+0.01.403.918 I cmn          init: llama threadpool init, n_threads = 6
+0.01.433.828 I common_speculative_init_result: loading draft model '/root/Workspace/measured-inference/models/mtp-Ornith-1.5-9B-head-Q8_0.gguf'
+0.01.815.028 W load_hparams: Qwen-VL models require at minimum 1024 image tokens to function correctly on grounding tasks
+0.01.815.030 W load_hparams: if you encounter problems with accuracy, try adding --image-min-tokens 1024
+0.01.815.030 W load_hparams: more info: https://github.com/ggml-org/llama.cpp/issues/16842
+
+0.03.583.425 I srv    load_model: loaded multimodal model, '/root/Workspace/measured-inference/models/mmproj-Ornith-1.5-9B-BF16.gguf'
+0.03.602.055 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 32768, kv_unified = 'false'
+0.03.628.797 I srv  llama_server: model loaded
+0.03.628.801 I srv  llama_server: listening on http://127.0.0.1:1234
+0.30.332.351 I srv    operator(): operator(): cleaning up before exit...
