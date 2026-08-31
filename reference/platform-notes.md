@@ -377,9 +377,25 @@ this tree with nothing built:
 `scripts/verify/smoke-baseline.json`'s `entries[]` carries nothing. It once
 carried eighteen known failures — the tool ended `18 of 83 FAILED` and exited 0
 until 2026-08-29 — and those eighteen were fixed rather than re-recorded; they
-survive in the file's `cleared` block as history. So `--fail` ("any failure
-fails", which is what a hook wants) and the bare run ("exit non-zero on NEW
-alone") now agree, because there is nothing left for them to disagree about.
+survive in the file's `cleared` block as history.
+
+**What makes `--fail` and the bare run agree is the exit condition, not the
+empty baseline.** The bare run exits non-zero on NEW alone; `--fail` ("any
+failure fails", which is what a hook wants) adds the baselined `known` rows and
+nothing else. `env` is the third category and reaches neither. A report or plot
+script that cannot import `numpy`, `matplotlib` or `scipy` on a box installed
+with `requirements-min.txt` — what `setup.sh` calls COLLECTION ONLY — is a fact
+about the box, not a defect in the tree, so it prints as `env`, by name, with
+the remedy (`setup.sh --publish`), and stays out of the status. Until 2026-08-31
+`env` counted toward `--fail`, and on a collection-only box that read as **the
+same 14 rows, the same byte-identical output, exit 0 bare and exit 1 under
+`--fail`** — a status contradicting the page printed directly above it. Measured
+2026-08-31 on Ubuntu 26.04.1 with the three publish-side packages unimportable
+(the collection-only condition; this box's `.venv` has since had `--publish` run
+on it): `0 NEW. 0 known, 75 start, of 89 checked`, 14 `env` rows, output
+identical to the byte in both modes, and **both exit 0**. The same run against
+the `env`-counting condition it replaced still exits 1.
+
 The roster comes from `git ls-files`, so **89 moves with the tree** — it read
 87 an hour earlier, before two verify scripts were added — and it is not the
 number to watch. NEW and known are.

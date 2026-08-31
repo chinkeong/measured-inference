@@ -803,6 +803,66 @@ if [ "$WANT_OPENVINO" = 1 ]; then
     fi
   fi
 fi
+
+# ------- 3c. ADOPT the CUDA build already here -- adopting is not substituting
+# MEASURED 2026-08-31, Ubuntu 26.04.1 / RTX 3090, with a working CUDA build
+# already installed at bin/llama.cpp (b10717, INSTALL.json flavor "cuda", built
+# from source by this script twenty minutes earlier):
+#     ./scripts/setup.sh --publish
+#     [setup] backend flavor: vulkan
+#     [setup] ERROR: NVIDIA GPU detected, but the backend on offer is 'vulkan', not CUDA.
+#     exit 3
+# That is the EXACT command scripts/verify/run-all.py prints as the remedy for a
+# missing matplotlib, so on an NVIDIA Linux box the one step that fixes a
+# Python-only failure was unreachable on the box that printed it. The cause is
+# ordering, not policy: section 4 judges the flavor this run would INSTALL, and
+# it runs before section 6 ever looks at what is on disk -- so a run that was
+# going to install nothing at all was refused over a backend swap that was never
+# going to happen.
+#
+# The gate is not weakened here, it is given the fact it was missing. What it
+# refuses is a SILENT BACKEND SUBSTITUTION: CUDA numbers quietly replaced by
+# Vulkan ones, with nothing in the run to say so (rule 3 -- the backend is a
+# condition of every number; rule 30 -- never compare across). Adopting the CUDA
+# build that is ALREADY INSTALLED is the opposite act. The backend does not
+# change, no asset is fetched, INSTALL.json goes on naming the same build, and
+# section 6 reaches exactly that conclusion a few lines further down anyway.
+# There is nothing to refuse.
+#
+# Every clause is load-bearing, because the refusal has to survive intact for
+# everyone it is right about:
+#   - WANT_CUDA / WANT_OPENVINO / ALLOW_VULKAN all 0. Those three already fold
+#     the flags together with their MEASURED_INFERENCE_* equivalents (--cuda,
+#     --openvino, --openvino-source, --allow-vulkan), so testing them is testing
+#     both spellings. An operator who NAMED a backend gets that request honoured
+#     or refused on its own terms; it is never reinterpreted as "adopt whatever
+#     is lying here".
+#   - FORCE 0. -f means reinstall, so there is nothing to adopt.
+#   - an executable llama-server AND INSTALL.json flavor "cuda". A fresh box has
+#     neither, and its refusal -- build CUDA, or say --allow-vulkan and own it --
+#     is correct and is left byte-identical. A box recording vulkan or openvino
+#     does not match either, so a box that HAS been substituted is still told so.
+#   - the tag. Adoption pins TAG to the installed VERSION.txt, so an explicit
+#     --tag naming some OTHER release must not be silently overwritten with this
+#     one: adopt only when no --tag was given, or it already names this build.
+ADOPTED_INSTALLED_CUDA=0
+if [ "$GPU" = "nvidia" ] && [ "$FLAVOR" != "cuda" ] && [ "$FORCE" -eq 0 ] \
+   && [ "$WANT_CUDA" != 1 ] && [ "$WANT_OPENVINO" != 1 ] && [ "$ALLOW_VULKAN" != 1 ] \
+   && [ -x "$EXE" ] && [ -f "$INSTALL_JSON" ] && [ -f "$VFILE" ]; then
+  ADOPT_FLAVOR="$(grep -oE '"flavor"[[:space:]]*:[[:space:]]*"[^"]*"' "$INSTALL_JSON" | cut -d'"' -f4 | head -1 || true)"
+  ADOPT_TAG="$(head -n1 "$VFILE" 2>/dev/null | tr -d '[:space:]')"
+  if [ "$ADOPT_FLAVOR" = "cuda" ] && [ -n "$ADOPT_TAG" ] \
+     && { [ "$TAG_PINNED" -eq 0 ] || [ "$TAG" = "$ADOPT_TAG" ]; }; then
+    info "$DEST already holds a CUDA build ($ADOPT_TAG, INSTALL.json flavor cuda) and no backend was named on this command line -- adopting it instead of offering the '$FLAVOR' asset. Nothing is downloaded and the recorded backend does not move, so this is not the substitution section 4 refuses."
+    FLAVOR="cuda"
+    # Pin to the INSTALLED release, not the newest one. Without this, section 5
+    # would ask the GitHub API for the latest tag, section 6 would see a tag
+    # mismatch, and this run -- which has no --cuda and therefore cannot build
+    # CUDA -- would go and install that newer tag's VULKAN asset. Adoption has
+    # to mean "the build that is here", never "cuda, and also please upgrade".
+    TAG="$ADOPT_TAG"; ADOPTED_INSTALLED_CUDA=1
+  fi
+fi
 info "backend flavor: $FLAVOR"
 
 # ---------------------------- 4. THE GATE: no silent backend substitution
@@ -844,6 +904,14 @@ fi
 RELEASES_JSON=""
 if [ "$TAG_PINNED" -eq 1 ]; then
   info "Release pinned by --tag: $TAG"
+elif [ "$ADOPTED_INSTALLED_CUDA" -eq 1 ]; then
+  # Not "pinned by --tag" -- nobody typed --tag on this run. Saying so would put
+  # a flag the operator never gave into the one line they would quote back when
+  # asked how the release was chosen (rule 3: the tag is a condition, and a
+  # condition needs its true provenance). The API is not consulted at all here:
+  # a newer release would be a vulkan install on this box, which is precisely
+  # what adopting exists to avoid.
+  info "Release taken from the adopted build: $TAG (bin/llama.cpp/VERSION.txt; the GitHub API is not consulted)."
 elif [ "$DRY" = 1 ]; then
   TAG="<newest-bNNNNN>"; info "Would query the GitHub API for the newest bNNNNN release."
 else
@@ -1290,12 +1358,44 @@ if [ "$DO_VENV" = 1 ]; then setup_venv; else info "Skipping the .venv step (--no
 echo ""
 info "Done."
 echo "  Release  : $TAG"
-if [ "$BUILT" = true ] && [ "$FLAVOR" = "cuda" ]; then
-  echo "  Flavor   : $FLAVOR  (built from source, CMAKE_CUDA_ARCHITECTURES=$CUDA_ARCH [$CUDA_ARCH_SOURCE], commit ${SOURCE_COMMIT:-?}, ${BUILD_SECONDS}s)"
-  echo "  Tools    : ${TOOLS_BUILT:-none}${TOOLS_MISSING:+   (not built: $TOOLS_MISSING)}"
-elif [ "$BUILT" = true ]; then
-  echo "  Flavor   : $FLAVOR  (built from source, commit ${SOURCE_COMMIT:-?}, ${BUILD_SECONDS}s)"
-  echo "  Tools    : ${TOOLS_BUILT:-none}${TOOLS_MISSING:+   (not built: $TOOLS_MISSING)}"
+# The provenance line is read off the RECORD, not off this run's BUILT.
+# MEASURED 2026-08-31 on this box: `./scripts/setup.sh --cuda` re-run with
+# b10717/cuda already installed takes section 6's skip, so BUILT is still false
+# at this point and this block fell through to its last branch and printed
+#     Flavor   : cuda  (official binary release)
+# for a build compiled from source here twenty minutes earlier -- and this
+# script's own header records that there ARE no official Linux CUDA binaries
+# (checked b10582, any arch). So the summary named a thing that does not exist,
+# and named it as the provenance of a CUDA build: the exact false claim section
+# 4 exits 3 to prevent, printed by the script that refuses it. The Tools line
+# and the CMAKE_CUDA_ARCHITECTURES / commit / seconds line vanished with it.
+# INSTALL.json was right the whole time -- the carry-forward block above holds
+# the true values -- but the terminal is what an operator or an agent reads
+# before writing campaign.md's conditions block, and a condition copied from a
+# lying summary is not recoverable later (rule 3, rule 28).
+# So: drive it off J_BUILT / J_CUDA_ARCH / J_SOURCE_COMMIT / J_BUILD_SECONDS /
+# J_TOOLS, which are this run's values on an install and the recorded ones on a
+# skip. They are JSON literals, hence the unquoting; a field the record does not
+# carry prints as "?" rather than being guessed at.
+unjson() {
+  local v="${1-}"
+  case "$v" in
+    null|'') printf '' ;;
+    '"'*'"') v="${v#\"}"; printf '%s' "${v%\"}" ;;
+    *)       printf '%s' "$v" ;;
+  esac
+}
+S_CUDA_ARCH="$(unjson "$J_CUDA_ARCH")"
+S_CUDA_ARCH_SOURCE="$(unjson "$J_CUDA_ARCH_SOURCE")"
+S_COMMIT="$(unjson "$J_SOURCE_COMMIT")"
+S_SECONDS="$(unjson "$J_BUILD_SECONDS")"
+S_TOOLS="$(printf '%s' "$J_TOOLS" | sed 's/[]["]//g; s/, */ /g')"
+if [ "$J_BUILT" = true ] && [ "$FLAVOR" = "cuda" ]; then
+  echo "  Flavor   : $FLAVOR  (built from source, CMAKE_CUDA_ARCHITECTURES=${S_CUDA_ARCH:-?} [${S_CUDA_ARCH_SOURCE:-?}], commit ${S_COMMIT:-?}, ${S_SECONDS:-?}s)"
+  echo "  Tools    : ${S_TOOLS:-none}${TOOLS_MISSING:+   (not built: $TOOLS_MISSING)}"
+elif [ "$J_BUILT" = true ]; then
+  echo "  Flavor   : $FLAVOR  (built from source, commit ${S_COMMIT:-?}, ${S_SECONDS:-?}s)"
+  echo "  Tools    : ${S_TOOLS:-none}${TOOLS_MISSING:+   (not built: $TOOLS_MISSING)}"
 else
   echo "  Flavor   : $FLAVOR  (official binary release)"
 fi

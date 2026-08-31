@@ -122,6 +122,7 @@ import argparse
 import os
 import subprocess
 import sys
+import threading
 import time
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -204,16 +205,78 @@ CHECKS = (
 )
 
 
+def _tee_stderr(stream, keep):
+    """Echo the child's stderr line by line as it arrives, and keep a copy.
+
+    Run on a thread so nothing is held back: the operator watching a 900 s
+    check sees each line the moment the child writes it, and run_check still
+    has the text afterwards to classify the exit by.
+    """
+    for line in iter(stream.readline, ""):
+        sys.stderr.write(line)
+        sys.stderr.flush()
+        keep.append(line)
+
+
 def run_check(name, rel, extra, timeout, verbose):
-    """(ok, seconds, exit code, output). Never raises."""
+    """(ok, seconds, exit code, output). Never raises.
+
+    `output` is what main()'s skip filter reads to tell an absent dependency
+    from a defect, so it has to carry the child's diagnostics in BOTH modes.
+    """
     cmd = [sys.executable, os.path.join(REPO, *rel.split("/"))] + list(extra)
     t0 = time.time()
     try:
         if verbose:
             # Straight to the terminal, unbuffered, so a long check can be
             # watched rather than waited on.
-            rc = subprocess.call(cmd, cwd=REPO, timeout=timeout)
-            return rc == 0, time.time() - t0, rc, ""
+            #
+            # Until 2026-08-31 this branch returned out="" and threw the
+            # child's diagnostics away. Measured that day on this Ubuntu box,
+            # same absent matplotlib both times: `--only ladder-png` printed
+            # "1 skipped for a missing dependency (ladder-png)" and exited 0,
+            # while `--only ladder-png --verbose` printed "1 of 1 FAILED" and
+            # exited 1 -- because _missing_module("") is None, so the row could
+            # never be classified as SKIPPED and voted as a failure instead.
+            # That is the outcome _missing_module's own docstring says must not
+            # happen, reached through the flag an operator reaches for when the
+            # box is slow, in the lane AGENTS.md makes the gate before any GPU
+            # time.
+            #
+            # So: STDOUT still goes straight to the terminal, inherited, never
+            # a pipe -- a Python child block-buffers a pipe and its output
+            # would arrive in lumps at the end, which is the one thing
+            # --verbose exists to prevent; answering this defect by capturing
+            # everything would fix the verdict by breaking the flag. Only
+            # stderr is piped, and it is TEED rather than captured: echoed as
+            # it arrives (Python line-buffers stderr even into a pipe, and
+            # detect-machine.py:2819 deliberately puts progress there) and kept
+            # as well. An import that kills a check writes its traceback to
+            # stderr, which is the line the classifier needs, and it is the
+            # same text the non-verbose branch already classifies by -- that
+            # one appends stderr last and _missing_module reads only the last
+            # line -- so the two modes now reach the same verdict by the same
+            # evidence.
+            keep = []
+            with subprocess.Popen(cmd, cwd=REPO, stderr=subprocess.PIPE,
+                                  text=True, errors="replace") as p:
+                pump = threading.Thread(target=_tee_stderr,
+                                        args=(p.stderr, keep))
+                pump.start()
+                try:
+                    rc = p.wait(timeout=timeout)
+                except BaseException:
+                    # What subprocess.call did on timeout, kept: kill the child
+                    # rather than leave it running behind a runner that has
+                    # stopped waiting for it. Join the pump before the `with`
+                    # closes the pipe it is still reading, then re-raise into
+                    # the TimeoutExpired handler below.
+                    p.kill()
+                    p.wait()
+                    pump.join()
+                    raise
+                pump.join()
+            return rc == 0, time.time() - t0, rc, "".join(keep)
         p = subprocess.run(cmd, cwd=REPO, capture_output=True, text=True,
                            errors="replace", timeout=timeout)
         return (p.returncode == 0, time.time() - t0, p.returncode,
@@ -320,13 +383,27 @@ def main():
                   % (len(chosen) - len(results)))
             break
 
-    # A check that died importing something never ran, so it found nothing.
-    # Counting it as a failure would make this gate permanently red on exactly
-    # the machine it exists for: a borrowed box that collects and never
-    # publishes. It is reported loudly and separately, and it does not vote.
+    # A check that died importing one of the PUBLISHING three never ran, so it
+    # found nothing. Counting it as a failure would make this gate permanently
+    # red on exactly the machine it exists for: a borrowed box that collects
+    # and never publishes. It is reported loudly and separately, and it does
+    # not vote.
+    #
+    # PUBLISH_PKGS AND NOTHING ELSE. Until 2026-08-31 the test here was "names
+    # a module, and that module is not in MIN_PKGS", which downgraded EVERY
+    # other absent import to a non-voting SKIP. Measured that day on this box:
+    # a synthetic "No module named openvino_quant" -- a broken import inside
+    # this repository -- and "No module named distutils" -- a stdlib module
+    # deleted in 3.12, and the interpreter here is 3.14, two releases past the
+    # 3.11 this lane was timed on -- both classified as skipped, both with a
+    # None install hint, so the report said "a dependency this box does not
+    # have. Not a defect" about a defect and printed no command that could
+    # ever fix it. Those are the failures this gate exists to catch. The three
+    # names the paragraph above is actually about are PUBLISH_PKGS; a missing
+    # requests or Pillow means setup never ran at all and has always voted;
+    # anything else votes as the failure it is.
     skipped = [r for r in results
-               if not r[2] and _missing_module(r[5]) and
-               _missing_module(r[5]) not in MIN_PKGS]
+               if not r[2] and _missing_module(r[5]) in PUBLISH_PKGS]
     skipped_names = set(r[0] for r in skipped)
     failed = [r for r in results if not r[2] and r[0] not in skipped_names]
 
@@ -348,7 +425,7 @@ def main():
             print("-" * 78)
             print("FAILED  %s  (exit %s, %.1f s)" % (name, rc, secs))
             missing = _missing_module(out)
-            if missing:
+            if missing and _installs(missing):
                 # The line below is the one place this tool could confidently
                 # mislead. Every `why` in CHECKS describes a DEFECT, and on a
                 # tree that has not run setup the cause is not a defect at all
@@ -356,11 +433,24 @@ def main():
                 # sends a reader after a bug that is not there, on their first
                 # command after a clone, which is the exact failure this
                 # checker exists to prevent.
+                #
+                # `and _installs(missing)` since 2026-08-31, for the mirror
+                # image of that mistake: a module NEITHER requirements file
+                # ships -- an import broken inside this repository, or a stdlib
+                # module a newer Python removed -- is not an environment and
+                # setup.sh will never supply it, so telling a reader to run
+                # setup is the same confident misdirection pointed the other
+                # way. Only a name _installs() has a command for gets the
+                # environment story; the rest get theirs.
                 print("what it means: NOT A DEFECT, an environment: this box "
                       "has no %s. The check never ran." % missing)
                 print("the fix:       %s   (then re-run this)" % SETUP_HINT)
             else:
                 print("what it means: %s" % why)
+                if missing:
+                    print("               it died importing %s, which neither "
+                          "requirements file installs - that import is the "
+                          "finding, not this box." % missing)
             print("re-run it alone: python %s" % rel)
             print("-" * 78)
             for line in _head_and_tail(out, a.lines):

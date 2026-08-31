@@ -153,8 +153,16 @@ ambiguity is gone.
 - **exit 3, "--cuda needs the CUDA toolkit, and nvcc is not on PATH"** — step 3 has not run, or
   CUDA lives somewhere unusual: `CUDA_HOME=/usr/local/cuda ./scripts/setup.sh --cuda`.
 - **exit 3, "--cuda needs cmake" / "--cuda needs git"** — the same apt line covers both.
-- **exit 4, "cmake configure failed"** — retry with `./scripts/setup.sh --cuda --cuda-arch 121`;
-  `native` is the default and DGX Spark GB10 is the known case where it is not supported.
+- **exit 4, "cmake configure failed"** — `native` is the default, and this is what it looks like
+  when this nvcc cannot resolve the card, so name the architecture instead. There are exactly two
+  cases, and they are the two `setup.sh` itself prints. On a **DGX Spark GB10**:
+  `./scripts/setup.sh --cuda --cuda-arch 121a-real`, and nothing else — a bare `121` is refused
+  there with **exit 3**, as are `120`, `120f` and `native`, because all of them build, run, and
+  quietly lose MMVQ_PARAMETERS_GB10. **Everywhere else**, name an architecture *this* nvcc knows:
+  on the reference RTX 3090 (compute capability 8.6) that is `--cuda-arch 86`. Never a bare `121`
+  on any machine. Measured 2026-08-31, Ubuntu 26.04.1 with the apt toolkit's nvcc 12.4.131:
+  `nvcc --list-gpu-arch` stops at `compute_90`, and the configure that flag produces dies with
+  `nvcc fatal : Unsupported gpu architecture 'compute_121'` — the identical exit 4, one error worse.
 - **exit 5** — a frozen input no longer matches its committed bytes, which on Windows is almost
   always CRLF rewriting. It matters because two reports only compare when their suite hashes
   match. Fix the checkout, or proceed knowingly with `MEASURED_INFERENCE_ALLOW_CRLF=1`.

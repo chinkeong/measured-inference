@@ -38,9 +38,12 @@
 #     numbers were taken at 500 ms; a phase split is only as fine as its
 #     samples.
 #   * The sidecar <csv>.logger.json and the <csv>.stderr.log beside it: same
-#     names, same places, and the .ps1's nine keys under the same spellings, so
+#     names, same places, and the .ps1's ten keys under the same spellings, so
 #     either platform's stop can read the other's record. The keys are a
-#     SUPERSET, not a match - the next section but one says which and why.
+#     SUPERSET, not a match - the next section but one says which and why - and
+#     on both platforms the sidecar now OUTLIVES the logger it records: stop
+#     RETIRES it, it does not delete it. Two sections down says why rule 28
+#     requires that and why nothing here can be misled by it.
 #   * The refusals: a logger already writing that CSV, or an existing non-empty
 #     CSV, stops a start dead unless --force. Two loggers on one CSV is
 #     corruption, not redundancy.
@@ -66,10 +69,13 @@
 # together or the divergence is permanent.
 #
 # THE SIDECAR IS A SUPERSET, NOT A MATCH
-# sample-power.ps1 writes nine keys: pid, csv, mode, interval_ms, query,
-# started_iso, started_by, tier, verified. This file writes those nine under
-# the same spellings and seven more, so a .ps1 stop reading this record finds
-# every key it looks for. The seven, and what each is for:
+# sample-power.ps1 writes ten keys: pid, csv, mode, interval_ms, query,
+# started_iso, started_by, tier, verified, running. This file writes those ten
+# under the same spellings and seven more - SEVENTEEN at start, eighteen once
+# stop appends stopped_iso - so a .ps1 stop reading this record finds every key
+# it looks for. It was nine and sixteen until 2026-08-31, when `running` was
+# added to both files as the lifecycle flag the next section exists to explain.
+# The seven, and what each is for:
 #   gpu_index, gpu_name, driver_version, enforced_power_limit_w
 #     rule 3 conditions that move the watts and that the CSV rows do not carry.
 #     enforced_power_limit_w above all: a log taken under `nvidia-smi -pl 280`
@@ -83,9 +89,46 @@
 #   stderr_log
 #     where nvidia-smi's own complaints went. The .ps1 holds that path in a
 #     variable; here it has to outlive the shell that started the logger.
-# Read the other way round, a .sh stop given a .ps1 sidecar gets nine keys of
-# sixteen and must treat the rest as absent - which it does: "pid" is the only
-# key ever read back, and only to report it, never to act on it.
+# Read the other way round, a .sh stop given a .ps1 sidecar gets ten keys of
+# seventeen and must treat the rest as absent - which it does: "pid" and
+# "running" are the only keys ever read back, and only to report them, never to
+# act on them. A record written before 2026-08-31 carries no "running" at all,
+# and absent is read here as "no lifecycle was ever recorded", never as stopped.
+#
+# THE SIDECAR IS RETIRED, NOT DELETED (rule 28)
+# stop used to `rm` this file the moment it had killed something, on the
+# reasoning that it is the lock of a RUNNING logger and a lock outlives
+# nothing. That is true of the one key stop ever looked at and false of the
+# whole rest of the file: enforced_power_limit_w, gpu_name, driver_version,
+# gpu_index, euid, elevated, interval_ms, query and stderr_log are rule 3
+# conditions of the run, the CSV rows carry not one of them, and rule 28 says a
+# field not written down during the run cannot be recovered at any price. These
+# WERE written down, during the run, at the only moment they could be read -
+# and then destroyed at the exact moment the CSV became an artefact. Measured
+# on this box 2026-08-31: start, wait, stop left a 43-row CSV and no sidecar,
+# i.e. a file of watts indistinguishable from the same board logged under
+# `nvidia-smi -pl 280`.
+# A successful stop therefore REWRITES the record now: every key it already
+# carried, "running" flipped to false, and a "stopped_iso" appended. Three
+# properties of that, each deliberate:
+#   * A FAILED kill retires nothing. The logger is still running and the record
+#     must go on saying so - the same reason the old code deleted only after a
+#     kill it had confirmed.
+#   * A new start on that CSV overwrites the retired record whole (write_sidecar
+#     truncates), so records do not accumulate and a retired one never survives
+#     under a live logger. start's own refusals are untouched: they read live
+#     loggers out of /proc and the CSV's size, never this file, so a retired
+#     sidecar cannot refuse a start that would otherwise have been allowed.
+#   * The rewrite drops any existing running / stopped_iso line before appending
+#     the pair, so retiring an already-retired record - a hand-started logger
+#     ended on a CSV that has one - writes one pair rather than two.
+# WHY A RECORD THAT OUTLIVES ITS LOGGER IS SAFE, WHICH IS NOT FREE ON WINDOWS:
+# loggers_for_csv() resolves every target from /proc at the instant of asking
+# and never opens this file, so on POSIX a retired sidecar cannot become a
+# wrong kill however stale it gets - that is the whole of the argument here.
+# sample-power.ps1's route 2 DOES read the sidecar to recover a pid, so it now
+# skips any record whose "running" is false; a record without the key is read
+# as live there, which is what every sidecar written before 2026-08-31 is.
 #
 # THE TIER - WHAT IS NOT IN THIS NUMBER (rule 24)
 # In-band GPU board power (NVML, through nvidia-smi): the graphics board - die,
@@ -158,7 +201,13 @@
 #     `stop --pid <n>` that would act on it. The campaign cost of the old
 #     behaviour, which is why it is written down here: a stop aimed at a
 #     finished phase ended the live campaign logger, and every sweep after it
-#     recorded power_logging: false.
+#     recorded power_logging: false. Since 2026-08-31 a stopped logger's
+#     sidecar is RETIRED rather than deleted, so a record naming a dead pid is
+#     the NORMAL end state here and no longer a leftover. That costs this
+#     script nothing precisely because the pid in it is never a target; what
+#     changed is how sidecar_note() reads one out - a retired record says so,
+#     and a record still claiming "running": true whose pid is gone says the
+#     logger died without a stop.
 #   * DELIBERATE DIFFERENCE FROM THE .ps1, stated here because the .ps1 states
 #     the opposite: on Windows a logger started by hand with shell redirection
 #     is invisible to -Stop, because nothing outside the process knows where
@@ -220,6 +269,10 @@ VERBS
   start   launch the detached logger (needs --csv). Survives this shell.
   stop    end the logger writing a CSV (--csv) or one exact pid (--pid).
           Never by process name; the target is verified over /proc first.
+          On success --csv RETIRES that CSV's sidecar - "running": false plus
+          a "stopped_iso" - instead of deleting it, so the conditions the rows
+          do not carry (cap, board, driver, euid, interval, query) stay beside
+          the CSV for whoever integrates it later (rule 28).
   list    show every nvidia-smi telemetry loop on this box. Kills nothing.
 
 OPTIONS
@@ -397,6 +450,23 @@ sidecar_pid() {
     sed -n 's/.*"pid"[[:space:]]*:[[:space:]]*\([0-9]\{1,\}\).*/\1/p' "$side" | head -1
 }
 
+# The lifecycle flag, read back as the literal true or false - or EMPTY, which
+# is a third answer and not a synonym for false: a sidecar written before
+# 2026-08-31, on either platform, records no lifecycle at all, and reading
+# absent as stopped would print "already retired" over a logger still filling
+# the CSV. Read by sidecar_note() to report, and by nothing that signals.
+sidecar_running() {
+    local side="$1"
+    [ -f "$side" ] || return 0
+    sed -n 's/.*"running"[[:space:]]*:[[:space:]]*\([a-z]\{4,5\}\).*/\1/p' "$side" | head -1
+}
+
+sidecar_stopped_iso() {
+    local side="$1"
+    [ -f "$side" ] || return 0
+    sed -n 's/.*"stopped_iso"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$side" | head -1
+}
+
 # Every logger writing this exact CSV, one "<pid> <via>" per line. Selection is
 # by PATH and by nothing else: for each live query loop the kernel is asked,
 # now, where that process's samples are going, and only an exact match is
@@ -479,6 +549,12 @@ write_sidecar() {
         printf '  "started_by": "%s on %s",\n' "$SCRIPTNAME" "$(uname -n)"
         printf '  "tier": "in-band GPU board power (NVML); PSU/wall/PUE excluded",\n'
         printf '  "verified": %s,\n' "$verified"
+        # The tenth key the .ps1 also writes, and the one stop rewrites: the
+        # lifecycle is recorded at BOTH ends of the run now, true here and
+        # false in a stopped_iso-bearing record once stop retires this file
+        # instead of deleting it (rule 28 - the conditions in the keys below
+        # are unrecoverable the moment the file is gone).
+        printf '  "running": true,\n'
         printf '  "gpu_index": %s,\n' "$(json_str_or_null "$INDEX")"
         printf '  "gpu_name": %s,\n' "$(json_str_or_null "$gpu")"
         printf '  "driver_version": %s,\n' "$(json_str_or_null "$driver")"
@@ -488,6 +564,73 @@ write_sidecar() {
         printf '  "stderr_log": "%s"\n' "$(json_esc "$err")"
         printf '}\n'
     } > "$side"
+}
+
+# write_sidecar's counterpart at the other end of the run - see THE SIDECAR IS
+# RETIRED, NOT DELETED above for why a stop rewrites this file instead of
+# removing it. The transform is TEXTUAL, and that is the design rather than
+# laziness: the keys it must preserve are the rule 3 conditions read off the
+# driver at start, this shell never had them and there is no JSON parser in
+# this file to round-trip them through, so copying byte for byte the lines it
+# does not understand is the only way a key it has never heard of - a .ps1
+# record's, or a later version's - survives the rewrite intact.
+# Written to a temporary and moved into place because awk reading the file it
+# is truncating would leave a zero-byte record, which is the exact loss this
+# whole change exists to prevent. On any refusal - an unparseable record, an
+# unwritable directory - the original is left standing untouched and the caller
+# says so: a stale "running": true is a wrong sentence, an absent file is a
+# lost measurement, and only one of those is recoverable by reading it.
+retire_sidecar() {
+    local side="$1" tmp rc
+    [ -f "$side" ] || return 1
+    tmp="$side.retiring.$$"
+    awk -v stopped="$(date +%Y-%m-%dT%H:%M:%S.%3N)" '
+        # CR is stripped on the way in and put back on the way out, and the
+        # two new keys take the indentation of the last key line. Not tidiness:
+        # sample-power.ps1 writes this file through PowerShell Out-File, so a
+        # record arriving from Windows has CRLF endings, a UTF-8 BOM on its
+        # first line and four-space indentation, and matching /}$/ against a
+        # line ending in CR silently matched nothing. Measured 2026-08-31 with
+        # a hand-written .ps1-shape record: the transform refused, printed the
+        # WARN below and left the file untouched - safe, but a record the
+        # header promises either platform can read is one this one could not
+        # rewrite. Line endings are data in this repo (.gitattributes), so the
+        # file goes back the way it came.
+        {
+            s = $0
+            if (sub(/\r$/, "", s)) crlf = 1
+            # Any lifecycle already in the record is dropped here and reappended
+            # below, so retiring twice writes one pair of keys and not two.
+            if (s ~ /^[ \t]*"(running|stopped_iso)"[ \t]*:/) next
+            line[++n] = s
+        }
+        END {
+            if (n < 2) exit 1
+            for (i = n; i >= 1; i--) if (line[i] ~ /^[ \t]*}[ \t]*$/) { close_at = i; break }
+            if (close_at < 2) exit 1
+            eol = crlf ? "\r" : ""
+            ind = line[close_at - 1]; sub(/[^ \t].*$/, "", ind)
+            if (ind == "") ind = "  "
+            for (i = 1; i < close_at; i++) {
+                s = line[i]
+                # The last key line loses its status as last and gains a comma -
+                # unless everything between it and the brace was lifecycle keys
+                # and it is the opening brace itself, which takes no comma.
+                if (i == close_at - 1 && s !~ /\{[ \t]*$/) sub(/[ \t]*,?[ \t]*$/, ",", s)
+                print s eol
+            }
+            print ind "\"running\": false," eol
+            printf "%s\"stopped_iso\": \"%s\"%s\n", ind, stopped, eol
+            for (i = close_at; i <= n; i++) print line[i] eol
+        }
+    ' "$side" > "$tmp" 2>/dev/null
+    rc=$?
+    if [ "$rc" -ne 0 ] || [ ! -s "$tmp" ]; then
+        rm -f -- "$tmp" 2>/dev/null
+        return 1
+    fi
+    mv -f -- "$tmp" "$side" 2>/dev/null || { rm -f -- "$tmp" 2>/dev/null; return 1; }
+    return 0
 }
 
 # TERM, then KILL after 2 s. TERM lets the sampler close its own file, and it
@@ -674,19 +817,42 @@ start_logger() {
 # half - it is how an operator learns the logger already ended, or that the
 # record is stale, without this script guessing on their behalf.
 sidecar_note() {
-    local side spid d
+    local side spid d running stopped
     side=$(sidecar_path "$1")
     [ -f "$side" ] || return 0
     spid=$(sidecar_pid "$side")
+    running=$(sidecar_running "$side")
+    stopped=$(sidecar_stopped_iso "$side")
     say ""
     say "      A sidecar is beside that path: $side"
+    # Asked before the pid, because a retired record's pid is history: whatever
+    # holds that number now, this file is not a claim about it.
+    if [ "$running" = 'false' ]; then
+        say "      It is a RETIRED record - \"running\": false, stopped ${stopped:-at an unrecorded time}."
+        say "      Its logger was ended by a stop that confirmed the kill, so finding nothing"
+        say "      to stop here is the expected answer and not a lost logger. The file is kept"
+        say "      deliberately: it is the only place this CSV's conditions are written - the"
+        say "      enforced cap at start, board, driver, gpu_index, euid, interval, query - and"
+        say "      rule 28 says none of them can be recovered once it is gone. Keep the two"
+        say "      files together; a start on this CSV would overwrite this record."
+        return 0
+    fi
     if [ -z "$spid" ]; then
         say "      It records no pid, so it names nothing to stop."
         return 0
     fi
     if ! pid_alive "$spid"; then
-        say "      It records pid $spid, which is not running: that logger has already"
-        say "      ended and the record outlived it. The CSV, if any, is complete."
+        if [ "$running" = 'true' ]; then
+            say "      It records pid $spid as still RUNNING and that pid is not alive: the"
+            say "      logger ended WITHOUT a stop - killed by hand, crashed, or the box"
+            say "      rebooted - so no stopped_iso was ever written and the CSV ends wherever"
+            say "      the samples end. The conditions in this record still apply to those rows."
+        else
+            say "      It records pid $spid, which is not running: that logger has already"
+            say "      ended and the record outlived it. The CSV, if any, is complete."
+            say "      (No \"running\" key: written before 2026-08-31, by either script, when a"
+            say "      stop deleted this file rather than retiring it.)"
+        fi
         return 0
     fi
     if ! is_loop "$spid"; then
@@ -740,14 +906,34 @@ stop_by_csv() {
     done <<EOF
 $hits
 EOF
-    # The sidecar is the record of a RUNNING logger, so it goes only when one
-    # actually stopped. Deleting it after a failed kill would hide the live
-    # logger from the next stop - and unelevated, deleting a root-owned sidecar
-    # fails anyway; that EPERM is not news to anyone and is not printed.
+    # RETIRED, NOT DELETED - the header section of that name carries the
+    # reasoning and the 2026-08-31 measurement. In one line: this file used to
+    # be removed here, and it is the only place the CSV's rule 3 conditions are
+    # written, so the run destroyed its own record of the enforced cap, the
+    # board and the driver at the moment the CSV became an artefact (rule 28).
+    # Retiring only after a kill this loop CONFIRMED is unchanged and is still
+    # the point: a logger that survived the kill is still running, and its
+    # record has to go on saying so for the next stop to read.
     if [ "$n" -gt 0 ]; then
         side=$(sidecar_path "$csv")
-        [ -f "$side" ] && rm -f -- "$side" 2>/dev/null
         say "OK    stopped $n logger(s); CSV left in place: $csv"
+        if [ -f "$side" ]; then
+            if retire_sidecar "$side"; then
+                say "      sidecar retired, not deleted: $side"
+                say "      It now reads \"running\": false with a \"stopped_iso\", and it still"
+                say "      carries the conditions the CSV rows cannot - keep the two together."
+            else
+                # Not silent, unlike the old rm's EPERM: the record survived
+                # and its conditions are readable, which is the half that
+                # matters, but nothing in it now marks a logger this command
+                # just ended as ended - and only a reader who is told that can
+                # discount what it says about the run being live.
+                say "WARN  could not retire the sidecar $side - it is unchanged, so"
+                say "      nothing in it marks this logger as stopped. Its conditions are intact"
+                say "      and readable; only its lifecycle is now stale."
+                [ "$EUID_NOW" -ne 0 ] && say "      A sidecar left by an elevated start is root-owned; rerun under sudo."
+            fi
+        fi
         exit 0
     fi
     say "FAILED  found the logger(s) writing $csv and ended none of them."

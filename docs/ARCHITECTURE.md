@@ -75,7 +75,7 @@ An agent should not read the whole repository to do one small job.
 
 ```mermaid
 flowchart TD
-  T0["Tier 0 - AGENTS.md, the router\nalways loaded, 111 lines (cap 120)\nidentity + 26 invariants + routing table"]
+  T0["Tier 0 - AGENTS.md, the router\nalways loaded, 120 lines (cap 120)\nidentity + 31 invariants + routing table"]
   T0 -->|"starting or resuming a campaign"| T1["Tier 1 - SKILL.md map\n+ METHODOLOGY.md"]
   T0 -->|"executing stage N"| T2["Tier 2 - stages/stage-N.md\nonly your stage"]
   T0 -->|"a probe or number looks wrong"| T3["Tier 3 - reference/\nfailure-library.md, platform-notes.md\ngrep by symptom, never read whole"]
@@ -88,7 +88,10 @@ line), **laws compress, procedures don't** (each rule is a Tier-0 one-liner
 ending in its rule number), and **orchestrators inject** (a subagent's prompt
 carries the rules and numbers its task needs; it does not excavate the
 corpus). Measured effect: orchestrator boot −57%, stage-executing subagent
-−92% (~824 tokens for Stage 3).
+−92% (~824 tokens for Stage 3). Those three were measured on 2026-08-23,
+against the Tier 0 of that day — 111 lines, 26 invariants — and nothing has
+re-measured them since. Tier 0 now sits at its 120-line cap with 31, so they
+are the ratio the tiering bought, not a token count of the file above them.
 
 ## Reproducibility: frozen inputs, offline first
 

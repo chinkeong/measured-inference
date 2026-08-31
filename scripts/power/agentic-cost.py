@@ -102,8 +102,20 @@ def exercises(run):
     """Every finished exercise with tokens, ordered by completion time."""
     cmd = ("find ~/bench/aider/tmp.benchmarks/" + run +
            " -name .aider.results.json -printf '%T@ %p\\n' 2>/dev/null")
-    o = subprocess.run(["wsl", "-e", "bash", "-lc", cmd],
-                       capture_output=True, text=True, timeout=300).stdout
+    # The command body is ordinary POSIX - aider-bench.sh sets
+    # AIDER_DIR=$HOME/bench/aider - and `wsl -e bash -lc` is how a WINDOWS
+    # Python reaches the Linux filesystem the benchmark writes into. It is the
+    # right route there and a hard dependency that exists nowhere else:
+    # measured 2026-08-31 on bare-metal Ubuntu 26.04, this line raised
+    # "FileNotFoundError: [Errno 2] No such file or directory: 'wsl'" and this
+    # script could not produce a single joules-per-token figure for the agentic
+    # bucket - a rule 24 number (energy is measured or it is absent) that was
+    # measured, written down and then unreadable for want of a launcher. On a
+    # POSIX host bash runs the same body directly; Windows keeps the wsl route.
+    argv = (["wsl", "-e", "bash", "-lc", cmd] if os.name == "nt"
+            else ["bash", "-lc", cmd])
+    o = subprocess.run(argv, capture_output=True, text=True,
+                       timeout=300).stdout
     items = []
     for ln in o.strip().splitlines():
         if not ln.strip():
@@ -113,7 +125,10 @@ def exercises(run):
     items.sort()
     out = []
     for mt, path in items:
-        cat = subprocess.run(["wsl", "-e", "bash", "-lc", "cat " + json.dumps(path)],
+        # Same POSIX/WSL split as the listing above, for the same reason.
+        cat_cmd = "cat " + json.dumps(path)
+        cat = subprocess.run((["wsl", "-e", "bash", "-lc", cat_cmd]
+                              if os.name == "nt" else ["bash", "-lc", cat_cmd]),
                              capture_output=True, text=True, timeout=60).stdout
         try:
             r = json.loads(cat)

@@ -37,6 +37,33 @@ if os.path.dirname(_HERE) not in sys.path:
     sys.path.insert(0, os.path.dirname(_HERE))
 import archdata as A                                    # noqa: E402
 
+# NumPy 2.0 RENAMED np.trapz to np.trapezoid and DELETED the old spelling.
+# requirements.txt asks for `numpy>=1.24` with no upper bound, and on this box
+# that resolves to numpy 2.5.2 and to nothing else: no numpy 1.x publishes a
+# cp314 wheel, so Python 3.14 cannot install a version that still has np.trapz.
+# Measured 2026-08-31, Ubuntu 26.04.1 / python 3.14.4 / numpy 2.5.2 -
+# `np.trapz([1.,2.],[0.,1.])` raises AttributeError, `hasattr(np,"trapezoid")`
+# is True. The author's own venv predated the rename, so PANEL 3's two
+# integrated byte totals were computed there and have been uncomputable on
+# every fresh install since.
+#
+# It failed INVISIBLY, which is the part that matters. make()'s "never take a
+# run down" except at the foot of this file caught the AttributeError, so
+# build-report.py printed "[ ok ] capacity 1 figure(s)", counted 0 failures,
+# and published a report from which capacity-null-interconnect.png was simply
+# absent - not even listed under "Figures that could not be built", because
+# nothing had raised as far as the driver could see. A reader got a shorter
+# report that read exactly like a complete one, which is rule 2 broken by an
+# import: no reader may ever measure less than the report promised them.
+#
+# Bind the name once, here, rather than pinning numpy<2 in requirements.txt.
+# That pin is unsatisfiable on cp314 and would convert one missing figure into
+# a failed install and a setup.sh that exits non-zero on this machine. The
+# getattr order also keeps the Windows reference platform byte-identical: an
+# older numpy 1.x venv has no `trapezoid`, falls through to `np.trapz`, and
+# calls exactly the function it called before.
+_trapz = getattr(np, "trapezoid", None) or np.trapz
+
 TITLE = "Capacity is the constraint; the interconnect is not"
 
 # ---------------------------------------------------------------- constants
@@ -583,8 +610,8 @@ def _null_paths(ctx, outdir, t0, meta=None):
         if ok.sum() > 2 and disk[ok].std() > 0 and pin_g[ok].std() > 0:
             r = float(np.corrcoef(disk[ok], pin_g[ok])[0, 1])
         secs = tm * 60.0
-        tot_d = float(np.trapz(disk, secs)) if len(secs) > 1 else float("nan")
-        tot_p = (float(np.trapz(pin_g[ok], secs[ok]))
+        tot_d = float(_trapz(disk, secs)) if len(secs) > 1 else float("nan")
+        tot_p = (float(_trapz(pin_g[ok], secs[ok]))
                  if ok.sum() > 2 else float("nan"))
         share = (100.0 * tot_p / tot_d
                  if np.isfinite(tot_d) and tot_d > 0 else float("nan"))

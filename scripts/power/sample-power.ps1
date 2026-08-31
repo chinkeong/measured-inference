@@ -16,14 +16,43 @@
         it verifies, over WMI/CIM, that the target really is an nvidia-smi
         telemetry loop before touching it.
       * A logger is selected by the CSV path it writes. -Start puts that path
-        into nvidia-smi's own command line (-f) AND drops a sidecar lock file
+        into nvidia-smi's own command line (-f) AND drops a sidecar
         (<csv>.logger.json) recording the pid. -Stop matches on those two, in
-        that order.
+        that order - and on the sidecar only while it still says running=true.
       * Consequence, stated plainly: a logger somebody started by hand with
         shell redirection (`nvidia-smi ... > foo.csv`) carries NO path in its
         command line and has no sidecar, so -Stop can never find it and can
         never kill it, whatever CSV path you pass. Use -List to see its pid and
         -Stop -ProcessId <pid> to end it deliberately.
+
+    THE SIDECAR IS RETIRED, NOT DELETED (rule 28; changed 2026-08-31):
+      -Stop used to Remove-Item this file the moment it had killed something,
+      on the reasoning that it is the lock of a running logger. It is a lock,
+      but it is mostly a RECORD: mode, interval_ms, query, tier and
+      started_iso are conditions of the run (rule 3) that the CSV rows do not
+      carry, and its POSIX twin sample-power.sh writes seven more into the
+      same file - enforced_power_limit_w above all, the board cap in force
+      when the log began, which silently rescales every watt in the CSV and
+      cannot be read back out of it. Rule 28: a field not written down during
+      the run cannot be recovered at any price. This one WAS written down, and
+      was then destroyed at the exact moment the CSV became an artefact -
+      measured with the POSIX twin on this repo's Ubuntu box on 2026-08-31,
+      where a start/stop cycle left a 43-row CSV and no sidecar at all.
+      -Stop now REWRITES the record instead: every key it already carried,
+      running=false, and a stopped_iso. Only after a kill it counted - a
+      logger that survived -Stop is still running, and its record has to go on
+      saying so or the retry cannot find it. Two consequences worth holding:
+        - a sidecar now outlives its logger BY DESIGN, so route 2 in
+          Find-LoggersForCsv skips any record whose running is false. Deleting
+          the file used to guarantee that for free; the guard buys it back,
+          and it matters because route 2 verifies only that the recorded pid
+          is an nvidia-smi loop NOW, never that it is writing THIS csv.
+        - a record with NO running key is every sidecar written before
+          2026-08-31, on either platform, and is read as live exactly as it
+          was before this change.
+      -Start's record gains that one key: nine keys, now ten, and eleven once
+      a stopped_iso joins it. sample-power.sh writes the same ten plus its
+      seven, so its record stays the superset this one can always read.
 
 .PARAMETER Csv
     Output CSV path. Required for -Start and for -Stop.
@@ -141,7 +170,22 @@ function Find-LoggersForCsv {
     if (Test-Path -LiteralPath $side) {
         $rec = $null
         try { $rec = Get-Content -LiteralPath $side -Raw -Encoding UTF8 | ConvertFrom-Json } catch { $rec = $null }
-        if ($null -ne $rec -and $rec.pid) {
+        # A RETIRED record is not a route (rule 28, 2026-08-31). -Stop no
+        # longer deletes this file, it rewrites it with running=false, so a
+        # sidecar outlives its logger by design now and the pid in a retired
+        # one is history. That pid is recycled sooner or later, the check
+        # below asks only whether it is an nvidia-smi query loop NOW and never
+        # whether it is writing THIS csv, and a match here is something -Stop
+        # kills: without this guard a finished phase's record could hand -Stop
+        # a live logger belonging to a different CSV. The POSIX twin was
+        # reproduced doing exactly that on 2026-08-30 and dropped this route
+        # entirely; Windows cannot, because for a -Start that fell back to
+        # redirection the sidecar is the only handle there is.
+        # A record with no running key - every sidecar written before
+        # 2026-08-31 - is not retired and is treated as live, exactly as it
+        # was before this change.
+        $retired = ($null -ne $rec) -and ($null -ne $rec.running) -and (-not $rec.running)
+        if ($null -ne $rec -and $rec.pid -and -not $retired) {
             $pidv = [int]$rec.pid
             $match = $all | Where-Object { $_.ProcessId -eq $pidv } | Select-Object -First 1
             if ($null -ne $match -and -not $hits.ContainsKey($pidv)) {
@@ -232,6 +276,14 @@ function Start-Logger {
         started_by   = "$($script:SCRIPTNAME) on $env:COMPUTERNAME"
         tier         = 'in-band GPU board power (NVML); PSU/wall/PUE excluded'
         verified     = [bool]$ok
+        # The lifecycle, recorded at both ends of the run: true here, false in
+        # a stopped_iso-bearing record once -Stop retires this file instead of
+        # deleting it (rule 28 - see the header). Written at start so the flag
+        # is a statement the record makes about itself rather than something a
+        # reader has to infer from a missing key, and so Find-LoggersForCsv's
+        # route 2 has one property to test rather than two states to guess
+        # between. sample-power.sh writes the same key, same spelling.
+        running      = $true
     }
     $side = Get-SidecarPath $FullCsv
     $rec | ConvertTo-Json -Depth 5 | Out-File -FilePath $side -Encoding utf8
@@ -247,6 +299,36 @@ function Start-Logger {
     Write-Host "      SM clock is still ramping (measured here: ~900-990 MHz vs 1455 settled). Warm"
     Write-Host "      the GPU with a throwaway request before any arm you intend to publish."
     return $rec
+}
+
+function Set-SidecarRetired {
+    # Start-Logger's record, rewritten at the end of the run instead of
+    # deleted - the header's THE SIDECAR IS RETIRED, NOT DELETED says why, and
+    # rule 28 is the whole of it. The round trip is the one route 2 already
+    # does (Get-Content -Raw | ConvertFrom-Json), so every key the record
+    # carries survives it, including the seven that only sample-power.sh
+    # writes - gpu_name, driver_version, enforced_power_limit_w, gpu_index,
+    # euid, elevated, stderr_log - which this script never produces and must
+    # never drop when it is handed a POSIX record. -Force on Add-Member
+    # overwrites the running that -Start wrote rather than failing on it, and
+    # is also what makes retiring an already-retired record a no-op.
+    # $false on any refusal, with the record left exactly as it was: a stale
+    # lifecycle line is a wrong sentence, a deleted record is a lost
+    # measurement, and only the first can be corrected by reading the file.
+    param([string]$Side)
+    if (-not (Test-Path -LiteralPath $Side)) { return $false }
+    $rec = $null
+    try { $rec = Get-Content -LiteralPath $Side -Raw -Encoding UTF8 | ConvertFrom-Json } catch { $rec = $null }
+    if ($null -eq $rec) { return $false }
+    try {
+        $rec | Add-Member -NotePropertyName 'running' -NotePropertyValue $false -Force
+        $rec | Add-Member -NotePropertyName 'stopped_iso' `
+                          -NotePropertyValue ((Get-Date).ToString('yyyy-MM-ddTHH:mm:ss.fff')) -Force
+        $rec | ConvertTo-Json -Depth 5 | Out-File -FilePath $Side -Encoding utf8
+    } catch {
+        return $false
+    }
+    return $true
 }
 
 function Stop-LoggerByCsv {
@@ -269,9 +351,25 @@ function Stop-LoggerByCsv {
             Write-Host "  FAILED $($_.Exception.Message)"
         }
     }
-    $side = Get-SidecarPath $FullCsv
-    if (Test-Path -LiteralPath $side) { Remove-Item -LiteralPath $side -Force -ErrorAction SilentlyContinue }
     Write-Host "OK    stopped $n logger(s); CSV left in place: $FullCsv"
+    # RETIRED, NOT DELETED (rule 28) - the header section of that name carries
+    # the reasoning and the measurement. Only when a kill above actually
+    # counted: writing running=false over a logger that survived -Stop would
+    # be a false record AND would make route 2 skip it, which is the one way
+    # this change could lose a live logger instead of preserving a dead one's
+    # conditions. Remove-Item ran unconditionally here; retirement does not.
+    $side = Get-SidecarPath $FullCsv
+    if ($n -gt 0 -and (Test-Path -LiteralPath $side)) {
+        if (Set-SidecarRetired -Side $side) {
+            Write-Host "      sidecar retired, not deleted: $side"
+            Write-Host "      It now reads running=false with a stopped_iso, and it still carries the"
+            Write-Host "      conditions the CSV rows cannot - keep the two together."
+        } else {
+            Write-Host "WARN  could not retire the sidecar $side - it is unchanged, so nothing in it"
+            Write-Host "      marks this logger as stopped. Its conditions are intact and readable;"
+            Write-Host "      only its lifecycle is now stale."
+        }
+    }
     return $n
 }
 

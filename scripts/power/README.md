@@ -155,9 +155,12 @@ executable. Restore it with
 `git update-index --chmod=+x scripts/power/sample-power.sh` if it is ever lost.
 
 **Nothing asserts that bit — it is remembered, not checked.** Checked
-2026-08-30: `scripts/verify/ubuntu-dryrun.sh:37` is
-`[ -x scripts/setup.sh ] || { echo "FAIL: setup.sh is not executable on a fresh clone"; exit 11; }`,
-which is a different file's bit. `scripts/arms.py` names `sample-power.sh` in
+2026-08-30 and again 2026-08-31: the one executable-bit assertion in the whole
+verify lane is the `[ -x scripts/setup.sh ] || … exit 11` line in
+`scripts/verify/ubuntu-dryrun.sh`'s step 1, immediately after it clones the tree
+as a new user would — cited by what it does, because it moved from line 37 to
+line 47 in a single day's editing and a line number here rots without saying
+so. It is a different file's bit. `scripts/arms.py` names `sample-power.sh` in
 the remedy it prints when a sweep starts with no power log, so the file is
 referenced — but a reference is not an assertion: no ship step and no
 verify-lane check ever tests that the bit is set. An earlier edition of this paragraph said the dry-run asserted it; that
@@ -258,12 +261,17 @@ already run and nothing else. Rule 24 says energy is measured or it is absent;
 `power_logging: false` on a `sweep_start` line is that absence written down at
 the time it happened, rather than inferred by a later stage that found no rows.
 
-**The remedy it prints names the PowerShell starter on every platform.** The
-`power log : NONE` block in `arms.py` prints
+**The remedy it prints is the starter for the box that printed it.** Until
+2026-08-30 the `power log : NONE` block in `arms.py` printed
 `pwsh scripts/power/sample-power.ps1 -Start -Csv results/<slug>/data/power/campaign-power.csv`
-whatever the operating system is, so on Ubuntu the one place the runner tells an
-operator how to fix a missing power log names a file that will not run there.
-Run this instead, then re-run the sweep:
+whatever the operating system was, so on Ubuntu the one place the runner tells
+an operator how to fix a missing power log named a file that will not run there.
+It now chooses by `os.name`, exactly as `SETUP_SCRIPT` chooses between
+`setup.ps1` and `setup.sh`: `POWER_START` is the `pwsh` line on `nt` and the
+`bash` line everywhere else. Verified 2026-08-31 on this box — importing
+`scripts/arms.py` under `.venv/bin/python` reads `os.name = posix` and
+`POWER_START = bash scripts/power/sample-power.sh start --csv`. So the line a
+sweep prints here already is the line to run; run it, then re-run the sweep:
 
 ```bash
 bash scripts/power/sample-power.sh start --csv results/<slug>/data/power/campaign-power.csv

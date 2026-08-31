@@ -249,34 +249,77 @@ def throttle_series(thr):
 
 
 def load_exercises(run, cache=True):
-    """aider per-exercise results, via WSL. Cached, because the run holds
-    hundreds of files and a plot pass should not shell out hundreds of times."""
+    """aider per-exercise results, read through a POSIX shell. Cached, because
+    the run holds hundreds of files and a plot pass should not shell out
+    hundreds of times."""
     # The listing is one cheap call; catting hundreds of files is the expensive
     # part, so the cache is validated against the CURRENT file count rather
     # than trusted. A run in flight gains exercises continuously, and a cache
     # that never invalidates would quietly build every later report from the
     # first snapshot it happened to take - a report that is stale and complete-
     # looking at the same time.
+    #
+    # THE CACHE IS READ BEFORE THE LISTING, and rule 23's loading order -
+    # frozen file, then local cache, then the live source - is why. Until
+    # 2026-08-31 the shell-out ran first and took the whole function with it
+    # when it failed, so on bare-metal Ubuntu 26.04 (no `wsl` on PATH,
+    # FileNotFoundError) the COMMITTED cache for
+    # 2026-08-26-14-57-05--iq4xs-full - the run named in build-report.py's own
+    # usage line - could not be reached at all, and build-report dropped every
+    # agentic figure behind one "[ctx] exercises unavailable" line. The listing
+    # is still taken and still invalidates; it is now the thing the cache is
+    # checked against rather than the gate standing in front of it.
     cf = os.path.join(TEL, "exercises-%s.json" % run)
-    cmd = ("find ~/bench/aider/tmp.benchmarks/" + run +
-           " -name .aider.results.json -printf '%T@ %p\\n' 2>/dev/null")
-    o = subprocess.run(["wsl", "-e", "bash", "-lc", cmd],
-                       capture_output=True, text=True, timeout=300).stdout
-    items = sorted((float(l.split(" ", 1)[0]), l.split(" ", 1)[1].strip())
-                   for l in o.strip().splitlines() if l.strip())
+    blob = None
     if cache and os.path.exists(cf):
         try:
-            blob = json.load(io.open(cf, encoding="utf-8"))
-            # The cache records how many files existed when it was built. If
-            # the listing has grown, it is stale by definition.
-            if isinstance(blob, dict) and blob.get("n_listed") == len(items):
-                return blob["items"]
+            b = json.load(io.open(cf, encoding="utf-8"))
+            if isinstance(b, dict) and isinstance(b.get("items"), list):
+                blob = b
         except Exception:
-            pass
+            blob = None
+    cmd = ("find ~/bench/aider/tmp.benchmarks/" + run +
+           " -name .aider.results.json -printf '%T@ %p\\n' 2>/dev/null")
+    # The command body is ordinary POSIX - aider-bench.sh sets
+    # AIDER_DIR=$HOME/bench/aider - and `wsl -e bash -lc` is how a WINDOWS
+    # Python reaches the Linux filesystem the benchmark writes into. It is the
+    # right and only route there, and a hard dependency that exists nowhere
+    # else: measured 2026-08-31 on bare-metal Ubuntu 26.04, this call raised
+    # "FileNotFoundError: [Errno 2] No such file or directory: 'wsl'" before it
+    # could read anything. On a POSIX host bash runs the same body directly;
+    # the Windows route is unchanged.
+    argv = (["wsl", "-e", "bash", "-lc", cmd] if os.name == "nt"
+            else ["bash", "-lc", cmd])
+    try:
+        o = subprocess.run(argv, capture_output=True, text=True,
+                           timeout=300).stdout
+    except OSError:
+        # No shell route at all on this box. A committed cache is still a true
+        # record of a finished run, so it answers; with no cache there is
+        # nothing to say and the caller must see the failure rather than an
+        # empty list that reads like a run which produced no exercises.
+        if blob is not None:
+            return blob["items"]
+        raise
+    items = sorted((float(l.split(" ", 1)[0]), l.split(" ", 1)[1].strip())
+                   for l in o.strip().splitlines() if l.strip())
+    # The cache records how many files existed when it was built. If the
+    # listing has grown, it is stale by definition - but an EMPTY listing does
+    # not invalidate anything. The archived runs here finished in August 2026
+    # and their working trees are gone from any box that reads this repo
+    # afterwards, so a `find` matching nothing says the files are absent, not
+    # that the run had no exercises. Trusting it would return nothing AND
+    # overwrite the committed cache below with {"n_listed": 0, "items": []},
+    # destroying the only surviving record of a run that cost hours - which
+    # rule 28 says cannot be bought back at any price.
+    if blob is not None and (not items or blob.get("n_listed") == len(items)):
+        return blob["items"]
     out = []
     for mt, path in items:
-        cat = subprocess.run(["wsl", "-e", "bash", "-lc",
-                              "cat " + json.dumps(path)],
+        # Same POSIX/WSL split as the listing above, for the same reason.
+        cat_cmd = "cat " + json.dumps(path)
+        cat = subprocess.run((["wsl", "-e", "bash", "-lc", cat_cmd]
+                              if os.name == "nt" else ["bash", "-lc", cat_cmd]),
                              capture_output=True, text=True, timeout=60).stdout
         try:
             r = json.loads(cat)

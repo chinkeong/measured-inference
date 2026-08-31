@@ -238,8 +238,80 @@ def _start_time(pid):
 # Foreign servers — anything running llama-server that we did not start
 # ---------------------------------------------------------------------------
 
+def _posix_tool_name(pid, comm):
+    """The llama.cpp tool this pid IS, under its real name, or None. POSIX only.
+
+    Linux caps /proc/<pid>/comm at 15 characters (TASK_COMM_LEN is 16 including
+    the NUL), so the kernel reports the two 16-character names in SERVER_TOOLS
+    as `llama-perplexit` and `llama-completio`. Measured on bare-metal Ubuntu
+    26.04 on 2026-08-31: comparing that for equality against SERVER_NAMES
+    matched nothing, and every caller of live_servers() went blind at once —
+    `status` printed "servers: none" and exited 0 while llama-perplexity held
+    the card, which is the exact "is the card idle" check AGENTS.md's
+    crash-recovery step 3 tells a resuming agent to trust; `kill` reported
+    "killed 0 llama-server process(es)" and left them running; acquire()'s
+    allow_foreign refusal never fired, so a sweep would launch a server on top
+    of a resident perplexity pass — rule 20 defeated by a string length, and
+    the host-commit shape of the 2026-08-29 incident this file was written for;
+    and detect-machine.py, which uses live_servers() as its "is a model
+    resident" gate, wrote desktop_reserve_mib stamped MEASURED with the note
+    "with no llama.cpp process live" while a 13 GB perplexity model sat inside
+    the memory.used reading — a wrong number wearing rule 1's MEASURED label,
+    and it is the rule-14 anti-spill fence every rule-13 fit is priced against.
+    rule 6 ranks quants with llama-perplexity over 294,912 token positions, so
+    the tool the kernel truncates is also the longest-lived GPU job a campaign
+    ever runs. scripts/quant-ladder/run-ladder.py measured this on 2026-08-30
+    and worked around it locally, declining to patch another workstream's file;
+    this is that fix, made once in the place both callers share.
+
+    /proc/<pid>/exe is the exact test and needs no magic constant: it is the
+    kernel's own link to the running image, untruncated, so its basename is the
+    real tool name — and the real name is what we report, because a status line
+    or a refusal message naming `llama-perplexit` sends an operator grepping for
+    a process that does not exist. The comm test still runs when exe does not
+    settle it, because exe can be unreadable (another user's process, without
+    CAP_SYS_PTRACE) and it can legitimately disagree with the launched name (a
+    wrapper script keeps the script's name in comm while exe is the interpreter;
+    a symlinked launch keeps the link's name in comm while exe is the target).
+    Both are consulted rather than one, because the asymmetry is not close: a
+    false positive costs one refused launch and an operator ten seconds, a false
+    negative is two resident models and a host that stops responding.
+
+    The shape that false positive actually takes, so nobody has to rediscover it
+    from a refusal message: a process whose name merely BEGINS with a tool name
+    and runs past 15 characters is reported under the tool name it truncates to,
+    even when /proc/<pid>/exe says otherwise. In the wild that is a versioned
+    build — `llama-perplexity-b10717` reported as `llama-perplexity` — which is a
+    process you positively want this gate to catch, so the behaviour is right and
+    only the label is approximate. `pid` in the message is the exact thing; if it
+    names a process you did not expect, `readlink /proc/<pid>/exe` settles it.
+    """
+    try:
+        exe = os.path.basename(os.readlink("/proc/%d/exe" % pid))
+        # The kernel appends " (deleted)" when the image was replaced under the
+        # running process — a llama.cpp rebuild landing during a multi-hour
+        # perplexity pass, which is a normal thing to do to this repo's bin/.
+        if exe.endswith(" (deleted)"):
+            exe = exe[:-len(" (deleted)")]
+        if exe in SERVER_NAMES:
+            return exe
+    except OSError:
+        pass
+    for want in SERVER_NAMES:
+        # comm is only ever cut AT 15 characters, so a shorter comm is complete
+        # and has to match whole; only a full-length one may be a prefix. That
+        # keeps `llama-bench` from matching some other tool's first 11 letters.
+        if comm == want or (len(comm) >= 15 and want.startswith(comm)):
+            return want
+    return None
+
+
 def live_servers():
-    """[(pid, name)] for every llama-server process on this machine."""
+    """[(pid, name)] for every llama.cpp process on this machine.
+
+    name is the tool's real name, never the kernel's 15-character truncation —
+    callers print it into status lines and refusal messages.
+    """
     out = []
     try:
         if _WINDOWS:
@@ -256,8 +328,20 @@ def live_servers():
                                  capture_output=True, text=True, timeout=30).stdout
             for line in raw.split("\n"):
                 bits = line.split(None, 1)
-                if len(bits) == 2 and os.path.basename(bits[1].strip()) in SERVER_NAMES:
-                    out.append((int(bits[0]), bits[1].strip()))
+                if len(bits) != 2:
+                    continue
+                # The pid parse used to run only on a line that had already
+                # matched a name; it now runs on every line, so it needs its own
+                # guard — one odd line raising into the outer `except` would
+                # return an empty server list, which is the blindness above
+                # wearing a different mask.
+                try:
+                    pid = int(bits[0])
+                except ValueError:
+                    continue
+                name = _posix_tool_name(pid, os.path.basename(bits[1].strip()))
+                if name:
+                    out.append((pid, name))
     except Exception:
         pass
     return out

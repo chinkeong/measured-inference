@@ -51,7 +51,8 @@ eight rather than starting a second ladder:
     tokens     llama-tokenize --show-count, the model's OWN count (rule 6,
                needed for bits-per-byte since PPL is not comparable across
                tokenizers)
-    accuracy   the frozen suite via decisive-arm.ps1: GSM8K/HumanEval/MBPP,
+    accuracy   the frozen suite via bench-arm.py - the same arm
+               decisive-arm.ps1 schedules, run directly: GSM8K/HumanEval/MBPP,
                n=25 each (the /75), greedy, seed 42, cap 16,384, -c 32768,
                -ctk q8_0 -ctv q8_0, reasoning_effort=low, NO drafter
     execute    execute-probe.py - runs the generated JavaScript under node,
@@ -67,6 +68,7 @@ import argparse
 import hashlib
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -285,14 +287,93 @@ def step_tokens():
 
 
 def step_accuracy():
+    """The frozen suite, run by whichever runner this machine actually has.
+
+    WHY THE PYTHON TWIN IS THE RUNNER NOW. Until 2026-08-31 this step
+    hardcoded `powershell -NoProfile -ExecutionPolicy Bypass -File
+    decisive-arm.ps1` with no probe and no fallback. On the bare-metal
+    Ubuntu box measured that day (no powershell, no pwsh, no wsl) that is a
+    FileNotFoundError raised out of execve before a single benchmark
+    question is asked - and STEPS runs this step FIFTH, after ppl. So the
+    traceback landed on the far side of the hour-scale perplexity pass and
+    step_execute, the sixth, never ran at all. ppl.json is on disk by then,
+    but this script keeps no ledger and has no resume: the only route back
+    to a complete rung was `--step all` again, paying the perplexity hour a
+    second time for a step that was never going to start. The default in
+    this file's own usage line is `--step all`, so that was the ordinary
+    path, not an edge case.
+
+    THE TWIN IS THE SAME MEASUREMENT, checked against both files rather
+    than assumed. decisive-arm.ps1 does not measure anything itself: its
+    Invoke-Arm shells out to `$PY -u bench-arm.py <Tag> <Path> <Family>
+    <MaxTokens>`, and the foreach over -Arms splits "tag|model|family" into
+    exactly those first three - the same three fields this step was already
+    packing - while MaxTokens defaults to '16384' there and to "16384" in
+    bench-arm.py. So the twin runs the frozen suite
+    scripts/bench/suites/rule21-n25.json (hash 1cdf54f8eb9d3f8f, rule 23),
+    GSM8K/HumanEval/MBPP at n=25, greedy, seed 42, cap 16,384, -c 32768,
+    -ctk q8_0 -ctv q8_0, reasoning_effort=low, no drafter: the CONDITIONS
+    block above, unchanged. It is preferred on every platform, Windows
+    included, so one code path produces the number and the two platforms
+    cannot drift apart in conditions (rule 3). Rule 20 still binds on it -
+    bench-arm.py hands off to bench.py, which launches its server through
+    gpu_lock.serve().
+
+    WHAT IS LOST BY NOT GOING THROUGH THE .ps1, stated so nobody discovers
+    it in a ledger: the GPU-gate wait, the arm-<tag>-wall.json resume skip,
+    and the decisive.txt row. All three are scheduling, not measurement -
+    bench-arm.py writes its own arm-<tag>-wall.json carrying the full
+    conditions beside the results - and this rung is one arm launched by
+    hand, not a queue. The .ps1 is kept as the fallback for the case where
+    the twin is missing from the tree and a PowerShell host exists. One
+    difference is not a loss but is a condition, so it is written here: the
+    interpreter is sys.executable, the one already running this rung and
+    the one that resolved the model path, where the .ps1 uses its own $PY -
+    a hardcoded Python 3.11 install, falling back to whatever `python`
+    resolves to.
+
+    AND IF NEITHER RUNNER IS THERE, this returns a NOTE instead of raising.
+    A step that cannot run must not discard the steps that did (rule 28: a
+    field not written during the run cannot be recovered afterwards, and
+    the hour that produced ppl.json is not repayable for free). The NOTE is
+    written to disk as well as logged, because an accuracy axis that was
+    skipped in silence reads to a report writer exactly like a measured
+    negative: this rung would carry a perplexity rank and an accuracy/75
+    column that is ABSENT, not zero (rule 2). The host probe and the NOTE
+    mirror run_detectors() in run-ladder.py, which settled the same
+    question for the detector probes.
+    """
+    py = os.path.join(HERE, "bench-arm.py")
     ps = os.path.join(HERE, "decisive-arm.ps1")
-    arm = "%s|%s|qwen" % (TAG, model_file())
-    cmd = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ps,
-           "-Arms", arm, "-DeadlineMinutes", "120"]
-    log("accuracy, frozen suite, via decisive-arm.ps1")
-    log("  arm: %s" % arm)
+    host = shutil.which("pwsh") or shutil.which("powershell")
+    if os.path.isfile(py):
+        cmd = [sys.executable, "-u", py, TAG, model_file(), "qwen"]
+        log("accuracy, frozen suite, via bench-arm.py (the Python twin)")
+        log("  arm: %s|%s|qwen" % (TAG, model_file()))
+    elif host and os.path.isfile(ps):
+        arm = "%s|%s|qwen" % (TAG, model_file())
+        cmd = [host, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ps,
+               "-Arms", arm, "-DeadlineMinutes", "120"]
+        log("accuracy, frozen suite, via decisive-arm.ps1 on %s" % host)
+        log("  arm: %s" % arm)
+    else:
+        why = "bench-arm.py is missing from %s" % HERE
+        why += (" and so is decisive-arm.ps1" if host else
+                " and there is no PowerShell host (pwsh/powershell) on this "
+                "machine to run decisive-arm.ps1")
+        note = ("NOTE %s | accuracy NOT RUN: %s. Every other step of this "
+                "rung stands; the accuracy/75 and empty/75 columns are "
+                "ABSENT, not zero, and must be published that way or left "
+                "blank. Restore either runner and re-run `--step accuracy` "
+                "alone - it costs the arm, not the perplexity hour."
+                % (TAG, why))
+        log(note)
+        save("accuracy.json", {"tag": TAG, "ran": False, "note": note,
+                               "python_twin": py, "powershell_script": ps,
+                               "powershell_host": host})
+        return note
     r = subprocess.run(cmd, text=True)
-    log("decisive-arm exit %s" % r.returncode)
+    log("accuracy runner exit %s" % r.returncode)
     return r.returncode
 
 

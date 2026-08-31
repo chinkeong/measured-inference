@@ -374,12 +374,25 @@ def live_llama(gate):
     Linux caps /proc/<pid>/comm at 15 characters (TASK_COMM_LEN is 16 including
     the NUL), so `ps -eo comm=` reports `llama-perplexity` - the exact tool this
     runner launches, and `llama-completion` with it - as `llama-perplexit`.
-    gpu_lock.live_servers() compares that against its full 16-character name and
-    matches nothing, so on Linux this gate could open while a perplexity pass is
-    holding 13 GB of the card. Matching by prefix against the manifest's own
-    process list closes it here. `gpu_lock.py` is deliberately not edited: it
-    belongs to another workstream, and the defect is reported rather than
-    patched in passing.
+    Reported here 2026-08-30, when gpu_lock.live_servers() compared that against
+    its full 16-character name and matched nothing, so on Linux this gate could
+    open while a perplexity pass held 13 GB of the card. This function's prefix
+    match closed it here only, and said so: `gpu_lock.py` was deliberately not
+    edited, because it belonged to another workstream and the defect was worth
+    reporting rather than patching in passing.
+
+    FIXED AT THE SOURCE 2026-08-31, on the first bare-metal Ubuntu run, where the
+    same truncation was measured blinding `status`, `kill`, acquire()'s foreign
+    refusal and detect-machine.py's desktop-reserve gate all at once:
+    gpu_lock._posix_tool_name() now resolves /proc/<pid>/exe first and falls back
+    to this same prefix rule, and returns the real untruncated name. So the
+    `found` dict above already arrives complete and correctly labelled.
+
+    This pass is kept anyway, and it is not redundant: it matches against the
+    manifest's own `llama_procs` list, which a ladder may widen beyond
+    gpu_lock.SERVER_TOOLS, and `setdefault` cannot overwrite a name gpu_lock has
+    already supplied. Verified against the fixed module on 2026-08-31: same pids,
+    same real names, no duplicates.
     """
     found = dict((p, n) for p, n in gpu_lock.live_servers())
     if os.name == "nt":

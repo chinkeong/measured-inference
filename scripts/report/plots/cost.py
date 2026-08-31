@@ -113,8 +113,8 @@ def _langs_by_mtime(run):
     drew a six-language figure in one colour). This local map is kept because
     it is keyed on the same mtime the loader uses for t_end, so the join to a
     record is exact rather than by case name, which repeats across languages.
-    ONE read-only `find`. If WSL is not there, the caller falls back to a
-    single series and says so ON the figure.
+    ONE read-only `find`. If the listing cannot be taken, the caller falls
+    back to a single series and says so ON the figure.
     """
     if run in _LANG_MEMO:
         return _LANG_MEMO[run]
@@ -122,8 +122,19 @@ def _langs_by_mtime(run):
     try:
         cmd = ("find ~/bench/aider/tmp.benchmarks/" + run +
                " -name .aider.results.json -printf '%T@ %p\\n' 2>/dev/null")
-        o = subprocess.run(["wsl", "-e", "bash", "-lc", cmd],
-                           capture_output=True, text=True, timeout=90).stdout
+        # The command body is ordinary POSIX - aider-bench.sh sets
+        # AIDER_DIR=$HOME/bench/aider - and `wsl -e bash -lc` is how a WINDOWS
+        # Python reaches the Linux filesystem the benchmark writes into. It is
+        # the right route there and a hard dependency that exists nowhere
+        # else: measured 2026-08-31 on bare-metal Ubuntu 26.04, this call
+        # raised FileNotFoundError for 'wsl'. The except below swallowed it, so
+        # the loss was silent in the worst way - the figure still drew, in one
+        # colour, with its per-language join quietly gone. On a POSIX host bash
+        # runs the same body directly; Windows keeps the wsl route.
+        argv = (["wsl", "-e", "bash", "-lc", cmd] if os.name == "nt"
+                else ["bash", "-lc", cmd])
+        o = subprocess.run(argv, capture_output=True, text=True,
+                           timeout=90).stdout
         for ln in o.strip().splitlines():
             if " " not in ln:
                 continue

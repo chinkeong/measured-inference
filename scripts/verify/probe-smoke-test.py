@@ -602,7 +602,28 @@ def main():
 
     print("=" * 74)
 
-    if new or (a.fail and (known or env)):
+    # `env` is deliberately NOT in this condition, and leaving it out is the fix
+    # for a defect measured on this box on 2026-08-31: the bare run printed
+    # "0 NEW. 0 known, 75 start, of 89 checked" and exited 0, and `--fail`
+    # printed BYTE-IDENTICAL output - the env block above included, the one that
+    # calls those 14 rows "the correct state" and "not failures" - and exited 1.
+    # An exit code that contradicts the page it was printed under is rule 3's
+    # failure at its DESTINATION: the env block carries the condition (this box
+    # installed requirements-min.txt, which setup.sh calls COLLECTION ONLY), and
+    # the status is where that condition got dropped. A hook or CI reading only
+    # the status - the documented reason --fail exists - would gate a
+    # collection-only box red over a report saying nothing is wrong, and no
+    # printed line would tell the reader why the number changed. Both of this
+    # file's own statements of the contract already said so: the header ("the
+    # exit code follows NEW alone; `--fail` still fails on any failure at all" -
+    # an env row is not a failure) and PUBLISH_ONLY's comment ("reported as
+    # `env` and does not reach the exit code").
+    # So --fail follows real failures only: NEW, plus baselined known ones, each
+    # of which prints its reason above the status. Whether a PUBLISHING box must
+    # be complete is a real question and still not this one's to answer with an
+    # exit code - the env block answers it in words, by name, with the remedy
+    # (`setup.sh --publish`), and prints all 14 rows either way.
+    if new or (a.fail and known):
         sys.exit(1)
 
 

@@ -68,28 +68,113 @@ def save(name, obj):
 
 
 def ps(cmd):
-    return subprocess.run(["powershell", "-NoProfile", "-Command", cmd],
-                          capture_output=True, text=True,
-                          encoding="utf-8", errors="replace").stdout.strip()
+    """One PowerShell command -> its stdout, or None when there is no host.
+
+    Guarded because until 2026-08-31 it was not. On this bare-metal Ubuntu
+    26.04.1 box there is no `powershell` and no `pwsh`, and both callers below
+    invoked this OUTSIDE their try/except, so subprocess.run's
+    FileNotFoundError went straight up through sys_free_mib() - the first
+    statement of task_ram()'s loop - and killed the whole script, including the
+    power task that runs after it. Measured that day: `python3
+    scripts/verify/close-three.py` exits 1 on an uncaught traceback. The
+    branches below no longer call this off Windows at all, so the guard is a
+    second line of defence rather than the fix; it stays because a reader that
+    cannot read must return "no number", never take a run down with it - and
+    this crash landed AFTER the rule-20 lock was taken and a server launched,
+    i.e. after GPU time had already been spent.
+    """
+    try:
+        return subprocess.run(["powershell", "-NoProfile", "-Command", cmd],
+                              capture_output=True, text=True,
+                              encoding="utf-8", errors="replace").stdout.strip()
+    except OSError:
+        return None
 
 
 def proc_mem(pid):
-    """Working set and private bytes for one process, in MiB."""
-    out = ps("$p=Get-Process -Id %d -ErrorAction SilentlyContinue; "
-             "if($p){'{0} {1}' -f $p.WorkingSet64,$p.PrivateMemorySize64}" % pid)
+    """Working set and private bytes for one process, in MiB.
+
+    Windows reports the pair (WorkingSet64, PrivateMemorySize64). Linux has no
+    field that means either one, so /proc/<pid>/status supplies the nearest
+    STAND-INS, and they are not the same concepts:
+
+      VmRSS  stands in for WorkingSet64. Both are resident pages, private and
+             shared counted together; this is the close one.
+      VmData stands in for PrivateMemorySize64, and this one is loose. Windows
+             counts private bytes COMMITTED - charged against the commit limit
+             whether resident or not - while VmData is the size of the private
+             data segment, i.e. anonymous address space, resident or not.
+
+    Neither Linux field counts a file-backed mapping as private, which is the
+    property this task is built on: under `--load-mode mmap` the weights are
+    page cache and show up in VmRSS alone, while `--load-mode none` reads them
+    into anonymous memory so they show up in BOTH. VmSize (the whole address
+    space) is the fallback on a kernel that omits VmData. Rule 3: the number
+    carries its conditions, and "working set" in a row measured here means the
+    Linux figure - not comparable cell-for-cell against a Windows run's column
+    of the same name.
+    """
+    if os.name == "nt":
+        out = ps("$p=Get-Process -Id %d -ErrorAction SilentlyContinue; "
+                 "if($p){'{0} {1}' -f "
+                 "$p.WorkingSet64,$p.PrivateMemorySize64}" % pid)
+        try:
+            w, pv = out.split()
+            return round(int(w) / 1024 ** 2), round(int(pv) / 1024 ** 2)
+        except Exception:
+            return None, None
+    fields = {}
     try:
-        w, pv = out.split()
-        return round(int(w) / 1024 ** 2), round(int(pv) / 1024 ** 2)
-    except Exception:
+        with open("/proc/%d/status" % int(pid)) as fh:
+            for line in fh:
+                k, _, v = line.partition(":")
+                parts = v.split()
+                if len(parts) == 2 and parts[0].isdigit() and parts[1] == "kB":
+                    fields[k.strip()] = int(parts[0]) // 1024     # kB -> MiB
+    except OSError:
         return None, None
+    private = fields.get("VmData")
+    if private is None:
+        private = fields.get("VmSize")
+    return fields.get("VmRSS"), private
 
 
 def sys_free_mib():
-    out = ps("(Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory")
+    """Host RAM still allocatable, in MiB. None when nothing can read it.
+
+    Windows answers with Win32_OperatingSystem.FreePhysicalMemory (kB). Linux
+    answers with MemAvailable from /proc/meminfo, parsed exactly the way
+    scripts/detect-machine.py's host_meminfo() parses it (kB // 1024 -> MiB),
+    so the two readers on this box cannot disagree about the same kernel line.
+    MemFree is deliberately not a fallback: on a machine that has just read a
+    20 GB GGUF, MemFree sits near zero while that 20 GB is reclaimable page
+    cache, which would price the mmap arm as if it had eaten the host.
+
+    The consequence travels with the number (rule 3). `sys_ram_consumed_mib`
+    is a DROP IN MemAvailable, so weights that are page cache - the mmap arm -
+    still count as available, while `--load-mode none`'s anonymous copy does
+    not. That is the right comparison for "does none really cost 15 GB more
+    than mmap", and it is not the quantity the Windows column holds; rows from
+    the two platforms do not subtract from each other.
+    """
+    if os.name == "nt":
+        out = ps("(Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory")
+        try:
+            return round(int(out) / 1024)
+        except Exception:
+            return None
     try:
-        return round(int(out) / 1024)
-    except Exception:
+        with open("/proc/meminfo") as fh:
+            for line in fh:
+                k, _, v = line.partition(":")
+                if k.strip() != "MemAvailable":
+                    continue
+                parts = v.split()
+                if parts and parts[0].isdigit():
+                    return int(parts[0]) // 1024                  # kB -> MiB
+    except OSError:
         return None
+    return None            # no MemAvailable line: kernel older than 3.14
 
 
 def smi_used():
