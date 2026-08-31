@@ -1,0 +1,84 @@
+{
+ "_schema": "stage1-ppl-screen v1",
+ "slug": "ornith-1.5-9b-mtp",
+ "corpus": "corpora/wikitext-2-raw-test.raw",
+ "corpus_bytes": 1290590,
+ "ctx": 8192,
+ "chunks": 4,
+ "ngl": 99,
+ "token_positions": 32768,
+ "publishable": false,
+ "why_not_publishable": "rule 6 ranks quants over 294,912 token positions; this is 32,768. It is a SCREEN for the Stage-1 pruning gate, not a ranking.",
+ "arms": {
+  "Q8_0": {
+   "file": "Ornith-1.5-9B-MTP-Q8_0.gguf",
+   "size_bytes": 9786060352,
+   "rc": 0,
+   "seconds": 19.3,
+   "log": "results/ornith-1.5-9b-mtp/work/stage1-ppl-Q8_0.log",
+   "cmd": [
+    "/root/Workspace/measured-inference/bin/llama.cpp/llama-perplexity",
+    "-m",
+    "/root/Workspace/measured-inference/models/Ornith-1.5-9B-MTP-Q8_0.gguf",
+    "-f",
+    "/root/Workspace/measured-inference/corpora/wikitext-2-raw-test.raw",
+    "-c",
+    "8192",
+    "--chunks",
+    "4",
+    "-ngl",
+    "99"
+   ],
+   "ppl": 8.0341,
+   "ppl_stderr": 0.1743,
+   "how": "MEASURED: llama-perplexity Final estimate"
+  },
+  "Q4_K_M": {
+   "file": "Ornith-1.5-9B-MTP-Q4_K_M.gguf",
+   "size_bytes": 5780090432,
+   "rc": 0,
+   "seconds": 16.7,
+   "log": "results/ornith-1.5-9b-mtp/work/stage1-ppl-Q4_K_M.log",
+   "cmd": [
+    "/root/Workspace/measured-inference/bin/llama.cpp/llama-perplexity",
+    "-m",
+    "/root/Workspace/measured-inference/models/Ornith-1.5-9B-MTP-Q4_K_M.gguf",
+    "-f",
+    "/root/Workspace/measured-inference/corpora/wikitext-2-raw-test.raw",
+    "-c",
+    "8192",
+    "--chunks",
+    "4",
+    "-ngl",
+    "99"
+   ],
+   "ppl": 7.5848,
+   "ppl_stderr": 0.15485,
+   "how": "MEASURED: llama-perplexity Final estimate"
+  },
+  "IQ2_M": {
+   "file": "Ornith-1.5-9B-MTP-IQ2_M.gguf",
+   "size_bytes": 3866029888,
+   "rc": 0,
+   "seconds": 16.5,
+   "log": "results/ornith-1.5-9b-mtp/work/stage1-ppl-IQ2_M.log",
+   "cmd": [
+    "/root/Workspace/measured-inference/bin/llama.cpp/llama-perplexity",
+    "-m",
+    "/root/Workspace/measured-inference/models/Ornith-1.5-9B-MTP-IQ2_M.gguf",
+    "-f",
+    "/root/Workspace/measured-inference/corpora/wikitext-2-raw-test.raw",
+    "-c",
+    "8192",
+    "--chunks",
+    "4",
+    "-ngl",
+    "99"
+   ],
+   "ppl": 7.9439,
+   "ppl_stderr": 0.15524,
+   "how": "MEASURED: llama-perplexity Final estimate"
+  }
+ },
+ "finished_utc": "2026-08-31T16:32:11Z"
+}

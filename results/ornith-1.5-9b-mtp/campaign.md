@@ -302,3 +302,76 @@ came back `free / servers: none` with no orphan holding VRAM.
 AND worse; on speed alone all three are separated and monotonic in the right
 direction, so no file can be screened out before the short PPL screen. That screen
 is the next step, and it is what decides whether IQ2_M survives to Stage 2.
+
+### The pruning gate, and the finding that stopped it — 2026-09-01
+
+The gate's third input is a short PPL screen, "4 x 8,192 tokens is enough,
+identical chunks across files". It came back with the ordering inverted, so
+rather than act on 32,768 positions the screen itself calls unpublishable, the
+**full rule-6 ladder** was run instead — 36 chunks x 8,192 = **294,912 token
+positions exactly**, the same chunks of the same frozen corpus for every arm.
+It cost 6.3 GPU-minutes for all three files.
+
+| arm | GB | screen (32,768 pos) | **rule 6 (294,912 pos)** | floor t/s |
+|---|---|---|---|---|
+| Q8_0 | 9.79 | 8.0341 ± 0.1743 | **9.0519 ± 0.0692** | 78.30 |
+| Q4_K_M | 5.78 | 7.5848 ± 0.1548 | **7.9544 ± 0.0553** | 118.38 |
+| IQ2_M | 3.87 | 7.9439 ± 0.1552 | **8.6629 ± 0.0586** | 131.30 |
+
+**The inversion is not noise and it got stronger with more positions:**
+
+```
+Q8_0 vs Q4_K_M : +1.0975 PPL   12.4 sigma
+Q8_0 vs IQ2_M  : +0.3890 PPL    4.3 sigma
+IQ2_M vs Q4_K_M: +0.7085 PPL    8.8 sigma
+
+expected ordering for correct quants : Q8_0 < Q4_K_M < IQ2_M   (lower is better)
+observed ordering                    : Q4_K_M < IQ2_M < Q8_0
+```
+
+A Q8_0 is meant to be near-lossless. This one is **worse than the 5.78 GB
+Q4_K_M and worse than the 3.87 GB 2-bit file**, on the same corpus, the same
+chunks, the same build, in the same hour. That is not a quantisation result; it
+is a defect somewhere.
+
+The running estimates say where it starts. `[n]` is cumulative, so an agreeing
+prefix followed by a jump locates the chunk that broke:
+
+```
+        Q8_0        Q4_K_M
+[1]     9.1371      9.1050     agree to 0.35%
+[2]     6.4624      6.4655     agree to 0.05%
+[3]     7.8824      7.2756     <- diverges, 8.3%
+[4]     8.0341      7.5848
+[8]     8.2987      7.6318     and stays ~7% apart
+```
+
+**Hypothesis, UNTESTED and labelled as such:** this is a hybrid — 24 of its 32
+layers are recurrent gated-delta carrying a fixed state — and a quantisation
+defect in those layers would degrade with sequence position rather than
+uniformly, which is the shape above. It is a hypothesis and nothing here tests
+it. This campaign already got burned once today asserting a mechanism it had not
+separated from its effect; the effect is what is recorded.
+
+**THE GATE WAS RIGHT AND I WAS WRONG ABOUT IT.** On the screen alone the
+Stage-1 rule — drop what is both slower AND worse — pointed at Q8_0, and the
+first reading of that here was "the gate would drop the quality anchor, so the
+gate needs a guard". It did not need a guard. It had detected a real defect in a
+file, which is exactly its job; the error was mine, in assuming the anchor could
+not be the broken thing. Recorded because the near-miss is worth more than the
+number: a reader who trusts a Q8 by its name would have shipped it.
+
+**No file is dropped yet.** A cross-check is running first (rule 4 — two
+independent cheap readings beat one): the SAME 294,912-position ladder against
+the **vendor's own** `ornith-ai/Ornith-1.5-9B-GGUF` Q8_0, a different
+quantisation lineage of the same weights.
+
+- If the vendor's Q8_0 lands near 7.9, protoLabsAI's Q8_0 is defective, the
+  roster changes, and the campaign's Q8 arm moves lineage — accepting that the
+  ladder then spans two lineages, which must be stated on every comparison.
+- If the vendor's Q8_0 also lands near 9.05, the file is not the problem and
+  something about this architecture, this build, or this corpus is — a larger
+  finding than the one being chased.
+
+Either way rule 5 applies: the dead claim is kept as a dated case study, because
+how it misled is worth more than the number was.

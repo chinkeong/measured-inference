@@ -1,0 +1,31 @@
+{
+ "_schema": "heartbeat v1",
+ "slug": "ornith-1.5-9b-mtp",
+ "written_utc": "2026-08-31T16:35:33Z",
+ "operator_instruction": "keep going for 24 hours (2026-09-01)",
+ "stage": "1 -> 2",
+ "in_flight": {
+  "what": "rule-6 PPL ladder, 36 chunks x 8192 = 294,912 positions",
+  "script": "results/ornith-1.5-9b-mtp/work/ppl-rule6-ladder.py",
+  "output": "results/ornith-1.5-9b-mtp/data/ppl-rule6-ladder.json",
+  "resumable": "yes -- an arm already in the JSON is skipped on re-run"
+ },
+ "done": [
+  "Stage 0 CLOSED (commit 03d17dc)",
+  "Stage 1 floors + drafter + idle baselines (commit 86b4aef)",
+  "Stage 1 short PPL screen (data/stage1-ppl-screen.json)"
+ ],
+ "next": [
+  "finish rule-6 ladder -> settle the Stage-1 pruning gate",
+  "Stage 2: work/stage2-memory-map.py (written, not yet run)",
+  "Stage 3: arms.py --arms work/spec-sweep-ornith.json --slug ornith-1.5-9b-mtp",
+  "Stage 4 appetite (enable_thinking true/false), Stage 5 RECIPE LOCK, Stage 6, Stage 7"
+ ],
+ "open_findings": [
+  "Stage-1 pruning gate applied literally would DROP Q8_0 (slower AND worse on the 32,768-position screen). Do not drop it -- the screen is 1/9 of rule 6's positions and Q8_0 is the ladder's reference. Awaiting the full ladder.",
+  "scripts/probe-config.sh violates rule 20 (bare & launch, pkill by port). Fix pending.",
+  "b10717 logs no KV-size/offload line -- stage-1.md's rule-4 cross-check has no source in this build.",
+  "stage-0.md's cold-idle recipe reads 34% high on this box (~150 s settling tail inside P8)."
+ ],
+ "recovery": "Read results/ornith-1.5-9b-mtp/campaign.md end to end, then `git log --oneline`. The highest checkpoint commit is ground truth."
+}
