@@ -39,6 +39,114 @@
     "power_median_w": 27.7
    },
    "server_mib": 10678.0
+  },
+  "Q8_0-draft": {
+   "model": "Q8_0",
+   "projector": false,
+   "drafter": true,
+   "ctx": 32768,
+   "server_log": "results/ornith-1.5-9b-mtp/work/stage2-Q8_0-draft.log",
+   "settled": {
+    "median_mib": 12268.0,
+    "min_mib": 12268.0,
+    "max_mib": 12268.0,
+    "n": 9,
+    "power_median_w": 39.12
+   },
+   "server_mib": 11814.0
+  },
+  "Q8_0-proj-draft": {
+   "model": "Q8_0",
+   "projector": true,
+   "drafter": true,
+   "ctx": 32768,
+   "server_log": "results/ornith-1.5-9b-mtp/work/stage2-Q8_0-proj-draft.log",
+   "settled": {
+    "median_mib": 13398.0,
+    "min_mib": 13398.0,
+    "max_mib": 13398.0,
+    "n": 9,
+    "power_median_w": 39.64
+   },
+   "server_mib": 12944.0
+  },
+  "Q4_K_M-bare": {
+   "model": "Q4_K_M",
+   "projector": false,
+   "drafter": false,
+   "ctx": 32768,
+   "server_log": "results/ornith-1.5-9b-mtp/work/stage2-Q4_K_M-bare.log",
+   "settled": {
+    "median_mib": 6770.0,
+    "min_mib": 6770.0,
+    "max_mib": 6770.0,
+    "n": 9,
+    "power_median_w": 39.13
+   },
+   "server_mib": 6316.0
+  },
+  "Q4_K_M-proj-draft": {
+   "model": "Q4_K_M",
+   "projector": true,
+   "drafter": true,
+   "ctx": 32768,
+   "server_log": "results/ornith-1.5-9b-mtp/work/stage2-Q4_K_M-proj-draft.log",
+   "settled": {
+    "median_mib": 10064.0,
+    "min_mib": 10064.0,
+    "max_mib": 10064.0,
+    "n": 9,
+    "power_median_w": 38.88
+   },
+   "server_mib": 9610.0
+  },
+  "IQ2_M-bare": {
+   "model": "IQ2_M",
+   "projector": false,
+   "drafter": false,
+   "ctx": 32768,
+   "server_log": "results/ornith-1.5-9b-mtp/work/stage2-IQ2_M-bare.log",
+   "settled": {
+    "median_mib": 4970.0,
+    "min_mib": 4970.0,
+    "max_mib": 4970.0,
+    "n": 9,
+    "power_median_w": 38.79
+   },
+   "server_mib": 4516.0
+  },
+  "IQ2_M-proj-draft": {
+   "model": "IQ2_M",
+   "projector": true,
+   "drafter": true,
+   "ctx": 32768,
+   "server_log": "results/ornith-1.5-9b-mtp/work/stage2-IQ2_M-proj-draft.log",
+   "settled": {
+    "median_mib": 8366.0,
+    "min_mib": 8366.0,
+    "max_mib": 8366.0,
+    "n": 9,
+    "power_median_w": 39.28
+   },
+   "server_mib": 7912.0
   }
- }
+ },
+ "constants": {
+  "projector_mib": {
+   "value": 1130.0,
+   "how": "MEASURED: Q8_0-proj minus Q8_0-bare, one flag apart",
+   "header_says": 879
+  },
+  "drafter_mib": {
+   "value": 2266.0,
+   "how": "MEASURED: Q8_0-draft minus Q8_0-bare, one flag apart",
+   "file_bytes": 2430895232,
+   "note": "rule 13: drafter VRAM is an on/off pair, not a slider"
+  },
+  "both_vs_sum": {
+   "value": 3396.0,
+   "how": "MEASURED: both minus bare. Compare against projector+drafter summed -- if they differ, the two are not independent and the budget table cannot add them."
+  }
+ },
+ "finished_utc": "2026-08-31T17:23:04Z"
 }

@@ -1,0 +1,49 @@
+{
+ "_schema": "stage2-kv-slope v1",
+ "slug": "ornith-1.5-9b-mtp",
+ "model": "Ornith-1.5-9B-MTP-Q4_K_M.gguf",
+ "rungs": [
+  8192,
+  32768,
+  65536,
+  131072
+ ],
+ "header_kv_bytes_per_token": 32768,
+ "method": "slope of settled VRAM against -c; everything that does not scale with context cancels in the difference",
+ "points": [
+  {
+   "ctx": 8192,
+   "at_load_mib": 5978.0,
+   "after_request_mib": 5982.0
+  },
+  {
+   "ctx": 32768,
+   "at_load_mib": 6770.0,
+   "after_request_mib": 6774.0
+  },
+  {
+   "ctx": 65536,
+   "at_load_mib": 7826.0,
+   "after_request_mib": 7830.0
+  },
+  {
+   "ctx": 131072,
+   "at_load_mib": 9938.0,
+   "after_request_mib": 9942.0
+  }
+ ],
+ "measured_kv_bytes_per_token": {
+  "at_load_mib": {
+   "value": 33792.0,
+   "from": "c=8192 -> c=131072",
+   "header_says": 32768,
+   "ratio_measured_over_header": 1.031
+  },
+  "after_request_mib": {
+   "value": 33792.0,
+   "from": "c=8192 -> c=131072",
+   "header_says": 32768,
+   "ratio_measured_over_header": 1.031
+  }
+ }
+}

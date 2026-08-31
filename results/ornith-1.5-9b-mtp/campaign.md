@@ -430,3 +430,91 @@ assumed:
 **Nothing measured has been lost.** Everything through the vendor cross-check is
 committed; the ladder, the floors, the speculation result and both idle
 baselines are on disk and in git.
+
+## Stage 2 — MEMORY MAP  ·  2026-09-01
+
+### The pair table (rule 13's scope: file + drafter + projector + desktop)
+
+Eight loads, VRAM read settled (20 s after health, median of 9 samples), c=32,768:
+
+| arm | total MiB | server-only MiB |
+|---|---|---|
+| Q8_0 bare | 10,002 | 9,548 |
+| Q8_0 + projector | 11,132 | 10,678 |
+| Q8_0 + drafter | 12,268 | 11,814 |
+| Q8_0 + both | 13,398 | 12,944 |
+| Q4_K_M bare | 6,770 | 6,316 |
+| Q4_K_M + both | 10,064 | 9,610 |
+| IQ2_M bare | 4,970 | 4,516 |
+| IQ2_M + both | 8,366 | 7,912 |
+
+**The two constants, and they ADD exactly:**
+
+| constant | measured | the file says | delta |
+|---|---|---|---|
+| projector | **1,130 MiB** | 879 MiB | +251 MiB of buffers |
+| drafter | **2,266 MiB** | 2,318 MiB | −52 MiB |
+| both together | **3,396 MiB** | 1,130 + 2,266 = 3,396 | **0 — additive** |
+
+Projector and drafter are independent: the pair table may be summed, which is
+what makes a budget table legal here. And `check-request.py`'s warning that it
+does not count compute buffers is confirmed rather than assumed — the projector
+costs 251 MiB more resident than its file.
+
+### The rule-4 KV cross-check, obtained by SLOPE
+
+stage-1.md wants the header's KV arithmetic checked against "the server's
+reported KV size at a known `-c`". b10717 prints no such line (recorded in
+Stage 1 as UNAVAILABLE). **This closes that gap by a different route**: load one
+file at four context sizes and take the slope of settled VRAM. Everything that
+does not scale with context — weights, compute buffers, the 24 recurrent layers'
+fixed state — cancels in the difference.
+
+| c | VRAM at load | after a real request |
+|---|---|---|
+| 8,192 | 5,978 MiB | 5,982 |
+| 32,768 | 6,770 | 6,774 |
+| 65,536 | 7,826 | 7,830 |
+| 131,072 | 9,938 | 9,942 |
+
+```
+measured KV = (9,938 - 5,978) MiB / (131,072 - 8,192) tokens = 33,792 B/token
+header      = 2 x 8 full-attn x 4 kv-heads x 256 head-dim x 2 B = 32,768 B/token
+agreement   = 1.031   (+3.1%)
+```
+
+**The header's KV arithmetic is confirmed** — two independent readings agreeing
+(rule 4), and a third from `config.json` (`num_hidden_layers` 32,
+`full_attention_interval` 4 → 8 full-attention layers; `num_key_value_heads` 4;
+`head_dim` 256), which reproduces the same 32,768 B/token from the base repo
+rather than from the GGUF. Load and after-request differ by 4 MiB, so **the
+cache is allocated eagerly, not lazily** — a load-only reading is trustworthy
+here.
+
+### The fit, now on measured constants rather than arithmetic
+
+```
+Q8_0 bare at c=32,768                   9,548 MiB   measured
++ KV for 229,376 more tokens            7,392 MiB   measured slope
++ projector                             1,130 MiB   measured pair
++ drafter                               2,266 MiB   measured pair
+= 20,336 MiB of a 24,122 MiB budget  ->  3,786 MiB spare
+```
+
+**Q8_0 holds the full 262,144-token window with vision AND speculation resident,
+with 3.8 GB to spare, measured rather than derived.** plan.json's call that the
+ceiling sweep collapses to one rung per file is upheld: there is no ceiling to
+find on this card.
+
+### One open item, recorded rather than explained
+
+Weights-plus-KV does not close against measured VRAM in the same direction for
+every arm: overhead above file size is +215 MiB (Q8_0), +804 (Q4_K_M), +829
+(IQ2_M) at c=32,768, where KV alone should be ~1,056 MiB for all three. Two
+known contributors are unquantified here — llama.cpp ignores this file's
+`blk.32` entirely (Stage 1), which is ~247 MiB of Q8_0 that never becomes
+resident, and a large `token_embd` may not be offloaded the way the rest is.
+**The slope is unaffected** (both cancel in a difference), so the KV figure
+stands; the absolute decomposition does not, and no number in this campaign
+depends on it. Left as an open item rather than given a mechanism it has not
+earned.
