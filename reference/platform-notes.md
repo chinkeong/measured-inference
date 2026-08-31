@@ -410,6 +410,46 @@ nothing, and the checker reports it at the `--help` stage like any other probe.
 If you are holding an untracked copy of the figure from before the fix, delete
 it — a real run reproduces it byte for byte (md5 `11159d63` over three runs).
 
+### SYMPTOM: `ubuntu-dryrun.sh` exits 10, "CLONE FAILED", on a box that is fine
+
+The fresh-clone rehearsal took its SOURCE from a typed address rather than from
+where it was standing:
+
+```
+SRC="${MI_SRC:-/mnt/e/AI/measured-inference}"     # until 2026-08-31
+fatal: repository '/mnt/e/AI/measured-inference' does not exist
+```
+
+`/mnt/e/...` is where this repo sits when "Ubuntu" is WSL under a Windows host.
+On a real Ubuntu box there is no `/mnt/e`, so step 1 of five died before a
+single fact about the machine had been established — the one script whose whole
+job is to prove the fresh-clone path could not run on the platform it is named
+after. It now resolves its own checkout (`git -C <script dir> rev-parse
+--show-toplevel`, falling back to the directory two levels up), and `MI_SRC`
+still overrides for cloning some other tree on purpose. Measured 2026-08-31,
+Ubuntu 26.04.1 bare metal.
+
+The general form is worth more than the instance: **a path that only exists
+under WSL is a Windows path**, and a POSIX script that hardcodes one has not
+been run on Linux, only beside it.
+
+### What a real Ubuntu 26.04 box does with the documented bootstrap
+
+Measured 2026-08-31 — Ubuntu 26.04.1 LTS, kernel 7.0.0-30, RTX 3090 24 GB,
+driver 580.173.02, 20 cores, 30.7 GB RAM, live GNOME session on the card.
+Recorded because the repo's Linux support had only ever been exercised under
+WSL2 Ubuntu 24.04, and three of these differ there.
+
+| Step | Result |
+|---|---|
+| stock packages | **neither** `python3-venv` nor `python-is-python3` present; `cmake` and `nvcc` absent too — the documented apt line covers all four |
+| `nvidia-cuda-toolkit` on 26.04 | resolves to **CUDA 12.4.131**, while the driver reports CUDA 13.0. The build wants nvcc, not the driver's runtime version, so this is fine |
+| nvcc 12.4 against the distro's **gcc 15.2** | **compiles.** Upstream CUDA 12.4 `host_config.h` refuses `__GNUC__ > 13`; Ubuntu patches that ceiling out, so no `-DCMAKE_CUDA_HOST_COMPILER` is needed and `setup.sh` is right not to set one. Verified with a throwaway `.cu` at both the default `g++` and `-ccbin g++-13` |
+| `./scripts/setup.sh --cuda` | exit 0 in **3m24s** (`b10717`, commit `a32af33de2b5`, `CMAKE_CUDA_ARCHITECTURES=native` → sm_86) — the script's own message quotes 10–25 min, which is the right budget for a slower box, not this one |
+| `.venv` on **Python 3.14.4** | `requirements-min.txt` installs clean; Pillow 12.3.0 ships a `cp314` manylinux wheel |
+| `scripts/verify/run-all.py` | 6 of 7, `ladder-png` skipped for absent matplotlib — the honest skip, not a defect |
+| SMBIOS | `/sys/firmware/dmi/tables/DMI` is readable as root, so `ram_channels` comes out **MEASURED (2)** from the DIMM locators. Under WSL there is no such table and the field is null |
+
 ---
 
 ## WSL2

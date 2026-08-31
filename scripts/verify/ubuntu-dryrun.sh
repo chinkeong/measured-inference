@@ -11,8 +11,18 @@
 # Exit 0 means a new user's first hour works. Any other exit names the step.
 set -u
 
+# The clone SOURCE is this checkout, found from this script's own path -- not a
+# typed address. Until 2026-08-31 it defaulted to /mnt/e/AI/measured-inference,
+# which is where the repo sits when Ubuntu is WSL under a Windows host. On a
+# real Ubuntu box that path does not exist, so step 1 died with "CLONE FAILED"
+# (exit 10) before a single thing about the box had been proved -- the one
+# script whose whole job is to prove the fresh-clone path could not run on the
+# platform it is named after. MI_SRC still overrides, for cloning some other
+# tree deliberately.
+SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SRC="${MI_SRC:-$(git -C "$SELF_DIR" rev-parse --show-toplevel 2>/dev/null || (cd "$SELF_DIR/../.." && pwd))}"
+
 WORK="${1:-$HOME/mi-dryrun}"
-SRC="${MI_SRC:-/mnt/e/AI/measured-inference}"
 LOG="$WORK/dryrun.log"
 
 rm -rf "$WORK"; mkdir -p "$WORK"
