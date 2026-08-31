@@ -1,0 +1,155 @@
+```javascript
+'use strict';
+
+const RED = true;
+const BLACK = false;
+
+class RedBlackTree {
+  constructor() {
+    this.root = null;
+  }
+
+  _isRed(node) {
+    return node && RED;
+  }
+
+  _rotateLeft(node) {
+    const right = node.right;
+    node.right = right.left;
+    right.left = node;
+    this._fixColors(node, right);
+    return right;
+  }
+
+  _rotateRight(node) {
+    const left = node.left;
+    node.left = left.right;
+    left.right = node;
+    this._fixColors(node, left);
+    return left;
+  }
+
+  _fixColors(parent, child) {
+    if (this._isRed(parent.left)) {
+      this._rotateRight(parent);
+    }
+    if (this._isRed(child) && !this._isRed(child.left) && !this._isRed(child.right)) {
+      this._flipColors(child);
+    }
+  }
+
+  _flipColors(node) {
+    node.color = !node.color;
+    if (node.left) node.left.color = !node.left.color;
+    if (node.right) node.right.color = !node.right.color;
+  }
+
+  _insert(node, key) {
+    if (!node) return { key, color: RED, left: null, right: null };
+    if (key < node.key) {
+      node.left = this._insert(node.left, key);
+    } else if (key > node.key) {
+      node.right = this._insert(node.right, key);
+    } else {
+      node.key = key;
+      return node;
+    }
+    return this._fixColors(node, null);
+  }
+
+  insert(key) {
+    this.root = this._insert(this.root, key);
+    this.root.color = BLACK;
+    return this;
+  }
+
+  _search(node, key) {
+    while (node) {
+      if (key === node.key) return node;
+      node = key < node.key ? node.left : node.right;
+    }
+    return null;
+  }
+
+  search(key) {
+    return this._search(this.root, key);
+  }
+
+  _min(node) {
+    while (node.left) node = node.left;
+    return node;
+  }
+
+  _max(node) {
+    while (node.right) node = node.right;
+    return node;
+  }
+
+  _delete(node, key) {
+    if (!node) return null;
+
+    const leftSize = this._size(node.left);
+    const rightSize = this._size(node.right);
+
+    if (key < node.key) {
+      node.left = this._delete(node.left, key);
+    } else if (key > node.key) {
+      node.right = this._delete(node.right, key);
+    } else {
+      if (!node.left) return node.right;
+      if (!node.right) return node.left;
+      const successor = this._min(node.right);
+      node.key = successor.key;
+      node.right = this._delete(node.right, successor.key);
+    }
+    return this._fixColors(node, null);
+  }
+
+  delete(key) {
+    if (this.root) {
+      this.root = this._delete(this.root, key);
+    }
+    if (this.root) this.root.color = BLACK;
+    return this;
+  }
+
+  _size(node) {
+    if (!node) return 0;
+    return 1 + this._size(node.left) + this._size(node.right);
+  }
+
+  _inOrder(node, result) {
+    if (!node) return;
+    this._inOrder(node.left, result);
+    result.push(node.key);
+    this._inOrder(node.right, result);
+  }
+
+  inOrder() {
+    const result = [];
+    this._inOrder(this.root, result);
+    return result;
+  }
+
+  * iterator() {
+    const stack = [];
+    let current = this.root;
+    while (current || stack.length) {
+      if (current) {
+        stack.push(current);
+        current = current.left;
+      } else {
+        current = stack.pop();
+        yield current.key;
+        current = current.right;
+      }
+    }
+  }
+
+  get size() {
+    return this._size(this.root);
+  }
+}
+
+module.exports = RedBlackTree;
+```

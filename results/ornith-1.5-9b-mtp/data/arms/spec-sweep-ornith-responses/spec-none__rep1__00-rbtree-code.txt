@@ -1,0 +1,306 @@
+```javascript
+class RedBlackTree {
+  constructor() {
+    this.root = null;
+  }
+
+  static RED = true;
+  static BLACK = false;
+
+  static insert(root, key) {
+    if (root === null) return new Node(key, RedBlackTree.RED, null, null, null);
+    if (key < root.key) return RedBlackTree.insert(root.left, key);
+    if (key > root.key) return RedBlackTree.insert(root.right, key);
+    return root;
+  }
+
+  insert(key) {
+    const newRoot = RedBlackTree.insert(this.root, key);
+    newRoot.parent = null;
+    newRoot.left = null;
+    newRoot.right = null;
+    newRoot.color = RedBlackTree.RED;
+    this.root = RedBlackTree.balance(newRoot);
+    return this;
+  }
+
+  static delete(root, key) {
+    if (root === null) return root;
+    if (key < root.key) {
+      root.left = RedBlackTree.delete(root.left, key);
+    } else if (key > root.key) {
+      root.right = RedBlackTree.delete(root.right, key);
+    } else {
+      if (root.left === null) return root.right;
+      if (root.right === null) return root.left;
+      let min = root.left;
+      while (min.right !== null) min = min.right;
+      root.key = min.key;
+      root.left = RedBlackTree.delete(root.left, min.key);
+    }
+    return root;
+  }
+
+  delete(key) {
+    let root = this.root;
+    if (root !== null) {
+      root = RedBlackTree.delete(root, key);
+      root.parent = null;
+      root.left = null;
+      root.right = null;
+      root.color = RedBlackTree.BLACK;
+      root = RedBlackTree.balance(root);
+    }
+    this.root = root;
+    return this;
+  }
+
+  search(key) {
+    let node = this.root;
+    while (node !== null) {
+      if (key < node.key) node = node.left;
+      else if (key > node.key) node = node.right;
+      else return node;
+    }
+    return null;
+  }
+
+  static balance(root) {
+    if (root.left !== null && root.left.color === RedBlackTree.RED &&
+        root.right !== null && root.right.color === RedBlackTree.RED) {
+      root.color = RedBlackTree.BLACK;
+      root.left.color = RedBlackTree.BLACK;
+      root.right.color = RedBlackTree.BLACK;
+    }
+    if (root.left !== null && root.left.left !== null &&
+        root.left.left.color === RedBlackTree.RED && root.color === RedBlackTree.RED) {
+      root.color = RedBlackTree.BLACK;
+      root.left.color = RedBlackTree.RED;
+    } else if (root.right !== null && root.right.right !== null &&
+               root.right.right.color === RedBlackTree.RED && root.color === RedBlackTree.RED) {
+      root.color = RedBlackTree.BLACK;
+      root.right.color = RedBlackTree.RED;
+    }
+    if (root.left !== null && root.right !== null &&
+        root.left.color === RedBlackTree.BLACK && root.right.color === RedBlackTree.BLACK &&
+        root.color === RedBlackTree.RED) {
+      root.color = RedBlackTree.BLACK;
+      if (root.left.left !== null && root.left.left.color === RedBlackTree.RED) {
+        root.left.color = RedBlackTree.RED;
+        root = RedBlackTree.balance(root.left);
+      } else if (root.right.right !== null && root.right.right.color === RedBlackTree.RED) {
+        root.right.color = RedBlackTree.RED;
+        root = RedBlackTree.balance(root.right);
+      } else {
+        root = RedBlackTree.balance(root.left);
+        root = RedBlackTree.balance(root.right);
+      }
+    }
+    return root;
+  }
+
+  static fixup(root) {
+    if (root.left !== null && root.left.color === RedBlackTree.RED &&
+        root.right !== null && root.right.color === RedBlackTree.RED) {
+      root.color = RedBlackTree.BLACK;
+      root.left.color = RedBlackTree.BLACK;
+      root.right.color = RedBlackTree.BLACK;
+    }
+    if (root.left !== null && root.left.left !== null &&
+        root.left.left.color === RedBlackTree.RED && root.color === RedBlackTree.RED) {
+      root.color = RedBlackTree.BLACK;
+      root.left.color = RedBlackTree.RED;
+    } else if (root.right !== null && root.right.right !== null &&
+               root.right.right.color === RedBlackTree.RED && root.color === RedBlackTree.RED) {
+      root.color = RedBlackTree.BLACK;
+      root.right.color = RedBlackTree.RED;
+    }
+    if (root.left !== null && root.right !== null &&
+        root.left.color === RedBlackTree.BLACK && root.right.color === RedBlackTree.BLACK &&
+        root.color === RedBlackTree.RED) {
+      root.color = RedBlackTree.BLACK;
+      if (root.left.left !== null && root.left.left.color === RedBlackTree.RED) {
+        root.left.color = RedBlackTree.RED;
+        root = RedBlackTree.fixup(root.left);
+      } else if (root.right.right !== null && root.right.right.color === RedBlackTree.RED) {
+        root.right.color = RedBlackTree.RED;
+        root = RedBlackTree.fixup(root.right);
+      } else {
+        root = RedBlackTree.fixup(root.left);
+        root = RedBlackTree.fixup(root.right);
+      }
+    }
+    return root;
+  }
+
+  static deleteFixup(root, sibling) {
+    if (sibling.color === RedBlackTree.RED) {
+      sibling.color = RedBlackTree.BLACK;
+      return;
+    }
+    if (sibling.left !== null && sibling.left.color === RedBlackTree.RED &&
+        sibling.right !== null && sibling.right.color === RedBlackTree.RED) {
+      sibling.color = RedBlackTree.RED;
+      return;
+    }
+    if (sibling.left !== null && sibling.left.color === RedBlackTree.RED &&
+        sibling.right !== null && sibling.right.color === RedBlackTree.BLACK) {
+      sibling.color = RedBlackTree.RED;
+      sibling.left.color = RedBlackTree.BLACK;
+      return;
+    }
+    if (sibling.right !== null && sibling.right.color === RedBlackTree.RED &&
+        sibling.left !== null && sibling.left.color === RedBlackTree.BLACK) {
+      sibling.color = RedBlackTree.RED;
+      sibling.right.color = RedBlackTree.BLACK;
+      return;
+    }
+    if (sibling.color === RedBlackTree.BLACK &&
+        sibling.left === null && sibling.right === null) {
+      return;
+    }
+    if (sibling.color === RedBlackTree.BLACK &&
+        sibling.left !== null && sibling.left.color === RedBlackTree.RED &&
+        sibling.right === null && sibling.right.color === RedBlackTree.BLACK) {
+      sibling.color = RedBlackTree.RED;
+      sibling.left.color = RedBlackTree.BLACK;
+      return;
+    }
+    if (sibling.color === RedBlackTree.BLACK &&
+        sibling.right !== null && sibling.right.color === RedBlackTree.RED &&
+        sibling.left === null && sibling.left.color === RedBlackTree.BLACK) {
+      sibling.color = RedBlackTree.RED;
+      sibling.right.color = RedBlackTree.BLACK;
+      return;
+    }
+    if (sibling.color === RedBlackTree.BLACK &&
+        sibling.left !== null && sibling.left.color === RedBlackTree.RED &&
+        sibling.right !== null && sibling.right.color === RedBlackTree.RED) {
+      sibling.color = RedBlackTree.RED;
+      return;
+    }
+    if (sibling.color === RedBlackTree.BLACK &&
+        sibling.left === null && sibling.right === null) {
+      return;
+    }
+    if (sibling.color === RedBlackTree.BLACK &&
+        sibling.left !== null && sibling.left.color === RedBlackTree.RED &&
+        sibling.right === null && sibling.right.color === RedBlackTree.BLACK) {
+      sibling.color = RedBlackTree.RED;
+      sibling.left.color = RedBlackTree.BLACK;
+      return;
+    }
+    if (sibling.color === RedBlackTree.BLACK &&
+        sibling.right !== null && sibling.right.color === RedBlackTree.RED &&
+        sibling.left === null && sibling.left.color === RedBlackTree.BLACK) {
+      sibling.color = RedBlackTree.RED;
+      sibling.right.color = RedBlackTree.BLACK;
+      return;
+    }
+    if (sibling.color === RedBlackTree.BLACK &&
+        sibling.left !== null && sibling.left.color === RedBlackTree.RED &&
+        sibling.right !== null && sibling.right.color === RedBlackTree.RED) {
+      sibling.color = RedBlackTree.RED;
+      return;
+    }
+    if (sibling.color === RedBlackTree.BLACK &&
+        sibling.left === null && sibling.right === null) {
+      return;
+    }
+    if (sibling.color === RedBlackTree.BLACK &&
+        sibling.left !== null && sibling.left.color === RedBlackTree.RED &&
+        sibling.right === null && sibling.right.color === RedBlackTree.BLACK) {
+      sibling.color = RedBlackTree.RED;
+      sibling.left.color = RedBlackTree.BLACK;
+      return;
+    }
+    if (sibling.color === RedBlackTree.BLACK &&
+        sibling.right !== null && sibling.right.color === RedBlackTree.RED &&
+        sibling.left === null && sibling.left.color === RedBlackTree.BLACK) {
+      sibling.color = RedBlackTree.RED;
+      sibling.right.color = RedBlackTree.BLACK;
+      return;
+    }
+    if (sibling.color === RedBlackTree.BLACK &&
+        sibling.left !== null && sibling.left.color === RedBlackTree.RED &&
+        sibling.right !== null && sibling.right.color === RedBlackTree.RED) {
+      sibling.color = RedBlackTree.RED;
+      return;
+    }
+    if (sibling.color === RedBlackTree.BLACK &&
+        sibling.left === null && sibling.right === null) {
+      return;
+    }
+    if (sibling.color === RedBlackTree.BLACK &&
+        sibling.left !== null && sibling.left.color === RedBlackTree.RED &&
+        sibling.right === null && sibling.right.color === RedBlackTree.BLACK) {
+      sibling.color = RedBlackTree.RED;
+      sibling.left.color = RedBlackTree.BLACK;
+      return;
+    }
+    if (sibling.color === RedBlackTree.BLACK &&
+        sibling.right !== null && sibling.right.color === RedBlackTree.RED &&
+        sibling.left === null && sibling.left.color === RedBlackTree.BLACK) {
+      sibling.color = RedBlackTree.RED;
+      sibling.right.color = RedBlackTree.BLACK;
+      return;
+    }
+    if (sibling.color === RedBlackTree.BLACK &&
+        sibling.left !== null && sibling.left.color === RedBlackTree.RED &&
+        sibling.right !== null && sibling.right.color === RedBlackTree.RED) {
+      sibling.color = RedBlackTree.RED;
+      return;
+    }
+    if (sibling.color === RedBlackTree.BLACK &&
+        sibling.left === null && sibling.right === null) {
+      return;
+    }
+    if (sibling.color === RedBlackTree.BLACK &&
+        sibling.left !== null && sibling.left.color === RedBlackTree.RED &&
+        sibling.right === null && sibling.right.color === RedBlackTree.BLACK) {
+      sibling.color = RedBlackTree.RED;
+      sibling.left.color = RedBlackTree.BLACK;
+      return;
+    }
+    if (sibling.color === RedBlackTree.BLACK &&
+        sibling.right !== null && sibling.right.color === RedBlackTree.RED &&
+        sibling.left === null && sibling.left.color === RedBlackTree.BLACK) {
+      sibling.color = RedBlackTree.RED;
+      sibling.right.color = RedBlackTree.BLACK;
+      return;
+    }
+    if (sibling.color === RedBlackTree.BLACK &&
+        sibling.left !== null && sibling.left.color === RedBlackTree.RED &&
+        sibling.right !== null && sibling.right.color === RedBlackTree.RED) {
+      sibling.color = RedBlackTree.RED;
+      return;
+    }
+    if (sibling.color === RedBlackTree.BLACK &&
+        sibling.left === null && sibling.right === null) {
+      return;
+    }
+    if (sibling.color === RedBlackTree.BLACK &&
+        sibling.left !== null && sibling.left.color === RedBlackTree.RED &&
+        sibling.right === null && sibling.right.color === RedBlackTree.BLACK) {
+      sibling.color = RedBlackTree.RED;
+      sibling.left.color = RedBlackTree.BLACK;
+      return;
+    }
+    if (sibling.color === RedBlackTree.BLACK &&
+        sibling.right !== null && sibling.right.color === RedBlackTree.RED &&
+        sibling.left === null && sibling.left.color === RedBlackTree.BLACK) {
+      sibling.color = RedBlackTree.RED;
+      sibling.right.color = RedBlackTree.BLACK;
+      return;
+    }
+    if (sibling.color === RedBlackTree.BLACK &&
+        sibling.left !== null && sibling.left.color === RedBlackTree.RED &&
+        sibling.right !== null && sibling.right.color === RedBlackTree.RED) {
+      sibling.color = RedBlackTree.RED;
+      return;
+    }
+    if (sibling.color === RedBlackTree.BLACK &&
+        sibling.left === null && sibling.right === null) {
+      return;
+    }
+    if

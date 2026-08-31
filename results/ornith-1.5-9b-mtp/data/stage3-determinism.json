@@ -1,0 +1,50 @@
+{
+ "_schema": "stage3-determinism v1",
+ "slug": "ornith-1.5-9b-mtp",
+ "question": "does the SAME config, run twice, produce the same text at temperature 0 / top_k 1?",
+ "configs": {
+  "spec-none": {
+   "reps": [
+    {
+     "sha256": "26feb103aaf7a81da7db56d4ef4fe281ffae71ab0146fda154185048913d995c",
+     "chars": 16407,
+     "predicted_n": 4096,
+     "t_s": 118.82998516670976,
+     "finish": "length",
+     "tail": "olor === RedBlackTree.BLACK &&\n        sibling.right !== null && sibling.right.color === RedBlackTree.RED &&\n        sibling.left === null && sibling.left.color === RedBlackTree.BLACK) {\n      sibling"
+    },
+    {
+     "sha256": "26feb103aaf7a81da7db56d4ef4fe281ffae71ab0146fda154185048913d995c",
+     "chars": 16407,
+     "predicted_n": 4096,
+     "t_s": 118.48996732859783,
+     "finish": "length",
+     "tail": "olor === RedBlackTree.BLACK &&\n        sibling.right !== null && sibling.right.color === RedBlackTree.RED &&\n        sibling.left === null && sibling.left.color === RedBlackTree.BLACK) {\n      sibling"
+    }
+   ],
+   "reproducible": true
+  },
+  "spec-n4-p0.75": {
+   "reps": [
+    {
+     "sha256": "363a2a0005b48be225fb26967d52f8507cfa339225ea9f600c78ed75a181dec1",
+     "chars": 4100,
+     "predicted_n": 1135,
+     "t_s": 146.46795245035457,
+     "finish": "stop",
+     "tail": "randparent) grandparent.color = RedBlackTree.RED;\n              node = grandparent;\n            }\n          }\n        }\n      }\n    }\n    if (this.root) this.root.color = RedBlackTree.BLACK;\n  }\n}\n```"
+    },
+    {
+     "sha256": "363a2a0005b48be225fb26967d52f8507cfa339225ea9f600c78ed75a181dec1",
+     "chars": 4100,
+     "predicted_n": 1135,
+     "t_s": 147.40142594631652,
+     "finish": "stop",
+     "tail": "randparent) grandparent.color = RedBlackTree.RED;\n              node = grandparent;\n            }\n          }\n        }\n      }\n    }\n    if (this.root) this.root.color = RedBlackTree.BLACK;\n  }\n}\n```"
+    }
+   ],
+   "reproducible": true
+  }
+ },
+ "spec_changes_output": true
+}

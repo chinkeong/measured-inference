@@ -518,3 +518,75 @@ resident, and a large `token_embd` may not be offloaded the way the rest is.
 stands; the absolute decomposition does not, and no number in this campaign
 depends on it. Left as an open item rather than given a mechanism it has not
 earned.
+
+## Stage 3 — SPEED SURFACES  ·  2026-09-01
+
+### The speculation sweep, and why its baseline is unusable
+
+Six arms, fresh server each, one temp-0 probe, `arms.py` alternating arm order
+(rule 30). The first pass hit `finish_reason=length` on **all six** at the
+reference campaign's 700-token cap; rule 7 forbids interpreting or filtering a
+truncated probe, so the cap went to 3,000 and every arm re-ran.
+
+| arm | t/s | vs none | acceptance | draft_n | predicted_n | finish |
+|---|---|---|---|---|---|---|
+| spec-none | 119.56 | 1.000x | — | — | **3000** | **length** |
+| spec-mtp-n4-p0.75 | **148.03** | **1.238x** | 0.902 | 795 | 1135 | stop |
+| spec-mtp-n6-p0.5 | 138.50 | 1.158x | 0.680 | 1494 | 1427 | stop |
+| spec-mtp-n10-p0 | 115.64 | **0.967x** | 0.298 | 2540 | 1012 | stop |
+| spec-mtp-n10-p0.5 | 134.21 | 1.123x | 0.630 | 1483 | 1311 | stop |
+| spec-mtp-n16-p0.5 | 130.90 | 1.095x | 0.627 | 1491 | 1311 | stop |
+
+**Speculation can LOSE.** `n10/p0` — ten drafted tokens with no probability
+floor — runs at **0.967x**, slower than no speculation at all, on acceptance
+0.298: two thirds of every draft is thrown away and the verification pass is not
+free. The best arm is the most conservative one, `n4/p0.75`, at acceptance 0.902.
+A reader tuning by "more drafting is more speed" would land on the one setting
+that costs them throughput.
+
+**The baseline still truncated, and that is the real story.** `spec-none` ran to
+its 3,000 cap while every speculative arm terminated normally at 1,012–1,427
+tokens, on the SAME prompt with the SAME greedy sampler. Reading the tail
+(rule 20: spot-read long greedy output for repetition loops before trusting its
+tokens) shows why — it is in a **degeneration loop**, cycling near-identical
+`if (sibling.color === RedBlackTree.BLACK && ...)` branches with permuted
+conditions until the cap stops it.
+
+### Speculation is NOT output-preserving here — and the alternative was tested
+
+Six arms produced six different texts at temperature 0. The tempting reading is
+"speculation changes the output", which would make the 1.238x speedup not free.
+That reading is not earned until the cheaper explanation is ruled out: at a
+degeneration loop's near-tied logits, any perturbation of the execution path can
+flip a tie, so the divergence might simply be numerical nondeterminism.
+
+Two configurations, two repeats each, fresh server every time, n_predict 4,096:
+
+| config | rep 1 | rep 2 | reproducible |
+|---|---|---|---|
+| spec-none | 16,407 chars, n=4096, **length** | 16,407 chars, n=4096 | **YES** — sha `26feb103aaf7` both |
+| spec-n4-p0.75 | 4,100 chars, n=1135, **stop** | 4,100 chars, n=1135 | **YES** — sha `363a2a0005b4` both |
+
+**Greedy decoding on this box is bit-reproducible.** Nondeterminism is ruled
+out, so the divergence is real: `--spec-type draft-mtp` on this model and this
+build **changes the generated text**. Lossless rejection sampling would forbid
+that; whatever this path is doing, it is not that.
+
+Two consequences, and they are not the same claim:
+1. **The speedup and the output are entangled.** "1.238x faster, same answer" is
+   not available here and must never be published. What is measurable is
+   "1.238x faster, different answer".
+2. **On this prompt the speculative answer is the better one** — it terminates
+   with a complete class in 1,135 tokens where the non-speculative path
+   degenerates and runs past 4,096. That is one prompt and is not a quality
+   claim; Stage 6 decides quality.
+
+### What this costs the campaign, stated plainly
+
+`spec-none` is measuring a repetition loop on this prompt, so it is not a
+throughput baseline and the `vs none` column above is provisional. Worse, the
+**Stage-1 floors used the same temp-0 / top_k-1 sampler**, which is this repo's
+standard speed-probe setting; they ran only 300 tokens and show no loop, but the
+sampler that degenerated here is the sampler that took them. Before any locked
+recipe quotes a floor, the floors need a loop check — `scripts/bench/loop-detect.py`
+exists for exactly this and has not yet been run over them.

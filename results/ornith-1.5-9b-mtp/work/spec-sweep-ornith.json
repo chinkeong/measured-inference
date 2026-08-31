@@ -1,5 +1,5 @@
 {
-  "name": "MTP speculative-decoding sweep — n-max x p-min on a code probe (Ornith-1.5-9B)",
+  "name": "MTP speculative-decoding sweep \u2014 n-max x p-min on a code probe (Ornith-1.5-9B)",
   "stage": 3,
   "derived_from": [
     {
@@ -8,19 +8,23 @@
       "what_changed": [
         "model: Q4_K_M of Ornith-1.5-9B-MTP, not Qwen3.8-27B. Nothing here reproduces a reference-campaign number and no arm may be quoted against results/ARM-PROVENANCE.md's grades.",
         "the draft head is a SEPARATE sibling GGUF (-md drafter). The reference model carried its MTP layer in-file; on this model llama.cpp b10717 ignores the in-file blk.32 entirely (15 'unused tensor ... ignoring' warnings), so the head is the only speculation source that works.",
-        "-c 32768, not 122880: sized to match this campaign's Stage-1 floors so the sweep and the floors are one comparison (rule 30 — compare arms inside one sweep). The whole 262,144 window fits, so this is a cost choice, not a ceiling.",
+        "-c 32768, not 122880: sized to match this campaign's Stage-1 floors so the sweep and the floors are one comparison (rule 30 \u2014 compare arms inside one sweep). The whole 262,144 window fits, so this is a cost choice, not a ceiling.",
         "KV left at the server default f16, not -ctk/-ctv q8_0, for the same reason: the Stage-1 floors were taken at f16 and a cache-type change is a condition change (rule 3).",
         "--chat-template-kwargs {\"enable_thinking\":false}: this model's effort knob is BOOLEAN (enable_thinking), not the reference's graded reasoning_effort. Thinking is held OFF across the sweep so the arms differ only in speculation.",
         "the reference's --load-mode/--reasoning-preserve/--image-min-tokens and its sampler block are dropped: they are the reference server's conditions, not this one's, and the probe pins temperature 0 / top_k 1 anyway."
       ]
     }
   ],
-  "models": ["Q4_K_M", "drafter"],
+  "models": [
+    "Q4_K_M",
+    "drafter"
+  ],
   "notes": [
-    "Rule 11: acceptance IS the speculative speedup, but MEAN DRAFT LENGTH is the throughput predictor — the ledger must carry both for every arm, and the report publishes both.",
+    "Rule 11: acceptance IS the speculative speedup, but MEAN DRAFT LENGTH is the throughput predictor \u2014 the ledger must carry both for every arm, and the report publishes both.",
     "Arm 1 (spec-none) is the in-sweep baseline. The Stage-1 floor for Q4_K_M was 118.38 t/s at these same conditions; if spec-none lands far from that, the sweep is measuring something other than speculation and stops.",
-    "Fresh server per arm. One temp-0 probe each, 700 tokens, the same red-black-tree code prompt across every arm — novel code is the regime where MTP acceptance is hardest, which is why the reference chose it.",
-    "Desktop is LIVE for every arm (GNOME + Steam + browser). Rule 27: that costs decode invisibly and equally across arms; it is a condition of the sweep, not a difference between its arms."
+    "Fresh server per arm. One temp-0 probe each, 700 tokens, the same red-black-tree code prompt across every arm \u2014 novel code is the regime where MTP acceptance is hardest, which is why the reference chose it.",
+    "Desktop is LIVE for every arm (GNOME + Steam + browser). Rule 27: that costs decode invisibly and equally across arms; it is a condition of the sweep, not a difference between its arms.",
+    "2026-09-01: n_predict raised 700 -> 3000. Every one of the six arms hit finish_reason=length at 700 on the red-black-tree prompt, and rule 7 forbids interpreting a truncated probe or filtering it out -- raise the cap and rerun the arm. 700 came from the reference campaign's probe-config.ps1 and is a condition of THAT model's prompt, not of this one."
   ],
   "record": {
     "acceptance": "timings.draft_n_accepted / timings.draft_n",
@@ -29,7 +33,7 @@
   "defaults": {
     "repeat": 1,
     "discard_first": false,
-    "n_predict": 700,
+    "n_predict": 3000,
     "temperature": 0,
     "top_k": 1
   },
@@ -39,82 +43,208 @@
       "sweep": "spec-sweep-ornith",
       "server": {
         "model": "Q4_K_M",
-        "flags": ["--alias", "ornith/ornith-1.5-9b", "-c", "32768", "-ngl", "99",
-                  "--parallel", "1", "--jinja",
-                  "--chat-template-kwargs", "{\"enable_thinking\":false}",
-                  "--spec-type", "none"]
+        "flags": [
+          "--alias",
+          "ornith/ornith-1.5-9b",
+          "-c",
+          "32768",
+          "-ngl",
+          "99",
+          "--parallel",
+          "1",
+          "--jinja",
+          "--chat-template-kwargs",
+          "{\"enable_thinking\":false}",
+          "--spec-type",
+          "none"
+        ]
       },
-      "probes": [{"id": "rbtree-code", "prompt": "Write a single self-contained JavaScript file implementing a red-black tree class with insert, delete, search and an in-order iterator. Code only, no explanation."}]
+      "probes": [
+        {
+          "id": "rbtree-code",
+          "prompt": "Write a single self-contained JavaScript file implementing a red-black tree class with insert, delete, search and an in-order iterator. Code only, no explanation."
+        }
+      ]
     },
     {
       "id": "spec-mtp-n4-p0.75",
       "sweep": "spec-sweep-ornith",
       "server": {
         "model": "Q4_K_M",
-        "flags": ["--alias", "ornith/ornith-1.5-9b", "-c", "32768", "-ngl", "99",
-                  "--parallel", "1", "--jinja",
-                  "--chat-template-kwargs", "{\"enable_thinking\":false}",
-                  "--spec-type", "draft-mtp", "-md", "drafter",
-                  "--spec-draft-ngl", "99",
-                  "--spec-draft-n-max", "4", "--spec-draft-p-min", "0.75"]
+        "flags": [
+          "--alias",
+          "ornith/ornith-1.5-9b",
+          "-c",
+          "32768",
+          "-ngl",
+          "99",
+          "--parallel",
+          "1",
+          "--jinja",
+          "--chat-template-kwargs",
+          "{\"enable_thinking\":false}",
+          "--spec-type",
+          "draft-mtp",
+          "-md",
+          "drafter",
+          "--spec-draft-ngl",
+          "99",
+          "--spec-draft-n-max",
+          "4",
+          "--spec-draft-p-min",
+          "0.75"
+        ]
       },
-      "probes": [{"id": "rbtree-code", "prompt": "Write a single self-contained JavaScript file implementing a red-black tree class with insert, delete, search and an in-order iterator. Code only, no explanation."}]
+      "probes": [
+        {
+          "id": "rbtree-code",
+          "prompt": "Write a single self-contained JavaScript file implementing a red-black tree class with insert, delete, search and an in-order iterator. Code only, no explanation."
+        }
+      ]
     },
     {
       "id": "spec-mtp-n6-p0.5",
       "sweep": "spec-sweep-ornith",
       "server": {
         "model": "Q4_K_M",
-        "flags": ["--alias", "ornith/ornith-1.5-9b", "-c", "32768", "-ngl", "99",
-                  "--parallel", "1", "--jinja",
-                  "--chat-template-kwargs", "{\"enable_thinking\":false}",
-                  "--spec-type", "draft-mtp", "-md", "drafter",
-                  "--spec-draft-ngl", "99",
-                  "--spec-draft-n-max", "6", "--spec-draft-p-min", "0.5"]
+        "flags": [
+          "--alias",
+          "ornith/ornith-1.5-9b",
+          "-c",
+          "32768",
+          "-ngl",
+          "99",
+          "--parallel",
+          "1",
+          "--jinja",
+          "--chat-template-kwargs",
+          "{\"enable_thinking\":false}",
+          "--spec-type",
+          "draft-mtp",
+          "-md",
+          "drafter",
+          "--spec-draft-ngl",
+          "99",
+          "--spec-draft-n-max",
+          "6",
+          "--spec-draft-p-min",
+          "0.5"
+        ]
       },
-      "probes": [{"id": "rbtree-code", "prompt": "Write a single self-contained JavaScript file implementing a red-black tree class with insert, delete, search and an in-order iterator. Code only, no explanation."}]
+      "probes": [
+        {
+          "id": "rbtree-code",
+          "prompt": "Write a single self-contained JavaScript file implementing a red-black tree class with insert, delete, search and an in-order iterator. Code only, no explanation."
+        }
+      ]
     },
     {
       "id": "spec-mtp-n10-p0",
       "sweep": "spec-sweep-ornith",
       "server": {
         "model": "Q4_K_M",
-        "flags": ["--alias", "ornith/ornith-1.5-9b", "-c", "32768", "-ngl", "99",
-                  "--parallel", "1", "--jinja",
-                  "--chat-template-kwargs", "{\"enable_thinking\":false}",
-                  "--spec-type", "draft-mtp", "-md", "drafter",
-                  "--spec-draft-ngl", "99",
-                  "--spec-draft-n-max", "10", "--spec-draft-p-min", "0"]
+        "flags": [
+          "--alias",
+          "ornith/ornith-1.5-9b",
+          "-c",
+          "32768",
+          "-ngl",
+          "99",
+          "--parallel",
+          "1",
+          "--jinja",
+          "--chat-template-kwargs",
+          "{\"enable_thinking\":false}",
+          "--spec-type",
+          "draft-mtp",
+          "-md",
+          "drafter",
+          "--spec-draft-ngl",
+          "99",
+          "--spec-draft-n-max",
+          "10",
+          "--spec-draft-p-min",
+          "0"
+        ]
       },
-      "probes": [{"id": "rbtree-code", "prompt": "Write a single self-contained JavaScript file implementing a red-black tree class with insert, delete, search and an in-order iterator. Code only, no explanation."}]
+      "probes": [
+        {
+          "id": "rbtree-code",
+          "prompt": "Write a single self-contained JavaScript file implementing a red-black tree class with insert, delete, search and an in-order iterator. Code only, no explanation."
+        }
+      ]
     },
     {
       "id": "spec-mtp-n10-p0.5",
       "sweep": "spec-sweep-ornith",
       "server": {
         "model": "Q4_K_M",
-        "flags": ["--alias", "ornith/ornith-1.5-9b", "-c", "32768", "-ngl", "99",
-                  "--parallel", "1", "--jinja",
-                  "--chat-template-kwargs", "{\"enable_thinking\":false}",
-                  "--spec-type", "draft-mtp", "-md", "drafter",
-                  "--spec-draft-ngl", "99",
-                  "--spec-draft-n-max", "10", "--spec-draft-p-min", "0.5"]
+        "flags": [
+          "--alias",
+          "ornith/ornith-1.5-9b",
+          "-c",
+          "32768",
+          "-ngl",
+          "99",
+          "--parallel",
+          "1",
+          "--jinja",
+          "--chat-template-kwargs",
+          "{\"enable_thinking\":false}",
+          "--spec-type",
+          "draft-mtp",
+          "-md",
+          "drafter",
+          "--spec-draft-ngl",
+          "99",
+          "--spec-draft-n-max",
+          "10",
+          "--spec-draft-p-min",
+          "0.5"
+        ]
       },
-      "probes": [{"id": "rbtree-code", "prompt": "Write a single self-contained JavaScript file implementing a red-black tree class with insert, delete, search and an in-order iterator. Code only, no explanation."}]
+      "probes": [
+        {
+          "id": "rbtree-code",
+          "prompt": "Write a single self-contained JavaScript file implementing a red-black tree class with insert, delete, search and an in-order iterator. Code only, no explanation."
+        }
+      ]
     },
     {
       "id": "spec-mtp-n16-p0.5",
       "sweep": "spec-sweep-ornith",
       "server": {
         "model": "Q4_K_M",
-        "flags": ["--alias", "ornith/ornith-1.5-9b", "-c", "32768", "-ngl", "99",
-                  "--parallel", "1", "--jinja",
-                  "--chat-template-kwargs", "{\"enable_thinking\":false}",
-                  "--spec-type", "draft-mtp", "-md", "drafter",
-                  "--spec-draft-ngl", "99",
-                  "--spec-draft-n-max", "16", "--spec-draft-p-min", "0.5"]
+        "flags": [
+          "--alias",
+          "ornith/ornith-1.5-9b",
+          "-c",
+          "32768",
+          "-ngl",
+          "99",
+          "--parallel",
+          "1",
+          "--jinja",
+          "--chat-template-kwargs",
+          "{\"enable_thinking\":false}",
+          "--spec-type",
+          "draft-mtp",
+          "-md",
+          "drafter",
+          "--spec-draft-ngl",
+          "99",
+          "--spec-draft-n-max",
+          "16",
+          "--spec-draft-p-min",
+          "0.5"
+        ]
       },
-      "probes": [{"id": "rbtree-code", "prompt": "Write a single self-contained JavaScript file implementing a red-black tree class with insert, delete, search and an in-order iterator. Code only, no explanation."}]
+      "probes": [
+        {
+          "id": "rbtree-code",
+          "prompt": "Write a single self-contained JavaScript file implementing a red-black tree class with insert, delete, search and an in-order iterator. Code only, no explanation."
+        }
+      ]
     }
   ]
 }

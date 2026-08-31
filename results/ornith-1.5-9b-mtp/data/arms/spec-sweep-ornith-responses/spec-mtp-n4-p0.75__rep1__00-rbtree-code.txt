@@ -1,0 +1,142 @@
+```javascript
+class RedBlackTree {
+  constructor() {
+    this.root = null;
+  }
+
+  static RED = true;
+  static BLACK = false;
+
+  insert(key) {
+    const node = { key, color: RedBlackTree.RED, left: null, right: null, parent: null };
+    if (!this.root) {
+      this.root = node;
+      this.root.color = RedBlackTree.BLACK;
+      return;
+    }
+    let cur = this.root;
+    while (cur) {
+      cur.parent = node;
+      if (key < cur.key) cur = cur.left || null;
+      else if (key > cur.key) cur = cur.right || null;
+      else {
+        cur.key = key;
+        return;
+      }
+    }
+    node.parent = cur;
+    if (cur.left === null) node.left = cur.left;
+    else node.left = cur;
+    if (cur.right === null) node.right = cur.right;
+    else node.right = cur;
+    this._fixUp(node);
+  }
+
+  delete(key) {
+    let cur = this.root;
+    while (cur && cur.key !== key) {
+      cur = key < cur.key ? cur.left : cur.right;
+    }
+    if (!cur) return;
+    const { key: k, parent } = cur;
+    if (cur.left && cur.right) {
+      const succ = this._min(cur.right);
+      cur.key = succ.key;
+      cur.color = succ.color;
+      if (succ.parent) succ.parent = cur;
+      if (succ.left) {
+        succ.left.parent = cur;
+        cur.left = succ.left;
+      } else {
+        cur.left = succ.right;
+      }
+      if (succ.parent === cur) cur.right = succ.right;
+      if (succ.right) succ.right.parent = succ.parent;
+      if (parent) parent.left = cur.left || cur.right;
+      else this.root = cur.left || cur.right;
+      if (this.root) this._fixUp(this.root);
+      return;
+    }
+    let child = cur.left || cur.right;
+    if (child) child.parent = parent;
+    if (parent) {
+      if (parent.left === cur) parent.left = child;
+      else parent.right = child;
+      this._fixUp(parent);
+    } else {
+      this.root = child;
+    }
+  }
+
+  search(key) {
+    let cur = this.root;
+    while (cur) {
+      if (key < cur.key) cur = cur.left;
+      else if (key > cur.key) cur = cur.right;
+      else return cur;
+    }
+    return null;
+  }
+
+  *inOrder(node = this.root) {
+    if (node) {
+      yield* this.inOrder(node.left);
+      yield node.key;
+      yield* this.inOrder(node.right);
+    }
+  }
+
+  _min(node) {
+    while (node.left) node = node.left;
+    return node;
+  }
+
+  _fixUp(node) {
+    while (node.parent && node.parent.color === RedBlackTree.RED) {
+      const grandparent = node.parent.parent;
+      if (grandparent) {
+        if (node.parent === grandparent.left) {
+          const uncle = grandparent.right;
+          if (uncle && uncle.color === RedBlackTree.RED) {
+            node.parent.color = RedBlackTree.BLACK;
+            uncle.color = RedBlackTree.BLACK;
+            grandparent.color = RedBlackTree.RED;
+            node = grandparent;
+          } else {
+            if (node === (node.parent.left || node.parent.right)) {
+              node.parent.color = RedBlackTree.BLACK;
+              let sibling = node.parent.sibling;
+              if (sibling) sibling.color = RedBlackTree.RED;
+              node = node.parent;
+            } else {
+              node.parent.color = RedBlackTree.RED;
+              if (grandparent) grandparent.color = RedBlackTree.RED;
+              node = grandparent;
+            }
+          }
+        } else {
+          const uncle = grandparent.left;
+          if (uncle && uncle.color === RedBlackTree.RED) {
+            node.parent.color = RedBlackTree.BLACK;
+            uncle.color = RedBlackTree.BLACK;
+            grandparent.color = RedBlackTree.RED;
+            node = grandparent;
+          } else {
+            if (node === (node.parent.left || node.parent.right)) {
+              node.parent.color = RedBlackTree.BLACK;
+              let sibling = node.parent.sibling;
+              if (sibling) sibling.color = RedBlackTree.RED;
+              node = node.parent;
+            } else {
+              node.parent.color = RedBlackTree.RED;
+              if (grandparent) grandparent.color = RedBlackTree.RED;
+              node = grandparent;
+            }
+          }
+        }
+      }
+    }
+    if (this.root) this.root.color = RedBlackTree.BLACK;
+  }
+}
+```

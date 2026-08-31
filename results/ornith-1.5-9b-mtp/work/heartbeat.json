@@ -1,36 +1,13 @@
 {
- "_schema": "heartbeat v1",
- "slug": "ornith-1.5-9b-mtp",
- "written_utc": "2026-08-31T17:05:53Z",
- "operator_instruction": "keep going for 24 hours (2026-09-01)",
- "stage": "2 (interrupted)",
- "in_flight": {
-  "what": "none -- all jobs stopped",
-  "gpu": "idle, lock free"
- },
- "done": [
-  "Stage 0 CLOSED (commit 03d17dc)",
-  "Stage 1 floors + drafter + idle baselines (commit 86b4aef)",
-  "Stage 1 short PPL screen (data/stage1-ppl-screen.json)"
- ],
- "next": [
-  "finish rule-6 ladder -> settle the Stage-1 pruning gate",
-  "Stage 2: work/stage2-memory-map.py (written, not yet run)",
-  "Stage 3: arms.py --arms work/spec-sweep-ornith.json --slug ornith-1.5-9b-mtp",
-  "Stage 4 appetite (enable_thinking true/false), Stage 5 RECIPE LOCK, Stage 6, Stage 7"
- ],
- "open_findings": [
-  "Stage-1 pruning gate applied literally would DROP Q8_0 (slower AND worse on the 32,768-position screen). Do not drop it -- the screen is 1/9 of rule 6's positions and Q8_0 is the ladder's reference. Awaiting the full ladder.",
-  "scripts/probe-config.sh violates rule 20 (bare & launch, pkill by port). Fix pending.",
-  "b10717 logs no KV-size/offload line -- stage-1.md's rule-4 cross-check has no source in this build.",
-  "stage-0.md's cold-idle recipe reads 34% high on this box (~150 s settling tail inside P8)."
- ],
- "recovery": "Read results/ornith-1.5-9b-mtp/campaign.md end to end, then `git log --oneline`. The highest checkpoint commit is ground truth.",
- "status": "INTERRUPTED -- three background jobs killed together; machine verified clean (lock free, no servers, VRAM 454 MiB)",
- "resume_points": {
-  "bf16_arbiter": "curl -sL -C - -o models/vendor-Ornith-1.5-9B-BF16.gguf https://huggingface.co/ornith-ai/Ornith-1.5-9B-GGUF/resolve/main/Ornith-1.5-9B-BF16.gguf   (partial: 1157517312 of ~18.41e9 bytes) then: PPL_ARMS='BF16=vendor-Ornith-1.5-9B-BF16.gguf' PPL_OUT='ppl-crosscheck-bf16.json' PPL_CHUNKS=36 .venv/bin/python results/ornith-1.5-9b-mtp/work/ppl-rule6-ladder.py",
-  "stage2": ".venv/bin/python results/ornith-1.5-9b-mtp/work/stage2-memory-map.py   (resumable: skips any pair already in data/stage2-memory-map.json)",
-  "stage3": ".venv/bin/python scripts/arms.py --arms results/ornith-1.5-9b-mtp/work/spec-sweep-ornith.json --slug ornith-1.5-9b-mtp --resume"
- },
- "blocking_finding": "Q8_0 is 1.10 PPL WORSE than Q4_K_M across TWO independent lineages (agree to 0.06 sigma). BF16 is the arbiter and did not finish. NO quant recommendation may be published from the ladder until it does (rule 2). Pruning gate stays open, nothing dropped."
+  "pid": 373520,
+  "arm": null,
+  "probe": null,
+  "started_utc": "2026-08-31T17:36:12Z",
+  "updated_utc": "2026-08-31T17:37:57Z",
+  "done": 6,
+  "total": 6,
+  "rep": null,
+  "sweep": null,
+  "ledger": "/root/Workspace/measured-inference/results/ornith-1.5-9b-mtp/data/arms/spec-sweep-ornith.jsonl",
+  "state": "finished"
 }

@@ -1,0 +1,174 @@
+```javascript
+class RedBlackTree {
+  constructor() {
+    this.root = null;
+  }
+
+  static RED = true;
+  static BLACK = false;
+
+  insert(key) {
+    const node = { key, color: RedBlackTree.RED, left: null, right: null, parent: null };
+    if (!this.root) {
+      this.root = node;
+      this.root.color = RedBlackTree.BLACK;
+      return;
+    }
+    let cur = this.root;
+    while (cur) {
+      cur.parent = node;
+      if (key < cur.key) cur = cur.left || null;
+      else if (key > cur.key) cur = cur.right || null;
+      else {
+        cur.key = key;
+        return;
+      }
+    }
+    node.parent = cur;
+    if (key < cur.key) node.left = node;
+    else node.right = node;
+    this._fixUp(node);
+  }
+
+  delete(key) {
+    let parent = null, cur = this.root;
+    while (cur) {
+      if (cur.key === key) {
+        parent = cur;
+        break;
+      } else if (key < cur.key) {
+        cur = cur.left || null;
+      } else {
+        cur = cur.right || null;
+      }
+    }
+    if (!cur) return;
+
+    const child =
+      (cur.left && cur.right)
+        ? this._findMin(cur.right)
+        : (cur.left || cur.right);
+
+    if (child) child.parent = parent;
+    if (parent) {
+      if (parent.left === cur) parent.left = child;
+      else parent.right = child;
+    } else {
+      this.root = child;
+    }
+    if (child) child.color = RedBlackTree.BLACK;
+
+    this._fixUp(this.root);
+  }
+
+  search(key) {
+    let cur = this.root;
+    while (cur) {
+      if (key < cur.key) cur = cur.left;
+      else if (key > cur.key) cur = cur.right;
+      else return cur;
+    }
+    return null;
+  }
+
+  *inOrder(node = this.root) {
+    if (node) {
+      yield* this.inOrder(node.left);
+      yield node.key;
+      yield* this.inOrder(node.right);
+    }
+  }
+
+  _findMin(node) {
+    while (node.left) node = node.left;
+    return node;
+  }
+
+  _flipColors(p) {
+    if (p.left) p.left.color = RedBlackTree.BLACK;
+    if (p.right) p.right.color = RedBlackTree.BLACK;
+    p.color = RedBlackTree.RED;
+  }
+
+  _fixUp(node) {
+    while (node.parent && node.parent.color === RedBlackTree.RED) {
+      const parent = node.parent;
+      const grandparent = parent.parent;
+      if (!grandparent) break;
+
+      if (parent === grandparent.left) {
+        const uncle = grandparent.right;
+        if (uncle && uncle.color === RedBlackTree.RED) {
+          grandparent.color = RedBlackTree.BLACK;
+          parent.color = RedBlackTree.BLACK;
+          uncle.color = RedBlackTree.BLACK;
+          node = grandparent;
+        } else {
+          if (node === parent.right) {
+            this._rotateLeft(grandparent);
+            node = parent;
+          }
+          parent.color = RedBlackTree.BLACK;
+          if (grandparent.color === RedBlackTree.RED) {
+            grandparent.color = RedBlackTree.BLACK;
+            if (grandparent.parent) grandparent.parent.color = RedBlackTree.RED;
+          }
+          node = grandparent;
+        }
+      } else {
+        const uncle = grandparent.left;
+        if (uncle && uncle.color === RedBlackTree.RED) {
+          grandparent.color = RedBlackTree.BLACK;
+          parent.color = RedBlackTree.BLACK;
+          uncle.color = RedBlackTree.BLACK;
+          node = grandparent;
+        } else {
+          if (node === parent.left) {
+            this._rotateRight(grandparent);
+            node = parent;
+          }
+          parent.color = RedBlackTree.BLACK;
+          if (grandparent.color === RedBlackTree.RED) {
+            grandparent.color = RedBlackTree.BLACK;
+            if (grandparent.parent) grandparent.parent.color = RedBlackTree.RED;
+          }
+          node = grandparent;
+        }
+      }
+    }
+    if (this.root) this.root.color = RedBlackTree.BLACK;
+  }
+
+  _rotateLeft(grandparent) {
+    const parent = grandparent.right;
+    if (!parent) return;
+    grandparent.right = parent.left;
+    if (parent.left) parent.left.parent = grandparent;
+    parent.parent = grandparent.parent;
+    if (grandparent.parent) {
+      if (grandparent.parent.left === grandparent) grandparent.parent.left = parent;
+      else grandparent.parent.right = parent;
+    } else {
+      this.root = parent;
+    }
+    parent.left = grandparent;
+    grandparent.parent = parent;
+  }
+
+  _rotateRight(grandparent) {
+    const parent = grandparent.left;
+    if (!parent) return;
+    grandparent.left = parent.right;
+    if (parent.right) parent.right.parent = grandparent;
+    parent.parent = grandparent.parent;
+    if (grandparent.parent) {
+      if (grandparent.parent.left === grandparent) grandparent.parent.left = parent;
+      else grandparent.parent.right = parent;
+    } else {
+      this.root = parent;
+    }
+    parent.right = grandparent;
+    grandparent.parent = parent;
+  }
+}
+```
