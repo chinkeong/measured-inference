@@ -590,3 +590,86 @@ standard speed-probe setting; they ran only 300 tokens and show no loop, but the
 sampler that degenerated here is the sampler that took them. Before any locked
 recipe quotes a floor, the floors need a loop check — `scripts/bench/loop-detect.py`
 exists for exactly this and has not yet been run over them.
+
+### THE ARBITER — BF16, and the ladder was being read from the wrong end
+
+| arm | PPL | ± | vs BF16 |
+|---|---|---|---|
+| **BF16 (unquantized)** | **9.0355** | 0.0690 | — |
+| Q8_0 vendor | 9.0460 | 0.0691 | +0.011 (**0.1σ**) |
+| Q8_0 protoLabsAI | 9.0519 | 0.0692 | +0.016 (**0.2σ**) |
+| IQ2_M | 8.6629 | 0.0586 | −0.373 (4.1σ) |
+| Q4_K_M | 7.9544 | 0.0553 | **−1.081 (12.2σ)** |
+
+All five tokenized identically (36 chunks, n_ctx 8192), so the comparison is sound.
+
+**CORRECTION, and it reverses this campaign's own earlier framing.** This log
+previously recorded "Q8_0 is worse than the 2-bit file" and hunted a defect in
+Q8_0. That was reading the ladder from the wrong end. **Q8_0 is near-perfect** —
+0.1–0.2 σ from the unquantised weights, which is exactly what a Q8_0 is for.
+**Q4_K_M is the anomaly**, scoring 1.08 PPL *better than the weights it was made
+from*, at 12.2 σ. A quantisation cannot genuinely beat its own source. Here a
+LOW perplexity is the suspicious reading, not the good one.
+
+### Two hypotheses, one run, at BF16
+
+The campaign was handed a third-party analysis claiming that MTP degrades output
+on quantised models because speculation forces GEMM instead of GEMV, and
+floating-point under low-bit quantisation is not associative — with the explicit
+claim that *"MTP does not impact output quality only holds true under
+unquantised BF16 precision."* That is a mechanism, and it is testable with a
+file this campaign already has.
+
+Same script as the Q4_K_M determinism test, target swapped to BF16, two repeats
+each, fresh server every time, temp 0 / top_k 1, n_predict 4,096:
+
+| target | config | rep 1 | rep 2 | reproducible |
+|---|---|---|---|---|
+| Q4_K_M | spec-none | 16,407 ch, n=4096, **length** | identical | yes |
+| Q4_K_M | spec-n4-p0.75 | 4,100 ch, n=1135, stop | identical | yes |
+| **BF16** | spec-none | 9,478 ch, n=2563, **stop** | identical | yes |
+| **BF16** | spec-n4-p0.75 | 8,950 ch, n=2547, **stop** | identical | yes |
+
+**Hypothesis A — the quantisation mechanism: NOT SUPPORTED.** MTP changes the
+generated text at **BF16 too** (`3dbaf65806f6` vs `c4075dada3b6`, both
+bit-reproducible across repeats). If non-associative low-bit arithmetic were the
+cause, BF16 would converge. It does not. **CAVEAT, and it makes this a partial
+test:** the draft head is `mtp-…-head-Q8_0.gguf` and stays quantised even when
+the target is BF16, so this refutes "the TARGET's quantisation causes it" and
+does not touch "the DRAFTER's quantisation causes it". A BF16 draft head would
+close that, and none is published.
+
+**Hypothesis B — Q4_K_M's low PPL is tied to degeneration: SUPPORTED.** At BF16
+the non-speculative greedy run **terminates cleanly** at 2,563 tokens. At
+Q4_K_M, the identical prompt and sampler **loops to the 4,096 cap**. The
+quantisation induces a degeneration the unquantised weights do not have.
+
+Two measured facts, and the link between them labelled as what it is:
+- BF16 does not loop on this prompt; Q4_K_M does. *Measured*, two bit-identical
+  repeats each.
+- Q4_K_M scores 1.08 PPL below BF16. *Measured*, 294,912 positions.
+- **Repetitive text is low-entropy, and low-entropy text scores low perplexity**,
+  so a model biased toward repetition scores *better* on the rule-6 instrument
+  while being *worse* to use. That is a HYPOTHESIS linking the two, it is
+  mechanically plausible, and nothing here tests it directly. Testing it means
+  measuring the repetition rate of the corpus continuations, not the code prompt.
+
+**If it holds, it is a warning about the instrument itself**: rule 6 ranks quants
+by perplexity, and perplexity rewards the failure mode that hurts a reader most.
+
+### THE HARNESS GAP THIS EXPOSES (campaign goal 2)
+
+Checked, not assumed:
+- **No arm file in this repo scores quality with speculation on versus off.**
+  All six of `scripts/arms/spec-sweep.json`'s arms, and `acceptance.json`,
+  measure throughput and acceptance only; none carries `bench_arms`.
+- **METHODOLOGY contains no rule requiring speculation to preserve output.**
+  The only "preserve" hits are `reasoning-preserve` across turns, unrelated.
+- **Rule 11 frames speculation purely as a throughput axis**: "Acceptance IS the
+  speculative speedup, but MEAN DRAFT LENGTH is the throughput predictor —
+  publish both, always."
+
+So the harness would have published "1.238x at acceptance 0.902" and a reader
+would reasonably have concluded speculation was free. **This campaign only caught
+it because the response bodies were hashed** — luck, not process. `arms.py` saves
+the generated text (`--save-responses`) and nothing ever compares it.

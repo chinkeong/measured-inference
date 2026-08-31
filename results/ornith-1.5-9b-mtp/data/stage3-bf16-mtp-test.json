@@ -1,0 +1,50 @@
+{
+ "_schema": "stage3-determinism v1",
+ "slug": "ornith-1.5-9b-mtp",
+ "question": "does the SAME config, run twice, produce the same text at temperature 0 / top_k 1?",
+ "configs": {
+  "spec-none": {
+   "reps": [
+    {
+     "sha256": "3dbaf65806f6ded6438ad9282cd001e4607de223c53435e6efbf7f4cecd146de",
+     "chars": 9478,
+     "predicted_n": 2563,
+     "t_s": 49.90910776151691,
+     "finish": "stop",
+     "tail": "eturn [...this.iterator()].map((n) => n.key);\n  }\n\n  size() {\n    let count = 0;\n    for (const _ of this.iterator()) {\n      count++;\n    }\n    return count;\n  }\n}\n\nmodule.exports = RedBlackTree;\n```"
+    },
+    {
+     "sha256": "3dbaf65806f6ded6438ad9282cd001e4607de223c53435e6efbf7f4cecd146de",
+     "chars": 9478,
+     "predicted_n": 2563,
+     "t_s": 49.80540123829991,
+     "finish": "stop",
+     "tail": "eturn [...this.iterator()].map((n) => n.key);\n  }\n\n  size() {\n    let count = 0;\n    for (const _ of this.iterator()) {\n      count++;\n    }\n    return count;\n  }\n}\n\nmodule.exports = RedBlackTree;\n```"
+    }
+   ],
+   "reproducible": true
+  },
+  "spec-n4-p0.75": {
+   "reps": [
+    {
+     "sha256": "c4075dada3b647fbbab92259aa15449ce955892c2e46502a5318ac762029e81d",
+     "chars": 8950,
+     "predicted_n": 2547,
+     "t_s": 100.67837293309792,
+     "finish": "stop",
+     "tail": "return node !== null ? node.value : undefined;\n  }\n\n  size() {\n    let count = 0;\n    for (const _ of this.inOrder()) {\n      count++;\n    }\n    return count;\n  }\n}\n\nmodule.exports = RedBlackTree;\n```"
+    },
+    {
+     "sha256": "c4075dada3b647fbbab92259aa15449ce955892c2e46502a5318ac762029e81d",
+     "chars": 8950,
+     "predicted_n": 2547,
+     "t_s": 100.01714748031233,
+     "finish": "stop",
+     "tail": "return node !== null ? node.value : undefined;\n  }\n\n  size() {\n    let count = 0;\n    for (const _ of this.inOrder()) {\n      count++;\n    }\n    return count;\n  }\n}\n\nmodule.exports = RedBlackTree;\n```"
+    }
+   ],
+   "reproducible": true
+  }
+ },
+ "spec_changes_output": true
+}
