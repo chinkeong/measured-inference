@@ -1,0 +1,31 @@
+{
+  "_schema": "measured-inference/campaign.json v1",
+
+  "repo_root": "/root/Workspace/measured-inference",
+  "slug": "ornith-1.5-9b-mtp",
+  "port": 1234,
+  "llama_dir": "/root/Workspace/measured-inference/bin/llama.cpp",
+  "model_dir": "/root/Workspace/measured-inference/models",
+
+  "models": {
+    "Q8_0": "Ornith-1.5-9B-MTP-Q8_0.gguf",
+    "Q4_K_M": "Ornith-1.5-9B-MTP-Q4_K_M.gguf",
+    "IQ2_M": "Ornith-1.5-9B-MTP-IQ2_M.gguf",
+    "mmproj": "mmproj-Ornith-1.5-9B-BF16.gguf",
+    "drafter": "mtp-Ornith-1.5-9B-head-Q8_0.gguf"
+  },
+
+  "work_dir": "work",
+  "data_dir": "data",
+  "corpus": "corpora/wikitext-2-raw-test.raw",
+  "mem_cap_frac": 0.75,
+  "commit_refuse_frac": 0.55,
+
+  "_campaign_notes": {
+    "source_repo": "protoLabsAI/Ornith-1.5-9B-MTP-GGUF",
+    "why_not_the_vendor_repo": "ornith-ai/Ornith-1.5-9B-GGUF is first-party but ships no quant below Q4_K_M, so a Q8/Q4/Q2 ladder cannot be built from it. Every third-party conversion checked (mradermacher, AtomicChat, prithivMLmods) reads block_count 32, nextn_predict_layers None, params 8,953,803,264 -- they DROP the model's multi-token-prediction layer. The vendor and protoLabsAI both read block_count 33, nextn_predict_layers 1, params 9,197,093,888. The 243,290,624-param difference predicts a 0.487 GB BF16 file-size gap against 0.490 GB observed. Mixing repos would put a different ARCHITECTURE at the two ends of the quant ladder, so all three arms come from one lineage (rule 3, rule 30).",
+    "drafter": "protoLabsAI is the only source that also ships a separate MTP head (mtp-head/mtp-Ornith-1.5-9B-head-Q8_0.gguf, 2.43 GB), which is what puts 'drafter' in inspect-model.py's capabilities list. Ornith-1.0-9B had no draft head anywhere, so speculative decoding is an axis this campaign can run and the 1.0 campaign could not.",
+    "ladder_order": "Q8_0 -> Q4_K_M -> IQ2_M, highest quality first (rule 6 ranks by perplexity and the ladder order is the comparison order).",
+    "conditional_fourth_arm": "IQ4_XS (5.45 GB) is NOT on the roster. It earns a run only if Stage 1's pruning gate or the Stage 6 ladder shows Q4_K_M measurably trailing Q8_0, which would make the IQ-versus-K-quant question at 4-bit worth an answer. Recorded here so it is a decision and not an omission (over-measurement guard)."
+  }
+}

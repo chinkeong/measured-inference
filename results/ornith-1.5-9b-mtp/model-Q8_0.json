@@ -1,0 +1,250 @@
+{
+  "_schema": "measured-inference/model.json v1",
+  "label": "Q8_0",
+  "repo": "protoLabsAI/Ornith-1.5-9B-MTP-GGUF",
+  "file": "Ornith-1.5-9B-MTP-Q8_0.gguf",
+  "file_bytes": 9786060352,
+  "sha256_head": "10b302be2edfdbd73185bd3cd74ff128c027fc6e2ad43f27cebd4af3024f2e8d",
+  "sha256_file": "aff542d9054a18580a2b5d29b00c5dd7108915094bfc2353054aa5fa06a4cd38",
+  "inspected_utc": "2026-08-31T14:44:03Z",
+  "build_tag": "b10717",
+  "backend": "cuda",
+  "arch": "qwen35",
+  "arch_supported": true,
+  "params_total": 9197093888,
+  "bpw": 8.5123,
+  "bpw_effective": 8.5123,
+  "context_length": 262144,
+  "block_count": 33,
+  "head_count": 16,
+  "head_count_kv": 4,
+  "head_dim": 256,
+  "embedding_length": 4096,
+  "kv_bytes_per_token": {
+    "f16": 32768,
+    "q8_0": 17408,
+    "q4_0": 9216
+  },
+  "vision": {
+    "mmproj_file": "mmproj-Ornith-1.5-9B-BF16.gguf",
+    "mmproj_bytes": 921704416,
+    "projector_type": "qwen3vl_merger",
+    "supported": true,
+    "alternatives": null
+  },
+  "drafter": {
+    "file": "mtp-head/mtp-Ornith-1.5-9B-head-Q8_0.gguf",
+    "file_bytes": 2430895232,
+    "arch": "qwen35",
+    "supported": true,
+    "same_arch_as_target": true,
+    "others": [
+      "Ornith-1.5-9B-MTP-BF16.gguf",
+      "Ornith-1.5-9B-MTP-IQ2_M.gguf",
+      "Ornith-1.5-9B-MTP-IQ3_M.gguf",
+      "Ornith-1.5-9B-MTP-IQ4_XS.gguf",
+      "Ornith-1.5-9B-MTP-NVFP4.gguf",
+      "Ornith-1.5-9B-MTP-Q4_K_M.gguf",
+      "Ornith-1.5-9B-MTP-Q5_K_M.gguf",
+      "Ornith-1.5-9B-MTP-Q6_K.gguf"
+    ]
+  },
+  "chat_template": {
+    "present": true,
+    "sha256": "a4aee8afcf2e0711942cf848899be66016f8d14a889ff9ede07bca099c28f715",
+    "chars": 7756,
+    "effort_knob": {
+      "kwarg": "enable_thinking",
+      "kind": "boolean",
+      "levels": [
+        true,
+        false
+      ],
+      "references": 2,
+      "how": "llama-server --chat-template-kwargs '{\"enable_thinking\":false}'. An ON/OFF knob, not a graded one: an effort SWEEP has two arms here, not four"
+    },
+    "markers_found": {
+      "enable_thinking": 2
+    },
+    "jinja_ok": null,
+    "why": "jinja2 is not importable and is deliberately not a dependency of this repository (stdlib + requests): the template was NOT compile-checked"
+  },
+  "capabilities": [
+    "text",
+    "vision",
+    "drafter",
+    "effort"
+  ],
+  "kv_arithmetic": {
+    "formula": "KV values/token = 8 full-attn layers x 4 kv-heads x (key_length 256 + value_length 256) = 16384",
+    "full_attention_layers": 8,
+    "full_attention_layers_how": "8 of 32 layers (qwen35.full_attention_interval 4; block_count 33 less 1 nextn/MTP layer, which predict and hold no cache for the main model). The other 24 are linear/gated-delta and carry a FIXED state, counted separately below.",
+    "upper_bound": false,
+    "lines": [
+      "KV values/token = 8 full-attn layers x 4 kv-heads x (key_length 256 + value_length 256) = 16384",
+      "  f16   16384 values x 2 B = 32,768 B/token",
+      "  q8_0  16384 values x 1.0625 B = 17,408 B/token",
+      "  q4_0  16384 values x 0.5625 B = 9,216 B/token",
+      "  full-attention layers: 8 of 32 layers (qwen35.full_attention_interval 4; block_count 33 less 1 nextn/MTP layer, which predict and hold no cache for the main model). The other 24 are linear/gated-delta and carry a FIXED state, counted separately below."
+    ],
+    "recurrent_state": {
+      "recurrent_layers": 24,
+      "header_keys": {
+        "ssm.conv_kernel": 4,
+        "ssm.state_size": 128,
+        "ssm.group_count": 16,
+        "ssm.time_step_rank": 32,
+        "ssm.inner_size": 4096
+      },
+      "bytes_per_sequence": 52690944,
+      "formula": "(conv_kernel 4 - 1) x (inner_size 4096 + 2 x group_count 16 x state_size 128) + state_size 128 x inner_size 4096 = 548864 elements x 4 B (f32)",
+      "why": "DERIVED from llama.cpp's n_embd_r()+n_embd_s() shape, UNVERIFIED against this build -- a llama-server startup log at Stage 1 settles it. Context-INDEPENDENT: add it to a fit once, never per token.  check-request.py computes the same quantity from config.json with a different grouping and lands 1.25% higher on the reference model (152 MiB against 150); the two are recorded rather than reconciled by picking one",
+      "verified": false
+    },
+    "block_count": 33,
+    "nextn_predict_layers": 1,
+    "sliding_window": null,
+    "values_per_token": 16384
+  },
+  "read_cost": {
+    "bytes_fetched": 24117248,
+    "http_requests": 23,
+    "per_file": [
+      {
+        "file": "Ornith-1.5-9B-MTP-Q8_0.gguf",
+        "bytes": 11534336,
+        "requests": 11
+      },
+      {
+        "file": "mmproj-Ornith-1.5-9B-BF16.gguf",
+        "bytes": 1048576,
+        "requests": 1
+      },
+      {
+        "file": "mtp-head/mtp-Ornith-1.5-9B-head-Q8_0.gguf",
+        "bytes": 11534336,
+        "requests": 11
+      }
+    ],
+    "note": "ranged GETs against the file headers; nothing was downloaded"
+  },
+  "provenance": {
+    "repo": {
+      "how": "CITED: the repo id given on the command line"
+    },
+    "file": {
+      "how": "CITED: huggingface.co/api/models/protoLabsAI/Ornith-1.5-9B-MTP-GGUF/tree/main",
+      "shards": null
+    },
+    "file_bytes": {
+      "how": "CITED: the Hub tree listing's size for this file",
+      "content_range_bytes": 9786060352,
+      "agrees": true
+    },
+    "sha256_head": {
+      "how": "MEASURED: sha256 of bytes 0..10968626 of Ornith-1.5-9B-MTP-Q8_0.gguf -- exactly the header this inspection parsed, nothing after the tensor table"
+    },
+    "sha256_file": {
+      "how": "CITED: the Hub listing's LFS oid: sha256 of the WHOLE file, for verifying a download that has not happened yet"
+    },
+    "inspected_utc": {
+      "how": "MEASURED: wall clock at the read"
+    },
+    "build_tag": {
+      "how": "MEASURED: bin/llama.cpp/INSTALL.json (b10717/cuda/linux)"
+    },
+    "backend": {
+      "how": "CITED: bin/llama.cpp/INSTALL.json's flavor, written by the setup script that installed this build (tag b10717, os linux, host cang1-ssd)",
+      "device": null,
+      "device_how": null
+    },
+    "arch": {
+      "how": "MEASURED: general.architecture in the GGUF header"
+    },
+    "arch_supported": {
+      "how": "MEASURED: 'qwen35' is in libllama.so (LLM_ARCH_NAMES, 147 + 6 recovered names, cached)",
+      "roster": "libllama.so (LLM_ARCH_NAMES, 147 + 6 recovered names, cached)",
+      "roster_count": 153,
+      "build_tag": "b10717"
+    },
+    "params_total": {
+      "how": "MEASURED: summed the product of every tensor's dims over all 442 tensor records in the table"
+    },
+    "bpw": {
+      "how": "DERIVED: file_bytes x 8 / params_total = 9786060352 x 8 / 9197093888",
+      "from_tensor_table": 8.5028,
+      "unknown_ggml_type_ids": null,
+      "why": null
+    },
+    "bpw_effective": {
+      "how": "DERIVED: bpw_effective = bpw on the cuda backend, by identity and not by arithmetic: no load-time type rewrite: the CUDA backend dequantises the file's own ggml block layouts in its kernels. The weights that run are the weights in the file.",
+      "backend": "cuda",
+      "backend_how": "bin/llama.cpp/INSTALL.json's flavor, written by the setup script that installed this build (tag b10717, os linux, host cang1-ssd)",
+      "rewrites_tensor_types": false,
+      "the_one_backend_that_does": "ggml/src/ggml-openvino/ggml-openvino-extra.cpp:252-273"
+    },
+    "context_length": {
+      "how": "MEASURED: qwen35.context_length in the header -- the file's own trained window, not a model card's claim",
+      "rope_scaling_type": null,
+      "rope_scaling_factor": null
+    },
+    "block_count": {
+      "how": "MEASURED: qwen35.block_count",
+      "nextn_predict_layers": 1
+    },
+    "head_count": {
+      "how": "MEASURED: qwen35.attention.head_count"
+    },
+    "head_count_kv": {
+      "how": "MEASURED: qwen35.attention.head_count_kv"
+    },
+    "head_dim": {
+      "how": "MEASURED: qwen35.attention.key_length",
+      "value_length": 256,
+      "note": null
+    },
+    "embedding_length": {
+      "how": "MEASURED: qwen35.embedding_length"
+    },
+    "kv_bytes_per_token": {
+      "how": "DERIVED: stage-1.md's formula: KV values/token = 8 full-attn layers x 4 kv-heads x (key_length 256 + value_length 256) = 16384, then x bytes-per-element from ggml's block layout (f16 2, q8_0 34/32, q4_0 18/32)",
+      "formula": "KV values/token = 8 full-attn layers x 4 kv-heads x (key_length 256 + value_length 256) = 16384;   f16   16384 values x 2 B = 32,768 B/token /   q8_0  16384 values x 1.0625 B = 17,408 B/token /   q4_0  16384 values x 0.5625 B = 9,216 B/token",
+      "lines": [
+        "KV values/token = 8 full-attn layers x 4 kv-heads x (key_length 256 + value_length 256) = 16384",
+        "  f16   16384 values x 2 B = 32,768 B/token",
+        "  q8_0  16384 values x 1.0625 B = 17,408 B/token",
+        "  q4_0  16384 values x 0.5625 B = 9,216 B/token",
+        "  full-attention layers: 8 of 32 layers (qwen35.full_attention_interval 4; block_count 33 less 1 nextn/MTP layer, which predict and hold no cache for the main model). The other 24 are linear/gated-delta and carry a FIXED state, counted separately below."
+      ]
+    },
+    "vision": {
+      "how": "MEASURED: clip.projector_type from mmproj-Ornith-1.5-9B-BF16.gguf; support 'qwen3vl_merger' is in libmtmd.so (PROJECTOR_TYPE_NAMES, 59 names, cached)",
+      "roster": "libmtmd.so (PROJECTOR_TYPE_NAMES, 59 names, cached)",
+      "roster_count": 59,
+      "build_tag": "b10717"
+    },
+    "drafter": {
+      "how": "MEASURED: general.architecture from mtp-head/mtp-Ornith-1.5-9B-head-Q8_0.gguf; support 'qwen35' is in libllama.so (LLM_ARCH_NAMES, 147 + 6 recovered names, cached)",
+      "roster": "libllama.so (LLM_ARCH_NAMES, 147 + 6 recovered names, cached)",
+      "roster_count": 153,
+      "build_tag": "b10717"
+    },
+    "chat_template": {
+      "how": "MEASURED: tokenizer.chat_template, 7756 chars; knobs detected as identifiers in template CODE (string literals and prose excluded), never as substrings of the whole text"
+    },
+    "capabilities": {
+      "how": "DERIVED: follows from arch/vision/drafter/chat_template above; these are what gate the stages",
+      "not_present": {}
+    },
+    "label": {
+      "how": "DERIVED: the file name with the model's own name stripped off it -- the name the arms files and the campaign log use for a quant"
+    }
+  },
+  "tool_versions": {
+    "python": "3.14.4",
+    "inspect_model": "scripts/inspect-model.py",
+    "gguf_reader": "scripts/quant-ladder/gguf-inspect.py",
+    "hf_client": "scripts/check-request.py",
+    "archs": "scripts/lib/archs.py"
+  }
+}

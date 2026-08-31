@@ -1,0 +1,247 @@
+{
+  "_schema": "measured-inference/machine.json v2",
+  "slug": "ornith-1.5-9b-mtp",
+  "measured_at": "2026-08-31T22:43:19",
+  "host": "cang1-ssd",
+  "memory_topology": "discrete",
+  "board_total_mib": 24576,
+  "gpu_name": "NVIDIA GeForce RTX 3090",
+  "backend": "cuda",
+  "driver": "580.173.02",
+  "host_ram_gb": 30.7,
+  "host_mem_total_mib": 31386,
+  "host_reserve_mib": {
+    "min": 9168,
+    "max": 9193,
+    "n": 8,
+    "date": "2026-08-31"
+  },
+  "igpu_share_limit_mib": null,
+  "spec_bandwidth_gbs": null,
+  "cuda_arch": "native",
+  "compute_cap": "8.6",
+  "ram_channels": 2,
+  "os": "Linux-7.0.0-30-generic-x86_64-with-glibc2.43",
+  "arch": "x86_64",
+  "power_default_limit_w": 350.0,
+  "pl_writable_without_elevation": null,
+  "elevated": true,
+  "sudo_nopasswd": null,
+  "privilege_path": "direct",
+  "desktop_reserve_mib": {
+    "min": 454,
+    "max": 454,
+    "n": 8,
+    "date": "2026-08-31"
+  },
+  "provenance": {
+    "memory_topology": {
+      "how": "DERIVED: nvidia-smi names the card 'NVIDIA GeForce RTX 3090'. NVIDIA's shared-memory parts are the Tegra/Jetson line and GB10, all matched above this; a GeForce, Quadro, Tesla, TITAN or datacenter part has its own board memory behind a PCIe link.",
+      "gpu_name": "NVIDIA GeForce RTX 3090",
+      "board_total_mib": 24576,
+      "host_mem_total_mib": 31386,
+      "device_tree_model": null,
+      "drm_cards": [
+        {
+          "card": "card1",
+          "vendor_id": "0x10de",
+          "vendor": "NVIDIA",
+          "device_id": "0x2204",
+          "driver": "nvidia",
+          "pci_address": "0000:01:00.0",
+          "on_root_bus": false,
+          "device_local_memory_bytes": null,
+          "device_local_memory_source": null,
+          "gtt_total_bytes": null
+        }
+      ],
+      "windows_video_controllers": null,
+      "device_tree_path": null,
+      "windows_probe": null
+    },
+    "board_total_mib": {
+      "how": "MEASURED: nvidia-smi --query-gpu=memory.total (MiB)"
+    },
+    "gpu_name": {
+      "how": "MEASURED: nvidia-smi --query-gpu=name (GPU 0 of 1)"
+    },
+    "backend": {
+      "how": "MEASURED: bin/llama.cpp/INSTALL.json, written by the setup script that installed this build",
+      "install_json": {
+        "tag": "b10717",
+        "flavor": "cuda",
+        "arch": "x86_64",
+        "os": "linux",
+        "os_version": "Ubuntu 26.04.1 LTS (Linux 7.0.0-30-generic)",
+        "host": "cang1-ssd",
+        "assets": [],
+        "urls": [
+          "https://github.com/ggml-org/llama.cpp"
+        ],
+        "installed_utc": "2026-08-31T12:17:24Z",
+        "built_from_source": true,
+        "cuda_arch": "native",
+        "cuda_arch_source": "default",
+        "cuda_arch_override": false,
+        "gb10": false,
+        "compute_cap": "8.6",
+        "openvino_version": null,
+        "openvino_build": null,
+        "openvino_root": null,
+        "openvino_device": null,
+        "openvino_install_path": null,
+        "openvino_runtime_source": null,
+        "openvino_runtime_sha256": null,
+        "openvino_runtime_sha256_provenance": null,
+        "openvino_requantises": null,
+        "openvino_npu_quant_ladder_degenerate": null,
+        "multimodal_supported": true,
+        "cpu_gen": null,
+        "npu_status": null,
+        "npu_findings": [],
+        "gpu": "nvidia",
+        "gpu_name": "NVIDIA GeForce RTX 3090",
+        "driver_version": "580.173.02",
+        "server_version": "version: 0.3.0-dev (build 1, commit a32af33) built with GNU 15.2.0 for Linux x86_64 ",
+        "source_commit": "a32af33de2b5",
+        "build_seconds": 204,
+        "tools": [
+          "llama-server",
+          "llama-perplexity",
+          "llama-cli",
+          "llama-bench",
+          "llama-tokenize",
+          "llama-mtmd-cli"
+        ],
+        "needs_ld_library_path": false,
+        "ld_library_path": null,
+        "vulkan_override": false,
+        "frozen_inputs_match_commit": true,
+        "installed_by": "scripts/setup.sh"
+      }
+    },
+    "driver": {
+      "how": "MEASURED: nvidia-smi --query-gpu=driver_version"
+    },
+    "host_ram_gb": {
+      "how": "MEASURED: gpu_lock._memory_status() (GlobalMemoryStatusEx on Windows, /proc/meminfo on Linux)",
+      "bytes": 32910913536,
+      "note": "total physical RAM as the OS reports it -- the same number gpu_lock sizes its per-job commit cap from"
+    },
+    "host_mem_total_mib": {
+      "how": "MEASURED: /proc/meminfo MemTotal / MemAvailable",
+      "available_now_mib": 22252
+    },
+    "host_reserve_mib": {
+      "how": "MEASURED: MemTotal minus MemAvailable, 8 samples 1.0s apart",
+      "desktop_state": "live GNOME desktop: gnome-shell + Xwayland + Steam + browser, monitors on, recorded as-is by operator choice",
+      "samples_n": 8,
+      "interval_s": 1.0,
+      "memtotal_mib": 31386,
+      "available_samples_mib": [
+        22193,
+        22196,
+        22200,
+        22212,
+        22214,
+        22215,
+        22217,
+        22218
+      ],
+      "window_s": 7.0,
+      "warning": "min/max span this sample window ONLY, on whatever this box was doing at the time. On a unified or CPU-only box this is the anti-spill fence rule 14 is about, and it has to be measured under the load the campaign will actually run beside -- a reserve sampled on an idle box is a fence that moves when someone opens a browser."
+    },
+    "igpu_share_limit_mib": {
+      "how": "UNKNOWN",
+      "why": "not applicable: memory_topology is 'discrete', and only an integrated GPU has a driver-imposed share of system RAM"
+    },
+    "spec_bandwidth_gbs": {
+      "how": "UNKNOWN",
+      "why": "no published bandwidth on file for 'NVIDIA GeForce RTX 3090', and this script measures none. Pass --spec-bandwidth-gbs N --bandwidth-source '...' if rule 10's decode estimate is going to be published for this box."
+    },
+    "cuda_arch": {
+      "how": "MEASURED: bin/llama.cpp/INSTALL.json, written by the setup script that built this llama.cpp",
+      "built_from_source": true,
+      "flavor": "cuda",
+      "tag": "b10717"
+    },
+    "compute_cap": {
+      "how": "MEASURED: nvidia-smi --query-gpu=compute_cap -- the SM version this card actually is, which is what -DCMAKE_CUDA_ARCHITECTURES has to match"
+    },
+    "ram_channels": {
+      "how": "DERIVED: 2 distinct (controller, channel) pairs among 2 populated DIMMs, from their SMBIOS type-17 locator strings",
+      "channel_keys": [
+        "0/a",
+        "1/a"
+      ],
+      "source": "/sys/firmware/dmi/tables/DMI",
+      "populated_dimms": 2,
+      "modules": [
+        {
+          "size_mib": 16384,
+          "speed_mts": 3200,
+          "locator": "Controller0-ChannelA-DIMM0",
+          "bank_locator": "BANK 0"
+        },
+        {
+          "size_mib": 16384,
+          "speed_mts": 3200,
+          "locator": "Controller1-ChannelA-DIMM0",
+          "bank_locator": "BANK 0"
+        }
+      ]
+    },
+    "os": {
+      "how": "MEASURED: platform.platform()",
+      "system": "Linux",
+      "release": "7.0.0-30-generic"
+    },
+    "arch": {
+      "how": "MEASURED: platform.machine()",
+      "processor": null
+    },
+    "power_default_limit_w": {
+      "how": "MEASURED: nvidia-smi --query-gpu=power.default_limit (W)",
+      "power_limit_now_w": 350.0
+    },
+    "pl_writable_without_elevation": {
+      "how": "UNKNOWN",
+      "why": "this process is running elevated (root/Administrator), and a successful set under elevation says nothing about the unelevated case. Re-run without elevation to answer it."
+    },
+    "elevated": {
+      "how": "MEASURED: os.geteuid() == 0"
+    },
+    "sudo_nopasswd": {
+      "how": "UNKNOWN",
+      "why": "not asked. This process is already root, so `sudo -n true` would return 0 for that reason alone and would say nothing about the unelevated case - the same reason detect-machine.py:pl_write_test() refuses to run the power-limit write test under elevation."
+    },
+    "privilege_path": {
+      "how": "DERIVED: elevated is true, so a privileged command runs in this process with no sudo in front of it"
+    },
+    "desktop_reserve_mib": {
+      "how": "MEASURED: nvidia-smi --query-gpu=memory.used, 8 samples 1.0s apart with no llama.cpp process live",
+      "desktop_state": "live GNOME desktop: gnome-shell + Xwayland + Steam + browser, monitors on, recorded as-is by operator choice",
+      "samples_n": 8,
+      "interval_s": 1.0,
+      "gpu_index": 0,
+      "samples_mib": [
+        454,
+        454,
+        454,
+        454,
+        454,
+        454,
+        454,
+        454
+      ],
+      "window_s": 7.0,
+      "warning": "min/max span this sample window ONLY. The reserve is what the desktop is DOING: the reference rig read 1,181 MiB idle and 1,669 MiB under a real workload, and shipped the worst case plus its load-to-load variation. Re-run with the desktop loaded before trusting max as an anti-spill fence (rule 14)."
+    }
+  },
+  "tool_versions": {
+    "python": "3.14.4",
+    "detect_machine": "scripts/detect-machine.py",
+    "nvidia-smi": "/usr/bin/nvidia-smi",
+    "rocm-smi": null
+  }
+}

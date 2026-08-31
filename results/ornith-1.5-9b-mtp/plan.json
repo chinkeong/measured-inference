@@ -1,0 +1,543 @@
+{
+ "slug": "ornith-1.5-9b-mtp",
+ "generated_utc": "2026-08-31T14:44:55Z",
+ "generated_by": "scripts/plan-campaign.py",
+ "cache_type": "f16",
+ "c_min": 16384,
+ "machine": {
+  "memory_topology": "discrete",
+  "memory_topology_how": "DERIVED: nvidia-smi names the card 'NVIDIA GeForce RTX 3090'. NVIDIA's shared-memory parts are the Tegra/Jetson line and GB10, all matched above this; a GeForce, Quadro, Tesla, TITAN or datacenter part has its own board memory behind a PCIe link.",
+  "memory_topology_legacy": false,
+  "pool": "board",
+  "pool_total_mib": 24576.0,
+  "pool_total_how": "machine.json board_total_mib (MEASURED: nvidia-smi --query-gpu=memory.total (MiB))",
+  "reserve_mib": 454.0,
+  "reserve_how": "desktop_reserve_mib.max, n=8, dated 2026-08-31",
+  "share_limit_mib": null,
+  "budget_mib": 24122.0,
+  "hard_wall_mib": 24576.0,
+  "arithmetic": "DISCRETE: budget = 24,576 MiB board - 454 MiB desktop reserve(max, n=8, dated 2026-08-31) = 24,122 MiB. Hard wall 24,576 MiB = the board itself; past it the window spills over PCIe into host RAM, which is slow and survivable.",
+  "why_unknown": null,
+  "spill_behaviour": "over PCIe into host RAM: slow, survivable, and measurable -- which is exactly what makes the second ceiling and the collapse point findable",
+  "rule_13": {
+   "fully_resident_ceiling": {
+    "verdict": "APPLIES",
+    "why": "the largest window that fits board minus the desktop reserve"
+   },
+   "shallow_safe_ceiling": {
+    "verdict": "APPLIES",
+    "why": "a window allocated past the board stays fast until deep pages are touched"
+   },
+   "collapse_point": {
+    "verdict": "APPLIES",
+    "why": "throughput falls off a cliff when the spill traffic crosses PCIe; measurable, and survivable enough to sweep to"
+   }
+  },
+  "board_total_mib": 24576,
+  "desktop_reserve_mib": {
+   "min": 454,
+   "max": 454,
+   "n": 8,
+   "date": "2026-08-31"
+  },
+  "source": "results/ornith-1.5-9b-mtp/machine.json"
+ },
+ "models": [
+  {
+   "label": "IQ2_M",
+   "file": "Ornith-1.5-9B-MTP-IQ2_M.gguf",
+   "repo": "protoLabsAI/Ornith-1.5-9B-MTP-GGUF",
+   "arch": "qwen35",
+   "arch_supported": true,
+   "context_length": 262144,
+   "params_total": 9197093888,
+   "bpw": 3.3628,
+   "capabilities": [
+    "text",
+    "vision",
+    "drafter",
+    "effort"
+   ],
+   "build_tag": "b10717",
+   "inspected_utc": "2026-08-31T14:44:42Z",
+   "profile": "results/ornith-1.5-9b-mtp/model-IQ2_M.json"
+  },
+  {
+   "label": "Q4_K_M",
+   "file": "Ornith-1.5-9B-MTP-Q4_K_M.gguf",
+   "repo": "protoLabsAI/Ornith-1.5-9B-MTP-GGUF",
+   "arch": "qwen35",
+   "arch_supported": true,
+   "context_length": 262144,
+   "params_total": 9197093888,
+   "bpw": 5.0278,
+   "capabilities": [
+    "text",
+    "vision",
+    "drafter",
+    "effort"
+   ],
+   "build_tag": "b10717",
+   "inspected_utc": "2026-08-31T14:44:22Z",
+   "profile": "results/ornith-1.5-9b-mtp/model-Q4_K_M.json"
+  },
+  {
+   "label": "Q8_0",
+   "file": "Ornith-1.5-9B-MTP-Q8_0.gguf",
+   "repo": "protoLabsAI/Ornith-1.5-9B-MTP-GGUF",
+   "arch": "qwen35",
+   "arch_supported": true,
+   "context_length": 262144,
+   "params_total": 9197093888,
+   "bpw": 8.5123,
+   "capabilities": [
+    "text",
+    "vision",
+    "drafter",
+    "effort"
+   ],
+   "build_tag": "b10717",
+   "inspected_utc": "2026-08-31T14:44:03Z",
+   "profile": "results/ornith-1.5-9b-mtp/model-Q8_0.json"
+  }
+ ],
+ "capabilities": [
+  "drafter",
+  "effort",
+  "text",
+  "vision"
+ ],
+ "fit": [
+  {
+   "file": "Ornith-1.5-9B-MTP-IQ2_M.gguf",
+   "label": "IQ2_M",
+   "weights_mib": 3686.9,
+   "projector_mib": 879.0,
+   "drafter_mib": 2318.3,
+   "fixed_state_mib": 50.2,
+   "kv_bytes_per_token": 32768.0,
+   "c_min": 16384,
+   "budget_mib": 24122.0,
+   "kv_at_c_min_mib": 512.0,
+   "total_at_c_min_mib": 7446.5,
+   "verdict": "FITS",
+   "verdict_word": "FITS",
+   "spare_mib_at_c_min": 16675.5,
+   "largest_c": 550000,
+   "largest_c_drafter_off": 624185,
+   "arithmetic": "3,687 weights + 2,318 drafter + 879 projector + 50 fixed state + 512 KV(c=16,384) = 7,446 MiB against a 24,122 MiB budget -> FITS.  Largest c that fits = (24,122 budget - 6,934 resident) MiB x 1,048,576 / 32,768 B per token = 550,000 tokens (drafter aboard), 624,185 with the drafter off.",
+   "fixed_state_how": "50 MiB of context-independent state on 24 recurrent layers -- (conv_kernel 4 - 1) x (inner_size 4096 + 2 x group_count 16 x state_size 128) + state_size 128 x inner_size 4096 = 548864 elements x 4 B (f32). UNVERIFIED against this build: the profiler derived it from llama.cpp's tensor shapes, and a Stage-1 startup log settles it.",
+   "kv_formula": "KV values/token = 8 full-attn layers x 4 kv-heads x (key_length 256 + value_length 256) = 16384",
+   "projector": {
+    "file": "mmproj-Ornith-1.5-9B-BF16.gguf",
+    "mib": 879.0,
+    "how": "MEASURED (profile.vision.mmproj_bytes)"
+   },
+   "drafter": {
+    "file": "mtp-head/mtp-Ornith-1.5-9B-head-Q8_0.gguf",
+    "mib": 2318.3,
+    "how": "MEASURED (profile.drafter.file_bytes)"
+   },
+   "arch_supported": true,
+   "context_length": 262144,
+   "memory_topology": "discrete",
+   "pool": "board",
+   "hard_wall_mib": 24576.0,
+   "hard_wall_c": 564528,
+   "unsized_components": []
+  },
+  {
+   "file": "Ornith-1.5-9B-MTP-Q4_K_M.gguf",
+   "label": "Q4_K_M",
+   "weights_mib": 5512.3,
+   "projector_mib": 879.0,
+   "drafter_mib": 2318.3,
+   "fixed_state_mib": 50.2,
+   "kv_bytes_per_token": 32768.0,
+   "c_min": 16384,
+   "budget_mib": 24122.0,
+   "kv_at_c_min_mib": 512.0,
+   "total_at_c_min_mib": 9271.9,
+   "verdict": "FITS",
+   "verdict_word": "FITS",
+   "spare_mib_at_c_min": 14850.1,
+   "largest_c": 491588,
+   "largest_c_drafter_off": 565773,
+   "arithmetic": "5,512 weights + 2,318 drafter + 879 projector + 50 fixed state + 512 KV(c=16,384) = 9,272 MiB against a 24,122 MiB budget -> FITS.  Largest c that fits = (24,122 budget - 8,760 resident) MiB x 1,048,576 / 32,768 B per token = 491,588 tokens (drafter aboard), 565,773 with the drafter off.",
+   "fixed_state_how": "50 MiB of context-independent state on 24 recurrent layers -- (conv_kernel 4 - 1) x (inner_size 4096 + 2 x group_count 16 x state_size 128) + state_size 128 x inner_size 4096 = 548864 elements x 4 B (f32). UNVERIFIED against this build: the profiler derived it from llama.cpp's tensor shapes, and a Stage-1 startup log settles it.",
+   "kv_formula": "KV values/token = 8 full-attn layers x 4 kv-heads x (key_length 256 + value_length 256) = 16384",
+   "projector": {
+    "file": "mmproj-Ornith-1.5-9B-BF16.gguf",
+    "mib": 879.0,
+    "how": "MEASURED (profile.vision.mmproj_bytes)"
+   },
+   "drafter": {
+    "file": "mtp-head/mtp-Ornith-1.5-9B-head-Q8_0.gguf",
+    "mib": 2318.3,
+    "how": "MEASURED (profile.drafter.file_bytes)"
+   },
+   "arch_supported": true,
+   "context_length": 262144,
+   "memory_topology": "discrete",
+   "pool": "board",
+   "hard_wall_mib": 24576.0,
+   "hard_wall_c": 506116,
+   "unsized_components": []
+  },
+  {
+   "file": "Ornith-1.5-9B-MTP-Q8_0.gguf",
+   "label": "Q8_0",
+   "weights_mib": 9332.7,
+   "projector_mib": 879.0,
+   "drafter_mib": 2318.3,
+   "fixed_state_mib": 50.2,
+   "kv_bytes_per_token": 32768.0,
+   "c_min": 16384,
+   "budget_mib": 24122.0,
+   "kv_at_c_min_mib": 512.0,
+   "total_at_c_min_mib": 13092.3,
+   "verdict": "FITS",
+   "verdict_word": "FITS",
+   "spare_mib_at_c_min": 11029.7,
+   "largest_c": 369335,
+   "largest_c_drafter_off": 443520,
+   "arithmetic": "9,333 weights + 2,318 drafter + 879 projector + 50 fixed state + 512 KV(c=16,384) = 13,092 MiB against a 24,122 MiB budget -> FITS.  Largest c that fits = (24,122 budget - 12,580 resident) MiB x 1,048,576 / 32,768 B per token = 369,335 tokens (drafter aboard), 443,520 with the drafter off.",
+   "fixed_state_how": "50 MiB of context-independent state on 24 recurrent layers -- (conv_kernel 4 - 1) x (inner_size 4096 + 2 x group_count 16 x state_size 128) + state_size 128 x inner_size 4096 = 548864 elements x 4 B (f32). UNVERIFIED against this build: the profiler derived it from llama.cpp's tensor shapes, and a Stage-1 startup log settles it.",
+   "kv_formula": "KV values/token = 8 full-attn layers x 4 kv-heads x (key_length 256 + value_length 256) = 16384",
+   "projector": {
+    "file": "mmproj-Ornith-1.5-9B-BF16.gguf",
+    "mib": 879.0,
+    "how": "MEASURED (profile.vision.mmproj_bytes)"
+   },
+   "drafter": {
+    "file": "mtp-head/mtp-Ornith-1.5-9B-head-Q8_0.gguf",
+    "mib": 2318.3,
+    "how": "MEASURED (profile.drafter.file_bytes)"
+   },
+   "arch_supported": true,
+   "context_length": 262144,
+   "memory_topology": "discrete",
+   "pool": "board",
+   "hard_wall_mib": 24576.0,
+   "hard_wall_c": 383863,
+   "unsized_components": []
+  }
+ ],
+ "rungs": {
+  "step_rule": "q = clamp(2^round(log2(ceiling/16)), 1,024, 16,384); lever = 2 rungs by halving below the dense band, snapped to q, floored at max(q, ceiling/8); dense = every q in [ceiling-2q, ceiling+4q]; coarse = every 4q from ceiling+8q to top; top = min(model context_length, 2x ceiling). Ceiling = the largest c whose arithmetic fits with the drafter aboard; it is optimistic (compute buffers are not in it), so rungs sit below it as well as above. The collapse point is BRACKETED, not resolved: scripts/arms/ctx-ceiling.json's stop_rule binary-refines at 4,096 resolution between the last good and the first bad rung.",
+  "cache_type": "f16",
+  "per_file": [
+   {
+    "file": "IQ2_M",
+    "cache_type": "f16",
+    "predicted_ceiling": 550000,
+    "predicted_ceiling_drafter_off": 624185,
+    "model_context_length": 262144,
+    "quantum": null,
+    "top": 262144,
+    "rungs": [
+     {
+      "c": 262144,
+      "zone": "whole-window",
+      "deep_fill_tokens": 235929,
+      "above_predicted_ceiling": false
+     }
+    ],
+    "step_rule": "q = clamp(2^round(log2(ceiling/16)), 1,024, 16,384); lever = 2 rungs by halving below the dense band, snapped to q, floored at max(q, ceiling/8); dense = every q in [ceiling-2q, ceiling+4q]; coarse = every 4q from ceiling+8q to top; top = min(model context_length, 2x ceiling). Ceiling = the largest c whose arithmetic fits with the drafter aboard; it is optimistic (compute buffers are not in it), so rungs sit below it as well as above. The collapse point is BRACKETED, not resolved: scripts/arms/ctx-ceiling.json's stop_rule binary-refines at 4,096 resolution between the last good and the first bad rung.",
+    "why": "THE WHOLE WINDOW FITS -- there is no ceiling to find. The arithmetic holds 550,000 tokens and the model was only trained for 262,144, so rule 13's fully-resident ceiling and shallow-safe ceiling are the same number, the model's own window, and this box has no collapse point for this file. A ceiling ladder here would spend a dozen arms proving one fact a dozen times. ONE rung, at the model's window -- still deep-filled to 90% of it, because rule 13 labels no window without a deep-fill probe near its top.",
+    "collapse_point_reachable": false,
+    "memory_topology": "discrete",
+    "hard_wall_c": 564528,
+    "rule_13": {
+     "fully_resident_ceiling": {
+      "verdict": "APPLIES",
+      "why": "the largest window that fits board minus the desktop reserve"
+     },
+     "shallow_safe_ceiling": {
+      "verdict": "APPLIES",
+      "why": "a window allocated past the board stays fast until deep pages are touched"
+     },
+     "collapse_point": {
+      "verdict": "APPLIES",
+      "why": "throughput falls off a cliff when the spill traffic crosses PCIe; measurable, and survivable enough to sweep to"
+     }
+    },
+    "ceiling_is_upper_bound": false
+   },
+   {
+    "file": "Q4_K_M",
+    "cache_type": "f16",
+    "predicted_ceiling": 491588,
+    "predicted_ceiling_drafter_off": 565773,
+    "model_context_length": 262144,
+    "quantum": null,
+    "top": 262144,
+    "rungs": [
+     {
+      "c": 262144,
+      "zone": "whole-window",
+      "deep_fill_tokens": 235929,
+      "above_predicted_ceiling": false
+     }
+    ],
+    "step_rule": "q = clamp(2^round(log2(ceiling/16)), 1,024, 16,384); lever = 2 rungs by halving below the dense band, snapped to q, floored at max(q, ceiling/8); dense = every q in [ceiling-2q, ceiling+4q]; coarse = every 4q from ceiling+8q to top; top = min(model context_length, 2x ceiling). Ceiling = the largest c whose arithmetic fits with the drafter aboard; it is optimistic (compute buffers are not in it), so rungs sit below it as well as above. The collapse point is BRACKETED, not resolved: scripts/arms/ctx-ceiling.json's stop_rule binary-refines at 4,096 resolution between the last good and the first bad rung.",
+    "why": "THE WHOLE WINDOW FITS -- there is no ceiling to find. The arithmetic holds 491,588 tokens and the model was only trained for 262,144, so rule 13's fully-resident ceiling and shallow-safe ceiling are the same number, the model's own window, and this box has no collapse point for this file. A ceiling ladder here would spend a dozen arms proving one fact a dozen times. ONE rung, at the model's window -- still deep-filled to 90% of it, because rule 13 labels no window without a deep-fill probe near its top.",
+    "collapse_point_reachable": false,
+    "memory_topology": "discrete",
+    "hard_wall_c": 506116,
+    "rule_13": {
+     "fully_resident_ceiling": {
+      "verdict": "APPLIES",
+      "why": "the largest window that fits board minus the desktop reserve"
+     },
+     "shallow_safe_ceiling": {
+      "verdict": "APPLIES",
+      "why": "a window allocated past the board stays fast until deep pages are touched"
+     },
+     "collapse_point": {
+      "verdict": "APPLIES",
+      "why": "throughput falls off a cliff when the spill traffic crosses PCIe; measurable, and survivable enough to sweep to"
+     }
+    },
+    "ceiling_is_upper_bound": false
+   },
+   {
+    "file": "Q8_0",
+    "cache_type": "f16",
+    "predicted_ceiling": 369335,
+    "predicted_ceiling_drafter_off": 443520,
+    "model_context_length": 262144,
+    "quantum": null,
+    "top": 262144,
+    "rungs": [
+     {
+      "c": 262144,
+      "zone": "whole-window",
+      "deep_fill_tokens": 235929,
+      "above_predicted_ceiling": false
+     }
+    ],
+    "step_rule": "q = clamp(2^round(log2(ceiling/16)), 1,024, 16,384); lever = 2 rungs by halving below the dense band, snapped to q, floored at max(q, ceiling/8); dense = every q in [ceiling-2q, ceiling+4q]; coarse = every 4q from ceiling+8q to top; top = min(model context_length, 2x ceiling). Ceiling = the largest c whose arithmetic fits with the drafter aboard; it is optimistic (compute buffers are not in it), so rungs sit below it as well as above. The collapse point is BRACKETED, not resolved: scripts/arms/ctx-ceiling.json's stop_rule binary-refines at 4,096 resolution between the last good and the first bad rung.",
+    "why": "THE WHOLE WINDOW FITS -- there is no ceiling to find. The arithmetic holds 369,335 tokens and the model was only trained for 262,144, so rule 13's fully-resident ceiling and shallow-safe ceiling are the same number, the model's own window, and this box has no collapse point for this file. A ceiling ladder here would spend a dozen arms proving one fact a dozen times. ONE rung, at the model's window -- still deep-filled to 90% of it, because rule 13 labels no window without a deep-fill probe near its top.",
+    "collapse_point_reachable": false,
+    "memory_topology": "discrete",
+    "hard_wall_c": 383863,
+    "rule_13": {
+     "fully_resident_ceiling": {
+      "verdict": "APPLIES",
+      "why": "the largest window that fits board minus the desktop reserve"
+     },
+     "shallow_safe_ceiling": {
+      "verdict": "APPLIES",
+      "why": "a window allocated past the board stays fast until deep pages are touched"
+     },
+     "collapse_point": {
+      "verdict": "APPLIES",
+      "why": "throughput falls off a cliff when the spill traffic crosses PCIe; measurable, and survivable enough to sweep to"
+     }
+    },
+    "ceiling_is_upper_bound": false
+   }
+  ]
+ },
+ "stages": [
+  {
+   "stage": "1",
+   "title": "STRUCTURE -- runtime, files, KV arithmetic, one floor per quant",
+   "status": "RUNS",
+   "needs": null,
+   "why": null
+  },
+  {
+   "stage": "2",
+   "title": "MEMORY MAP -- budget table, drafter pair, ceiling sweep",
+   "status": "RUNS",
+   "needs": null,
+   "why": "Runs, but the ceiling SWEEP collapses to one rung per file: the whole window fits, so there is no ceiling to find. Everything else in Stage 2 -- budget table, drafter on/off VRAM pair, projector pair, desktop slack, the two-constant model -- still runs."
+  },
+  {
+   "stage": "2",
+   "title": "scripts/arms/ctx-ceiling.json",
+   "status": "RUNS",
+   "needs": null,
+   "why": null,
+   "arms_total": 2,
+   "arms_runnable": 2,
+   "capability_verdicts": {
+    "drafter": "MODIFIER: --spec-type is the same in every arm (draft-mtp), so it is part of the configuration under test, not the axis",
+    "effort": "MODIFIER: --chat-template-kwargs is the same in every arm ({\"reasoning_effort\":\"low\"}), so it is part of the configuration under test, not the axis",
+    "vision": "MODIFIER: --mmproj is the same in every arm (mmproj), so it is part of the configuration under test, not the axis"
+   }
+  },
+  {
+   "stage": "3",
+   "title": "scripts/arms/acceptance.json",
+   "status": "RUNS",
+   "needs": null,
+   "why": null,
+   "arms_total": 2,
+   "arms_runnable": 2,
+   "capability_verdicts": {
+    "drafter": "REQUIRED: the file's own name calls it the subject -- 'acceptance demonstration -- novel generation vs verbatim copying'",
+    "effort": "MODIFIER: --chat-template-kwargs is the same in every arm ({\"reasoning_effort\":\"low\"}), so it is part of the configuration under test, not the axis",
+    "vision": "MODIFIER: --mmproj is the same in every arm (mmproj), so it is part of the configuration under test, not the axis"
+   }
+  },
+  {
+   "stage": "3",
+   "title": "scripts/arms/depth-series.json",
+   "status": "RUNS",
+   "needs": null,
+   "why": null,
+   "arms_total": 2,
+   "arms_runnable": 2,
+   "capability_verdicts": {
+    "drafter": "MODIFIER: --spec-type is the same in every arm (draft-mtp), so it is part of the configuration under test, not the axis"
+   }
+  },
+  {
+   "stage": "3",
+   "title": "scripts/arms/spec-sweep.json",
+   "status": "RUNS",
+   "needs": null,
+   "why": null,
+   "arms_total": 6,
+   "arms_runnable": 6,
+   "capability_verdicts": {
+    "drafter": "REQUIRED: --spec-type, --spec-draft-n-max, --spec-draft-p-min varies across the arms (draft-mtp, none) -- this file sweeps it",
+    "effort": "MODIFIER: --chat-template-kwargs is the same in every arm ({\"reasoning_effort\":\"low\"}), so it is part of the configuration under test, not the axis",
+    "vision": "MODIFIER: --mmproj is the same in every arm (mmproj), so it is part of the configuration under test, not the axis"
+   }
+  },
+  {
+   "stage": "4",
+   "title": "APPETITE PROBES -- two cheap probes per effort level",
+   "status": "RUNS",
+   "needs": "effort",
+   "why": "Runs: capability 'effort' is present (from IQ2_M), and stage-4.md gates it with 'Stage 4 -- APPETITE PROBES (~30 min, if the model has an effort/thinking knob)'."
+  },
+  {
+   "stage": "5",
+   "title": "RECIPE LOCK -- no GPU, the gate",
+   "status": "RUNS",
+   "needs": null,
+   "why": null
+  },
+  {
+   "stage": "6",
+   "title": "scripts/arms/effort-sweep.json",
+   "status": "RUNS",
+   "needs": null,
+   "why": null,
+   "arms_total": 11,
+   "arms_runnable": 11,
+   "capability_verdicts": {
+    "drafter": "MODIFIER: --spec-type is the same in every arm (draft-mtp), so it is part of the configuration under test, not the axis",
+    "effort": "REQUIRED: --chat-template-kwargs varies across the arms ({\"reasoning_effort\":\"low\"}, {\"reasoning_effort\":\"medium\"}, {\"reasoning) -- this file sweeps it",
+    "vision": "MODIFIER: --mmproj is the same in every arm (mmproj), so it is part of the configuration under test, not the axis"
+   }
+  },
+  {
+   "stage": "6a",
+   "title": "quality -- perplexity ranking + accuracy smoke tests",
+   "status": "RUNS",
+   "needs": null,
+   "why": null
+  },
+  {
+   "stage": "6c",
+   "title": "vision -- resolution map, critique loop, agent-attach matrix",
+   "status": "RUNS",
+   "needs": "vision",
+   "why": "Runs: capability 'vision' is present (from IQ2_M), and stage-6.md gates it with 'Stage 6c -- vision (if an mmproj exists)'."
+  },
+  {
+   "stage": "6d",
+   "title": "agents end-to-end",
+   "status": "RUNS",
+   "needs": null,
+   "why": "Gated by interview item 7 (which coding agents to test), not by the model: nothing in the model profile decides it, so this planner leaves it open."
+  },
+  {
+   "stage": "6e",
+   "title": "energy -- per-recipe block and the J/token matrix",
+   "status": "RUNS",
+   "needs": null,
+   "why": "Gated by instrumentation, not by the model: rule 24 says a stage whose power logger was not running is reported 'not measured', and is NEVER re-run for watts."
+  },
+  {
+   "stage": "7",
+   "title": "PUBLISH + review gates",
+   "status": "RUNS",
+   "needs": null,
+   "why": null
+  }
+ ],
+ "estimate": {
+  "per_stage": [
+   {
+    "stage": "1",
+    "hours_low": 1.0,
+    "hours_high": 1.0,
+    "basis": "stages/stage-1.md: # Stage 1 -- STRUCTURE (~1 h, cheap probes only) (CITED, not scaled -- nothing countable to scale by)"
+   },
+   {
+    "stage": "2",
+    "hours_low": 2.25,
+    "hours_high": 2.25,
+    "basis": "stages/stage-2.md publishes ~1.5 h for the reference campaign's 2 ceiling arms = 45.0 min/rung; this plan derives 3 rungs -> 2.2 h"
+   },
+   {
+    "stage": "3",
+    "hours_low": 1.0,
+    "hours_high": 1.0,
+    "basis": "stages/stage-3.md publishes ~1 h across the reference campaign's 10 stage-3 arms; 10 survive this model's capability gate -> x1.00 -> 1.0-1.0 h"
+   },
+   {
+    "stage": "4",
+    "hours_low": 0.33,
+    "hours_high": 0.33,
+    "basis": "stages/stage-4.md publishes ~0.5 h for two probes at each of the reference campaign's 3 effort levels; this model's template offers 2 (True, False) -> x0.67 -> 0.3 h"
+   },
+   {
+    "stage": "5",
+    "hours_low": 0.0,
+    "hours_high": 0.0,
+    "basis": "stages/stage-5.md: # Stage 5 -- RECIPE LOCK (no GPU time -- the gate) (CITED, not scaled -- nothing countable to scale by)"
+   },
+   {
+    "stage": "6",
+    "hours_low": 6.0,
+    "hours_high": 10.0,
+    "basis": "stages/stage-6.md publishes ~6-10 h across the reference campaign's 11 stage-6 arms; 11 survive this model's capability gate -> x1.00 -> 6.0-10.0 h"
+   },
+   {
+    "stage": "7",
+    "hours_low": 1.0,
+    "hours_high": 1.0,
+    "basis": "SKILL.md campaign map: | **7** | PUBLISH + review gates | ~1 h | four fresh-subagent passes (numeric, structural, reader-ex (CITED, not scaled -- nothing countable to scale by)"
+   }
+  ],
+  "total_low_h": 11.58,
+  "total_high_h": 15.58,
+  "label": "DERIVED -- a planning aid, not a measurement. It scales the stage files' own published hours by arm and rung counts; it knows nothing about this card's speed."
+ },
+ "verdict": "VERDICT: PLANNED -- 3 files, 3 ceiling rungs, 14 of 14 stage units run, ~11.6-15.6 GPU hours (DERIVED).",
+ "exit_code": 0,
+ "provenance": {
+  "memory_topology": "DERIVED: nvidia-smi names the card 'NVIDIA GeForce RTX 3090'. NVIDIA's shared-memory parts are the Tegra/Jetson line and GB10, all matched above this; a GeForce, Quadro, Tesla, TITAN or datacenter part has its own board memory behind a PCIe link.",
+  "pool_total_mib": "machine.json board_total_mib (MEASURED: nvidia-smi --query-gpu=memory.total (MiB))",
+  "reserve_mib": "desktop_reserve_mib.max, n=8, dated 2026-08-31",
+  "budget_mib": "DISCRETE: budget = 24,576 MiB board - 454 MiB desktop reserve(max, n=8, dated 2026-08-31) = 24,122 MiB. Hard wall 24,576 MiB = the board itself; past it the window spills over PCIe into host RAM, which is slow and survivable.",
+  "board_total_mib": "MEASURED (machine.json)",
+  "desktop_reserve_mib": "MEASURED (machine.json)",
+  "rule_13": "DERIVED from memory_topology -- which of the two ceilings and the collapse point still have a referent on this pool. See machine.rule_13.",
+  "weights": "MEASURED (file_bytes from the GGUF profile)",
+  "kv_bytes_per_token": "DERIVED by the model profiler, carried here",
+  "context_length": "MEASURED (GGUF header, via the model profile)",
+  "rungs": "DERIVED from the fit; the rule is in rungs.step_rule",
+  "stages": "DERIVED from capabilities[] + scripts/arms/*.json server flags + the stage files' own gate sentences",
+  "estimate": "DERIVED from the stage files' published hours scaled by arm and rung counts -- a planning aid, not a measurement",
+  "compute_buffers": "UNKNOWN -- counted nowhere above; Stage 2 measures them"
+ }
+}
