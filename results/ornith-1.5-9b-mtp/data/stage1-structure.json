@@ -1,0 +1,241 @@
+{
+ "_schema": "stage1-structure v1",
+ "slug": "ornith-1.5-9b-mtp",
+ "started_utc": "2026-08-31T15:19:24Z",
+ "conditions": {
+  "ctx": 32768,
+  "ngl": 99,
+  "temp": 0.0,
+  "desktop": "live GNOME + Steam + browser, recorded as-is",
+  "backend": "cuda b10717 (bin/llama.cpp/INSTALL.json)"
+ },
+ "arms": [
+  {
+   "label": "Q8_0",
+   "file": "Ornith-1.5-9B-MTP-Q8_0.gguf",
+   "size_bytes": 9786060352,
+   "ctx": 32768,
+   "ngl": 99,
+   "cache_type": "f16 (server default) -- matches the header's f16 figure",
+   "server_log": "results/ornith-1.5-9b-mtp/work/stage1-Q8_0-server.log",
+   "argv": [
+    "/root/Workspace/measured-inference/bin/llama.cpp/llama-server",
+    "-m",
+    "/root/Workspace/measured-inference/models/Ornith-1.5-9B-MTP-Q8_0.gguf",
+    "--alias",
+    "Q8_0",
+    "-c",
+    "32768",
+    "-ngl",
+    "99",
+    "--parallel",
+    "1",
+    "--jinja",
+    "--host",
+    "127.0.0.1",
+    "--port",
+    "1234"
+   ],
+   "loaded_idle": {
+    "how": "MEASURED",
+    "n": 15,
+    "mean_w": 122.61,
+    "min_w": 122.03,
+    "max_w": 123.01,
+    "memory_used_mib": "10002",
+    "tier": "in-band GPU board power (NVML); PSU losses and PUE excluded",
+    "note": "server up, model resident, nothing decoding"
+   },
+   "floor": {
+    "how": "MEASURED",
+    "predicted_per_second": 78.30367527073038,
+    "prompt_per_second": 179.03311586075438,
+    "predicted_n": 300,
+    "prompt_n": 34,
+    "wall_s": 5.183,
+    "source": "server timings.predicted_per_second -- NOT tokens/wall, which includes prefill and lies at depth (stage-1.md)",
+    "conditions": {
+     "temp": 0.0,
+     "ctx": 32768,
+     "ngl": 99,
+     "speculation": "none",
+     "content": "short code task",
+     "desktop": "live GNOME + Steam + browser (rule 27)"
+    }
+   },
+   "sample_head": "",
+   "server_says": {
+    "kv_lines": [],
+    "offloaded": null,
+    "predicted_kv_mib_from_header": 1024.0,
+    "how": "rule 4: two independent cheap readings agreeing beat one. The header derives 32,768 B/token; at c=32768 that is 1024.0 MiB."
+   },
+   "bench": {
+    "how": "MEASURED",
+    "rows": [
+     {
+      "n_prompt": 512,
+      "n_gen": 0,
+      "avg_ts": 4264.840321,
+      "stddev_ts": 102.473186,
+      "backend": null,
+      "model_size": 9775091712
+     },
+     {
+      "n_prompt": 0,
+      "n_gen": 128,
+      "avg_ts": 86.204103,
+      "stddev_ts": 0.06163,
+      "backend": null,
+      "model_size": 9775091712
+     }
+    ]
+   }
+  },
+  {
+   "label": "Q4_K_M",
+   "file": "Ornith-1.5-9B-MTP-Q4_K_M.gguf",
+   "size_bytes": 5780090432,
+   "ctx": 32768,
+   "ngl": 99,
+   "cache_type": "f16 (server default) -- matches the header's f16 figure",
+   "server_log": "results/ornith-1.5-9b-mtp/work/stage1-Q4_K_M-server.log",
+   "argv": [
+    "/root/Workspace/measured-inference/bin/llama.cpp/llama-server",
+    "-m",
+    "/root/Workspace/measured-inference/models/Ornith-1.5-9B-MTP-Q4_K_M.gguf",
+    "--alias",
+    "Q4_K_M",
+    "-c",
+    "32768",
+    "-ngl",
+    "99",
+    "--parallel",
+    "1",
+    "--jinja",
+    "--host",
+    "127.0.0.1",
+    "--port",
+    "1234"
+   ],
+   "floor": {
+    "how": "MEASURED",
+    "predicted_per_second": 118.37542985325405,
+    "prompt_per_second": 472.8000889976638,
+    "predicted_n": 300,
+    "prompt_n": 34,
+    "wall_s": 2.604,
+    "source": "server timings.predicted_per_second -- NOT tokens/wall, which includes prefill and lies at depth (stage-1.md)",
+    "conditions": {
+     "temp": 0.0,
+     "ctx": 32768,
+     "ngl": 99,
+     "speculation": "none",
+     "content": "short code task",
+     "desktop": "live GNOME + Steam + browser (rule 27)"
+    }
+   },
+   "sample_head": "",
+   "server_says": {
+    "kv_lines": [],
+    "offloaded": null,
+    "predicted_kv_mib_from_header": 1024.0,
+    "how": "rule 4: two independent cheap readings agreeing beat one. The header derives 32,768 B/token; at c=32768 that is 1024.0 MiB."
+   },
+   "bench": {
+    "how": "MEASURED",
+    "rows": [
+     {
+      "n_prompt": 512,
+      "n_gen": 0,
+      "avg_ts": 4088.542946,
+      "stddev_ts": 81.249725,
+      "backend": null,
+      "model_size": 5769121792
+     },
+     {
+      "n_prompt": 0,
+      "n_gen": 128,
+      "avg_ts": 123.291484,
+      "stddev_ts": 0.029852,
+      "backend": null,
+      "model_size": 5769121792
+     }
+    ]
+   }
+  },
+  {
+   "label": "IQ2_M",
+   "file": "Ornith-1.5-9B-MTP-IQ2_M.gguf",
+   "size_bytes": 3866029888,
+   "ctx": 32768,
+   "ngl": 99,
+   "cache_type": "f16 (server default) -- matches the header's f16 figure",
+   "server_log": "results/ornith-1.5-9b-mtp/work/stage1-IQ2_M-server.log",
+   "argv": [
+    "/root/Workspace/measured-inference/bin/llama.cpp/llama-server",
+    "-m",
+    "/root/Workspace/measured-inference/models/Ornith-1.5-9B-MTP-IQ2_M.gguf",
+    "--alias",
+    "IQ2_M",
+    "-c",
+    "32768",
+    "-ngl",
+    "99",
+    "--parallel",
+    "1",
+    "--jinja",
+    "--host",
+    "127.0.0.1",
+    "--port",
+    "1234"
+   ],
+   "floor": {
+    "how": "MEASURED",
+    "predicted_per_second": 131.3011371820229,
+    "prompt_per_second": 410.65281719910627,
+    "predicted_n": 300,
+    "prompt_n": 34,
+    "wall_s": 2.378,
+    "source": "server timings.predicted_per_second -- NOT tokens/wall, which includes prefill and lies at depth (stage-1.md)",
+    "conditions": {
+     "temp": 0.0,
+     "ctx": 32768,
+     "ngl": 99,
+     "speculation": "none",
+     "content": "short code task",
+     "desktop": "live GNOME + Steam + browser (rule 27)"
+    }
+   },
+   "sample_head": "",
+   "server_says": {
+    "kv_lines": [],
+    "offloaded": null,
+    "predicted_kv_mib_from_header": 1024.0,
+    "how": "rule 4: two independent cheap readings agreeing beat one. The header derives 32,768 B/token; at c=32768 that is 1024.0 MiB."
+   },
+   "bench": {
+    "how": "MEASURED",
+    "rows": [
+     {
+      "n_prompt": 512,
+      "n_gen": 0,
+      "avg_ts": 3670.749329,
+      "stddev_ts": 88.139101,
+      "backend": null,
+      "model_size": 3855060992
+     },
+     {
+      "n_prompt": 0,
+      "n_gen": 128,
+      "avg_ts": 138.642943,
+      "stddev_ts": 0.097611,
+      "backend": null,
+      "model_size": 3855060992
+     }
+    ]
+   }
+  }
+ ],
+ "finished_utc": "2026-08-31T15:20:58Z"
+}

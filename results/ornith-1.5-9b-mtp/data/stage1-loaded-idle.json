@@ -1,0 +1,26 @@
+{
+ "t+5s_after_health": {
+  "n": 10,
+  "mean_w": 133.14,
+  "min_w": 120.94,
+  "max_w": 156.26,
+  "sm_mhz": 1821,
+  "mem_used_mib": 10002
+ },
+ "t+50s_settled": {
+  "n": 15,
+  "mean_w": 25.55,
+  "min_w": 25.41,
+  "max_w": 25.76,
+  "sm_mhz": 210,
+  "mem_used_mib": 10002
+ },
+ "t+130s_settled": {
+  "n": 30,
+  "mean_w": 26.01,
+  "min_w": 25.2,
+  "max_w": 31.66,
+  "sm_mhz": 210,
+  "mem_used_mib": 10002
+ }
+}

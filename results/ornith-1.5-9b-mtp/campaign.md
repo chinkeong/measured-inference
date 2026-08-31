@@ -165,3 +165,140 @@ IQ2_M 3.87 + mmproj 0.92 + MTP head 2.43) into `models/`, verify `-ngl 99`,
 read the server's own KV figure to replace the UNPROVEN margins above, take the
 loaded-idle power baseline, and run one floor probe per quant. The early pruning
 gate drops anything slower AND worse, and records it as screened out.
+
+---
+
+## Stage 1 — STRUCTURE  ·  2026-08-31  ·  measurements in
+
+Roster acquired: 22.78 GB, five files, sizes matched against the HF listing and
+GGUF magic verified on each. Backend condition, copied from
+`bin/llama.cpp/INSTALL.json` as rule 3 requires: **flavor `cuda`, tag `b10717`,
+commit `a32af33de2b5`, built from source, `CMAKE_CUDA_ARCHITECTURES=native`
+(sm_86), driver 580.173.02.**
+
+### CORRECTION to the Stage-0 record: the in-file MTP layer is INERT in b10717
+
+Stage 0 chose this lineage because the vendor and protoLabsAI files carry
+`block_count 33 / nextn_predict_layers 1` where every third-party conversion
+carries `32 / None`, and concluded that mixing repos would compare two
+architectures. **The file facts are right and the conclusion was overstated.**
+The server log says, on every load:
+
+```
+W model has unused tensor blk.32.attn_q.weight       -- ignoring
+W model has unused tensor blk.32.nextn.eh_proj.weight -- ignoring
+... 15 tensors, the whole of block 32
+```
+
+llama.cpp b10717 loads block 32 and throws it away. At runtime the vendor file
+and mradermacher's are the same model; the 0.15–0.49 GB difference is tensors
+this build ignores. Keeping one lineage is still correct — the files differ in
+bytes-on-disk, which IS the decode budget (rule 10) — but not for the reason
+Stage 0 gave. Recorded rather than quietly amended: separating "the effect is
+real" from "the explanation is right" is one of the three failures AGENTS.md
+says no rule number catches, and this campaign walked into it in its first hour.
+
+### The drafter is real, and it is the separate head — not the in-file layer
+
+`--spec-draft-model models/mtp-Ornith-1.5-9B-head-Q8_0.gguf`, Q8_0 target,
+`--spec-draft-n-max 10 --spec-draft-p-min 0.5`, c=8192, temp 0:
+
+| Q8_0 | decode | acceptance | mean draft length |
+|---|---|---|---|
+| no speculation | 78.30 t/s | — | — |
+| + MTP draft head | **115.89 t/s** | **0.698** (125/179) | **3.12** |
+
+**1.48x on the largest file in the roster.** Rule 11 wants both numbers and both
+are here. protoLabsAI is the only source shipping that head, so the roster choice
+survives its own correction.
+
+### Floors — one probe per quant, temp 0, no speculation, c=32,768, `-ngl 99`
+
+| arm | size | floor (server `timings`) | llama-bench tg128 | pp512 | rule-10 constant |
+|---|---|---|---|---|---|
+| Q8_0 | 9.79 GB | 78.30 t/s | 86.20 ± 0.06 | 4264.84 | 0.82 |
+| Q4_K_M | 5.78 GB | 118.38 t/s | 123.29 ± 0.03 | 4088.54 | 0.73 |
+| IQ2_M | 3.87 GB | 131.30 t/s | 138.64 ± 0.10 | 3670.75 | 0.54 |
+
+Conditions on every row: short code task, temp 0, c=32,768, no speculation,
+**desktop live** (GNOME + Steam + browser). Decode is the server's own
+`predicted_per_second`, never tokens/wall.
+
+**Rule 10's efficiency constant is not one constant here.** Back-solved against
+the 3090's published 936 GB/s it reads 0.82 / 0.73 / 0.54 across the three
+formats. IQ2_M lands 22% under what pure bandwidth predicts: at 2 bits the file
+stops being bandwidth-bound and starts being unpack-bound, so **the 2-bit file
+buys far less speed than its size suggests** — 1.11x the decode of Q4_K_M for
+0.67x the bytes. Carried to Stage 5 as a recipe input; it is the first thing that
+would mislead a reader sizing by file alone.
+
+### The idle baselines — and why the Stage-0 number was 34% wrong
+
+Stage 0 recorded a cold idle of **37.71 W** (n=47, sd 0.10, taken immediately
+after starting the logger, exactly as stage-0.md prescribes). It is wrong, and
+the continuous log proves it. Empty board, P8 throughout, 0.5 s per sample:
+
+| window | n | power |
+|---|---|---|
+| samples 0–47 — *the Stage-0 baseline window* | 47 | **37.71 W** |
+| samples 47–120 | 73 | 37.91 W |
+| samples 120–300 | 180 | 38.21 W |
+| samples 300–900 | 600 | **25.66 W** |
+| samples 900–end | 3733 | 28.17 W |
+
+The board sits ~38 W for its first ~150 seconds **in P8 the whole time**, then
+settles. It is not a pstate change and not the sampler: it is a settling tail,
+and Stage 0's "n≥15 samples, before anything loads" puts the entire window
+inside it. stage-0.md already warns that "a board still cooling from earlier work
+reads high" and cites the reference campaign's 58.0 W against a 33.2 W cold
+reading — the warning exists and the prescription does not operationalise it,
+so a campaign that follows the letter still gets a wrong number. **Rule 24 makes
+every idle-subtracted joule downstream depend on this figure.**
+
+**The corrected pair, both from the persistent 500 ms logger, P8 only:**
+
+| baseline | n | power | mem clock |
+|---|---|---|---|
+| cold idle — empty board, desktop live | 4,554 | **28.09 W** | 405 MHz |
+| loaded idle — Q8_0 resident, nothing decoding | 458 | **31.12 W** | 405 MHz |
+
+**A resident 9.79 GB model costs +3.03 W at idle**, which reproduces the
+reference campaign's finding that a resident model costs almost nothing until
+asked (theirs: 33.2 → 30.7–31.1 W). Tier on both: in-band GPU board power
+(NVML); PSU losses and PUE excluded.
+
+Also measured and worth keeping: **a board 5 s after a model load reads 133.14 W
+at SM 1821 MHz** while decoding nothing. Any energy arm that starts sampling
+immediately after a load bills that to the arm.
+
+### Two harness defects this stage surfaced (campaign goal 2)
+
+1. **`scripts/probe-config.sh` violates rule 20.** stage-1.md names it the POSIX
+   seed for the floor probe. It launches `llama-server` with a bare `&` and stops
+   it with `pkill -f "llama-server.*--port <port>"`, and never touches
+   `scripts/bench/gpu_lock.py`. AGENTS.md states rule 20 as *enforced* — every
+   server through `gpu_lock.serve()`, never a bare Popen — because four
+   concurrent servers hung the reference machine on 2026-08-29. The pkill is
+   worse than merely unguarded: it matches by port and would kill a server
+   another job legitimately holds under the lock. A bash script cannot hold the
+   lock (it is a Python API with no `run` verb), so the fix is a Python probe.
+   This campaign uses `work/stage1-structure.py`, which takes the lock once for
+   the whole stage and launches every server through `gpu_lock.serve()`.
+2. **b10717 logs no KV-size and no offload line**, so stage-1.md's prescribed
+   rule-4 cross-check — "the server's reported KV size at a known `-c`" — has no
+   source in this build. Recorded as UNAVAILABLE rather than claimed as
+   agreement. `-ngl 99` residency is DERIVED instead, from `memory.used` 10,002
+   MiB against 9,333 MiB of weights plus a 454 MiB desktop, and from tg128
+   sitting at 0.82 of the bandwidth bound — a partially-offloaded model cannot
+   reach that. The header's 32,768 B/token stands unchallenged by a second
+   reading on this build.
+
+One thing that worked exactly as designed and is worth recording as a pass:
+`gpu_lock.serve()`'s "the child cannot outlive this process" guarantee held when
+a 120 s harness timeout SIGTERM'd the parent mid-probe — `gpu_lock.py status`
+came back `free / servers: none` with no orphan holding VRAM.
+
+**Pruning gate: nothing is dropped.** The gate drops a file that is both slower
+AND worse; on speed alone all three are separated and monotonic in the right
+direction, so no file can be screened out before the short PPL screen. That screen
+is the next step, and it is what decides whether IQ2_M survives to Stage 2.
