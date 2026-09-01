@@ -1155,3 +1155,49 @@ separated. What was *not* separated is how much of the remaining gap is the
 model not knowing versus the model not answering in the requested shape. That
 number now exists to be read off the transcripts once the run lands, and it
 belongs in the report beside the raw figure, not instead of it (rule 2).
+
+### 2026-09-01 — GPQA-Diamond anchor lands: 71.7, and the decomposition says the gap is truncation, nothing else
+
+`GPQA-Diamond: 71.7/100 (exact match, n=198, 43 truncated)`, Q8_0, cap 30,000,
+seed 42, `presence_penalty 0.0`, `-c 32768`, `-ngl 99 --jinja`. Elapsed ~10 h.
+Vendor publishes **86.4**.
+
+Run through `rescore-choices.py` (zero GPU, from the saved transcripts):
+
+| | count | rate |
+|---|---|---|
+| truncated — never reached an answer | 43 | 21.7% of 198 |
+| empty visible reply | 1 | — |
+| **unparsed** — finished, no letter the strict extractor could find | **0** | **0.0% of the 155 that finished** |
+| bare-letter replies | 0 | 0.0% |
+
+**Format tax: 0.0 pp.** Strict and lenient accuracy are the same number to one
+decimal. This model's answer formatting on a four-option benchmark is not a
+source of lost points — zero of 155 completed answers were unreadable. So the
+distance from 71.7 to 86.4 is **entirely truncation plus genuine misses**, and
+the split is: among the 155 questions it finished, Ornith scores **142/155 =
+91.6%**, above the published figure. The published 86.4 and this 71.7 are not in
+conflict; they are the same model measured with and without a token cap that
+21.7% of its answers exceed.
+
+Both figures ship, labelled, and neither alone (rule 2, rule 7). Rule 7 also
+says what to do next and we have not done it: **raise the cap and rerun that arm
+only** — never filter to the non-truncating questions, which is what quoting
+91.6% by itself would be.
+
+**A finding about the instrument, not the model.** Ornith emitted **zero**
+bare-letter replies: it always writes "Answer: X" after prose. Under the
+definition the model cards use when they quote a "format compliance"
+percentage — the reply IS a single letter — this model scores **0%**. Under this
+harness's extractor it is **100%** parseable. Same 198 generations, two
+defensible readings of one phrase, 0 versus 100. Any published compliance
+percentage is a property of the grader's definition at least as much as of the
+model, and cannot be compared across reports that did not fix that definition
+first (rule 3: the conditions travel with the number).
+
+Defect found and fixed in the same pass: `rescore-choices.py` first reported
+"truncated 0, 0.0%" for this run, because the transcripts file carries
+index/prompt/response/tokens/score and **not** the `truncated` flag, which lives
+only in the run JSON and the `.partial.jsonl`. It now recovers the cap from the
+sibling run JSON, and refuses to print a truncation count at all when it cannot
+— a confident zero where there is no measurement is worse than a gap.

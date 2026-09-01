@@ -126,7 +126,30 @@ def load_records(path):
     d = json.load(open(path, encoding="utf-8"))
     gens = d.get("generations") or {}
     ds = next((k for k in gens if k in ("GPQA-Diamond",)), None) or next(iter(gens), None)
-    return ds, gens.get(ds) or [], d.get("suite_hash")
+    rows = gens.get(ds) or []
+    # THE TRANSCRIPTS FILE DOES NOT CARRY `truncated`. Its per-item record is
+    # index/prompt/response/tokens/score -- the flag lives only in the run JSON
+    # and the .partial.jsonl. Read without this, every truncated item arrives
+    # looking like a completed one, and the first real run this was pointed at
+    # printed "truncated 0, 0.0%" for a run whose own summary said 43. A
+    # harness that prints a confident zero where it has no measurement is worse
+    # than one that prints nothing, so the cap is recovered from the sibling run
+    # JSON and, failing that, the count is refused rather than defaulted.
+    cap = _max_tokens_for(path)
+    for r in rows:
+        r["truncated"] = (None if cap is None
+                          else (r.get("tokens") or 0) >= cap)
+    return ds, rows, d.get("suite_hash")
+
+
+def _max_tokens_for(transcripts_path):
+    """The run's --max-tokens, from the run JSON beside the transcripts."""
+    run = re.sub(r"_transcripts\.json$", ".json", transcripts_path)
+    try:
+        return (json.load(open(run, encoding="utf-8"))
+                .get("settings", {}).get("max_tokens"))
+    except (OSError, ValueError, AttributeError):
+        return None
 
 
 def main():
@@ -137,11 +160,23 @@ def main():
     ap.add_argument("--samples", type=int, default=198,
                     help="the run's --samples, so references line up by index")
     ap.add_argument("--max-prompt-tokens", type=int, default=0)
+    ap.add_argument("--max-tokens", type=int, default=None,
+                    help="the run's token cap, when the run JSON is not beside "
+                         "the transcripts; without it truncation is UNKNOWN and "
+                         "is reported as unknown, never as zero")
     ap.add_argument("--json", metavar="OUT", help="also write the record here")
     a = ap.parse_args()
 
     ds, recs, suite_hash = load_records(a.path)
     ds = a.dataset or ds
+    if a.max_tokens:
+        for r in recs:
+            r["truncated"] = (r.get("tokens") or 0) >= a.max_tokens
+    if recs and any(r.get("truncated") is None for r in recs):
+        sys.exit("cannot tell which items truncated: no `truncated` flag in the "
+                 "records and no run JSON beside %s to read --max-tokens from. "
+                 "Pass --max-tokens <cap>. Reporting a truncation rate of zero "
+                 "here would be a fabricated measurement." % os.path.basename(a.path))
     if not recs:
         sys.exit("no records in %s" % a.path)
     items = load_items(ds, a.samples, a.max_prompt_tokens)
