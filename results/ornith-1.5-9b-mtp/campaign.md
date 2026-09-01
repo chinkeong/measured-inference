@@ -1631,3 +1631,49 @@ fidelity axis beside it or a reader will read the cheapest row as the best one.
   arms, so the **ratios are sound and the absolutes are floors**.
 - The floor probes ran on the operator-accepted non-quiet host; the GPQA and
   rule-21 windows did not.
+
+### 2026-09-01 22:15 — vision capability confirmed three ways, and an undeclared audio modality
+
+Checked before spending GPU hours on Stage 6's vision work, because rule 19 makes
+hallucinated sight the worst outcome and the harness had declared
+`vision.supported: true` from **the presence of an mmproj file alone**.
+
+**Confirmed, three independent sources:**
+
+1. **Online, vendor.** `ornith-ai/Ornith-1.5-9B`'s card shows image-URL message
+   content (`{"type": "image", "url": ...}`) and `AutoModelForMultimodalLM`. The
+   base, `Qwen/Qwen3.5-9B`, is published as *"Causal Language Model with Vision
+   Encoder"* with MMMU 78.4 and video benchmarks.
+2. **The projector file.** `mmproj-Ornith-1.5-9B-BF16.gguf` is a real CLIP GGUF:
+   `general.architecture clip`, `clip.has_vision_encoder true`,
+   `clip.projector_type qwen3vl_merger`, 27 vision blocks, image size 768, patch
+   16, and **`clip.vision.projection_dim 4096`, which matches the LM's
+   `hidden_size` 4096** — the pairing check, not just a file that exists.
+3. **The LM's own vocabulary.** Control tokens 248053-248057:
+   `<|vision_start|>`, `<|vision_end|>`, `<|vision_pad|>`, `<|image_pad|>`,
+   `<|video_pad|>`, plus grounding tokens `<|object_ref_start|>`,
+   `<|box_start|>`, `<|quad_start|>`. And `qwen35.rope.dimension_sections
+   [11, 11, 10, 0]` — the multimodal-rope section layout, which a text-only
+   export would not carry.
+
+**A correction to my own first pass, recorded because the failure shape
+generalises.** My initial scan reported "vision/image tokens present: NONE" and
+I nearly wrote the capability off. The scan matched correctly and then printed
+`want[:15]` — and in a 248,320-entry vocabulary the control tokens sit at the
+very end, so the slice ended 248,038 entries before the answer. A truncated
+display read as a negative result. The lesson is the one this repo keeps
+relearning from a different direction: **an absence reported by an instrument is
+only evidence if the instrument could have shown the presence** — the same
+principle that made `loop-detect.py` return NO-DATA instead of `clean` earlier
+today.
+
+**Undeclared capability: AUDIO.** The same control block carries
+`<|audio_start|>`, `<|audio_end|>`, `<|audio_pad|>`, and a TTS group
+`<tts_pad>`, `<tts_text_bos>`, `<tts_text_eod>`, `<tts_text_bos_single>`
+(248070-248076). `model-*.json` records
+`capabilities: ["text", "vision", "drafter", "effort"]` — **audio is not in
+it.** No audio projector ships in this campaign's file set, so the modality is
+almost certainly not exercisable here, but the harness should say "declared in
+the vocabulary, no projector available, untested" rather than silently omitting
+it. That is rule 19's own logic applied to a modality it does not yet enumerate:
+a capability the agent cannot see is a capability the report will not mention.
