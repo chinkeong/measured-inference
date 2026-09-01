@@ -259,6 +259,57 @@ Run that pair before and after touching anything in `SOURCES`, `build_item` or
 `RULE21_SETS`. A moved hash means every prior report has become incomparable,
 and it is far cheaper to find that out here than in a report.
 
+### Splitting a multiple-choice score into knowledge and format
+
+`_grade_choice` scores an unreadable answer **wrong**, deliberately — a reply
+the extractor cannot resolve is a failure to answer, and returning `None` would
+shrink the denominator and inflate the score by exactly the rate at which the
+model ignores the requested format. OpenAI's simple-evals does the same.
+
+The price of that correct choice is that one number mixes two unrelated
+failures: *did not know*, and *knew but never emitted a letter*. The first is
+the model. The second is a prompt or chat-template defect a reader can fix in an
+afternoon, and it is the failure most likely to correlate with a broken
+template — which is what this benchmark exists to detect.
+
+`rescore-choices.py` separates them from text already on disk, at zero GPU cost:
+
+```
+python scripts/bench/rescore-choices.py <run>_transcripts.json --json out.json
+python scripts/bench/rescore-choices.py <run>.json.partial.jsonl        # mid-run
+```
+
+It counts, separately, the **truncated** (never reached an answer), the
+**empty-bodied** (everything stayed in `reasoning_content`), the **unparsed**
+(finished, non-empty, and the strict extractor found no letter — the
+format-failure count), and the **bare-letter** replies, which is the definition
+of "format compliance" the model cards use when they quote one. Then it
+re-scores the same generations with a permissive extractor and publishes the
+difference as the **format tax**.
+
+Three things make the output usable rather than merely available:
+
+- **The lenient figure is a ceiling, never a measurement.** On four options a
+  prose-tolerant extractor scores about a quarter of genuinely-lost answers
+  correct by luck. Strict and lenient are published as a *bracket* — what the
+  model knows is between them — and every recovery is attributed to the tier
+  that made it, so a reader can see how much of the bracket rests on the weakest
+  tier and discount it.
+- **Thinking is stripped in both passes.** Chain-of-thought routinely contains
+  "so the answer would be B" on the way to rejecting B. This is the one place
+  leniency is not extended.
+- **No drift.** The strict pass imports `datasets_io`'s own regexes rather than
+  restating them, and cross-checks every item against `_grade_choice` itself. A
+  single disagreement aborts, because a reimplementation that had quietly
+  diverged from the real grader would make the whole report a fiction.
+
+A high unparsed rate means the prompt or the template is wrong, not that the
+model is poor, and it has to be checked before any score from this set is
+quoted. A model-card claim of the form "97% format compliance versus 37%" that
+moves accuracy by under a point is reporting a *lenient grader*, not a
+compliant model: under a strict grader a 60-point compliance gap cannot produce
+a one-point accuracy gap.
+
 ## IFEval (adjunct)
 
 Zhou et al., *Instruction-Following Evaluation for Large Language Models*

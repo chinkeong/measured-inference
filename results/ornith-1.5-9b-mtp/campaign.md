@@ -1112,3 +1112,46 @@ is still whether 1.5 would suppress the 28% truncation.
 Also settled: there has never been a dense Qwen at 9B, so "the old Qwen 9B" names
 a model that does not exist. The models people actually run at this size are
 Qwen3-8B and Qwen2.5-7B-Instruct.
+
+### 2026-09-01 — the GPQA anchor's score splits two ways, and the safety net was dropping the half that mattered
+
+Checking whether this campaign could report GPQA-Diamond as *knowledge* and
+*format* separately — rather than as one number mixing them — turned up a defect
+in `bench.py` that had been live for the whole 10-hour anchor run.
+
+`_grade_choice`'s docstring already promised the diagnostic: "run with
+transcripts kept, and the unparsed rate can be recovered by re-running this
+extractor over them." This run *is* keeping transcripts (`--transcripts`). But
+the per-question crash-protection file — the thing that exists so a ten-hour run
+is recoverable from disk rather than from scrollback — appended `rec` **after**
+the response text had been popped out of it. Transcripts are serialised only by
+`checkpoint_cb`, which fires once per dataset: for a single-dataset anchor run,
+once, at the very end.
+
+So at question 185 of 198 the on-disk state was 185 rows of tokens/score/
+truncated and **zero generations**. Had the run died there, the score would have
+survived and every text-dependent diagnostic would not have — rule 28 in the
+exact shape the rule describes, and for a field that costs one short write per
+question to keep.
+
+Fixed the same day: the partial row now carries `response` whenever the run is
+keeping transcripts. **The fix does not reach the run in flight** — Python read
+`bench.py` at launch — so this anchor stays exposed until it completes. It did
+complete, so nothing was lost; that is the only reason this is a fixed defect
+and not a dead claim kept as a case study (rule 5).
+
+`scripts/bench/rescore-choices.py` is the diagnostic the docstring promised.
+Measured: truncated / empty-bodied / unparsed / bare-letter counts. Derived and
+labelled as such: strict accuracy, lenient accuracy, format tax. The lenient
+figure ships as a **ceiling** — a prose-tolerant extractor scores ~25% of lost
+answers right by luck on four options — so the pair is published as a bracket
+with every recovery attributed to the tier that made it. The strict pass imports
+`datasets_io`'s regexes and cross-checks each item against `_grade_choice`; one
+disagreement aborts.
+
+This matters for the anchor's headline. The run's raw 68.5% against a published
+86.4 currently has ~25% truncation inside it, and the truncation is already
+separated. What was *not* separated is how much of the remaining gap is the
+model not knowing versus the model not answering in the requested shape. That
+number now exists to be read off the transcripts once the run lands, and it
+belongs in the report beside the raw figure, not instead of it (rule 2).

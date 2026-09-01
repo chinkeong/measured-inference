@@ -622,3 +622,32 @@ factor 0.55), so that gap IS rule 12's 45%, arriving as a number a
 reader would have used. The regression test for the duplicate half is
 the resume-mid-arm case in scripts/verify/test-arms.py; it uses no
 discard_first arm, so it does not yet cover the rule 12 half.
+
+## a long scored run crashes and its .partial.jsonl has no generations
+
+SYMPTOM: `<run>.json.partial.jsonl` holds one row per question with
+tokens, tok_s, score, correct and truncated - and no response text. The
+end-of-run `*_transcripts.json` was never written because the run died
+before its last question. Every text-dependent diagnostic is then
+unavailable for a run that otherwise completed: the unparsed-answer
+rate, the format tax, the repetition-loop spot-read of rule 20.
+CAUSE: bench.py's per-question crash-protection append wrote `rec`, and
+`rec` has had its text popped out one line earlier (`text =
+rec.pop("text")`) so the text can be routed to the transcripts dict
+instead. That dict is only serialised by checkpoint_cb, which fires once
+per DATASET - for a single-dataset anchor run, once, at the very end.
+So the safety net covered the cheap fields and dropped the expensive one.
+`_grade_choice`'s docstring promised the diagnostic was recoverable by
+"re-running this extractor over" the transcripts; that promise was void
+for exactly the runs the safety net exists for.
+FIX: fixed in bench.py 2026-09-01 - the partial row carries `response`
+whenever the run is keeping transcripts (`keep_text`). Cost is one extra
+short write per question. `scripts/bench/rescore-choices.py` reads either
+artefact, and refuses a pre-fix .partial.jsonl by name rather than
+reporting a textless run as a clean one.
+EARNED BY: a 198-question GPQA-Diamond anchor at ~10 h wall clock,
+noticed at question 185 while checking whether the harness could split
+that score into knowledge and format. Rule 28 in the exact shape the rule
+describes: the field was recoverable for free during the run and at no
+price afterwards. Nothing was lost - that run reached its end - which is
+the only reason this is a library entry and not a case study.

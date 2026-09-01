@@ -348,11 +348,25 @@ def bench_model(label, base_url, prompts_by_ds, max_tokens, seed, sampling,
             # question and makes the run recoverable from disk rather than from
             # scrollback. Failure to write is swallowed on purpose: losing the
             # safety net must never take the measurement down with it.
+            #
+            # THE TEXT GOES IN TOO, when the run is keeping transcripts. The
+            # first version of this appended `rec` alone -- and `rec` has had
+            # its text popped out two lines above. So a ten-hour GPQA run that
+            # died at question 197 left 197 rows of tokens/score/truncated and
+            # ZERO generations, because transcripts are only written by
+            # checkpoint_cb, which fires once per DATASET (for a single-dataset
+            # anchor run: once, at the very end). _grade_choice's docstring
+            # promises the unparsed-answer rate "can be recovered by re-running
+            # this extractor over" the transcripts; that promise was void for
+            # any run that did not reach its last question. Rule 28: a field
+            # not written down during the run cannot be recovered at any price.
             if _partial_path:
                 try:
                     with open(_partial_path, "a", encoding="utf-8") as _pf:
-                        _pf.write(json.dumps({"dataset": ds, "i": i, **rec},
-                                             ensure_ascii=False) + "\n")
+                        _pf.write(json.dumps(
+                            {"dataset": ds, "i": i, **rec,
+                             **({"response": text} if keep_text else {})},
+                            ensure_ascii=False) + "\n")
                 except OSError:
                     pass
             al = f", accept_len {rec['accept_len']:.2f}" if "accept_len" in rec else ""
