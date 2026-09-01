@@ -104,11 +104,30 @@ gpu_state() {
     # is one GPU job at a time, and the owner is usually about to take the card
     # back. It is an observability state -- it says the card is free, a job is
     # alive, and the clock is running on card time nobody is using.
-    if   [ "$owner" = 1 ] && [ "$idle" = 1 ]; then echo "OFF-CARD"
-    elif [ "$owner" = 1 ];                    then echo "BUSY"
-    elif [ "$idle"  = 1 ];                    then echo "IDLE"
-    elif [ "${servers:-0}" -gt 0 ];           then echo "ORPHAN"
-    else                                           echo "HELD-NO-OWNER"; fi
+    # THE CARD, NOT THE LOCK. The first version of OFF-CARD split on `idle`,
+    # which is `gpu_lock.py status`'s exit code -- and that is 0 only when the
+    # LOCK is free. gpu_lock.serve() takes the lock implicitly and holds it
+    # until the process exits ("deliberately sticky", its docstring says), and
+    # every long-lived driver here takes it for its whole life: runner.py's
+    # acquire("campaign-runner") before the task loop, arms.py's guard() around
+    # the entire sweep, each work/stage*.py "once, for the whole stage". So for
+    # any job that had touched the card even once, idle was 0 forever and
+    # OFF-CARD could fire only for a job that never took the lock at all -- a
+    # pure waiter, the least useful case, and the only one it was ever observed
+    # in. The state it was written for was unreachable.
+    #
+    # `servers` is the signal that answers the question, and gpu_state() was
+    # already computing it and using it only in the ORPHAN branch: it counts
+    # LIVE llama.cpp tools independently of the lock. owner alive + zero live
+    # servers IS "a job is running and nothing is on the card".
+    #
+    # A false OFF-CARD costs little if live_servers() ever under-reports: the
+    # state is informational and explicitly does not invite a second job.
+    if   [ "$owner" = 1 ] && [ "${servers:-0}" -gt 0 ]; then echo "BUSY"
+    elif [ "$owner" = 1 ];                              then echo "OFF-CARD"
+    elif [ "$idle"  = 1 ];                              then echo "IDLE"
+    elif [ "${servers:-0}" -gt 0 ];                     then echo "ORPHAN"
+    else                                                     echo "HELD-NO-OWNER"; fi
 }
 
 power_health() {

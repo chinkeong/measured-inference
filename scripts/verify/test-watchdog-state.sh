@@ -134,6 +134,12 @@ echo "gpu_state() decision table:"
 # free. Downloading a multi-GB GGUF, hashing, converting, CPU scoring. Reported
 # BUSY for the entire window the watchdog exists to catch.
 drive 1 0 0 OFF-CARD
+# THE ROW THE FIRST VERSION OF THIS FILE WAS MISSING, and the only one that
+# occurs in practice. gpu_lock.serve() is sticky: a driver that has served even
+# once holds the lock until it exits, so during its CPU phases the lock reads
+# HELD while the card is genuinely free. The suite passed five rows while the
+# state was wrong on the real machine, because none of them was this one.
+drive 1 1 0 OFF-CARD        # sticky lock held, nothing on the card
 drive 1 1 1 BUSY            # job holds the card: the genuinely quiet state
 drive 0 0 0 IDLE            # nothing running, card free: next task may start
 drive 0 1 1 ORPHAN          # a llama.cpp tool with no owning job (rule 20 hazard)
