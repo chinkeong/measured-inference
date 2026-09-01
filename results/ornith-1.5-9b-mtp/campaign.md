@@ -1444,3 +1444,67 @@ this task re-takes them with the full text kept. Detector:
 Spec-sweep transcripts: spec-mtp-n10-p0.5__rep1__00-rbtree-code.txt=('LOOP', ['N3-compresses!', 'N4-vocab-collapse!']), spec-mtp-n10-p0__rep1__00-rbtree-code.txt=('LOOP', ['N3-compresses!', 'N4-vocab-collapse!']), spec-mtp-n16-p0.5__rep1__00-rbtree-code.txt=('LOOP', ['N3-compresses!', 'N4-vocab-collapse!']), spec-mtp-n4-p0.75__rep1__00-rbtree-code.txt=('LOOP', ['N3-compresses!', 'N4-vocab-collapse!']), spec-mtp-n6-p0.5__rep1__00-rbtree-code.txt=('LOOP', ['N3-compresses!', 'N4-vocab-collapse!']), spec-none__rep1__00-rbtree-code.txt=('LOOP', ['N3-compresses!', 'N4-vocab-collapse!'])
 
 **Floors showing a loop: none**
+
+### 2026-09-01 — rule-21 suite lands; and the repaired loop scan disqualifies the Stage-1 floors
+
+**Rule-21 suite, R1 (Q8_0), suite hash `1cdf54f8eb9d3f8f`, greedy, seed 42,
+n=25, cap 16,384, `-c 32768`. 4,231 s.**
+
+| dataset | score | truncated | scorer |
+|---|---|---|---|
+| GSM8K | **100.0** | 0 | exact match |
+| MATH-500 | 60.0 | 3 | exact match |
+| HumanEval | 88.0 | 1 | execution pass@1 |
+| MBPP | 72.0 | 5 | execution pass@1 |
+| MeetingBank | 24.3 | 0 | ROUGE-L F1 |
+| ALPACA | — | — | unscored: no independent judge |
+| MT-Bench | — | — | unscored: no independent judge |
+| **Mean** | **68.9** | | composite over the five scored |
+
+**Nine truncations at the 16,384 cap** (3 MATH-500, 1 HumanEval, 5 MBPP). Rule 7:
+reported, not filtered, and the remedy is to raise the cap and rerun those arms
+only — not to quote a mean over the questions that happened to fit. MeetingBank's
+24.3 reads against the ~10 floor this repo documents for ROUGE-L, not against 0.
+**GSM8K's `tok_s` is disqualified by rule 27** (the 35-agent audit overlapped its
+window); its score is greedy and stands.
+
+### The floors are loop-contaminated
+
+Task A1 re-ran with `ask()` repaired, and the scan it should always have done
+says:
+
+| arm | t/s | chars | reasoning | content | n4_worst_ttr | verdict |
+|---|---|---|---|---|---|---|
+| Q8_0 | 83.37 | 2,334 | 2,332 | **0** | 0.2833 | **LOOP** |
+| Q4_K_M | 118.96 | 2,517 | 2,515 | **0** | 0.3250 | hint |
+| IQ2_M | 131.28 | 2,537 | 2,535 | **0** | 0.3333 | hint |
+
+`content` is **zero on all three** — the entire generation was reasoning, which
+is why the old scan saw nothing. And those t/s values are the published Stage-1
+floors: **78.30 / 118.38 / 131.30**, the same probe, the same sampler.
+
+So R1's floor is a timing taken from a generation the detector calls a LOOP, and
+rule 20 says that check happens *before* the tokens or timings are trusted. The
+number was never checked; now it has been, and it does not pass.
+
+**Deliberately NOT re-measured tonight.** The obvious repair is the same probe
+under the model card's own sampler — temp 1.0 / top_p 0.95 / top_k 20 /
+**presence_penalty 1.5**, whose anti-repetition term is exactly the knob at
+issue — and `work/a1b-floor-card-sampler.py` is written and ready. It was
+launched and `gpu_lock`'s preflight refused it: `Committed_AS` 29.9 GB against a
+24.5 GB `CommitLimit`, 6 of 7 GB swap in use, a foreign 3.9 GB process
+(`/root/Workspace/fresh/.../e2e_tests`) plus Steam, Chrome and a second Claude
+session resident.
+
+The refusal was correct and the deeper reason to honour it is rule 27: a busy
+host costs decode invisibly, −5.4% mean and −24.0% worst. Replacing a
+loop-contaminated floor with a host-contaminated one is not a repair. **The
+floors stand as published, now carrying their loop verdicts**, until the box is
+quiet — which is a decision for whoever owns that foreign process, not something
+to work around by lowering the memory cap.
+
+There is a pleasing irony in the sampler. The frozen suite's `settings` block —
+flagged earlier the same day as stale and misleading because `--greedy`
+overrides it — carries `presence_penalty 1.5`. That is the model card's
+anti-degeneration preset, and it is the exact remedy for what greedy decoding
+just did to these floors.

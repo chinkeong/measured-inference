@@ -162,6 +162,36 @@ power_health() {
     return 1
 }
 
+power_recover() {
+    # AN ALARM NOBODY READS IS NOT A SAFEGUARD. power_health() caught the second
+    # unlink on 2026-09-01 within two minutes and printed exactly the right
+    # command -- and the rows still sat in a nameless inode for two hours,
+    # because the operator did not re-read the log. The detector was right and
+    # the outcome was the same as having no detector, so the watchdog does the
+    # recovery itself.
+    #
+    # NEVER --force. `sample-power.sh start --force` over a CSV with no live
+    # writer sets append=0 and TRUNCATES (sample-power.sh:680); it appends only
+    # when another logger is already holding the file. So recovery writes the
+    # canonical path (which nothing holds open by name any more, so there is
+    # nothing to truncate) and starts the replacement on a FRESH path. A
+    # segment boundary is honest -- it is a real discontinuity in the trace and
+    # the filename says where it is (rule 3).
+    local pid="$1" target ts base new rows
+    target=$(readlink "/proc/$pid/fd/1" 2>/dev/null) || return 1
+    case "$target" in
+      *" (deleted)") target="${target% (deleted)}" ;;
+      *) return 1 ;;
+    esac
+    cat "/proc/$pid/fd/1" > "$target" 2>/dev/null || return 1
+    rows=$(wc -l < "$target" 2>/dev/null || echo 0)
+    bash "$REPO/scripts/power/sample-power.sh" stop --pid "$pid" >/dev/null 2>&1
+    ts=$(date +%H%M%S); base="${target%.csv}"; new="${base}-resumed-${ts}.csv"
+    bash "$REPO/scripts/power/sample-power.sh" start --csv "$new" >/dev/null 2>&1 \
+        || { echo "rescued $rows rows to $(basename "$target") but COULD NOT RESTART the logger"; return 0; }
+    echo "rescued $rows rows to $(basename "$target"); logging resumed to $(basename "$new")"
+}
+
 _campaign_writes() {
     # Everything the CAMPAIGN writes under data/ and work/, and nothing the
     # durability layer writes. Named exclusions, not a positive list: a positive
@@ -413,7 +443,13 @@ while true; do
     if power=$(power_health); then
         if [ "$power" != "$prev_power" ]; then
             case "$power" in
-              UNLINKED*) echo "$(date +%H:%M:%S) POWER LOGGER UNLINKED (${power#UNLINKED }) — nvidia-smi is appending to a file with no name; the rows are unreadable once it exits. Recover NOW with: cat /proc/${power#UNLINKED }/fd/1 > <csv>, then restart the logger. Rule 24: energy is measured or it is absent." ;;
+              UNLINKED*)
+                echo "$(date +%H:%M:%S) POWER LOGGER UNLINKED (${power#UNLINKED }) — nvidia-smi was appending to a file with no name. Recovering now; rule 24: energy is measured or it is absent."
+                if out=$(power_recover "${power#UNLINKED }"); then
+                    echo "$(date +%H:%M:%S) POWER RECOVERED — $out"
+                else
+                    echo "$(date +%H:%M:%S) POWER RECOVERY FAILED for pid ${power#UNLINKED } — do it by hand NOW, while that process is alive: cat /proc/${power#UNLINKED }/fd/1 > <csv>. Once it exits the rows are gone at any price."
+                fi ;;
               ABSENT)    echo "$(date +%H:%M:%S) POWER LOGGER ABSENT — nothing is logging power for this campaign, so every arm running now is unattributable. Rule 24: TDP is not a measurement." ;;
             esac
             prev_power="$power"
