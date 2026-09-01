@@ -1368,3 +1368,62 @@ wanted, rule 7's remedy applies unchanged — rerun that arm only.
 
 Writing this down because the alternative was not noticing: nothing in the
 harness watches for the agent itself being the noisy neighbour.
+
+### 2026-09-01 — rule 20's loop check never ran on the Stage-1 floors
+
+`data/loop-scan.json`, task A1, `fresh_floor_probes`:
+
+    Q8_0     chars=0   verdict=clean
+    Q4_K_M   chars=0   verdict=clean
+    IQ2_M    chars=0   verdict=clean
+
+All three `work/a1-floor-*.txt` are **0 bytes on disk**. The detector was handed
+the empty string and returned `clean`, three times, and the campaign recorded a
+passing rule-20 check that had inspected nothing.
+
+**Why it read nothing.** `runner.py`'s `ask()` returned
+`message["content"]`. With `--jinja`, llama.cpp splits a thinking model's output
+and puts the chain-of-thought in `reasoning_content`; for these probes the
+visible reply was empty and the entire 700-token generation was in the field
+nobody read. This is the third appearance of that one mistake in this campaign —
+it also produced `think_chars: 0` on every appetite probe, and it is why Stage 4
+briefly looked like thinking was disabled.
+
+**Why it matters more than a missing check.** The very same file scores **LOOP
+on all six** spec-sweep transcripts, at the same `temp 0 / top_k 1` sampler the
+Stage-1 floors used. Looping is not hypothetical for this model under that
+sampler — it is demonstrated, six times, in the same JSON. So the floors
+**78.30 / 118.38 / 131.30 t/s** carry a rule-20 check that was never performed,
+on a sampler already known to degenerate here. A1's own docstring says it exists
+because Stage 1 saved too little text to loop-check; its remedy reproduced the
+disease it was written to cure.
+
+**Three fixes, in increasing order of how much they matter.**
+
+1. `ask()` now returns `reasoning`, `text` and `full`, and A1 scans **`full`**.
+   Rule 20 protects "its tokens or timings", and the timings count every
+   generated token — so a loop inside the thinking block is exactly the loop
+   that corrupts a throughput number.
+2. A1 is queued to re-run behind the rule-21 suite
+   (`work/chain-after-rule21.py`), clearing only `A1` from `runner-state.json`
+   and recording why in a `reruns` entry. Rule 7's shape: rerun that arm only.
+3. **`loop-detect.py` can no longer certify emptiness as health.** Every signal
+   returns 0.0 on the empty string, 0.0 clears no threshold, and `verdict()`
+   fell through to `("clean", [])`. It now returns **`NO-DATA`** below
+   `MIN_WORDS`, with the message saying in words that this is not a clean
+   verdict but the absence of one. This is the fix that generalises: the caller
+   bug was one line, but the detector was structurally willing to bless nothing.
+
+**The floor was chosen against the detector's own corpus, not a priori.** The
+first attempt used 120 words — one full N4 window — and turned **62 of the 75**
+validation answers into NO-DATA, because real benchmark answers are short and
+`n4_worst_window_ttr` already declines them by returning 1.0 below `win*2`
+rather than pretending to a verdict. A floor that refuses in-distribution
+answers does not make a detector safer, it makes it silent, which is the failure
+being fixed. At **15 words** the validation baseline is unchanged except for the
+four answers that were being blessed on almost no text:
+
+    before:  {clean: 71, hint: 3, LOOP: 1}      false positives: 1
+    after:   {clean: 67, hint: 3, LOOP: 1, NO-DATA: 4}   false positives: 1
+
+The one false positive is pre-existing and untouched.

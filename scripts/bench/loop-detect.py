@@ -141,12 +141,34 @@ def n4_worst_window_ttr(text, win=120, step=40):
     return worst
 
 
+# THIS FLOOR REJECTS ABSENCE OF OUTPUT, NOT SHORT OUTPUT, and the distinction
+# is the whole design. The first attempt set it at 120 -- one full N4 window --
+# and turned 62 of the detector's own 75 validation answers into NO-DATA,
+# because real benchmark answers are short and N4 already declines to judge
+# them: n4_worst_window_ttr returns 1.0 below win*2 words rather than pretending
+# to a verdict, so N1/N2/N3 carry short text by design and the corpus this
+# detector was validated against runs down to 74 words.
+#
+# A floor that refuses in-distribution answers does not make the detector safer,
+# it makes it silent, which is the failure being fixed. 15 words is comfortably
+# below anything the validated corpus contains, so it cannot change a single
+# validated verdict, and comfortably above the case that caused this: a
+# `content` field that was empty because llama.cpp had routed the generation to
+# `reasoning_content`.
+MIN_WORDS = 15
+
+
 def signals(text):
     return {
         "n1_loop_frac": round(n1_digit_normalised_repeat(text), 4),
         "n2_skeleton": round(n2_line_skeleton_share(text), 4),
         "n3_compress": round(n3_compression_ratio(text), 4),
         "n4_worst_ttr": round(n4_worst_window_ttr(text), 4),
+        # RECORDED SO THE VERDICT CAN REFUSE. Without it, verdict() cannot tell
+        # a clean 4,000-word answer from an empty string: every signal returns
+        # 0.0 on "" and 0.0 fires no threshold, so the empty case scored
+        # ("clean", []) -- a detector certifying that nothing is not looping.
+        "n_words": len((text or "").split()),
     }
 
 
@@ -184,6 +206,23 @@ def verdict(s):
     # N1 and N2 are structural and, on code, noisy - they need corroboration.
     # N3 and N4 are global and separated cleanly on the control, so either may
     # stand alone when it is strong.
+    # A VERDICT ON TOO LITTLE TEXT IS NOT A CLEAN VERDICT. Every signal here
+    # returns 0.0 for the empty string, 0.0 clears no threshold, and the
+    # function fell through to ("clean", []). That is not a conservative
+    # default -- it is the detector actively certifying an absence of evidence
+    # as evidence of absence, and it is silent.
+    #
+    # Measured 2026-09-01, and it had already cost a published claim: this
+    # campaign's rule-20 loop scan recorded `chars=0, verdict=clean` for all
+    # three Stage-1 floor arms, because the caller read only the response's
+    # `content` while llama.cpp --jinja had routed the whole generation into
+    # `reasoning_content`. The same file scored LOOP on all six spec-sweep
+    # transcripts at the very sampler those floors used, so the one check that
+    # would have caught it passed on nothing at all.
+    if s.get("n_words", MIN_WORDS) < MIN_WORDS:
+        return "NO-DATA", ["only %d words, need %d to judge — this is NOT a "
+                           "clean verdict, it is the absence of one"
+                           % (s.get("n_words", 0), MIN_WORDS)]
     SOLO = ("n3_compress", "n4_worst_ttr")
     strong = [names[k] for k in names if _fires(s, k, STRONG)]
     solo_strong = [names[k] for k in SOLO if _fires(s, k, STRONG)]

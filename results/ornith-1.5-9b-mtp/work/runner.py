@@ -140,7 +140,24 @@ def ask(prompt, n_predict, kwargs=None):
                                headers={"Content-Type": "application/json"})
     resp = json.load(urllib.request.urlopen(r, timeout=3600))
     ch = (resp.get("choices") or [{}])[0]
-    return {"text": ch.get("message", {}).get("content", "") or "",
+    msg = ch.get("message", {}) or {}
+    # REASONING IS PART OF THE GENERATION. With --jinja, llama.cpp splits a
+    # thinking model's output: the chain-of-thought goes to `reasoning_content`
+    # and only the visible reply to `content`. Reading `content` alone returned
+    # the EMPTY STRING for a probe that had generated 700 tokens, and the loop
+    # detector then scored that empty string "clean" -- so task A1 published
+    # `chars: 0, verdict: clean` for all three Stage-1 floor arms while the same
+    # file scored LOOP on all six spec-sweep transcripts at the very sampler
+    # those floors used. All three work/a1-floor-*.txt were written 0 bytes.
+    #
+    # Rule 20's loop check protects "its tokens or timings", and the timings
+    # count EVERY generated token, reasoning included. So a loop that happens
+    # inside the thinking block is exactly the loop that corrupts a throughput
+    # number, and `full` is what the detector must be given.
+    content = msg.get("content") or ""
+    reasoning = msg.get("reasoning_content") or ""
+    return {"text": content, "reasoning": reasoning,
+            "full": (reasoning + "\n\n" + content) if reasoning else content,
             "finish": ch.get("finish_reason"),
             "timings": resp.get("timings") or {}}
 
@@ -180,14 +197,16 @@ def task_a1():
             continue
         try:
             r = ask(CODE, 700)
-            s = loopdet.signals(r["text"])
+            s = loopdet.signals(r["full"])
             out["fresh_floor_probes"][label] = {
                 "t_s": r["timings"].get("predicted_per_second"),
                 "predicted_n": r["timings"].get("predicted_n"),
-                "finish": r["finish"], "chars": len(r["text"]),
+                "finish": r["finish"], "chars": len(r["full"]),
+                "reasoning_chars": len(r["reasoning"]),
+                "content_chars": len(r["text"]),
                 "verdict": loopdet.verdict(s),
                 "signals": {k: round(v, 4) for k, v in s.items()}}
-            open(os.path.join(WORK, "a1-floor-%s.txt" % label), "w").write(r["text"])
+            open(os.path.join(WORK, "a1-floor-%s.txt" % label), "w").write(r["full"])
             log("  %s floor %.2f t/s  %s  %s" % (
                 label, r["timings"].get("predicted_per_second") or 0,
                 r["finish"], loopdet.verdict(s)))
