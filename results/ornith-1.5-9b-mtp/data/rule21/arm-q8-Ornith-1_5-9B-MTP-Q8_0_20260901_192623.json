@@ -1,0 +1,154 @@
+{
+  "model_label": "Ornith-1.5-9B-MTP-Q8_0",
+  "model_key": "models/Ornith-1.5-9B-MTP-Q8_0.gguf",
+  "speculative": false,
+  "scored": true,
+  "protocol": "METHODOLOGY rule 21",
+  "backend": {
+    "engine": "llama.cpp (llama-server)",
+    "server_bin": "/root/Workspace/measured-inference/bin/llama.cpp/llama-server",
+    "version": "version: 0.3.0-dev (build 1, commit a32af33)",
+    "server_started_by_harness": true,
+    "server_env": null,
+    "server_args": "-ngl 99 --jinja",
+    "server_args_note": null,
+    "ctx": 32768
+  },
+  "machine": {
+    "host": "cang1-ssd",
+    "os": "Linux-7.0.0-30-generic-x86_64-with-glibc2.43",
+    "cpu": "",
+    "gpu": "NVIDIA GeForce RTX 3090, 580.173.02",
+    "llama_cpp": "version: 0.3.0-dev (build 1, commit a32af33)"
+  },
+  "suite_hash": "1cdf54f8eb9d3f8f",
+  "datasets": [
+    "GSM8K",
+    "MATH-500",
+    "HumanEval",
+    "MBPP",
+    "ALPACA",
+    "MeetingBank",
+    "MT-Bench"
+  ],
+  "results": {
+    "GSM8K": {
+      "n": 25,
+      "tokens": 331.2,
+      "tok_s": 83.22593499502459,
+      "ttft": 0.048327159999999994,
+      "accuracy": 1.0,
+      "score": 100.0,
+      "scorer": "exact match",
+      "graded_n": 25,
+      "truncated_n": 0
+    },
+    "MATH-500": {
+      "n": 25,
+      "tokens": 3734.96,
+      "tok_s": 82.76633335669571,
+      "ttft": 0.06484768,
+      "accuracy": 0.6,
+      "score": 60.0,
+      "scorer": "exact match",
+      "graded_n": 25,
+      "truncated_n": 3
+    },
+    "HumanEval": {
+      "n": 25,
+      "tokens": 1778.44,
+      "tok_s": 82.72395093984699,
+      "ttft": 0.06968204,
+      "accuracy": 0.88,
+      "score": 88.0,
+      "scorer": "execution pass@1",
+      "graded_n": 25,
+      "truncated_n": 1
+    },
+    "MBPP": {
+      "n": 25,
+      "tokens": 4046.92,
+      "tok_s": 81.79467646728726,
+      "ttft": 0.05258739999999999,
+      "accuracy": 0.72,
+      "score": 72.0,
+      "scorer": "execution pass@1",
+      "graded_n": 25,
+      "truncated_n": 5
+    },
+    "ALPACA": {
+      "n": 25,
+      "tokens": 1588.2,
+      "tok_s": 81.43383851862598,
+      "ttft": 0.043066959999999994,
+      "unscored_reason": "unscored: no independent judge"
+    },
+    "MeetingBank": {
+      "n": 25,
+      "tokens": 344.28,
+      "tok_s": 81.7613199533027,
+      "ttft": 0.45145856,
+      "accuracy": 0.24259758451850544,
+      "score": 24.3,
+      "scorer": "ROUGE-L F1",
+      "graded_n": 25,
+      "truncated_n": 0,
+      "prompt_truncated_n": 2
+    },
+    "MT-Bench": {
+      "n": 25,
+      "tokens": 1797.64,
+      "tok_s": 81.61319072091105,
+      "ttft": 0.0505356,
+      "unscored_reason": "unscored: no independent judge"
+    }
+  },
+  "scorers": {
+    "GSM8K": "exact match",
+    "MATH-500": "exact match",
+    "HumanEval": "execution pass@1",
+    "MBPP": "execution pass@1",
+    "MeetingBank": "ROUGE-L F1"
+  },
+  "unscored": {
+    "ALPACA": "unscored: no independent judge",
+    "MT-Bench": "unscored: no independent judge"
+  },
+  "composite": {
+    "mean": 68.9,
+    "included": [
+      "GSM8K",
+      "MATH-500",
+      "HumanEval",
+      "MBPP",
+      "MeetingBank"
+    ],
+    "scores": {
+      "GSM8K": 100.0,
+      "MATH-500": 60.0,
+      "HumanEval": 88.0,
+      "MBPP": 72.0,
+      "MeetingBank": 24.3
+    },
+    "excluded": {
+      "ALPACA": "unscored: no independent judge",
+      "MT-Bench": "unscored: no independent judge"
+    },
+    "label": "composite index over GSM8K, MATH-500, HumanEval, MBPP, MeetingBank"
+  },
+  "judge": null,
+  "exec_scoring": true,
+  "settings": {
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "top_k": 1,
+    "presence_penalty": 0.0,
+    "samples": 25,
+    "max_tokens": 16384,
+    "seed": 42,
+    "max_prompt_tokens": 8192
+  },
+  "elapsed_s": 4231.3,
+  "date": "2026-09-01T20:36:54",
+  "transcripts": "Ornith-1_5-9B-MTP-Q8_0_20260901_192623_transcripts.json"
+}

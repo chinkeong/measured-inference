@@ -42,13 +42,25 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
-R21 = os.path.join(ROOT, "results", "qwen38-27b-blind", "data", "rule21")
-OUT = os.path.join(ROOT, "results", "qwen38-27b-blind", "data", "judge")
+# SLUG-PARAMETERISED, because the decision this tool closes recurs. Stage 0's
+# interview asks every campaign whether it has a judge endpoint (SKILL.md item
+# 8), and the honest answer for a single-box campaign is "no endpoint, use the
+# panel" -- which pointed at a script wired to ONE campaign's directory, arm
+# names and filename prefix. The protocol below is deliberately untouched: same
+# rubric, same three seats, same seeds, same (r-1)/9*100, so a score produced
+# for a new slug is comparable to the published qwen38-27b-blind numbers rather
+# than merely similar to them (rule 23).
+SLUG = os.environ.get("MI_JUDGE_SLUG", "qwen38-27b-blind")
+R21 = os.path.join(ROOT, "results", SLUG, "data", "rule21")
+OUT = os.path.join(ROOT, "results", SLUG, "data", "judge")
 PACKETS = os.path.join(OUT, "packets")
 KEYFILE = os.path.join(OUT, "key-SEALED.json")
 RATINGS = os.path.join(OUT, "ratings")
 
-ARMS = ["low", "medium", "xhigh"]
+# A single-arm campaign is legal here and is the common case outside an effort
+# sweep: build/score/finalize all work on one arm. `compare` needs two and says
+# so rather than emitting an empty bootstrap.
+ARMS = [a for a in os.environ.get("MI_JUDGE_ARMS", "low,medium,xhigh").split(",") if a]
 DATASETS = ["ALPACA", "MT-Bench"]
 SEATS = [1, 2, 3]
 SEAT_SEED = {1: 42, 2: 43, 3: 44}
@@ -65,10 +77,22 @@ RUBRIC = (
 
 
 def _transcript(arm):
+    """The arm's kept generations. Matched on `arm-<name>-` and the
+    _transcripts.json suffix -- the model-name segment used to be part of the
+    pattern (`arm-%s-Qwen`), which silently found nothing for any model that was
+    not a Qwen and raised "no transcript for arm" as though the file were
+    missing rather than misnamed."""
+    if not os.path.isdir(R21):
+        raise SystemExit(
+            "no %s: put this campaign's rule-21 run JSON and its "
+            "*_transcripts.json there, named arm-<arm>-<model>_transcripts.json"
+            % os.path.relpath(R21, ROOT))
     for f in sorted(os.listdir(R21)):
-        if f.startswith("arm-%s-Qwen" % arm) and f.endswith("_transcripts.json"):
+        if f.startswith("arm-%s-" % arm) and f.endswith("_transcripts.json"):
             return os.path.join(R21, f)
-    raise SystemExit("no transcript for arm %s" % arm)
+    raise SystemExit("no transcript for arm %r in %s (have: %s)"
+                     % (arm, os.path.relpath(R21, ROOT),
+                        ", ".join(sorted(os.listdir(R21))[:6]) or "nothing"))
 
 
 def _oid(arm, ds, idx):

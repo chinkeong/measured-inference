@@ -121,6 +121,17 @@ fields and pastes it back has closed the interview.
    which that file discloses with every number it produces and is why it reports
    inter-rater spread rather than a bare mean. If the answer is neither, record
    "no judge configured" and the report says the pair ran unscored and why.
+   Running the panel on YOUR campaign: copy the rule-21 run JSON and its
+   `*_transcripts.json` into `results/<slug>/data/rule21/` named
+   `arm-<arm>-<model>_transcripts.json`, then
+   `MI_JUDGE_SLUG=<slug> MI_JUDGE_ARMS=<arm[,arm...]> python
+   scripts/bench/judge-panel.py build` → judge the packets → `... score`.
+   One arm is legal (`compare` is the only subcommand that needs two). The
+   rubric, seats, seeds and (r-1)/9*100 normalisation are fixed, so the number
+   is comparable to the published `qwen38-27b-blind` panel and not merely
+   similar to it. **The judged pair is published BESIDE the composite Mean and
+   never folded into it** — the reference campaign's Mean is a mean of five with
+   both excluded, and adding them would silently redefine the metric (rule 23).
 
 Record all answers in `results/<slug>/campaign.md` (the campaign log — append
 decisions, findings, and timestamps to it throughout; it is your recovery point
