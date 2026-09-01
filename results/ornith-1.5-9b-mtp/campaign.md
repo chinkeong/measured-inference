@@ -836,3 +836,121 @@ and its dependencies were not found", so no readable report is ever produced.
 Its raw captures are ~500 MB each and are now ignored by extension (rule 29:
 ignore by extension or by a directory of pure bulk — a profiler intermediate
 whose every published number lands in data/*.json is exactly that).
+
+### The enable_thinking anomaly — RESOLVED, and it was the extractor
+
+Stage 4 recorded `think_chars: 0` on all twelve appetite probes and flagged that
+thinking might never have been enabled — which would have made the effort axis
+unpublishable (rule 2). It was enabled. The template gates it like this:
+
+```jinja
+{%- if enable_thinking is defined and enable_thinking is false %}
+    {{- '<think>\n\n</think>\n\n' }}     ← OFF: a pre-closed empty block
+{%- else %}
+    {{- '<think>\n' }}                    ← ON: an OPEN tag, emitted in the PROMPT
+{%- endif %}
+```
+
+and llama.cpp with `--jinja` then **parses the reasoning out of the completion
+into a separate `reasoning_content` field**. Measured 2026-09-01, same question,
+temp 0, reproducing B1's q5 token counts exactly (1460 on / 1671 off):
+
+| `enable_thinking` | message keys | content | reasoning_content |
+|---|---|---|---|
+| **true** | content, **reasoning_content**, role | 1,599 ch | **2,175 ch** |
+| false | content, role | 4,157 ch | — |
+
+The probe searched `content` for `<think>…</think>` tags the server had already
+removed. **B1's appetite distribution stands** — `predicted_n` counts reasoning
+and answer together — and the derived cap is unaffected.
+
+A behavioural finding falls out of the same run: with thinking ON the model
+reasons privately for 2,175 characters and then answers in 1,599; with it OFF it
+writes a 4,157-character worked answer inline. Same question, same sampler. The
+knob does not simply add tokens — it moves them from the answer into the
+reasoning, and shortens what the reader is shown.
+
+---
+
+## Stage 5 — RECIPE LOCK  ·  2026-09-01  ·  DATED AND CLOSED
+
+Rule 25: no expensive run may start above this line. Everything below is locked
+against measurements already in this log; nothing here is projected.
+
+### THE RANKING DECISION: fidelity (KLD), not perplexity
+
+This campaign's two instruments disagree, and the lock has to choose:
+
+| arm | mean KLD vs BF16 (294,912 pos) | same top-1 | PPL | PPL rank |
+|---|---|---|---|---|
+| Q8_0 | **0.016143** | 97.6% | 9.0519 | 3rd |
+| Q4_K_M | 0.209331 | 85.9% | 7.9544 | 1st |
+| IQ2_M | 0.441164 | 76.0% | 8.6629 | 2nd |
+
+**Ranking by KLD.** Perplexity ranked these in exactly reverse fidelity order,
+and BF16 settled which end was wrong: Q8_0 sits 0.1 σ from the unquantised
+weights while Q4_K_M scores 1.08 PPL *better than the weights it was made from*.
+A quantisation cannot beat its own source; low perplexity here is a differently
+shaped distribution, not a better model. Rule 6's letter would have crowned
+Q4_K_M and screened out Q8_0 at the Stage-1 gate. Proposed rule 33 carries the
+argument; this lock acts on it.
+
+### LOCKED RECIPES
+
+**R1 — QUALITY (the default recommendation).** `Q8_0`, `-ngl 99`, `-c 262144`,
+mmproj resident, `--spec-type none`.
+- KLD 0.016 from BF16, keeps its argmax 97.6% of the time — the only arm on the
+  roster that is faithful to the model the vendor published.
+- Measured fit: 20,336 MiB of a 24,122 MiB budget **with vision AND the draft
+  head resident** — the full 262,144-token window, 3,786 MiB spare.
+- Floor 78.30 t/s (Stage 1) / 83.59 t/s (A1 re-take, loop-clean). The 6.8 %
+  spread between takes is unexplained and is rule 30 territory; **quote the
+  lower**.
+- Speculation is OFF in this recipe deliberately — see R2.
+
+**R2 — SPEED, with a condition that must travel with it.** `Q4_K_M`,
+`--spec-type draft-mtp -md <mtp head> --spec-draft-n-max 4 --spec-draft-p-min 0.75`.
+- 148.03 t/s against a 119.56 t/s in-sweep baseline = **1.238×**, acceptance
+  0.902, the best of six arms. `n10/p0` is **slower than no speculation at all**
+  (0.967×, acceptance 0.298) — more drafting is not more speed.
+- **The output is NOT preserved.** Speculation on and off produce different text
+  at Q4_K_M *and* at BF16, with nondeterminism ruled out by bit-identical
+  repeats. This recipe is "1.238× faster at a DIFFERENT answer", never "the same
+  answer faster" (proposed rule 32).
+- Q4_K_M is 13× further from BF16 than Q8_0 and disagrees with its argmax on one
+  token in eight. R2 is a latency recipe, not a quality one, and the report must
+  not let a reader mistake it for one.
+
+**NOT RECOMMENDED — IQ2_M.** KLD 0.441, keeps BF16's argmax only **76.0%** of the
+time: one token in four differs from the published model. And it barely pays:
+131.30 t/s against Q4_K_M's 118.38 is **1.11× for 0.67× the bytes**, because at
+2 bits the kernels are compute-bound, not bandwidth-bound (E4: SM throughput
+meets or exceeds DRAM on all three of its hot kernels, and it moves 103.5 GB/s
+against Q4_K_M's 176.9). It is published as measured and screened out, never as
+untested.
+
+### LOCKED CAPS AND CONDITIONS FOR STAGE 6
+
+- **n_predict cap: 5,407** for thinking-on arms (rule 7: B1 measured max 3,605
+  with ZERO truncations at 16,384, so this is a true upper tail × 1.5, not a
+  lower bound). Thinking-off arms: 2,506.
+- **Effort axis is two arms**, not four: `enable_thinking` is boolean.
+- **Desktop is LIVE** on every number (GNOME + Steam + browser, 454 MiB). Rule 27
+  says that costs decode invisibly; it is a condition of the sweep, equal across
+  arms.
+- **Idle baselines**: cold 28.09 W, loaded 31.12 W, both P8-settled from the
+  continuous logger — NOT the 37.71 W Stage 0 recorded inside the settling tail.
+- **Backend**: cuda, llama.cpp b10717, commit a32af33de2b5, sm_86, driver
+  580.173.02.
+
+### WHAT STAGE 6 MAY NOW SPEND HOURS ON
+
+1. **GPQA Diamond, all 198, on R1, thinking ON, cap 5,407** — against the
+   vendor's published **86.4**. This is the harness-validation anchor, and the
+   distance is a measurement OF THE HARNESS, not of the model.
+2. The rule-21 seven-benchmark suite at n=25 on R1.
+3. Vision (mmproj resident) with the rule-19 hallucinated-sight hunt.
+4. Energy attribution over the arms already run — the 500 ms logger has been
+   up since Stage 0, so they are already attributable.
+
+**RECIPE LOCK CLOSED 2026-09-01.** Expensive work may now begin.

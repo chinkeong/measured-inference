@@ -1,0 +1,23 @@
+{
+ "on": {
+  "message_keys": [
+   "content",
+   "reasoning_content",
+   "role"
+  ],
+  "predicted_n": 1460,
+  "content_chars": 1599,
+  "reasoning_content_chars": 2175,
+  "reasoning_head": "The classic problem: expected number of coin flips to get two heads in a row. Let me derive it carefully.\\n\\nLet me set up"
+ },
+ "off": {
+  "message_keys": [
+   "content",
+   "role"
+  ],
+  "predicted_n": 1671,
+  "content_chars": 4157,
+  "reasoning_content_chars": 0,
+  "reasoning_head": ""
+ }
+}
