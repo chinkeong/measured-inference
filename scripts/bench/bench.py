@@ -266,14 +266,29 @@ def run_one(base_url, prompt, max_tokens, seed=None, sampling=None,
         # with --jinja llama-server splits thinking into reasoning_content;
         # the final answer (####, \boxed{}) lives in content
         content = msg.get("content") or ""
+        # AND THE REASONING IS KEPT, which it was not. Scoring is right to read
+        # `content` alone -- the graded answer lives there and the scorers strip
+        # think blocks anyway -- but DISCARDING the other half made the saved
+        # transcript a fiction for any generation that stayed in the reasoning
+        # channel. Measured 2026-09-01: the ALPACA rule-7 re-run generated
+        # 32,768 tokens and this function returned the empty string, so the
+        # transcript recorded chars=0 for a runaway that had produced 32k
+        # tokens, and the GPQA anchor's 43 truncated answers are all stored
+        # empty for the same reason. Rule 20 requires long greedy output be
+        # spot-read for repetition before its tokens or timings are trusted;
+        # that is impossible against a transcript corpus with the text removed,
+        # and rule 28 says the field cannot be recovered afterwards at any
+        # price. Third appearance of this one mistake in this campaign.
+        reasoning = msg.get("reasoning_content") or ""
     except (KeyError, IndexError):
-        content = ""
+        content = reasoning = ""
     completion = int(t.get("predicted_n") or 0)
     rec = {
         "tokens": completion,
         "tok_s": t.get("predicted_per_second", 0.0) or 0.0,
         "ttft": (t.get("prompt_ms", 0.0) or 0.0) / 1000.0,
         "text": content,
+        "reasoning": reasoning,
     }
     accepted = t.get("draft_n_accepted")
     total_draft = t.get("draft_n")
@@ -317,6 +332,7 @@ def bench_model(label, base_url, prompts_by_ds, max_tokens, seed, sampling,
                 continue
             truncated = rec["tokens"] >= max_tokens
             text = rec.pop("text")
+            reasoning = rec.pop("reasoning", "")
             # a truncated response never reached its final answer: score it zero
             # without the last-number fallback, which can luckily match a
             # mid-thinking number and score a spurious CORRECT
@@ -334,6 +350,10 @@ def bench_model(label, base_url, prompts_by_ds, max_tokens, seed, sampling,
             if keep_text:
                 transcripts.setdefault(ds, []).append(
                     {"index": i, "prompt": p, "response": text,
+                     # separate fields, not concatenated: the scorers must keep
+                     # seeing exactly what they scored, and a loop check must be
+                     # able to see everything that was generated
+                     "reasoning": reasoning,
                      "tokens": rec["tokens"],
                      **({"score": round(sc * 100, 1)} if sc is not None else {})})
             recs.append(rec)
@@ -365,7 +385,8 @@ def bench_model(label, base_url, prompts_by_ds, max_tokens, seed, sampling,
                     with open(_partial_path, "a", encoding="utf-8") as _pf:
                         _pf.write(json.dumps(
                             {"dataset": ds, "i": i, **rec,
-                             **({"response": text} if keep_text else {})},
+                             **({"response": text, "reasoning": reasoning}
+                                if keep_text else {})},
                             ensure_ascii=False) + "\n")
                 except OSError:
                     pass

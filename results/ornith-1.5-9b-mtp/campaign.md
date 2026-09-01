@@ -1779,3 +1779,88 @@ an `<img>` pointing at a file that does not exist, a button pushed off-canvas).
 entirely in `reasoning_content` — the same split that hid the loop scan and the
 appetite `think_chars` earlier in this campaign. Any consumer of this model's
 vision output that reads only `content` will see nothing at all.
+
+## Interview item 8 — the judge decision, CLOSED  ·  2026-09-01 23:35
+
+The question Stage 0 asks and this campaign left open: ALPACA and MT-Bench are
+2 of rule 21's 7 benchmarks, they are judge-gated, and a model may not grade its
+own answers. **Decision: the three-seat blind panel, published BESIDE the
+composite Mean and never folded into it.**
+
+**Why not folded in.** The reference campaign `qwen38-27b-blind` publishes
+Mean **74.9** — a mean of FIVE, with ALPACA and MT-Bench recorded as
+`excluded: unscored: no independent judge`. Our suite Mean is **68.9**, also of
+five. Adding judged scores to ours would silently redefine the metric and make
+the two incomparable under rule 23. So the Mean stays a mean of five in both,
+and the judged pair is a separate labelled result — the same treatment GPQA and
+IFEval get as adjunct sets.
+
+**The instrument, and its disclosure.** `scripts/bench/judge-panel.py`,
+protocol `rule21-judge-panel-v1`: three blind seats, opaque salted ids, per-seat
+shuffles, ratings 1-10 normalised `(r-1)/9*100`. **The judge is Claude Opus 5
+and so is the author of this report: a CORRELATED INSTRUMENT.** That is why the
+protocol publishes inter-rater spread beside every mean rather than a bare
+number, and why this paragraph exists.
+
+One improvement on the reference run: the three seats were **twelve independent
+subagents**, one per packet, rather than one context rating the same material
+three times. Three "seats" inside a single context are correlated by
+construction and their agreement measures nothing.
+
+| dataset | mean rating | score | sd across items | seat spread (mean / max) |
+|---|---|---|---|---|
+| ALPACA | 7.08 / 10 | **67.6** | 2.081 | 0.36 / 2 |
+| MT-Bench | 8.19 / 10 | **79.9** | 1.054 | 0.60 / 3 |
+
+50 answers, 150 ratings, **rated 50/50, 0 missing, 0 partial**.
+
+**Against the reference campaign, carefully.** `qwen38-27b-blind`'s `low` arm
+scored ALPACA 70.2 and MT-Bench 80.7 under the identical protocol and the same
+suite hash `1cdf54f8eb9d3f8f`. Ours are 67.6 and 79.9 — **2.6 and 0.8 points
+apart at n=25 with item sd above 2.0.** Rule 8 is explicit that point
+differences at this n are not real, and the panel instances are different
+sessions of the same instrument, which adds variance the spread columns do not
+capture. **The defensible statement is that the two are indistinguishable on
+this judged pair**, not that either is better — and a 9B being indistinguishable
+from a 27B here is the interesting part, stated as a tie rather than a win.
+
+### ALPACA[23]: rule 7's remedy applied, and it did not work
+
+The panel flagged ALPACA `provisional: true` — item 23 hit the 16,384 cap and
+came back empty. Rule 7 forbids filtering it and prescribes raising the cap and
+rerunning that arm, which the reference campaign did at 32,768. Done, and:
+
+    prompt 24/25: 32768 tok, 78.6 tok/s
+
+**It truncated again at double the cap.** This is not a cap that was set too
+low; it is a generation that does not terminate. It sits with the other greedy
+finding from today — Q8_0 scored LOOP on all three floor probes under
+`temp 0 / top_k 1`, the sampler this suite runs. Raising the cap a third time
+would burn an hour to reach the same place, so the arm is closed here:
+**the item is scored 1 (unusable) by unanimous seats, ALPACA stands at 67.6, and
+the truncation is published as a MODEL BEHAVIOUR under greedy decoding rather
+than as a harness cap choice.** Rule 7 is satisfied by having raised the cap and
+reported the result, not by having made the truncation disappear.
+
+### And the reason we cannot see what it did
+
+The re-run's transcript for that item reads **`chars=0` against 32,768 generated
+tokens**. `bench.py`'s `run_one` returned `message["content"]` alone — its own
+comment noted that `--jinja` splits thinking into `reasoning_content`, and then
+it discarded that half. Scoring was unaffected (the graded answer does live in
+`content`), but every transcript this harness has written is missing whatever
+stayed in the reasoning channel, including the GPQA anchor's **43 truncated
+answers, all stored empty**. Rule 20 wants long greedy output spot-read for
+repetition; that is impossible against a corpus with the text removed, and rule
+28 says it cannot be recovered afterwards at any price.
+
+Fixed: `run_one` now returns both, transcripts carry `response` and `reasoning`
+as separate fields — separate so the scorers keep seeing exactly what they
+scored — and the per-question crash file carries both too. **Third appearance of
+this single mistake in one campaign** (`think_chars: 0` on the appetite probes,
+`runner.py`'s loop scan, and now the benchmark harness itself). It is the
+campaign's most repeated defect and it has never once changed a score — only
+ever destroyed the evidence.
+
+`loop-detect.py`'s NO-DATA guard, added this morning, is what caught it here: it
+refused the empty string instead of returning `clean`.
