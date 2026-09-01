@@ -739,3 +739,12 @@ Spec-sweep transcripts: spec-mtp-n10-p0.5__rep1__00-rbtree-code.txt=('LOOP', ['N
 | prose/spec-n4-p0.75 | 128.87 | 3000 | length | ('clean', []) | `b0a3b7c051b29b18` |
 | code/spec-none | 118.24 | 3000 | length | ('clean', []) | `e3b0c44298fc1c14` |
 | code/spec-n4-p0.75 | 132.32 | 3000 | length | ('clean', []) | `e3b0c44298fc1c14` |
+
+### A3 — acceptance is a property of the CONTENT (rule 11)
+
+Same server, same flags (draft-mtp n4/p0.75), two regimes:
+
+| regime | t/s | acceptance | predicted_n |
+|---|---|---|---|
+| novel-code | 140.63 | 0.8885 | 1500 |
+| verbatim-prose | 127.98 | 0.9171 | 1206 |

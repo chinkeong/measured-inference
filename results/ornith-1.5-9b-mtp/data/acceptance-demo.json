@@ -1,0 +1,22 @@
+{
+ "_schema": "acceptance-demo v1",
+ "slug": "ornith-1.5-9b-mtp",
+ "arms": {
+  "novel-code": {
+   "t_s": 140.6303108699162,
+   "predicted_n": 1500,
+   "draft_n": 1013,
+   "draft_n_accepted": 900,
+   "acceptance": 0.8885,
+   "finish": "length"
+  },
+  "verbatim-prose": {
+   "t_s": 127.98446767754923,
+   "predicted_n": 1206,
+   "draft_n": 651,
+   "draft_n_accepted": 597,
+   "acceptance": 0.9171,
+   "finish": "stop"
+  }
+ }
+}
