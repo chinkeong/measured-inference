@@ -1,13 +1,9 @@
 {
-  "pid": 373520,
-  "arm": null,
-  "probe": null,
-  "started_utc": "2026-08-31T17:36:12Z",
-  "updated_utc": "2026-08-31T17:37:57Z",
-  "done": 6,
-  "total": 6,
-  "rep": null,
-  "sweep": null,
-  "ledger": "/root/Workspace/measured-inference/results/ornith-1.5-9b-mtp/data/arms/spec-sweep-ornith.jsonl",
-  "state": "finished"
+ "_schema": "heartbeat v1",
+ "slug": "ornith-1.5-9b-mtp",
+ "in_flight": "A1",
+ "note": "running",
+ "pid": 383823,
+ "written_utc": "2026-09-01T01:42:20Z",
+ "recovery": "read campaign.md end to end, then git log --oneline"
 }
