@@ -125,9 +125,9 @@ push_if_ahead() {
             # cut -c is BYTE-based in uutils coreutils, which is what this box ships, so
             # slicing a commit subject mid-em-dash emits mojibake into the watchdog's
             # own log. awk substr is character-safe.
-            echo "PUSHED $ahead commit(s) to origin/main - $(git log --oneline -1 | awk '{print substr($0,1,58)}')"
+            echo "$(date +%H:%M:%S) PUSHED $ahead commit(s) to origin/main - $(git log --oneline -1 | awk '{print substr($0,1,58)}')"
         else
-            echo "PUSH FAILED with $ahead commit(s) unpublished — measured data is on this disk only."
+            echo "$(date +%H:%M:%S) PUSH FAILED with $ahead commit(s) unpublished — measured data is on this disk only."
         fi
     fi
 }
@@ -174,16 +174,16 @@ while true; do
     esac
     if [ "$state" != "$prev" ]; then
         case "$state" in
-          IDLE*)   echo "GPU IDLE — lock free, no llama.cpp tool live. The next campaign task can start now." ;;
-          ORPHAN*) echo "GPU ORPHAN — a llama.cpp tool is live with no owning job. Rule 20 hazard: gpu_lock.py status, then kill." ;;
-          HELD*)   echo "GPU LOCK HELD by no live process — stale lock. gpu_lock.py release clears it." ;;
-          BUSY*)   echo "GPU BUSY — a campaign job holds the card." ;;
+          IDLE*)   echo "$(date +%H:%M:%S) GPU IDLE — lock free, no llama.cpp tool live. The next campaign task can start now." ;;
+          ORPHAN*) echo "$(date +%H:%M:%S) GPU ORPHAN — a llama.cpp tool is live with no owning job. Rule 20 hazard: gpu_lock.py status, then kill." ;;
+          HELD*)   echo "$(date +%H:%M:%S) GPU LOCK HELD by no live process — stale lock. gpu_lock.py release clears it." ;;
+          BUSY*)   echo "$(date +%H:%M:%S) GPU BUSY — a campaign job holds the card." ;;
         esac
         prev="$state"
     fi
     if age=$(stalled); then
         if [ "$prev_stall" != "yes" ]; then
-            echo "STALLED — heartbeat has not moved in ${age}s while state=$state. A job may be hung holding the lock; an idle-trigger cannot see this."
+            echo "$(date +%H:%M:%S) STALLED — heartbeat has not moved in ${age}s while state=$state. A job may be hung holding the lock; an idle-trigger cannot see this."
             prev_stall="yes"
         fi
     else
