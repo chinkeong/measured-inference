@@ -772,3 +772,67 @@ the report would publish as model quality.
 | Q8_0 | 0.016143 | 0.000821 | 97.633% |
 | Q4_K_M | 0.209331 | 0.0421 | 85.868% |
 | IQ2_M | 0.441164 | 0.1571 | 75.994% |
+
+### E4 — the roofline claim, tested against hardware counters (2026-09-01)
+
+Stage 1 back-solved rule 10's efficiency constant per format — 0.82 / 0.73 /
+0.54 — and this campaign has been leaning on IQ2_M's 22% shortfall to claim that
+at 2 bits the workload stops being memory-bound and becomes unpack-bound. That
+was a RATIO against a CITED peak. Nsight reads the hardware.
+
+Aggregate over the sampled kernels (means include small kernels, so absolute
+percentages are diluted — the per-kernel view below is the one that answers it):
+
+| arm | SM %peak | DRAM %peak | achieved GB/s | % of 936 | kernels |
+|---|---|---|---|---|---|
+| Q8_0 | 11.88 | 19.40 | 176.3 | 18.8% | 22 |
+| Q4_K_M | 14.46 | 19.51 | 176.9 | 18.9% | 23 |
+| IQ2_M | 13.60 | 11.40 | **103.5** | **11.1%** | 24 |
+
+**The dominant matrix-vector kernels, which is where the answer is:**
+
+| arm | kernel | SM %peak | DRAM %peak |
+|---|---|---|---|
+| Q8_0 | `mul_mat_vec_q<type 8>` | 45.3 | **89.7** |
+| Q8_0 | `mul_mat_vec_q<type 8>` | 29.6 | 52.4 |
+| Q8_0 | `gated_delta_net_cuda<128>` | 36.0 | 48.1 |
+| IQ2_M | `mul_mat_vec_q<type 12>` | 52.2 | 60.1 |
+| IQ2_M | `mul_mat_vec_q<type 22>` | **63.2** | 48.9 |
+| IQ2_M | `mul_mat_vec_q<type 21>` | **56.9** | 40.0 |
+
+**CONFIRMED, and now with a mechanism.** Q8_0's busiest kernel runs at **89.7%
+of DRAM peak** against 45.3% SM — textbook memory-bound. IQ2_M's busiest kernels
+invert it: SM throughput MEETS OR EXCEEDS DRAM throughput on all three. The
+balance has flipped to compute.
+
+The aggregate bandwidth says the same thing from the other side: Q8_0 and
+Q4_K_M both move ~176 GB/s while **IQ2_M moves only 103.5 GB/s — 41% less, from
+the smallest file on the roster.** A bandwidth-bound kernel reading fewer bytes
+per weight should move data at least as fast. It moves less, because the time
+goes into unpacking.
+
+So rule 10's constant falling 0.82 → 0.73 → 0.54 is not an artefact of the
+citation: it tracks a real shift along the roofline, and the 2-bit file is on
+the compute side of it.
+
+**What this is worth to a silicon reader.** Low-bit inference on this
+architecture does not want more HBM — Q8_0 is already at 90% of DRAM peak on its
+hot kernel and IQ2_M cannot even reach half of it. It wants faster dequant: the
+`mul_mat_vec_q` variants for the IQ formats are SM-limited, so the lever is
+unpack throughput and LUT bandwidth, not memory. `gated_delta_net_cuda` showing
+up in the top three is the hybrid's recurrent path, and it sits mid-roofline
+(SM 36.0 / DRAM 48.1) rather than at either wall.
+
+**Conditions and limits, stated.** 22–24 kernels sampled per arm past a
+200-launch warm-up — a bounded steady-state sample, not the whole run. The
+936 GB/s peak is CITED (machine.json carries null) and must be re-checked
+against NVIDIA's page before publication. Profiling requires admin
+(`RmProfilingAdminOnly: 1`), so this table is impossible in an unelevated
+campaign — the other side of the trade Stage 0 recorded.
+
+**`nsys` is unusable on this box** and the task dropped it: apt
+nsight-systems 2023.4.4 writes a `.qdstrm` and then reports "The importer binary
+and its dependencies were not found", so no readable report is ever produced.
+Its raw captures are ~500 MB each and are now ignored by extension (rule 29:
+ignore by extension or by a directory of pure bulk — a profiler intermediate
+whose every published number lands in data/*.json is exactly that).
