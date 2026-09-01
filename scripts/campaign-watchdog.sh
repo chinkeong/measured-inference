@@ -122,7 +122,10 @@ push_if_ahead() {
     ahead=$(git rev-list --count origin/main..HEAD 2>/dev/null || echo 0)
     if [ "${ahead:-0}" -gt 0 ]; then
         if git push origin main >/dev/null 2>&1; then
-            echo "PUSHED $ahead commit(s) to origin/main — $(git log --oneline -1 | cut -c1-60)"
+            # cut -c is BYTE-based in uutils coreutils, which is what this box ships, so
+            # slicing a commit subject mid-em-dash emits mojibake into the watchdog's
+            # own log. awk substr is character-safe.
+            echo "PUSHED $ahead commit(s) to origin/main - $(git log --oneline -1 | awk '{print substr($0,1,58)}')"
         else
             echo "PUSH FAILED with $ahead commit(s) unpublished — measured data is on this disk only."
         fi
