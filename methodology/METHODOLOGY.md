@@ -939,3 +939,57 @@ beyond its retrieval-tested depth is labeled
       the build, the driver and the cap. `scripts/bench/provenance.py` records
       the rest; prior state is the field this rule adds to the list of things
       an artefact must carry.
+
+---
+
+## PROPOSED — drafted 2026-09-01, not yet law
+
+Two amendments this campaign earned. They are written in the numbered style so
+they can be adopted verbatim, and kept separate from the ratified rules above
+because **rule numbers are stable and are never reused or renumbered**, so a
+number must not be spent on a draft. Adopting rule 32 also costs one line of
+`AGENTS.md`, which sits at its 120-line cap; the line to remove is the adopter's
+call, not the drafter's.
+
+32. **Speculation is not a free axis — prove the tokens are identical, or
+    publish that they are not.** Lossless rejection sampling is a property of an
+    implementation, not a guarantee of every implementation, and this repository
+    has now measured a build where it does not hold. Measured 2026-09-01
+    (Ornith-1.5-9B, llama.cpp b10717, `--spec-type draft-mtp` against a sibling
+    MTP head, temperature 0 / top_k 1, fresh server per run): speculation ON and
+    OFF produce **different text**, at Q4_K_M (16,407 chars against 4,100) and at
+    **BF16** (9,478 against 8,950). The innocent explanation was ruled out first
+    — every configuration was run twice and hashed, and all four are
+    bit-reproducible, so this is not numerical nondeterminism. A sweep may
+    therefore never report "1.238× faster" alone: it reports 1.238× faster **at
+    the same answer, or at a different one**, and which it is comes from hashing
+    the response bodies with the axis on and off. `scripts/arms.py` already
+    saves them (`--save-responses`) and nothing compares them, which is why a
+    campaign caught this by luck rather than by process. The corollary for rule
+    11: acceptance and mean draft length describe how fast the axis is, and say
+    nothing about whether it changed the output.
+
+33. **Perplexity ranks confidence, not fidelity — a quant ladder is cross-checked
+    against KL-divergence or it is not a ranking.** Rule 6 ranks quants by
+    perplexity over 294,912 token positions. Measured 2026-09-01 on
+    Ornith-1.5-9B, that ranking came out in exactly reverse order of fidelity:
+
+        arm      mean KLD vs BF16   same top-1    PPL      PPL rank
+        Q8_0            0.009766      97.998%   9.0519         3rd
+        Q4_K_M          0.130086      87.112%   7.9544         1st
+        IQ2_M           0.363336      76.740%   8.6629         2nd
+
+    KLD is monotonic in bit-width; perplexity is inverted. Q4_K_M diverges 13.3×
+    further from the unquantised weights than Q8_0 while scoring 1.10 PPL
+    *better*, and disagrees with BF16's argmax on one position in eight.
+    Perplexity asks only what probability the model gave the token that actually
+    came next, so a quant whose distribution is differently shaped can score
+    better on predictable text while being further from the model it was made
+    from — and the same divergence shows up as greedy degeneration, which this
+    campaign measured at Q4_K_M and did not measure at BF16. A campaign that
+    followed rule 6 to the letter would have crowned the least faithful file in
+    its roster and screened out the most faithful one at the Stage-1 gate. The
+    tooling already exists (`scripts/quant-ladder/kld-ladder.py`,
+    `kld-blocks.py`); what is missing is the requirement. Cheapest sufficient
+    form: KLD against the unquantised weights over the same frozen chunks, with
+    the highest-bit quant as a control whose KLD must come out near zero.

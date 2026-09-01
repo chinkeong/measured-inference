@@ -673,3 +673,43 @@ So the harness would have published "1.238x at acceptance 0.902" and a reader
 would reasonably have concluded speculation was free. **This campaign only caught
 it because the response bodies were hashed** — luck, not process. `arms.py` saves
 the generated text (`--save-responses`) and nothing ever compares it.
+
+### KLD settles it: perplexity ranked the quants in EXACTLY reverse fidelity order
+
+The hypothesis was that Q4_K_M's low perplexity is not fidelity. KL-divergence
+against the unquantised BF16 logits answers what perplexity cannot — perplexity
+asks only "what probability did you give the token that actually came next",
+while KLD compares the whole distribution. 32,768 positions, same frozen corpus,
+Q8_0 as the control (0.1 σ from BF16 on PPL, so its KLD must be ~0 or the
+instrument is broken).
+
+| arm | mean KLD | median KLD | same top-1 | PPL | PPL rank |
+|---|---|---|---|---|---|
+| Q8_0 | **0.009766** | 0.000750 | **97.998%** | 9.0519 | **3rd** |
+| Q4_K_M | 0.130086 | 0.035664 | 87.112% | 7.9544 | **1st** |
+| IQ2_M | 0.363336 | 0.148640 | 76.740% | 8.6629 | 2nd |
+
+```
+fidelity order (KLD, closest to BF16 first):  Q8_0  <  Q4_K_M  <  IQ2_M
+perplexity order (best PPL first)          :  Q4_K_M  <  IQ2_M  <  Q8_0
+```
+
+**KLD is perfectly monotonic in bit-width. Perplexity is exactly inverted.**
+Q4_K_M diverges **13.3×** further from BF16 than Q8_0 does while scoring 1.10
+PPL *better*, and disagrees with BF16's top token on **12.9% of positions — one
+in eight**. The control behaved: Q8_0's KLD is 0.0098 and it keeps BF16's
+argmax 98.0% of the time.
+
+So the low perplexity was never fidelity. It is a different distribution that
+happens to score better on the one question perplexity asks, over text where
+most next-tokens are easy. And 12.9% argmax disagreement is more than enough to
+explain both the greedy divergence and the degeneration loop measured earlier at
+Q4_K_M and absent at BF16.
+
+**This is a finding about rule 6's instrument, not just about this model.**
+Rule 6 says quants are RANKED by perplexity over 294,912 token positions. On
+this model that ranking is precisely backwards, and a campaign that followed the
+rule to the letter would have crowned the least faithful file in the roster and
+screened out the most faithful one at the Stage-1 gate. The repo already ships
+KLD tooling (`scripts/quant-ladder/kld-ladder.py`, `kld-blocks.py`) — it is not
+a missing capability, it is a missing *requirement*.

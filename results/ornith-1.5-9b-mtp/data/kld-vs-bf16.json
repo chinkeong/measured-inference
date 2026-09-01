@@ -1,0 +1,34 @@
+{
+ "_schema": "kld-vs-bf16 v1",
+ "slug": "ornith-1.5-9b-mtp",
+ "ctx": 8192,
+ "chunks": 4,
+ "token_positions": 32768,
+ "base": "Ornith-1.5-9B BF16 (vendor), unquantised",
+ "question": "is a low perplexity fidelity, or a sharpened distribution? KLD answers what PPL cannot.",
+ "control": "Q8_0 sits 0.1 sigma from BF16 on PPL; its KLD must be ~0",
+ "arms": {
+  "Q8_0": {
+   "rc": 0,
+   "log": "results/ornith-1.5-9b-mtp/work/kld-Q8_0.log",
+   "mean_kld": 0.009766,
+   "median_kld": 0.00075,
+   "same_top_pct": 97.998
+  },
+  "Q4_K_M": {
+   "rc": 0,
+   "log": "results/ornith-1.5-9b-mtp/work/kld-Q4_K_M.log",
+   "mean_kld": 0.130086,
+   "median_kld": 0.035664,
+   "same_top_pct": 87.112
+  },
+  "IQ2_M": {
+   "rc": 0,
+   "log": "results/ornith-1.5-9b-mtp/work/kld-IQ2_M.log",
+   "mean_kld": 0.363336,
+   "median_kld": 0.14864,
+   "same_top_pct": 76.74
+  }
+ },
+ "base_dat_bytes": 8135225332
+}
