@@ -247,6 +247,18 @@ it justifies.**
    two numbers that screened them, so no reader mistakes a pruned file for an
    untested one; the challenger callout if a cheaper file won (Voice 1 says "the
    smaller file scored better"; the "dark horse" framing is Voice 2 at best).
+   **The fidelity knee, ALWAYS — and its resolution state.** A reader sizing a
+   file to their VRAM is asking "what is the smallest file that still behaves
+   like the published model", and a ranking does not answer it. Run
+   `scripts/report/fidelity-knee.py --slug <slug>` and publish its verdict
+   verbatim: RESOLVED names the rung where the curve turns; **BRACKETED must say
+   the knee is BETWEEN two bpw values and that this campaign did not resolve
+   it**, naming the quants that would; NOT-REACHED says the curve is still flat
+   at the smallest rung measured. A roster spaced to show THAT quantisation
+   hurts is not spaced to show WHERE, and silence about the difference reads as
+   an answer (rule 2). Publish the by-VRAM table beside it, and any OFF-LADDER
+   rung the tool excluded — a file whose fidelity is worse than a smaller file
+   is a different kind of file, not a rung.
    **When the campaign measures a size ladder** (how small can this model's
    file get and still work): the PPL-vs-GiB curve with its knee named; a
    right-hand anchor where the answer is clearly "no"; detector verdicts
