@@ -1264,3 +1264,33 @@ spends its bits where they matter. That is a plausible mechanism and it is
 exactly the kind of story that just proved wrong above, so it is written down as
 a hypothesis with a test attached — per-tensor KLD attribution — and nothing in
 the report may lean on it until that runs.
+
+### 2026-09-01 19:26 — rule-21 suite launched on R1, on the suite hash the 27B campaign ran
+
+`--rule21 --suite scripts/bench/suites/rule21-n25.json`, Q8_0, `--ctx 32768`
+(the harness's own check: longest prompt ~8,191 tok + 16,384 cap = 24,575
+needed), `-ngl 99 --jinja`, transcripts kept. Suite hash **1cdf54f8eb9d3f8f** —
+the same one every published `qwen38-27b-blind` arm carries, so rule 23's
+comparability gate is satisfied by construction rather than by hope.
+
+**Checked before spending the hours, because the frozen file misleads a reader
+of it.** `rule21-n25.json`'s own `settings` block says `temperature 1.0`,
+`presence_penalty 1.5`, `top_k 20` — and that is **not** what the published runs
+used. `--greedy` is applied AFTER the suite's sampler (`bench.py:667`), so the
+27B arms ran at temp 0.0 / top_p 1.0 / top_k 1 / pp 0.0, which their result JSONs
+confirm. Passing `--suite` ALONE would have run a different sampler under the
+same suite hash — two runs that rule 23 would call comparable and that were not.
+The hash covers the PROMPTS, not the sampler; only the settings block travels
+with the prompts, and it is stale. Worth a rule-3 note in the report: a suite
+hash is a claim about inputs, not about conditions.
+
+**ALPACA and MT-Bench stay unscored** — no independent judge endpoint. That is
+the Stage 0 interview question added this campaign (SKILL.md item 8) and it is
+still open. Both keep transcripts, so a judge can score them later without
+re-running the model, and the composite Mean records them as excluded rather
+than dropping them silently.
+
+The watchdog rewrite was exercised end to end by this transition, on live data
+rather than stubs: **OFF-CARD 19:20:33** (matched-bpw job alive, card free
+during its download) → **IDLE 19:21:19** (job exited) → **BUSY 19:26:35** (suite
+took the card). The old implementation could not emit the first of those three.
