@@ -554,6 +554,11 @@ def main():
     # remember whether the operator named datasets before a preset fills the
     # flag in: only an explicit --datasets may narrow a --suite run
     explicit_datasets = args.datasets is not None
+    # Captured BEFORE the preset fills it, so "the user asked for this cap" can
+    # be told from "the protocol's default cap". A suite's settings otherwise
+    # overwrite it unconditionally below, which silently disabled the one thing
+    # rule 7 requires after a truncation: raise the cap and rerun that arm.
+    explicit_max_tokens = args.max_tokens is not None
 
     # --rule21 only fills in the flags the operator left alone
     preset = RULE21 if args.rule21 else DEFAULTS
@@ -637,7 +642,23 @@ def main():
             prompts_by_ds = {d: prompts_by_ds[d] for d in datasets}
             print(f"suite narrowed to {datasets} by --datasets")
         s = suite["settings"]
-        args.samples, args.max_tokens = s["samples"], s["max_tokens"]
+        args.samples = s["samples"]
+        # RULE 7's RE-RUN, which the comment above says this path exists for and
+        # which this line used to prevent. The suite's settings were applied
+        # unconditionally, so `--suite ... --datasets ALPACA --max-tokens 32768`
+        # ran at the suite's 16,384 and produced another truncated answer, with
+        # nothing anywhere saying the requested cap had been discarded. An
+        # explicit cap now wins and the run JSON records that it differed from
+        # the suite's, because a raised cap is a CONDITION and rule 3 makes
+        # conditions travel with the number.
+        if explicit_max_tokens and args.max_tokens != s["max_tokens"]:
+            print("rule 7 re-run: --max-tokens %d overrides the suite's %d"
+                  % (args.max_tokens, s["max_tokens"]))
+            suite_cap_override = {"suite_max_tokens": s["max_tokens"],
+                                  "run_max_tokens": args.max_tokens}
+        else:
+            args.max_tokens = s["max_tokens"]
+            suite_cap_override = None
         args.seed = s.get("seed", args.seed)
         args.max_prompt_tokens = s.get("max_prompt_tokens", args.max_prompt_tokens)
         opts.max_prompt_tokens = args.max_prompt_tokens
@@ -662,6 +683,7 @@ def main():
             answers_by_ds = {ds: [it["ref"] for it in items]
                              for ds, items in items_by_ds.items()}
         sampling = dict(SAMPLING)
+        suite_cap_override = None
         suite_hash = _suite_hash(prompts_by_ds)
 
     if args.greedy:
@@ -778,6 +800,7 @@ def main():
                 "settings": {**sampling, "samples": args.samples,
                              "max_tokens": args.max_tokens, "seed": args.seed,
                              "max_prompt_tokens": args.max_prompt_tokens},
+                "suite_cap_override": suite_cap_override,
                 "elapsed_s": round(time.time() - t0, 1),
                 "date": datetime.datetime.now().isoformat(timespec="seconds"),
             }

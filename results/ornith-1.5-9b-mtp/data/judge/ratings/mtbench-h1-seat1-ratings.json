@@ -1,0 +1,60 @@
+{
+ "seat": 1,
+ "dataset": "mtbench",
+ "half": "h1",
+ "judge": "Claude Opus 5, independent subagent seat",
+ "ratings": [
+  {
+   "id": "cae8e0d0dc",
+   "rating": 9
+  },
+  {
+   "id": "fb2326a35c",
+   "rating": 6
+  },
+  {
+   "id": "48794617c8",
+   "rating": 8
+  },
+  {
+   "id": "7b2ec826fd",
+   "rating": 5
+  },
+  {
+   "id": "8713fb7f8c",
+   "rating": 7
+  },
+  {
+   "id": "c3b20bb4da",
+   "rating": 8
+  },
+  {
+   "id": "689acc9b38",
+   "rating": 8
+  },
+  {
+   "id": "2234b7b5ac",
+   "rating": 9
+  },
+  {
+   "id": "925744458c",
+   "rating": 9
+  },
+  {
+   "id": "44e266a451",
+   "rating": 9
+  },
+  {
+   "id": "590555fab1",
+   "rating": 10
+  },
+  {
+   "id": "6694fb9f5e",
+   "rating": 8
+  },
+  {
+   "id": "04ea196847",
+   "rating": 9
+  }
+ ]
+}
