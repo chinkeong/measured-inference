@@ -1,0 +1,4 @@
+ERROR: Specified input file (/root/Workspace/measured-inference/results/ornith-1.5-9b-mtp/work/nsys-Q4_K_M.nsys-rep) does not exist.
+
+usage: nsys stats [<args>] <input-file>
+Try 'nsys stats --help' for more information.

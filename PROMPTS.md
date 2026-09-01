@@ -709,7 +709,10 @@ published figures validate the harness, instead of discovering per model that
 nothing overlaps.
 
 The deliverable is a comparison document, not three field guides — SKILL.md scopes
-the report to one model on one machine. Write it as a comparison and say in its
+the report to one model on one machine, and templates/COMPARISON-SPEC.md is that
+document's contract: the ANCHOR arm that lets a model join a later sweep without
+breaking rule 30, the tokenizer gate that decides whether KLD/PPL may cross
+models at all, and a legality table every cross-model claim must name a row of. Write it as a comparison and say in its
 own text which claims are cross-model (ratios, scored benchmarks, bits-per-byte)
 and which are within-model only.
 

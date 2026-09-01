@@ -1,0 +1,11 @@
+[10:39:45] === Q8_0 ===
+[10:39:45]   ncu counters (kernel replay -- slow by design)
+[gpu_lock] POSIX: no RLIMIT_AS on the child (it caps address space, which CUDA reserves in bulk and would abort at model load). preflight() and the one-job lock still apply. Set MEASURED_INFERENCE_RLIMIT_AS=1 to force it on a CPU-only run.
+[10:40:25]   metrics: ['dram__bytes.sum.per_second', 'gpu__dram_throughput.avg.pct_of_peak_sustained_elapsed', 'sm__throughput.avg.pct_of_peak_sustained_elapsed', 'sm__warps_active.avg.pct_of_peak_sustained_active']
+[10:40:25] === Q4_K_M ===
+[10:40:25]   ncu counters (kernel replay -- slow by design)
+[10:40:40]   metrics: ['dram__bytes.sum.per_second', 'gpu__dram_throughput.avg.pct_of_peak_sustained_elapsed', 'sm__throughput.avg.pct_of_peak_sustained_elapsed', 'sm__warps_active.avg.pct_of_peak_sustained_active']
+[10:40:40] === IQ2_M ===
+[10:40:40]   ncu counters (kernel replay -- slow by design)
+[10:40:53]   metrics: ['dram__bytes.sum.per_second', 'gpu__dram_throughput.avg.pct_of_peak_sustained_elapsed', 'sm__throughput.avg.pct_of_peak_sustained_elapsed', 'sm__warps_active.avg.pct_of_peak_sustained_active']
+[10:40:53] wrote /root/Workspace/measured-inference/results/ornith-1.5-9b-mtp/data/ncu-roofline.json

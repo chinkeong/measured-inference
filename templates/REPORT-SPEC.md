@@ -1,5 +1,13 @@
 # REPORT-SPEC — structure of a field-guide report
 
+**Scope: ONE model on ONE machine.** A document ranking several models against
+each other is a different deliverable with different rules — an anchor arm, a
+tokenizer gate, and a legality table for every cross-model claim. That contract
+is `templates/COMPARISON-SPEC.md`. Do not stretch this one to cover it: the
+failure it exists to prevent (N campaigns' numbers sharing a table) looks exactly
+like a well-formed report until someone checks which sweep each number came
+from.
+
 The output of a campaign is one self-contained HTML page,
 `results/<slug>/index.html`. `example-report.html` in this directory is a
 complete real instance; match its craft, not its model. (The example predates

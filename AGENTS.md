@@ -55,7 +55,7 @@ Three failures no rule number catches:
 | a fresh clone, or starting/resuming a campaign | `skills/field-guide/SKILL.md` (it defines `<slug>`) - bootstrap is Stage 0's first step and the agent runs it; then ONLY your current stage file |
 | executing Stage N | `skills/field-guide/stages/stage-N.md` — never load another stage |
 | what the model IS, and which stages it may run | `scripts/inspect-model.py` → `model-*.json` (header: arch, window, KV/token, mmproj, draft head, effort knob); `scripts/plan-campaign.py` → `plan.json` (fit, ceiling rungs, RUNS/SKIPPED per stage) |
-| writing, reviewing or publishing report sections | `templates/REPORT-SPEC.md` + `methodology/REASONING.md` |
+| writing, reviewing or publishing report sections | `templates/REPORT-SPEC.md` (one model) or `templates/COMPARISON-SPEC.md` (several) + `methodology/REASONING.md` |
 | actually writing the prose — who writes it, how it is briefed, its register | `methodology/WRITING.md` + `VOICE.md` |
 | adjudicating conflicts, criticizing prior work, blind judging | `methodology/REASONING.md` |
 | a probe or a number looks wrong | grep `reference/failure-library.md` for the symptom |
