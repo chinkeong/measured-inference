@@ -95,3 +95,58 @@ website**: a wrong number on a public page is read, cached and cited before it
 can be corrected, so the last step stays a human decision. The script stages the
 bytes, refuses outright while `index.html` is absent or still contains
 TODO/PLACEHOLDER/FIXME, and prints the two commands that would publish.
+
+### 2026-09-02 01:10 — the first launch died on a defect a comparison campaign always triggers
+
+`A-anchor-sweep` failed instantly, the chain stopped as designed, and the card
+sat idle for 15 minutes before anyone looked:
+
+    2 campaigns have a campaign.json (ornith-1.5-9b-mtp, qwen35-9b-family).
+    Name the one you mean: pass --slug, or set MEASURED_INFERENCE_SLUG=<slug>.
+
+`scripts/lib/paths.py` auto-detects the campaign from whichever
+`results/*/campaign.json` it finds and refuses when there is more than one. That
+is correct behaviour and it is also a **structural trap for this kind of
+campaign**: a comparison is *by definition* a second campaign standing beside the
+field guide it compares against, so the ambiguity is not an edge case here, it is
+the normal state from the moment the directory is created. Every future
+comparison hits it on its first launch.
+
+Fixed by pinning `MEASURED_INFERENCE_SLUG` inside `anchor-sweep.py` before
+`paths` is imported, and by having `run-to-publish.py` pass the slug down to
+every child it spawns, so no caller has to remember.
+
+**The monitor was not the thing that failed, and this is worth being precise
+about.** `results/qwen35-9b-family/work/watchdog.log`:
+
+    00:48:46 GPU OFF-CARD — a campaign job is alive but the card is free ...
+    00:48:46 POWER LOGGER ABSENT — nothing is logging power for this campaign ...
+    00:54:49 GPU IDLE — lock free, no llama.cpp tool live. The next campaign
+             task can start now.
+
+Both alarms were correct and both fired within seconds. The **OFF-CARD** state,
+added yesterday, correctly described a job that was alive but downloading; the
+**IDLE** line names the exact condition six seconds after the chain exited; and
+**POWER LOGGER ABSENT** caught a genuine rule-24 gap — this campaign had no
+logger at all, because the running one writes into the *Ornith* campaign's
+directory. A logger for this slug is now running.
+
+What was missing is that **nothing acts on those alarms**. The campaign watchdog
+reports and deliberately never starts jobs — that is rule 20's whole point — so
+acting is the session loop's job, and it was on a 30-minute cadence against a
+chain that stops on first failure. Two changes: the loop now runs **every 9
+minutes**, and it reads the failing step's log *before* relaunching and refuses
+to relaunch a step that has already failed twice with the same error, because
+re-running a deterministic failure just burns ticks.
+
+### First measurement off the anchor, before the sweep even finished
+
+    Qwen3.5-9B  rep1 greedy  84.26 t/s  LOOP
+    Qwen3.5-9B  rep1 card    78.67 t/s  LOOP
+
+**Qwen3.5-9B loops under greedy too.** The Ornith campaign found Q8_0 scoring
+LOOP on every greedy floor probe and recorded it as a property of that arm; the
+anchor does the same thing at the same sampler on the same prompt. That points
+at the base model or the family's chat template rather than at Ornith's training,
+and it is the first claim in this document that could only be made because the
+anchor was measured rather than cited.

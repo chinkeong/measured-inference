@@ -103,8 +103,9 @@ def run(step, cmd, logname):
     log("=== %s ===" % step)
     lp = os.path.join(WORK, logname)
     with open(lp, "w") as fh:
+        env = dict(os.environ, MEASURED_INFERENCE_SLUG=SLUG)
         rc = subprocess.run(cmd, stdout=fh, stderr=subprocess.STDOUT,
-                            cwd=REPO).returncode
+                            cwd=REPO, env=env).returncode
     if rc == 0:
         s = state(); s["done"].append(step); save(s)
         log("%s OK" % step)

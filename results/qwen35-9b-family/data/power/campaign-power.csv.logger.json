@@ -1,0 +1,19 @@
+{
+  "pid": 1074710,
+  "csv": "/root/Workspace/measured-inference/results/qwen35-9b-family/data/power/campaign-power.csv",
+  "mode": "redirect",
+  "interval_ms": 500,
+  "query": "timestamp,power.draw,power.draw.instant,clocks.sm,clocks.mem,utilization.gpu,utilization.memory,memory.used,memory.reserved,temperature.gpu,pstate,clocks_event_reasons.active",
+  "started_iso": "2026-09-02T01:10:17.106748668",
+  "started_by": "sample-power.sh on cang1-ssd",
+  "tier": "in-band GPU board power (NVML); PSU/wall/PUE excluded",
+  "verified": true,
+  "running": true,
+  "gpu_index": null,
+  "gpu_name": "NVIDIA GeForce RTX 3090",
+  "driver_version": "580.173.02",
+  "enforced_power_limit_w": 350.00,
+  "euid": 0,
+  "elevated": true,
+  "stderr_log": "/root/Workspace/measured-inference/results/qwen35-9b-family/data/power/campaign-power.csv.stderr.log"
+}

@@ -1,0 +1,307 @@
+{
+ "_schema": "anchor-sweep v1",
+ "slug": "qwen35-9b-family",
+ "anchor": "Qwen3.5-9B",
+ "why_one_sweep": "rule 30: this rig has two throughput levels ~13% apart and nothing predicts which; arms compare only inside one sweep",
+ "protocol": {
+  "reps": 4,
+  "first_discarded": "rule 12",
+  "order": "alternating (rule 30)",
+  "ctx": 32768,
+  "max_tokens": 700,
+  "samplers": {
+   "greedy": {
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "top_k": 1,
+    "presence_penalty": 0.0
+   },
+   "card": {
+    "temperature": 1.0,
+    "top_p": 0.95,
+    "top_k": 20,
+    "presence_penalty": 1.5
+   }
+  }
+ },
+ "arms": {
+  "Qwen3.5-9B": {
+   "file": "Qwen3.5-9B-MTP-Q8_0.gguf",
+   "size_bytes": 9786061152,
+   "probes": [
+    {
+     "rep": 0,
+     "sampler": "greedy",
+     "discarded": true,
+     "t_s": 82.22627824807914,
+     "predicted_n": 700,
+     "prompt_tokens": 35,
+     "finish": "length",
+     "chars": 2921,
+     "reasoning_chars": 832,
+     "content_chars": 2087,
+     "verdict": [
+      "LOOP",
+      [
+       "N4-vocab-collapse!"
+      ]
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.1061,
+      "n3_compress": 0.3013,
+      "n4_worst_ttr": 0.1833,
+      "n_words": 352
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1950.0,
+      "power_w": 144.29,
+      "temp_c": 65.0,
+      "load1": 2.62
+     }
+    },
+    {
+     "rep": 0,
+     "sampler": "card",
+     "discarded": true,
+     "t_s": 78.1152216281939,
+     "predicted_n": 700,
+     "prompt_tokens": 35,
+     "finish": "length",
+     "chars": 2934,
+     "reasoning_chars": 794,
+     "content_chars": 2138,
+     "verdict": [
+      "hint",
+      [
+       "N4-vocab-collapse"
+      ]
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.1194,
+      "n3_compress": 0.3678,
+      "n4_worst_ttr": 0.4167,
+      "n_words": 373
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1725.0,
+      "power_w": 347.92,
+      "temp_c": 75.0,
+      "load1": 2.49
+     }
+    },
+    {
+     "rep": 1,
+     "sampler": "greedy",
+     "discarded": false,
+     "t_s": 84.26018532660105,
+     "predicted_n": 700,
+     "prompt_tokens": 35,
+     "finish": "length",
+     "chars": 2921,
+     "reasoning_chars": 832,
+     "content_chars": 2087,
+     "verdict": [
+      "LOOP",
+      [
+       "N4-vocab-collapse!"
+      ]
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.1061,
+      "n3_compress": 0.3013,
+      "n4_worst_ttr": 0.1833,
+      "n_words": 352
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1785.0,
+      "power_w": 349.23,
+      "temp_c": 77.0,
+      "load1": 2.26
+     }
+    },
+    {
+     "rep": 1,
+     "sampler": "card",
+     "discarded": false,
+     "t_s": 78.66533179438885,
+     "predicted_n": 700,
+     "prompt_tokens": 35,
+     "finish": "length",
+     "chars": 2745,
+     "reasoning_chars": 755,
+     "content_chars": 1988,
+     "verdict": [
+      "LOOP",
+      [
+       "N4-vocab-collapse!"
+      ]
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.1129,
+      "n3_compress": 0.3508,
+      "n4_worst_ttr": 0.2083,
+      "n_words": 370
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1725.0,
+      "power_w": 349.02,
+      "temp_c": 78.0,
+      "load1": 2.07
+     }
+    },
+    {
+     "rep": 2,
+     "sampler": "greedy",
+     "discarded": false,
+     "t_s": 83.57190381937947,
+     "predicted_n": 700,
+     "prompt_tokens": 35,
+     "finish": "length",
+     "chars": 2921,
+     "reasoning_chars": 832,
+     "content_chars": 2087,
+     "verdict": [
+      "LOOP",
+      [
+       "N4-vocab-collapse!"
+      ]
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.1061,
+      "n3_compress": 0.3013,
+      "n4_worst_ttr": 0.1833,
+      "n_words": 352
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1770.0,
+      "power_w": 348.59,
+      "temp_c": 79.0,
+      "load1": 1.9
+     }
+    },
+    {
+     "rep": 2,
+     "sampler": "card",
+     "discarded": false,
+     "t_s": 78.5187080650845,
+     "predicted_n": 700,
+     "prompt_tokens": 35,
+     "finish": "length",
+     "chars": 3148,
+     "reasoning_chars": 3146,
+     "content_chars": 0,
+     "verdict": [
+      "LOOP",
+      [
+       "N4-vocab-collapse!",
+       "N3-compresses"
+      ]
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.1714,
+      "n3_compress": 0.2986,
+      "n4_worst_ttr": 0.2833,
+      "n_words": 351
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1710.0,
+      "power_w": 348.82,
+      "temp_c": 79.0,
+      "load1": 1.83
+     }
+    },
+    {
+     "rep": 3,
+     "sampler": "greedy",
+     "discarded": false,
+     "t_s": 84.17229671758147,
+     "predicted_n": 700,
+     "prompt_tokens": 35,
+     "finish": "length",
+     "chars": 2921,
+     "reasoning_chars": 832,
+     "content_chars": 2087,
+     "verdict": [
+      "LOOP",
+      [
+       "N4-vocab-collapse!"
+      ]
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.1061,
+      "n3_compress": 0.3013,
+      "n4_worst_ttr": 0.1833,
+      "n_words": 352
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1755.0,
+      "power_w": 349.46,
+      "temp_c": 79.0,
+      "load1": 1.7
+     }
+    },
+    {
+     "rep": 3,
+     "sampler": "card",
+     "discarded": false,
+     "t_s": 78.4579499622358,
+     "predicted_n": 700,
+     "prompt_tokens": 35,
+     "finish": "length",
+     "chars": 2847,
+     "reasoning_chars": 844,
+     "content_chars": 2001,
+     "verdict": [
+      "LOOP",
+      [
+       "N4-vocab-collapse!"
+      ]
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.1333,
+      "n3_compress": 0.3305,
+      "n4_worst_ttr": 0.25,
+      "n_words": 354
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1725.0,
+      "power_w": 349.16,
+      "temp_c": 78.0,
+      "load1": 1.59
+     }
+    }
+   ],
+   "done": true,
+   "summary": {
+    "greedy": {
+     "n": 3,
+     "min": 83.57,
+     "max": 84.26,
+     "median": 84.17,
+     "verdicts": [
+      "LOOP"
+     ],
+     "median_predicted_n": 700
+    },
+    "card": {
+     "n": 3,
+     "min": 78.46,
+     "max": 78.67,
+     "median": 78.52,
+     "verdicts": [
+      "LOOP"
+     ],
+     "median_predicted_n": 700
+    }
+   }
+  }
+ }
+}

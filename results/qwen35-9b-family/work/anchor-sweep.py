@@ -37,6 +37,14 @@ import json, os, subprocess, sys, time, urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
+# PIN THE CAMPAIGN BEFORE paths IS IMPORTED. paths auto-detects the slug from
+# whichever results/*/campaign.json it can find, and refuses when there is more
+# than one -- which is now ALWAYS, because a comparison campaign is by
+# definition a second campaign beside the field guide it compares against. The
+# anchor sweep died on its first launch with "2 campaigns have a campaign.json.
+# Name the one you mean", the chain stopped as designed, and the card sat idle
+# for 15 minutes. Pinning it here means no caller has to remember.
+os.environ.setdefault("MEASURED_INFERENCE_SLUG", "qwen35-9b-family")
 sys.path.insert(0, os.path.join(REPO, "scripts", "lib"))
 sys.path.insert(0, os.path.join(REPO, "scripts", "bench"))
 import paths, gpu_lock                                          # noqa: E402
