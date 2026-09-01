@@ -1,0 +1,288 @@
+{
+ "_schema": "ncu-roofline v1",
+ "slug": "ornith-1.5-9b-mtp",
+ "question": "is IQ2_M's 0.54 rule-10 constant a DEQUANT bound? memory-bound kernels show high Memory Throughput %% and low Compute %%; the reverse means compute/unpack-bound.",
+ "derived_constant_from_stage1": {
+  "Q8_0": 0.82,
+  "Q4_K_M": 0.73,
+  "IQ2_M": 0.54
+ },
+ "peak_bandwidth_gbs": {
+  "value": 936.0,
+  "how": "CITED, RTX 3090 published specification. machine.json carries spec_bandwidth_gbs=null because detect-machine.py refuses a figure it can neither measure nor cite, so this number enters the campaign HERE and must be re-checked against NVIDIA's page before publication (rule 1)."
+ },
+ "elevation": "RmProfilingAdminOnly=1: NVIDIA gates performance counters behind admin. This task is impossible in an unelevated campaign and the report says so.",
+ "profiled": "llama-bench tg128 (decode), -r 1, -ngl 99",
+ "arms": {
+  "Q8_0": {
+   "nsys": {
+    "skipped": "apt nsight-systems 2023.4.4 cannot import its own .qdstrm on this box -- 'The importer binary and its dependencies were not found'. Measured 2026-09-01."
+   },
+   "ncu": {
+    "rc": 0,
+    "log": "results/ornith-1.5-9b-mtp/work/ncu-Q8_0.log",
+    "metrics": {
+     "dram__bytes.sum.per_second": {
+      "mean": 176300692925.067,
+      "max": 849967082294.26,
+      "n": 60
+     },
+     "gpu__dram_throughput.avg.pct_of_peak_sustained_elapsed": {
+      "mean": 19.397,
+      "max": 93.31,
+      "n": 60
+     },
+     "sm__throughput.avg.pct_of_peak_sustained_elapsed": {
+      "mean": 11.875,
+      "max": 50.69,
+      "n": 60
+     },
+     "sm__warps_active.avg.pct_of_peak_sustained_active": {
+      "mean": 29.523,
+      "max": 78.04,
+      "n": 60
+     }
+    },
+    "top_kernels": [
+     {
+      "kernel": "void mul_mat_vec_q<(ggml_type)8, (int)1, (bool)1, (bool)0, (",
+      "n": 5,
+      "dram_bytes_per_s": 816942824583.9,
+      "sm_pct": 45.25,
+      "dram_pct": 89.72
+     },
+     {
+      "kernel": "void mul_mat_vec_q<(ggml_type)8, (int)1, (bool)0, (bool)0, (",
+      "n": 9,
+      "dram_bytes_per_s": 476196674815.0,
+      "sm_pct": 29.57,
+      "dram_pct": 52.37
+     },
+     {
+      "kernel": "void gated_delta_net_cuda<(int)128, (bool)0, (bool)0>(const ",
+      "n": 2,
+      "dram_bytes_per_s": 435270593963.0,
+      "sm_pct": 35.98,
+      "dram_pct": 48.05
+     },
+     {
+      "kernel": "void k_get_rows_float_vec<float>(const T1 *, const int *, T1",
+      "n": 1,
+      "dram_bytes_per_s": 398954356846.5,
+      "sm_pct": 25.66,
+      "dram_pct": 43.98
+     },
+     {
+      "kernel": "scale_f32(const float *, float *, float, float, long)",
+      "n": 2,
+      "dram_bytes_per_s": 212854326396.5,
+      "sm_pct": 26.05,
+      "dram_pct": 23.5
+     },
+     {
+      "kernel": "void ssm_conv_f32<(bool)1, (unsigned long)128, (unsigned lon",
+      "n": 1,
+      "dram_bytes_per_s": 83287128712.9,
+      "sm_pct": 3.17,
+      "dram_pct": 9.26
+     },
+     {
+      "kernel": "void flash_attn_ext_f16<(int)256, (int)256, (int)2, (int)4, ",
+      "n": 1,
+      "dram_bytes_per_s": 79574837310.2,
+      "sm_pct": 1.31,
+      "dram_pct": 8.75
+     },
+     {
+      "kernel": "void concat_cont<unsigned int, (int)0>(const T1 *, const T1 ",
+      "n": 1,
+      "dram_bytes_per_s": 42377358490.6,
+      "sm_pct": 12.2,
+      "dram_pct": 4.7
+     }
+    ],
+    "kernels_sampled": 22
+   }
+  },
+  "Q4_K_M": {
+   "nsys": {
+    "skipped": "apt nsight-systems 2023.4.4 cannot import its own .qdstrm on this box -- 'The importer binary and its dependencies were not found'. Measured 2026-09-01."
+   },
+   "ncu": {
+    "rc": 0,
+    "log": "results/ornith-1.5-9b-mtp/work/ncu-Q4_K_M.log",
+    "metrics": {
+     "dram__bytes.sum.per_second": {
+      "mean": 176949716708.811,
+      "max": 802258232235.7,
+      "n": 60
+     },
+     "gpu__dram_throughput.avg.pct_of_peak_sustained_elapsed": {
+      "mean": 19.514,
+      "max": 88.12,
+      "n": 60
+     },
+     "sm__throughput.avg.pct_of_peak_sustained_elapsed": {
+      "mean": 14.457,
+      "max": 71.11,
+      "n": 60
+     },
+     "sm__warps_active.avg.pct_of_peak_sustained_active": {
+      "mean": 31.51,
+      "max": 85.67,
+      "n": 60
+     }
+    },
+    "top_kernels": [
+     {
+      "kernel": "void mul_mat_vec_q<(ggml_type)14, (int)1, (bool)1, (bool)0, ",
+      "n": 1,
+      "dram_bytes_per_s": 749549589041.1,
+      "sm_pct": 71.11,
+      "dram_pct": 82.33
+     },
+     {
+      "kernel": "void mul_mat_vec_q<(ggml_type)12, (int)1, (bool)1, (bool)0, ",
+      "n": 4,
+      "dram_bytes_per_s": 737004434079.8,
+      "sm_pct": 60.15,
+      "dram_pct": 80.96
+     },
+     {
+      "kernel": "void mul_mat_vec_q<(ggml_type)12, (int)1, (bool)0, (bool)0, ",
+      "n": 9,
+      "dram_bytes_per_s": 411905529561.7,
+      "sm_pct": 37.21,
+      "dram_pct": 45.36
+     },
+     {
+      "kernel": "void k_get_rows_float_vec<float>(const T1 *, const int *, T1",
+      "n": 1,
+      "dram_bytes_per_s": 386518518518.5,
+      "sm_pct": 26.05,
+      "dram_pct": 42.85
+     },
+     {
+      "kernel": "void gated_delta_net_cuda<(int)128, (bool)0, (bool)0>(const ",
+      "n": 2,
+      "dram_bytes_per_s": 340198889346.0,
+      "sm_pct": 35.87,
+      "dram_pct": 37.57
+     },
+     {
+      "kernel": "scale_f32(const float *, float *, float, float, long)",
+      "n": 2,
+      "dram_bytes_per_s": 205316026625.7,
+      "sm_pct": 25.9,
+      "dram_pct": 22.72
+     },
+     {
+      "kernel": "void ssm_conv_f32<(bool)1, (unsigned long)128, (unsigned lon",
+      "n": 1,
+      "dram_bytes_per_s": 123319148936.2,
+      "sm_pct": 3.17,
+      "dram_pct": 13.72
+     },
+     {
+      "kernel": "void flash_attn_ext_f16<(int)256, (int)256, (int)2, (int)4, ",
+      "n": 1,
+      "dram_bytes_per_s": 113205240174.7,
+      "sm_pct": 2.09,
+      "dram_pct": 12.46
+     }
+    ],
+    "kernels_sampled": 23
+   }
+  },
+  "IQ2_M": {
+   "nsys": {
+    "skipped": "apt nsight-systems 2023.4.4 cannot import its own .qdstrm on this box -- 'The importer binary and its dependencies were not found'. Measured 2026-09-01."
+   },
+   "ncu": {
+    "rc": 0,
+    "log": "results/ornith-1.5-9b-mtp/work/ncu-IQ2_M.log",
+    "metrics": {
+     "dram__bytes.sum.per_second": {
+      "mean": 103466267245.45,
+      "max": 735479951397.33,
+      "n": 60
+     },
+     "gpu__dram_throughput.avg.pct_of_peak_sustained_elapsed": {
+      "mean": 11.401,
+      "max": 80.81,
+      "n": 60
+     },
+     "sm__throughput.avg.pct_of_peak_sustained_elapsed": {
+      "mean": 13.598,
+      "max": 70.05,
+      "n": 60
+     },
+     "sm__warps_active.avg.pct_of_peak_sustained_active": {
+      "mean": 30.536,
+      "max": 85.01,
+      "n": 60
+     }
+    },
+    "top_kernels": [
+     {
+      "kernel": "void mul_mat_vec_q<(ggml_type)12, (int)1, (bool)0, (bool)0, ",
+      "n": 2,
+      "dram_bytes_per_s": 545768821852.5,
+      "sm_pct": 52.17,
+      "dram_pct": 60.09
+     },
+     {
+      "kernel": "void mul_mat_vec_q<(ggml_type)22, (int)1, (bool)1, (bool)0, ",
+      "n": 4,
+      "dram_bytes_per_s": 445008839229.2,
+      "sm_pct": 63.21,
+      "dram_pct": 48.89
+     },
+     {
+      "kernel": "void mul_mat_vec_q<(ggml_type)21, (int)1, (bool)1, (bool)0, ",
+      "n": 1,
+      "dram_bytes_per_s": 363987179487.2,
+      "sm_pct": 56.86,
+      "dram_pct": 40.04
+     },
+     {
+      "kernel": "void k_get_rows_float_vec<float>(const T1 *, const int *, T1",
+      "n": 1,
+      "dram_bytes_per_s": 354116402116.4,
+      "sm_pct": 26.29,
+      "dram_pct": 39.08
+     },
+     {
+      "kernel": "void gated_delta_net_cuda<(int)128, (bool)0, (bool)0>(const ",
+      "n": 2,
+      "dram_bytes_per_s": 314848591549.3,
+      "sm_pct": 35.75,
+      "dram_pct": 34.76
+     },
+     {
+      "kernel": "scale_f32(const float *, float *, float, float, long)",
+      "n": 2,
+      "dram_bytes_per_s": 170935017863.6,
+      "sm_pct": 25.75,
+      "dram_pct": 18.92
+     },
+     {
+      "kernel": "void mul_mat_vec_q<(ggml_type)22, (int)1, (bool)0, (bool)0, ",
+      "n": 7,
+      "dram_bytes_per_s": 157433555644.9,
+      "sm_pct": 25.84,
+      "dram_pct": 17.32
+     },
+     {
+      "kernel": "void ssm_conv_f32<(bool)1, (unsigned long)128, (unsigned lon",
+      "n": 1,
+      "dram_bytes_per_s": 87541666666.7,
+      "sm_pct": 3.14,
+      "dram_pct": 9.77
+     }
+    ],
+    "kernels_sampled": 24
+   }
+  }
+ }
+}

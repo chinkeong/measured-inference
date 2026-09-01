@@ -412,6 +412,71 @@ def _refuse_if_dry_run(what):
             "variable." % (what, DRY_RUN_ENV))
 
 
+_HINTED = False
+
+
+def _watchdog_hint():
+    """Say the watchdog exists, ONCE, at the moment it starts being worth it.
+
+    Rule 20 puts every GPU job through this function, which makes it the one
+    place that knows a long run is beginning. Three things go wrong quietly in
+    a detached campaign and none of them announces itself: the card goes idle
+    between stages and nobody starts the next one, committed measurements never
+    leave a machine that may be borrowed (rule 28), and a job hangs while still
+    holding the lock -- the one an idle-trigger cannot see, because the card
+    never goes idle. scripts/campaign-watchdog.sh watches all three.
+
+    It only prints when no watchdog is running, only once per process, and only
+    for a real slug. It never starts anything: a background process this repo
+    did not ask for is exactly the kind of surprise a borrowed machine should
+    not hand its owner. MEASURED_INFERENCE_NO_HINT=1 silences it.
+    """
+    global _HINTED
+    if _HINTED or os.environ.get("MEASURED_INFERENCE_NO_HINT"):
+        return
+    _HINTED = True
+    try:
+        root = os.path.dirname(os.path.dirname(os.path.dirname(
+            os.path.abspath(__file__))))
+        wd = os.path.join(root, "scripts", "campaign-watchdog.sh")
+        if not os.path.exists(wd):
+            return
+        slug = os.environ.get("MEASURED_INFERENCE_SLUG") or ""
+        if not slug:
+            res = os.path.join(root, "results")
+            cands = [d for d in os.listdir(res)
+                     if os.path.isfile(os.path.join(res, d, "campaign.json"))] \
+                if os.path.isdir(res) else []
+            slug = cands[0] if len(cands) == 1 else "<slug>"
+        # A PIDFILE, never `pgrep -f campaign-watchdog.sh`. That pattern matches
+        # any shell whose command line MENTIONS the script -- including the very
+        # command asking whether it is running. Measured 2026-09-01: the pgrep
+        # form silenced this hint from a caller that merely referenced the path,
+        # which is the same self-match that had already made a waiter loop wait
+        # for itself. kill -0 on a recorded pid cannot lie this way.
+        pidf = os.path.join(root, "results", slug, "work", "watchdog.pid")
+        try:
+            with open(pidf) as fh:
+                os.kill(int(fh.read().strip()), 0)
+            return                                  # already watching
+        except Exception:
+            pass
+        sys.stderr.write(
+            "[gpu_lock] a GPU job is starting and nothing is watching this "
+            "campaign.\n"
+            "[gpu_lock]   nohup bash scripts/campaign-watchdog.sh %s "
+            "> results/%s/work/watchdog.log 2>&1 &\n"
+            "[gpu_lock] It emits when the card frees (so the next stage starts "
+            "in under a minute\n"
+            "[gpu_lock] rather than whenever someone looks), pushes committed "
+            "work off this disk,\n"
+            "[gpu_lock] and catches a job that hangs while still holding the "
+            "lock. MEASURED_INFERENCE_NO_HINT=1 silences this.\n"
+            % (slug, slug))
+    except Exception:                                # never break a GPU job
+        pass
+
+
 def acquire(tag, wait_s=0, allow_foreign=False):
     """Take the machine-wide GPU lock. Raises GpuBusy if someone else has it.
 
@@ -425,6 +490,7 @@ def acquire(tag, wait_s=0, allow_foreign=False):
     global _held
     if _held is not None:
         return _held
+    _watchdog_hint()
 
     deadline = time.time() + max(0, wait_s)
     while True:

@@ -1,0 +1,26 @@
+0.00.807.317 W model has unused tensor blk.32.attn_norm.weight (size = 16384 bytes) -- ignoring
+0.00.807.321 W model has unused tensor blk.32.post_attention_norm.weight (size = 16384 bytes) -- ignoring
+0.00.807.325 W model has unused tensor blk.32.attn_q.weight (size = 67108864 bytes) -- ignoring
+0.00.807.327 W model has unused tensor blk.32.attn_k.weight (size = 8388608 bytes) -- ignoring
+0.00.807.329 W model has unused tensor blk.32.attn_v.weight (size = 8388608 bytes) -- ignoring
+0.00.807.334 W model has unused tensor blk.32.attn_output.weight (size = 33554432 bytes) -- ignoring
+0.00.807.336 W model has unused tensor blk.32.attn_q_norm.weight (size = 1024 bytes) -- ignoring
+0.00.807.337 W model has unused tensor blk.32.attn_k_norm.weight (size = 1024 bytes) -- ignoring
+0.00.807.339 W model has unused tensor blk.32.ffn_gate.weight (size = 100663296 bytes) -- ignoring
+0.00.807.340 W model has unused tensor blk.32.ffn_down.weight (size = 100663296 bytes) -- ignoring
+0.00.807.342 W model has unused tensor blk.32.ffn_up.weight (size = 100663296 bytes) -- ignoring
+0.00.807.344 W model has unused tensor blk.32.nextn.eh_proj.weight (size = 67108864 bytes) -- ignoring
+0.00.807.346 W model has unused tensor blk.32.nextn.enorm.weight (size = 16384 bytes) -- ignoring
+0.00.807.348 W model has unused tensor blk.32.nextn.hnorm.weight (size = 16384 bytes) -- ignoring
+0.00.807.352 W model has unused tensor blk.32.nextn.shared_head_norm.weight (size = 16384 bytes) -- ignoring
+0.02.155.896 I cmn          init: llama threadpool init, n_threads = 6
+0.02.191.495 I 
+0.02.191.552 I system_info: n_threads = 6 (n_threads_batch = 6) / 20 | CUDA : ARCHS = 860 | USE_GRAPHS = 1 | CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | AVX_VNNI = 1 | AVX2 = 1 | F16C = 1 | FMA = 1 | BMI2 = 1 | LLAMAFILE = 1 | OPENMP = 1 | REPACK = 1 | 
+0.02.191.600 I perplexity: saving all logits to /root/Workspace/measured-inference/models/kld-base-bf16.dat
+0.02.191.603 I perplexity: tokenizing the input ..
+0.02.529.082 I perplexity: tokenization took 337.473 ms
+0.02.529.257 I perplexity: calculating perplexity over 4 chunks, n_ctx=8192, batch_size=2048, n_seq=1
+0.08.479.194 I perplexity: 4.91 seconds per pass - ETA 0.32 minutes
+[1]9.0617,[2]6.4125,[3]7.8348,[4]7.9936,
+0.27.551.823 I Final estimate: PPL = 7.9936 +/- 0.17311
+

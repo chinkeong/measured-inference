@@ -1,0 +1,32 @@
+[09:42:20] === A1 ===
+[gpu_lock] POSIX: no RLIMIT_AS on the child (it caps address space, which CUDA reserves in bulk and would abort at model load). preflight() and the one-job lock still apply. Set MEASURED_INFERENCE_RLIMIT_AS=1 to force it on a CPU-only run.
+[09:42:46]   Q8_0 floor 83.59 t/s  length  ('clean', [])
+[09:42:55]   Q4_K_M floor 119.15 t/s  length  ('clean', [])
+[09:43:02]   IQ2_M floor 131.83 t/s  length  ('clean', [])
+[09:43:02] === A2 ===
+[09:43:26]   prose/spec-none 118.68 t/s stop ('clean', [])
+[09:43:57]   prose/spec-n4-p0.75 128.87 t/s length ('clean', [])
+[09:44:25]   code/spec-none 118.24 t/s length ('clean', [])
+[09:44:50]   code/spec-n4-p0.75 132.32 t/s length ('clean', [])
+[09:44:50] === A3 ===
+[09:45:03]   novel-code 140.63 t/s accept=0.8885
+[09:45:12]   verbatim-prose 127.98 t/s accept=0.9171
+[09:45:13] === B1 ===
+[09:45:31]   thinking-on q0 n=1938 stop think_chars=0
+[09:45:54]   thinking-on q1 n=2711 stop think_chars=0
+[09:46:00]   thinking-on q2 n=736 stop think_chars=0
+[09:46:18]   thinking-on q3 n=2099 stop think_chars=0
+[09:46:49]   thinking-on q4 n=3605 stop think_chars=0
+[09:47:02]   thinking-on q5 n=1460 stop think_chars=0
+[09:47:09]   thinking-off q0 n=537 stop think_chars=0
+[09:47:15]   thinking-off q1 n=732 stop think_chars=0
+[09:47:18]   thinking-off q2 n=414 stop think_chars=0
+[09:47:25]   thinking-off q3 n=837 stop think_chars=0
+[09:47:37]   thinking-off q4 n=1302 stop think_chars=0
+[09:47:51]   thinking-off q5 n=1671 stop think_chars=0
+[09:47:51] === E1 ===
+[09:47:51]   dumping BF16 base logits at 36 chunks (large)
+[09:55:55]   Q8_0 {'mean_kld': 0.016143, 'median_kld': 0.000821, 'same_top_pct': 97.633}
+[10:00:03]   Q4_K_M {'mean_kld': 0.209331, 'median_kld': 0.0421, 'same_top_pct': 85.868}
+[10:04:08]   IQ2_M {'mean_kld': 0.441164, 'median_kld': 0.1571, 'same_top_pct': 75.994}
+[10:04:08] runner finished: done=['A1', 'A2', 'A3', 'B1', 'E1'] failed=None

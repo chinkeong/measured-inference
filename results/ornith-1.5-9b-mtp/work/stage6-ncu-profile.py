@@ -29,8 +29,10 @@ exits, which a profiler needs. The decode kernels are the ones the roofline
 claim is about.
 
 TWO TOOLS, DELIBERATELY:
-  nsys -- a timeline. Which kernels own the time, at near-zero overhead. Cheap
-          enough to run over the whole benchmark.
+  nsys -- DROPPED on this box. The apt nsight-systems (2023.4.4) writes a
+          .qdstrm and then reports "The importer binary and its dependencies
+          were not found", so no readable report is ever produced. Measured
+          2026-09-01; ncu carries the task alone and gives kernel names anyway.
   ncu  -- per-kernel counters. It REPLAYS each kernel many times, so it is
           slow and is bounded here by --launch-skip (past warm-up) and
           --launch-count (a steady-state sample), never let loose on the run.
@@ -106,40 +108,69 @@ SOL = {
 
 
 def ncu_sol(label, gguf):
-    """Per-kernel counters on a bounded, steady-state sample of decode kernels."""
+    """Per-kernel roofline counters on a bounded sample of decode kernels.
+
+    METRICS BY NAME, not --section. The first attempt asked for --section
+    SpeedOfLight and parsed the raw page, and got back dram__cycles_active and
+    gpu__compute_memory_throughput -- real metrics, but not the two the roofline
+    claim needs. Naming them removes the guess:
+      sm__throughput            ... SM throughput, % of peak   -> compute bound
+      gpu__dram_throughput      ... DRAM throughput, % of peak -> memory bound
+      dram__bytes.sum.per_second . achieved bandwidth, against 936 GB/s peak
+      sm__warps_active          ... occupancy
+    All four confirmed present via `ncu --query-metrics` on this GPU first.
+    """
+    metrics = ",".join([
+        "sm__throughput.avg.pct_of_peak_sustained_elapsed",
+        "gpu__dram_throughput.avg.pct_of_peak_sustained_elapsed",
+        "dram__bytes.sum.per_second",
+        "sm__warps_active.avg.pct_of_peak_sustained_active",
+    ])
     logp = os.path.join(WORK, "ncu-%s.log" % label)
-    rc, text = run(["ncu", "--target-processes", "all",
-                    "--section", "SpeedOfLight",
-                    "--section", "Occupancy",
-                    "--launch-skip", "400", "--launch-count", "40",
-                    "--csv", "--page", "raw",
-                    BENCH, "-m", gguf, "-ngl", "99", "-p", "0", "-n", "128",
-                    "-r", "1", "-o", "json"], logp)
+    rc, text = run(["ncu", "--target-processes", "all", "--metrics", metrics,
+                    "--launch-skip", "200", "--launch-count", "60",
+                    "--csv", BENCH, "-m", gguf, "-ngl", "99", "-p", "0",
+                    "-n", "128", "-r", "1", "-o", "json"], logp)
     rec = {"rc": rc, "log": os.path.relpath(logp, REPO)}
-    # ncu --csv --page raw emits a header row then one row per kernel/metric set.
-    lines = [l for l in text.splitlines() if l.count('","') > 3]
-    if lines:
-        hdr = [h.strip('"') for h in lines[0].split('","')]
-        vals = {}
-        for line in lines[1:]:
-            cells = [c.strip('"') for c in line.split('","')]
-            for h, c in zip(hdr, cells):
-                try:
-                    vals.setdefault(h, []).append(float(c.replace(",", "")))
-                except Exception:
-                    pass
-        rec["metrics"] = {}
-        for h, series in vals.items():
-            if not series:
-                continue
-            key = h.strip()
-            if any(w in key.lower() for w in
-                   ("dram", "throughput", "occupancy", "sm__", "gpu__")):
-                rec["metrics"][key] = {"mean": round(sum(series) / len(series), 4),
-                                       "max": round(max(series), 4),
-                                       "n": len(series)}
-        rec["kernels_sampled"] = max((len(v) for v in vals.values()), default=0)
-    if not rec.get("metrics"):
+    # ncu --csv: a header row, then one row per (kernel, metric). Columns
+    # include "Kernel Name", "Metric Name", "Metric Value".
+    rows, hdr = [], None
+    for line in text.splitlines():
+        if '","' not in line:
+            continue
+        cells = [c.strip().strip('"') for c in line.split('","')]
+        if hdr is None and any(c == "Metric Name" for c in cells):
+            hdr = cells
+            continue
+        if hdr and len(cells) == len(hdr):
+            rows.append(dict(zip(hdr, cells)))
+    agg, per_kernel = {}, {}
+    for r in rows:
+        name = r.get("Metric Name", "")
+        kern = (r.get("Kernel Name") or "")[:60]
+        try:
+            v = float((r.get("Metric Value") or "").replace(",", ""))
+        except Exception:
+            continue
+        agg.setdefault(name, []).append(v)
+        per_kernel.setdefault(kern, {}).setdefault(name, []).append(v)
+    rec["metrics"] = {k: {"mean": round(sum(v) / len(v), 3),
+                          "max": round(max(v), 3), "n": len(v)}
+                      for k, v in agg.items()}
+    # The busiest kernels, by how much DRAM traffic they move.
+    tops = []
+    for kern, m in per_kernel.items():
+        b = m.get("dram__bytes.sum.per_second")
+        s_ = m.get("sm__throughput.avg.pct_of_peak_sustained_elapsed")
+        d_ = m.get("gpu__dram_throughput.avg.pct_of_peak_sustained_elapsed")
+        tops.append({"kernel": kern, "n": len(b or s_ or [1]),
+                     "dram_bytes_per_s": round(sum(b) / len(b), 1) if b else None,
+                     "sm_pct": round(sum(s_) / len(s_), 2) if s_ else None,
+                     "dram_pct": round(sum(d_) / len(d_), 2) if d_ else None})
+    tops.sort(key=lambda t: -(t.get("dram_bytes_per_s") or 0))
+    rec["top_kernels"] = tops[:8]
+    rec["kernels_sampled"] = len(per_kernel)
+    if not rec["metrics"]:
         rec["log_tail"] = text[-3000:]
     return rec
 
@@ -175,11 +206,10 @@ def main():
         gguf = paths.model_path(label)
         log("=== %s ===" % label)
         rec = out["arms"].get(label, {})
-        log("  nsys timeline")
-        rec["nsys"] = nsys_kernels(label, gguf)
-        top = (rec["nsys"].get("top_kernels") or [{}])[0]
-        log("  top kernel: %s  %.1f%%" % (top.get("name", "?"),
-                                          top.get("time_pct", 0)))
+        rec["nsys"] = {"skipped": ("apt nsight-systems 2023.4.4 cannot import "
+                                   "its own .qdstrm on this box -- 'The importer "
+                                   "binary and its dependencies were not found'. "
+                                   "Measured 2026-09-01.")}
         log("  ncu counters (kernel replay -- slow by design)")
         rec["ncu"] = ncu_sol(label, gguf)
         log("  metrics: %s" % list((rec["ncu"].get("metrics") or {}).keys())[:6])

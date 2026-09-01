@@ -97,3 +97,12 @@ node_modules/
 offline-bundle/
 # the machine-wide GPU mutex (scripts/bench/gpu_lock.py) - runtime state
 .gpu-lock.json
+
+# Nsight Systems raw capture. NOT a record: it is the profiler's intermediate,
+# ~500 MB per run, and on this box nsys cannot even import its own .qdstrm
+# ("The importer binary and its dependencies were not found", apt
+# nsight-systems 2023.4.4, measured 2026-09-01). Every number a profiling task
+# publishes lands in results/<slug>/data/*.json beside it. Ignored by EXTENSION
+# and as pure bulk, which is what rule 29 permits.
+*.qdstrm
+*.nsys-rep

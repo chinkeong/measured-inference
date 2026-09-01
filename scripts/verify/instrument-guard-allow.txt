@@ -56,3 +56,11 @@ results/qwen38-27b-blind/figures/quant-ladder.png  # derived figure, remade byte
 # --- over by the next caller by design. Nothing published reads it; the
 # --- campaign artefacts record their own conditions.
 .gpu-lock.json  # runtime GPU mutex, recreated by any gpu_lock.acquire() and cleared by release(); its contents (pid, start time, tag) describe a process that no longer exists by the time anyone would read the file.
+
+# --- the campaign watchdog's own runtime artefacts. scripts/campaign-watchdog.sh
+# --- names both in its usage text, so a tracked file cites them, but neither is
+# --- a record: the pidfile exists only while the watchdog runs and is removed by
+# --- its EXIT trap, and the log is an event stream re-created from scratch on
+# --- every start. Nothing published reads either one.
+watchdog.pid  # the watchdog's own pid, written at start and deleted by its EXIT trap; describes a process that no longer exists by the time anyone reads the file.
+watchdog.log  # the watchdog's event stream (state transitions and push results), recreated on every start; every measurement it reports is recorded in data/ by the task that produced it.
