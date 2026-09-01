@@ -35,17 +35,19 @@ Ask everything up front, in ONE round. After this, run autonomously to the end;
 never block on the user. Confirm auto-detected facts rather than asking open
 questions.
 
-**Detect first, then hand back a filled sheet.** Do not ask the seven questions
+**Detect first, then hand back a filled sheet.** Do not ask the eight questions
 one at a time and do not ask what you can find out. Resolve the HF listing, run
 `python scripts/detect-machine.py --slug <slug> --json`, and probe `PATH` for
 the coding agents; then print `PROMPTS.md`'s answer sheet with everything you
-found ALREADY FILLED IN, and ask the user only to correct it. Four of the seven
+found ALREADY FILLED IN, and ask the user only to correct it. Four of the eight
 are yours to fill: **Q1** the roster and whether an mmproj exists and whether the
 repo is gated (prove that with the range request now, not at download time),
 **Q2** the whole machine block, **Q6** the slug, which the naming rule derives
-mechanically from the repo name, and **Q7** the detected agent roster. Three are
+mechanically from the repo name, and **Q7** the detected agent roster. Four are
 genuinely the user's and cannot be defaulted away: **Q3** what they will use the
-model for, **Q4** the time budget, and **Q5** quality-first or latency-first.
+model for, **Q4** the time budget, **Q5** quality-first or latency-first, and
+**Q8** whether an independent judge endpoint exists — the last is a rule-31 trap
+that costs two of rule 21's seven benchmarks if it goes unasked.
 Mark every line you filled so they can see what you assumed, and say plainly
 that anything they leave takes the printed default. A user who edits three
 fields and pastes it back has closed the interview.
@@ -102,6 +104,23 @@ fields and pastes it back has closed the interview.
    installed for the campaign (npm/pip, user-scope only — the machine may be
    borrowed). If the answer is "none", Stage 6's agent-attach matrix and its
    end-to-end agent pass are skipped and the report says so explicitly.
+
+8. **Judge endpoint** (feeds Stage 6a's rule-21 suite): ALPACA and MT-Bench are
+   2 of rule 21's 7 benchmarks and they are JUDGE-GATED — a model may not grade
+   its own answers. Without an independent judge they run **unscored**
+   (transcripts kept) and the composite Mean silently becomes a mean of FIVE,
+   which is a different number under a different name and is not comparable with
+   a seven-benchmark Mean from another report (rule 23). **This is a rule-31
+   trap of exactly the gated-repo shape**: discovered at Stage 6 it cannot be
+   asked about, and the campaign has by then spent the hours that produced the
+   transcripts. Ask now: is there an OpenAI-compatible endpoint
+   (`--judge-url` / `--judge-model`, e.g. another box serving a different
+   vendor's model)? If not, offer `scripts/bench/judge-panel.py` — three blind
+   Claude Opus 5 seats over the kept transcripts — and say plainly that when the
+   report's author is also a Claude model the judge is a CORRELATED INSTRUMENT,
+   which that file discloses with every number it produces and is why it reports
+   inter-rater spread rather than a bare mean. If the answer is neither, record
+   "no judge configured" and the report says the pair ran unscored and why.
 
 Record all answers in `results/<slug>/campaign.md` (the campaign log — append
 decisions, findings, and timestamps to it throughout; it is your recovery point

@@ -328,7 +328,7 @@ repo to fall back on.
 ### The fill-in form
 
 This is the whole interview on one sheet. Fill it in, paste it back as a single message, and
-Stage 0 closes on the spot. Free — no GPU. It covers all seven interview questions in order, so
+Stage 0 closes on the spot. Free — no GPU. It covers all eight interview questions in order, so
 an agent that receives it has no legitimate reason to ask you anything else for the rest of the
 campaign.
 
@@ -408,6 +408,19 @@ Q7  CODING AGENTS  (optional - default: test whatever is already on PATH)
     may you install missing ones? (npm/pip, user scope only)
                           [x] no (default — this machine may be borrowed)
                           [ ] yes
+
+Q8  JUDGE ENDPOINT  (optional - default: none, and the consequence is real)
+    ALPACA and MT-Bench are 2 of rule 21's 7 benchmarks and are JUDGE-GATED:
+    a model may not grade its own answers. With no judge they run UNSCORED and
+    the composite Mean becomes a mean of FIVE - a different number that does
+    not compare with anyone else's seven (rule 23). Asked HERE because rule 31
+    forbids asking at Stage 6, by which time the hours are already spent.
+    [x] none (default) - the pair runs unscored, transcripts kept, report says so
+    [ ] endpoint: <http://otherbox:1300/v1>  model: <gpt-oss-120b>  key: <optional>
+    [ ] use scripts/bench/judge-panel.py - three blind Claude Opus 5 seats.
+        NOTE: if a Claude model also writes the report, judge and author are a
+        CORRELATED INSTRUMENT. That file discloses it with every number and
+        reports inter-rater spread rather than a bare mean.
 
 ANYTHING ELSE
     <e.g. do not install anything globally; the GPU is shared after 09:00>
