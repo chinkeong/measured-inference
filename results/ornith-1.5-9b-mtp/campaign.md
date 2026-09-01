@@ -1045,3 +1045,70 @@ Drafting-knob sweeps are known to be noisy without a clean monotonic trend, so
 single-run results from one are exactly the kind that need repeats before they
 are trusted. Recorded rather than quietly re-run: the arm file says `repeat: 1`,
 and any recipe quoting a middle arm needs `repeat: 3` first.
+
+### CORRECTIONS from the architecture fact-check — 2026-09-01
+
+An adversarial fact-check of this campaign's own ground-truth block found six
+statements this log had asserted and could not support. They are corrected here
+rather than edited away.
+
+**1. "The in-file MTP layer is INERT in b10717" — WRONG, and it reverses a
+retraction.** Nine loads, no exceptions:
+
+| load | `--spec-type` | `unused tensor` warnings |
+|---|---|---|
+| stage1-Q8_0-server, stage2-{Q8_0,Q4_K_M,IQ2_M}-bare, stage2-Q8_0-proj | none | **15** |
+| stage2-Q8_0-draft, -proj-draft; stage2-Q4_K_M-proj-draft; stage2-IQ2_M-proj-draft | draft-mtp | **0** |
+
+`blk.32` is skipped **only when speculation is off**. Commit 86b4aef recorded it
+as inert full stop, and concluded that third-party conversions dropping it are
+runtime-identical. That holds only for a campaign that never enables
+speculation — which is not a caveat this log attached, and Stage 0's original
+rationale was closer to right than the retraction that replaced it.
+
+**The mechanism is NOT yet established.** Every draft-mtp load above also passed
+`-md <separate head>`, so these logs cannot distinguish "blk.32 becomes the draft
+source" from "naming draft-mtp changes which tensors count as used". The
+decisive test is `--spec-type draft-mtp` with NO `-md`; it needs the card and is
+queued. Effect confirmed, explanation open.
+
+**2. llama.cpp DECLINES to load blk.32; it does not load and ignore it.**
+`src/llama-model-loader.cpp` logs the warning then executes
+`size_data -= nbytes; return nullptr` — no tensor is created and the bytes leave
+the allocation total. The 15 warnings carry byte sizes summing to 258,557,952 B,
+so ~246.6 MiB of Q8_0 never becomes resident. This log's wording ("loads it and
+throws it away") overstated what happens.
+
+**3. The recurrent state is 50.25 MiB, not 51 MiB, and the 51 was
+unverified.** 52,690,944 B from this build's own state-shape formula.
+`model-Q8_0.json` ships the figure self-flagged `"verified": false` and this log
+quoted it as measured.
+
+**4. head_dim 256 is the ATTENTION head dimension.** The 24 recurrent layers run
+at `ssm.state_size` 128. Substituting 256 into a recurrent state-size formula
+overstates it fourfold — a trap this campaign came close to.
+
+**5. Full attention sits at blocks 3, 7, 11, 15, 19, 23, 27, 31** — the LAST of
+each group of four. Blocks 0, 1 and 2 are recurrent. Derived from this build's
+`is_recr_impl[i] = (i < n_layer()) && ((i + 1) % full_attn_interval != 0)`
+because the GGUF carries no `recurrent_layers` key. Any layer diagram that draws
+attention first is wrong, and any partial-offload reasoning must know the
+cache-holding layers are not the early ones.
+
+**6. "Built on Qwen3.5 and Gemma4" attaches to Ornith-1.0, not 1.5.** The
+vendor's own sentence is "It extends Ornith-1.0, which was developed on top of
+Qwen3.5 and Gemma 4". Gemma-4-31B otherwise appears only as a baseline being
+beaten, and no Gemma-4 trace exists in the 9B's config or tensor index. This log
+repeated the misattribution in two commits.
+
+**7. On the sampler deviation — this log overstated it.** The card carries TWO
+presets: general (temp 1.0, presence_penalty 1.5) and precise coding (temp 0.6,
+presence_penalty **0.0**), and both of the card's own Python examples use 0.6.
+The GPQA run's `presence_penalty 0.0` therefore matches the card's coding preset
+rather than departing from the card outright. Which preset a graduate science
+benchmark should take is a judgement, not a deviation — and the open question
+is still whether 1.5 would suppress the 28% truncation.
+
+Also settled: there has never been a dense Qwen at 9B, so "the old Qwen 9B" names
+a model that does not exist. The models people actually run at this size are
+Qwen3-8B and Qwen2.5-7B-Instruct.
