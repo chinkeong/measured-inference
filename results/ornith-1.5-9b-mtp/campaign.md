@@ -1294,3 +1294,77 @@ The watchdog rewrite was exercised end to end by this transition, on live data
 rather than stubs: **OFF-CARD 19:20:33** (matched-bpw job alive, card free
 during its download) → **IDLE 19:21:19** (job exited) → **BUSY 19:26:35** (suite
 took the card). The old implementation could not emit the first of those three.
+
+### 2026-09-01 19:36 — rule 24 had no supervisor, and 18 hours of energy data was in an inode with no name
+
+An adversarial audit of the durability scripts returned 24 verified findings.
+The one that mattered was live: **the campaign power logger had been writing to
+an unlinked file since 01:31**, and it was now 19:35.
+
+`data/power/campaign-power.csv` is git-tracked. A working-tree-materialising git
+command replaced the inode under the running `nvidia-smi`, which kept appending
+to the old, now-nameless one. Everything downstream kept saying the campaign was
+instrumented: the sidecar's `"running": true` is written once at start and never
+revisited, `sample-power.sh` verifies growth only at `start`, and the watchdog —
+the only thing supervising this campaign continuously — had no opinion about the
+logger at all. The on-disk CSV had not grown in **18 hours** and was being
+faithfully committed and pushed at its 01:31 size the whole time.
+
+Everything measured after the RECIPE LOCK sat inside that window: the KLD ladder,
+the ncu roofline, the GPQA anchor, the matched-bpw pair. Under rule 24 —
+*energy is measured or it is absent* — all of it was about to resolve to absent.
+
+**Recovered, because the process was still alive.** An unlinked file is still
+readable through the holder's own descriptor:
+
+    cat /proc/362231/fd/1 > campaign-power.csv     # 149,983 rows, 14.3 MB
+
+The on-disk file proved a **strict byte prefix** of the recovery, so nothing had
+to be merged. The trace is continuous — 22:45:07 Aug 31 to 19:36:24 Sep 1,
+median sampling interval **0.500 s exactly**, largest gap **1.4 s** across 20 h
+50 m. One `nvidia-smi` exit and it would have been gone at any price (rule 28,
+and the only time in this campaign the "at any price" clause has been literally
+true rather than rhetorical).
+
+The old logger was then stopped and a linked one started as
+`campaign-power-part2-from-1936.csv`. **Recorded gap in coverage: 19:36:24 →
+19:37:0x, roughly 40 s**, during which the rule-21 suite was running unlogged.
+
+**The structural fix, which is the point.** Two defects, both now tested:
+
+1. `power_health()` in the watchdog. Every poll, it checks whether any
+   `nvidia-smi` writing for this slug has a `(deleted)` target, or whether none
+   is running at all, and says so once per transition. The harness already owned
+   the detector — `sample-power.sh list` prints the unlinked warning — but
+   nothing ran it on a schedule and nothing put it in the resume checklist.
+2. `stalled()` was scanning the directories the durability layer writes into, so
+   the watchdog's own log, the autopush log and the 500 ms power CSV each reset
+   the alarm that watches for a wedged job. **Repairing the power logger would
+   have silently disabled stall detection outright** — the only reason the
+   detector worked at all was that the CSV's mtime was frozen by the very bug
+   above. `_campaign_writes()` now excludes the durability layer by name.
+
+`scripts/verify/test-watchdog-state.sh` covers all three: 13 cases, and the
+pre-fix script fails 5 of them (all three `stalled()` self-refresh paths and
+both `power_health` alarms). `stalled()` previously had no test at all.
+
+### 2026-09-01 — a rule 27 violation of my own making, recorded rather than buried
+
+The durability audit ran **35 subagents** on this box between roughly 19:12 and
+19:32. The rule-21 suite started at **19:26:03**. They overlapped for about six
+minutes, which covers most of the GSM8K arm.
+
+Rule 27: a speed measurement requires a QUIET MACHINE, and a busy HOST costs
+decode invisibly — −5.4% mean, −24.0% worst, r = −0.924. So **the `tok_s`
+figures for the GSM8K arm of this suite were taken on a machine that was not
+quiet**, and they are not comparable to the rest of the suite or to any other
+sweep. Load average was 1.22 by 19:40, after the workflow had drained.
+
+**The scores are unaffected and the timings are.** Decoding is greedy, seed 42,
+and this campaign already established bit-identical repeats, so host load moves
+timing and not logits. GSM8K's accuracy stands; its throughput does not, and it
+is flagged rather than quietly averaged into anything. If a clean number is
+wanted, rule 7's remedy applies unchanged — rerun that arm only.
+
+Writing this down because the alternative was not noticing: nothing in the
+harness watches for the agent itself being the noisy neighbour.

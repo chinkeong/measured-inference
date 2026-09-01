@@ -50,6 +50,85 @@ drive() {  # <owner> <lock_exit> <n_live> <expected>
 }
 
 FAILED=0
+
+# ---------------------------------------------------------------- stalled()
+# stalled() is the ONLY detector for the failure the watchdog's own header
+# calls "the one an idle-trigger cannot see by construction" -- a job wedged
+# while still holding the lock, where gpu_state() reports a steady BUSY and
+# BUSY is the documented quiet state. It had no test. It was also blind: it
+# asked "has anything under data/ or work/ changed", and the watchdog's own
+# log, the autopush log and the 500 ms power CSV all live there, so its own
+# output kept resetting its own alarm.
+eval "$(sed -n '/^_campaign_writes() {/,/^}/p' "$WD")"
+eval "$(sed -n '/^stalled() {/,/^}/p' "$WD")"
+
+REPO_REAL="$REPO"
+TREE=$(mktemp -d); trap 'rm -f "$STUB"; rm -rf "$TREE"' EXIT
+STALL_AFTER=1800
+
+stall_case() {  # <description> <fresh-file-or-none> <expect: STALLED|running>
+    local desc="$1" fresh="$2" want="$3" verdict
+    rm -rf "$TREE/results/$SLUG"
+    mkdir -p "$TREE/results/$SLUG/data/power" "$TREE/results/$SLUG/work"
+    : > "$TREE/results/$SLUG/data/kld.json"          # the campaign's real output
+    touch -d "-3 hours" "$TREE/results/$SLUG/data/kld.json"
+    if [ "$fresh" != "none" ]; then
+        : > "$TREE/results/$SLUG/$fresh"             # touched NOW
+    fi
+    REPO="$TREE"
+    if stalled >/dev/null; then verdict=STALLED; else verdict=running; fi
+    if [ "$verdict" = "$want" ]; then
+        printf '  ok    %-46s -> %s
+' "$desc" "$verdict"
+    else
+        printf '  FAIL  %-46s -> %s (wanted %s)
+' "$desc" "$verdict" "$want"
+        FAILED=$((FAILED + 1))
+    fi
+}
+
+echo "stalled() -- campaign silent 3 h, STALL_AFTER=1800:"
+stall_case "campaign wrote recently"          "data/ppl.json"      running
+stall_case "only the watchdog's own log moved" "work/watchdog.log"  STALLED
+stall_case "only the autopush log moved"       "work/autopush.log"  STALLED
+stall_case "only the 500ms power CSV moved"    "data/power/p.csv"   STALLED
+stall_case "nothing moved at all"              "none"               STALLED
+REPO="$REPO_REAL"
+echo
+
+# ------------------------------------------------------------ power_health()
+# Rule 24 had no supervisor: the logger is started once and never re-checked.
+# On 2026-09-01 it appended ~18 h to an inode with no name and every consumer
+# still read power_logging: true.
+eval "$(sed -n '/^power_health() {/,/^}/p' "$WD")"
+
+power_case() {  # <description> <readlink-output|NONE> <expected>
+    local desc="$1" want="$3" got
+    STUB_LINK="$2"
+    if [ "$STUB_LINK" = "NONE" ]; then
+        pgrep() { return 1; }
+    else
+        pgrep() { echo 4242; }
+    fi
+    readlink() { [ "$STUB_LINK" = "NONE" ] && return 1; echo "$STUB_LINK"; }
+    got=$(power_health) || got="healthy"
+    if [ "$got" = "$want" ]; then
+        printf '  ok    %-46s -> %s
+' "$desc" "$got"
+    else
+        printf '  FAIL  %-46s -> %s (wanted %s)
+' "$desc" "$got" "$want"
+        FAILED=$((FAILED + 1))
+    fi
+}
+
+echo "power_health():"
+power_case "logging to a linked file"   "/r/results/$SLUG/data/power/c.csv"           healthy
+power_case "logging to an UNLINKED file" "/r/results/$SLUG/data/power/c.csv (deleted)" "UNLINKED 4242"
+power_case "no logger running at all"    NONE                                          ABSENT
+unset -f pgrep readlink
+echo
+
 echo "gpu_state() decision table:"
 # The regression this file exists for: a campaign job alive while the card is
 # free. Downloading a multi-GB GGUF, hashing, converting, CPU scoring. Reported

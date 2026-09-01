@@ -111,6 +111,50 @@ gpu_state() {
     else                                           echo "HELD-NO-OWNER"; fi
 }
 
+power_health() {
+    # RULE 24 HAS NO SUPERVISOR, and that cost this campaign nearly a day.
+    # stage-0 says "start the power logger and leave it running", and nothing
+    # ever looked at it again: sample-power.sh verifies growth only at `start`,
+    # the sidecar's "running": true is written once, and this watchdog -- the
+    # only thing supervising the campaign continuously -- had no opinion about
+    # it at all. Measured 2026-09-01: campaign-power.csv is git-tracked, a
+    # working-tree-materialising git command replaced the inode under the live
+    # nvidia-smi at 01:31, and the logger appended ~18 h and 130,000 samples to
+    # an inode with no name while every consumer read power_logging: true. It
+    # was recoverable only because the process was still alive to be read
+    # through /proc/<pid>/fd/1; one exit and rule 24's "measured or absent"
+    # would have resolved to absent for every stage after the RECIPE LOCK.
+    #
+    # Two failures, both silent, both cheap to see: the logger writing to an
+    # unlinked file, and the logger not running at all while the campaign
+    # believes it is.
+    local pid target n=0
+    for pid in $(pgrep -x nvidia-smi 2>/dev/null); do
+        target=$(readlink "/proc/$pid/fd/1" 2>/dev/null) || continue
+        case "$target" in
+          *"$SLUG"*) n=$((n + 1))
+            case "$target" in
+              *" (deleted)")
+                echo "UNLINKED $pid" ; return 0 ;;
+            esac ;;
+        esac
+    done
+    [ "$n" = 0 ] && { echo "ABSENT"; return 0; }
+    return 1
+}
+
+_campaign_writes() {
+    # Everything the CAMPAIGN writes under data/ and work/, and nothing the
+    # durability layer writes. Named exclusions, not a positive list: a positive
+    # list silently stops seeing any artefact a future stage invents, and a
+    # detector that quietly narrows is worse than one that is loud.
+    find "$REPO/results/$SLUG/data" "$REPO/results/$SLUG/work" \
+         -type d -name power -prune -o \
+         -type f \
+         ! -name 'watchdog.log' ! -name 'watchdog.pid' ! -name 'autopush.log' \
+         "$@" 2>/dev/null
+}
+
 stalled() {
     # ACTIVITY, not one task's heartbeat. The first version watched
     # work/heartbeat.json alone, which only runner.py writes -- so it cried
@@ -119,13 +163,34 @@ stalled() {
     # ignored, which is worse than not having one. Newest mtime anywhere the
     # campaign writes is task-agnostic: any task making progress touches
     # something under data/ or work/.
+    # THE SCAN MUST EXCLUDE THE DURABILITY LAYER'S OWN WRITES. This detector
+    # asks "has the CAMPAIGN written anything lately", and it was answering
+    # "has ANYTHING under data/ or work/ been touched" -- which includes the
+    # files this very watchdog, the autopush loop and the power logger write.
+    # Three independent self-refresh paths, each of which pins the answer to
+    # "not stalled" forever:
+    #   work/watchdog.log   - every line THIS script prints, including the
+    #                         STALLED line itself, which then clears prev_stall
+    #                         on the next poll so the once-only guard never
+    #                         guards and the printed age is pinned near
+    #                         STALL_AFTER whether the hang is 30 minutes or ten
+    #                         hours (rule 1: a number with nothing behind it).
+    #   work/autopush.log   - a failing remote writes here on every attempt,
+    #                         backoff capped at 1200 s, still inside the window.
+    #   data/power/*.csv    - the rule 24 logger appends every 500 ms forever.
+    #                         This one was MASKED until 2026-09-01 only because
+    #                         the CSV was being written to an unlinked inode, so
+    #                         its mtime never moved. Repairing that logger would
+    #                         have silently disabled stall detection outright.
+    # The failure this guards is the one the header calls "the one an
+    # idle-trigger cannot see by construction": a wedged job still holding the
+    # lock, where gpu_state() reports a steady BUSY and BUSY is documented as
+    # the quiet state. If stalled() is blind, nothing is watching at all.
     local newest now age
-    newest=$(find "$REPO/results/$SLUG/data" "$REPO/results/$SLUG/work" \
-                  -type f -newermt "-${STALL_AFTER} seconds" -print -quit 2>/dev/null)
+    newest=$(_campaign_writes -newermt "-${STALL_AFTER} seconds" -print -quit)
     [ -n "$newest" ] && return 1          # something moved inside the window
     now=$(date +%s)
-    age=$(( now - $(find "$REPO/results/$SLUG/data" "$REPO/results/$SLUG/work" \
-             -type f -printf '%T@\n' 2>/dev/null | sort -rn | head -1 | cut -d. -f1) ))
+    age=$(( now - $(_campaign_writes -printf '%T@\n' | sort -rn | head -1 | cut -d. -f1) ))
     [ "$age" -gt "$STALL_AFTER" ] && echo "$age" && return 0
     return 1
 }
@@ -289,7 +354,7 @@ trap 'rm -f "$PIDFILE"' EXIT
 trap 'rm -f "$PIDFILE"; [ -n "${SLEEP_PID:-}" ] && kill "$SLEEP_PID" 2>/dev/null; exit 0' INT TERM
 
 prev=""; prev_stall=""; orphan_seen=""; last_push=0
-offcard_since=0; offcard_warned=""; SLEEP_PID=""
+offcard_since=0; offcard_warned=""; SLEEP_PID=""; prev_power=""
 while true; do
     state=$(gpu_state)
     fails=$(failures)
@@ -325,6 +390,17 @@ while true; do
             echo "$(date +%H:%M:%S) GPU OFF-CARD for $(( ($(date +%s) - offcard_since) / 60 ))m — the card has been free this whole time while a campaign job runs. Check the job is not wedged in a download or a retry loop."
             offcard_warned=yes
         fi
+    fi
+    if power=$(power_health); then
+        if [ "$power" != "$prev_power" ]; then
+            case "$power" in
+              UNLINKED*) echo "$(date +%H:%M:%S) POWER LOGGER UNLINKED (${power#UNLINKED }) — nvidia-smi is appending to a file with no name; the rows are unreadable once it exits. Recover NOW with: cat /proc/${power#UNLINKED }/fd/1 > <csv>, then restart the logger. Rule 24: energy is measured or it is absent." ;;
+              ABSENT)    echo "$(date +%H:%M:%S) POWER LOGGER ABSENT — nothing is logging power for this campaign, so every arm running now is unattributable. Rule 24: TDP is not a measurement." ;;
+            esac
+            prev_power="$power"
+        fi
+    else
+        prev_power=""
     fi
     if age=$(stalled); then
         if [ "$prev_stall" != "yes" ]; then
