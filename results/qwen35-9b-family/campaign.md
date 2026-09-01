@@ -150,3 +150,69 @@ anchor does the same thing at the same sampler on the same prompt. That points
 at the base model or the family's chat template rather than at Ornith's training,
 and it is the first claim in this document that could only be made because the
 anchor was measured rather than cited.
+
+## The measured comparison  ·  2026-09-02
+
+### Speed — one sweep, alternating, first probe discarded
+
+| arm | greedy | × anchor | card preset | × anchor | loop verdicts |
+|---|---|---|---|---|---|
+| **Qwen3.5-9B** (anchor) | **84.17 t/s** | 1.0000 | **78.52 t/s** | 1.0000 | LOOP |
+| Ornith-1.5-9B | 83.80 | **0.9956** | 78.77 | **1.0032** | LOOP, clean |
+
+**Decode speed is the same model to within 0.5%**, on both samplers. That is
+what TIER 1 predicts and it is worth stating as a finding rather than an
+absence: identical shape, identical file size, identical quantisation format —
+so a throughput claim that separated these two would have been measuring the
+rig, not the models.
+
+**Both loop under greedy.** The Ornith campaign recorded Q8_0 scoring LOOP on
+every greedy floor probe and treated it as a property of that arm. The anchor
+does the same thing on the same prompt at the same sampler. **The repetition is
+inherited, not trained in** — and that claim was impossible to make while
+Qwen3.5-9B existed here only as a citation.
+
+### Quality — rule 21, same frozen suite hash `1cdf54f8eb9d3f8f`
+
+| dataset | Qwen3.5-9B | Ornith-1.5-9B | truncated (Q / O) |
+|---|---|---|---|
+| GSM8K | 92.0 | **100.0** | 2 / 0 |
+| MATH-500 | 48.0 | **60.0** | 13 / 3 |
+| HumanEval | **92.0** | 88.0 | 0 / 1 |
+| MBPP | 56.0 | **72.0** | 8 / 5 |
+| MeetingBank | 20.0 | **24.3** | 0 / 0 |
+| **Mean (five scored)** | **61.6** | **68.9** | **23 / 9** |
+
+**What is robust and what is not.** At n=25 a single dataset's difference is
+worth about ±10 points of binomial noise, so MATH-500's 12 points and MBPP's 16
+are each roughly one sigma — suggestive, not settled (rule 8: point differences
+at this n are not real). HumanEval runs the *other* way. The composite favours
+Ornith by 7.3 and is the better-powered figure, but it is still a mean of five
+noisy cells and should be read as a lean, not a verdict.
+
+**What IS large and consistent is the truncation rate: 23 against 9**, and it is
+the same finding in every cell where the two differ.
+
+### The finding neither model card reports
+
+    Qwen3.5-9B     10,235 s
+    Ornith-1.5-9B   4,231 s
+
+**Identical decode speed, and Ornith finishes the same 175 prompts in 41% of the
+wall clock.** Nothing about tokens-per-second explains it — that was measured as
+equal above. The entire gap is termination: every truncated answer burns the
+full 16,384-token cap and then scores zero, so Qwen spends 2.4× the time to
+produce a lower Mean.
+
+That is the practical shape of what Ornith's post-training bought on this
+hardware, and it is invisible in a benchmark table: a scores column shows 61.6
+against 68.9 and says nothing about the hour and a half of extra card time. It
+was only measurable because both arms ran the same 175 prompts under the same
+cap on the same box.
+
+**A caveat that must travel with it (rule 3).** The two models run their OWN
+chat templates, which differ. Ornith's own published footnotes say they adjust
+the Qwen template for train/inference consistency, and their Qwen baseline row
+never says it received the same fix. Some part of this termination gap may be
+template rather than weights, and this campaign cannot separate them — a
+template-swapped arm would, and is not run here.
