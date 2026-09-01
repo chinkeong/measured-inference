@@ -78,6 +78,11 @@ gpu_state() {
     # version of this chain hung for 26 minutes on 2026-09-01.
     pgrep -f "results/$SLUG/work/.*\.py" >/dev/null 2>&1 && owner=1
     pgrep -f "scripts/arms\.py" >/dev/null 2>&1 && owner=1
+    # bench.py runs from scripts/bench/, not from the campaign's work/ dir, so
+    # the path pattern above misses it and a multi-hour benchmark reads as an
+    # ORPHAN for its whole duration. Measured 2026-09-01 on the GPQA anchor.
+    pgrep -f "scripts/bench/bench\.py" >/dev/null 2>&1 && owner=1
+    pgrep -f "scripts/quant-ladder/.*\.py" >/dev/null 2>&1 && owner=1
     servers=$("$PY" scripts/bench/gpu_lock.py status 2>/dev/null | grep -c "LIVE") || servers=0
     if "$PY" scripts/bench/gpu_lock.py status >/dev/null 2>&1; then idle=1; else idle=0; fi
     if   [ "$owner" = 1 ];              then echo "BUSY"
@@ -149,11 +154,21 @@ fi
 mkdir -p "$(dirname "$PIDFILE")"; echo $$ > "$PIDFILE"
 trap 'rm -f "$PIDFILE"' EXIT INT TERM
 
-prev=""; prev_stall=""; last_push=0
+prev=""; prev_stall=""; orphan_seen=""; last_push=0
 while true; do
     state=$(gpu_state)
     fails=$(failures)
     [ "${fails:-0}" -gt 0 ] && state="$state FAILED=$fails"
+    # ORPHAN needs to persist before it is believed. Between a job exiting and
+    # its server dying there is a ~2 s window where a live llama.cpp tool has no
+    # owning process, which is indistinguishable from a real orphan in one poll.
+    # Measured 2026-09-01: two false ORPHANs in an hour, both teardown windows.
+    # A real orphan does not clear itself, so one poll of patience costs nothing.
+    case "$state" in
+      ORPHAN*)
+        if [ "$orphan_seen" != "yes" ]; then orphan_seen=yes; sleep 5; continue; fi ;;
+      *) orphan_seen="" ;;
+    esac
     if [ "$state" != "$prev" ]; then
         case "$state" in
           IDLE*)   echo "GPU IDLE — lock free, no llama.cpp tool live. The next campaign task can start now." ;;
