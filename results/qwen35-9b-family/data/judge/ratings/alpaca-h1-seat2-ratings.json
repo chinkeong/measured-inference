@@ -1,0 +1,60 @@
+{
+ "seat": 2,
+ "dataset": "alpaca",
+ "half": "h1",
+ "judge": "Claude Opus 5, independent subagent seat",
+ "ratings": [
+  {
+   "id": "bc2058589b",
+   "rating": 9
+  },
+  {
+   "id": "f43e130735",
+   "rating": 8
+  },
+  {
+   "id": "afa5336f62",
+   "rating": 7
+  },
+  {
+   "id": "74056f43ed",
+   "rating": 1
+  },
+  {
+   "id": "670c4da885",
+   "rating": 1
+  },
+  {
+   "id": "ca33571ff0",
+   "rating": 1
+  },
+  {
+   "id": "7945dfe963",
+   "rating": 8
+  },
+  {
+   "id": "bda8157548",
+   "rating": 9
+  },
+  {
+   "id": "8da0ef289a",
+   "rating": 9
+  },
+  {
+   "id": "907606030c",
+   "rating": 1
+  },
+  {
+   "id": "523446aa15",
+   "rating": 9
+  },
+  {
+   "id": "e6963147fd",
+   "rating": 8
+  },
+  {
+   "id": "a6440b0786",
+   "rating": 8
+  }
+ ]
+}

@@ -1,0 +1,47 @@
+{
+ "protocol": "rule21-judge-panel-v1",
+ "rubric": "Act as an impartial judge and evaluate the quality of the response provided by an AI assistant to the user question shown. Consider helpfulness, relevance, accuracy, depth, creativity, and level of detail. Be as objective as possible. Rate the response on a scale of 1 to 10, where 1 is unusable and 10 is excellent.",
+ "judge": "Claude Opus 5 (claude-opus-5), 3 blind seats",
+ "normalization": "(r-1)/9*100",
+ "seats": [
+  1,
+  2,
+  3
+ ],
+ "answers_rated": 50,
+ "answers_total": 50,
+ "missing": [],
+ "partial": [],
+ "arms": {
+  "qwen": {
+   "ALPACA": {
+    "n": 25,
+    "mean_rating_1_10": 6.52,
+    "score_0_100": 61.3,
+    "sd_across_items": 2.965,
+    "mean_seat_spread": 0.44,
+    "max_seat_spread": 1,
+    "at_cap_items": [
+     2,
+     3,
+     4,
+     7,
+     21
+    ],
+    "provisional": true
+   },
+   "MT-Bench": {
+    "n": 25,
+    "mean_rating_1_10": 7.747,
+    "score_0_100": 75.0,
+    "sd_across_items": 1.809,
+    "mean_seat_spread": 0.6,
+    "max_seat_spread": 2,
+    "at_cap_items": [
+     16
+    ],
+    "provisional": true
+   }
+  }
+ }
+}

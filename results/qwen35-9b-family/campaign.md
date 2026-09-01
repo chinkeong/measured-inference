@@ -216,3 +216,37 @@ the Qwen template for train/inference consistency, and their Qwen baseline row
 never says it received the same fix. Some part of this termination gap may be
 template rather than weights, and this campaign cannot separate them — a
 template-swapped arm would, and is not run here.
+
+### The judged pair — same panel protocol, same seats discipline
+
+`rule21-judge-panel-v1`: three blind seats, opaque salted ids, per-seat shuffles,
+1-10 normalised `(r-1)/9*100`. Twelve **independent subagent seats**, one per
+packet, rather than one context rating the same material three times — three
+seats inside one context are correlated by construction and their agreement
+measures nothing. 50 answers, 150 ratings, **rated 50/50, 0 missing, 0 partial**
+for both arms.
+
+**The judge is Claude Opus 5 and so is this document's author: a CORRELATED
+INSTRUMENT**, which is why inter-rater spread is published beside every mean.
+
+| dataset | arm | mean 1-10 | score | sd across items | at-cap items |
+|---|---|---|---|---|---|
+| ALPACA | Qwen3.5-9B | 6.52 | **61.3** | 2.965 | **5** |
+| ALPACA | Ornith-1.5-9B | 7.08 | **67.6** | 2.081 | 1 |
+| MT-Bench | Qwen3.5-9B | 7.75 | **75.0** | 1.809 | 1 |
+| MT-Bench | Ornith-1.5-9B | 8.19 | **79.9** | 1.054 | 0 |
+
+Both arms are **provisional** under the panel's own rule-7 flag, and the reason
+is the same one the whole comparison keeps arriving at: **six of Qwen's fifty
+judged answers hit the cap and came back empty, against one of Ornith's.** An
+empty answer is rated 1 by unanimous seats, so a large part of the 6.3 and 4.9
+point gaps is not "worse writing" — it is **not finishing**.
+
+Ornith's item sd is also lower on both sets (2.081 vs 2.965, 1.054 vs 1.809): it
+is not only rated higher on average but more consistently, which at n=25 is the
+more trustworthy half of the observation.
+
+**Judged scores are published BESIDE the composite Mean and never folded into
+it**, exactly as in the Ornith campaign — the reference `qwen38-27b-blind` Mean
+is a mean of five with both excluded, and adding them would silently redefine
+the metric (rule 23).
