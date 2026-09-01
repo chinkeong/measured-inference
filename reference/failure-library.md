@@ -679,3 +679,40 @@ string because every signal is 0.0 there and 0.0 fires no threshold, and
 that verdict was published for three quant arms whose generations had
 never been read. It now returns NO-DATA. A scan that cannot fail loudly
 will fail quietly, and quiet failures get published.
+
+## a check reports the SAFE answer for a condition it could not evaluate
+
+SYMPTOM: a guard passes, a scan returns empty, a count returns zero, a
+push reports success -- and none of it was measured. `servers: none`
+from a process scan that could not run. `ahead=0` from a ref that could
+not be resolved. `PUSHED 3 commit(s)` from a push that published
+nothing. A resume key that says "already measured" for an arm whose
+measurement failed. `verdict: clean` for a generation of zero bytes.
+CAUSE: one shape, wearing eight costumes. Every instance is an
+expression whose failure path produces the value that means EVERYTHING
+IS FINE:
+  `except Exception: pass; return out`     -> [] means "nothing running"
+  `$(git rev-list ... || echo 0)`          -> 0 means "nothing to push"
+  `if os.path.getsize(f) > 1e9: return`    -> big enough means "complete"
+  `if rec.get("tg128"):`                   -> one field means "all three"
+  `if os.path.exists(dat):`                -> exists means "written fully"
+  `os.kill(pid, 0)`                        -> alive means "still the same
+                                              process" (pids are reused)
+FIX: make the failure path produce the ALARMING value, or an explicit
+unknown that callers must handle. Concretely, in this tree: raise
+`ServerScanFailed` rather than returning []; report "UNKNOWN, not zero"
+rather than 0; compare the download against Content-Length; require
+every field the record claims; write incremental files to `.part` and
+`os.replace()` them; check argv, not just liveness. Then VERIFY THE
+POSTCONDITION -- re-count after a push, re-read the lockfile after
+taking it -- because a zero exit status is not proof that the thing
+happened.
+EARNED BY: an adversarial audit of this repo's durability scripts,
+2026-09-01, which returned 24 verified findings; eight of the high ones
+were this single shape. The reason it is worth its own entry is that
+NONE of them announced themselves: each produced a plausible, reassuring
+line in a log that a human was reading precisely to be reassured. The
+sibling entries "a capability reads as ABSENT and the check truncated
+its own output" and the `loop-detect.py` NO-DATA change are the same
+principle from the other side -- an instrument that cannot fail loudly
+will fail quietly, and quiet failures get published.

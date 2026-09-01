@@ -438,6 +438,23 @@ def _refuse_if_dry_run(what):
 _HINTED = False
 
 
+def _is_watchdog(pid, slug):
+    """Is `pid` really this slug's campaign watchdog, or a pid-reuse impostor?
+
+    Matched on argv POSITION -- `bash <...>/campaign-watchdog.sh <slug>` -- which
+    is the same discipline the watchdog's own --stop uses and cannot self-match
+    the way a `pgrep -f` substring can. On a platform with no /proc this returns
+    True, which keeps the old (over-quiet) behaviour rather than nagging.
+    """
+    try:
+        with open("/proc/%d/cmdline" % pid, "rb") as fh:
+            a = fh.read().decode("latin-1").split("\x00")
+    except OSError:
+        return True
+    return (len(a) >= 3 and a[0].endswith("bash")
+            and a[1].endswith("campaign-watchdog.sh") and a[2] == slug)
+
+
 def _watchdog_hint():
     """Say the watchdog exists, ONCE, at the moment it starts being worth it.
 
@@ -476,12 +493,24 @@ def _watchdog_hint():
         # command asking whether it is running. Measured 2026-09-01: the pgrep
         # form silenced this hint from a caller that merely referenced the path,
         # which is the same self-match that had already made a waiter loop wait
-        # for itself. kill -0 on a recorded pid cannot lie this way.
+        # for itself.
+        #
+        # BUT kill -0 ALONE DOES LIE, just not by self-match. watchdog.pid is an
+        # on-disk file that outlives a crash and a reboot, and the kernel reuses
+        # pids: once an unrelated same-user process inherits that number, kill -0
+        # succeeds and this hint is silenced FOREVER on a campaign nothing is
+        # watching. holder() 70 lines below already defends the lock against
+        # exactly this by comparing start times; this did not. Checking the
+        # ARGV is stronger and needs no stored timestamp -- a reused pid is
+        # overwhelmingly unlikely to also be running campaign-watchdog.sh for
+        # this slug.
         pidf = os.path.join(root, "results", slug, "work", "watchdog.pid")
         try:
             with open(pidf) as fh:
-                os.kill(int(fh.read().strip()), 0)
-            return                                  # already watching
+                wpid = int(fh.read().strip())
+            os.kill(wpid, 0)                        # exists at all?
+            if _is_watchdog(wpid, slug):
+                return                              # genuinely already watching
         except Exception:
             pass
         sys.stderr.write(
@@ -554,6 +583,31 @@ def acquire(tag, wait_s=0, allow_foreign=False):
             else:
                 with os.fdopen(fd, "w", encoding="utf-8") as fh:
                     json.dump(rec, fh, indent=2)
+                    fh.flush()
+                    os.fsync(fh.fileno())
+                # VERIFY WE STILL HOLD WHAT WE JUST TOOK. The corpse-steal above
+                # is a TOCTOU: the unlink deletes whatever is at LOCK_PATH NOW,
+                # not the corpse holder() judged dead two statements earlier. Two
+                # racers finding the same corpse can therefore both end up with
+                # _held set -- A steals and creates, then B (still between its own
+                # check and its unlink) deletes A's brand-new LIVE lockfile and
+                # creates its own. Nothing downstream catches it: the foreign-
+                # server scan runs before either has launched anything, and A's
+                # release() correctly declines to delete B's record, so A exits
+                # believing it held the card the whole time. Re-reading the file
+                # closes the window: if our pid is not the one on disk, we never
+                # held it, and we go back round rather than starting a second job
+                # on an occupied card (rule 20).
+                try:
+                    with open(LOCK_PATH, encoding="utf-8") as fh:
+                        on_disk = json.load(fh)
+                except (OSError, ValueError):
+                    on_disk = {}
+                if on_disk.get("pid") != rec["pid"]:
+                    cur = on_disk or {"pid": None, "tag": "lost a lock race",
+                                      "acquired": None, "argv": ""}
+                    time.sleep(0.2)
+                    continue
                 _held = rec
                 break
 

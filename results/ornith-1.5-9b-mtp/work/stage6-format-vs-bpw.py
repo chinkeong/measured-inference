@@ -139,12 +139,51 @@ def main():
     gpu_lock.acquire("stage6-format")
     if not os.path.exists(BASE_DAT):
         log("BF16 base logits for the KLD arm")
-        run([PPL, "-m", os.path.join(MODELS, "vendor-Ornith-1.5-9B-BF16.gguf"),
-             "-f", CORPUS, "-c", "8192", "--chunks", "4", "-ngl", "99",
-             "--kl-divergence-base", BASE_DAT], os.path.join(WORK, "fmt-base.log"))
+        # WRITE TO A .part AND RENAME. `if not os.path.exists(BASE_DAT)` was the
+        # only completeness test on a file llama-perplexity writes INCREMENTALLY
+        # -- 8,135,225,332 bytes for these 4 chunks. A SIGKILL or reboot during
+        # the dump left a partial .dat that the next run accepted, and BOTH arms
+        # were then compared against a truncated base, which is a silently wrong
+        # KLD rather than a missing one. The rename is atomic, so the canonical
+        # path only ever names a file that was written to completion.
+        part = BASE_DAT + ".part"
+        try:
+            os.remove(part)
+        except OSError:
+            pass
+        rc, _ = run([PPL, "-m", os.path.join(MODELS, "vendor-Ornith-1.5-9B-BF16.gguf"),
+                     "-f", CORPUS, "-c", "8192", "--chunks", "4", "-ngl", "99",
+                     "--kl-divergence-base", part], os.path.join(WORK, "fmt-base.log"))
+        if rc != 0 or not os.path.exists(part):
+            log("  base logits FAILED rc=%s -- leaving no .dat rather than a "
+                "partial one every later run would trust" % rc)
+            try:
+                os.remove(part)
+            except OSError:
+                pass
+            raise SystemExit("KLD base could not be produced; re-run when fixed")
+        os.replace(part, BASE_DAT)
+        log("  base logits complete: %d bytes" % os.path.getsize(BASE_DAT))
     for label, fname, family, url in ARMS:
-        if out["arms"].get(label, {}).get("tg128"):
-            log("%s already measured" % label); continue
+        # AN ARM CARRIES THREE INDEPENDENT MEASUREMENTS and the resume key
+        # checked one. tg128, the ncu counters and the KLD pair each come from a
+        # separate subprocess whose failure run() swallows (it returns an rc
+        # nobody reads, and a timeout kills the child and returns -9 down the
+        # same silent path). So an arm where llama-bench succeeded and ncu was
+        # denied perf-counter permission, or whose KLD leg was killed, was
+        # persisted with tg128 set and the rest simply missing -- and every
+        # later run printed "already measured" and skipped it forever. The whole
+        # point of the resumability is that a re-run repairs what failed.
+        done = out["arms"].get(label, {})
+        have = [k for k in ("tg128", "ncu", "mean_kld")
+                if done.get(k) not in (None, {}, "")]
+        if len(have) == 3:
+            log("%s already measured (tg128, ncu, KLD all present)" % label)
+            continue
+        if have:
+            log("%s incomplete -- have %s, missing %s: re-measuring"
+                % (label, "+".join(have),
+                   "+".join(k for k in ("tg128", "ncu", "mean_kld") if k not in have)))
         g = os.path.join(MODELS, fname)
         rec = {"family": family, "file": fname,
                "size_bytes": os.path.getsize(g),

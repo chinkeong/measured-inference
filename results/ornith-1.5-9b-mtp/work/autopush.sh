@@ -66,6 +66,16 @@ while true; do
             fails=$((fails + 1))
         fi
     else
+        # A LOST RACE IS NOT A LOST COMMIT: this loop, the campaign watchdog and
+        # runner.py's commit() all push the same ref, so collisions are routine
+        # and the loser exits non-zero over data that already landed.
+        left=$(git rev-list --count "origin/$branch..HEAD" 2>/dev/null || echo "?")
+        if [ "$left" = "0" ]; then
+            echo "[$(date +%H:%M:%S)] lost a push race but origin/$branch already has everything - not an error"
+            fails=0
+            last_beat=$now
+            sleep "$INTERVAL"; continue
+        fi
         fails=$((fails + 1))
         # Keep the REASON, not just its last line: a non-fast-forward, an
         # over-limit file and an expired credential are permanent and need

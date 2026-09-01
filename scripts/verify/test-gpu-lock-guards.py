@@ -137,4 +137,13 @@ def main():
 
 
 if __name__ == "__main__":
+    # ANSWER --help, DO NOT RUN. scripts/verify/probe-smoke-test.py launches
+    # every probe in the tree with --help to prove it can start; a file with no
+    # argument parser gets EXECUTED by that check instead of answering it, which
+    # is how this file failed the smoke test the moment it was registered.
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(__doc__.strip())
+        print("\nUsage: python scripts/verify/test-gpu-lock-guards.py")
+        print("No arguments. No GPU, no weights, no network. Exit 0 = all guards hold.")
+        sys.exit(0)
     sys.exit(main())

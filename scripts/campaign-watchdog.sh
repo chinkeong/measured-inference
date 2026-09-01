@@ -289,6 +289,21 @@ push_if_ahead() {
     fi
     out=$(git push origin "$branch" 2>&1); rc=$?
     if [ "$rc" -ne 0 ]; then
+        # A LOST RACE IS NOT A LOST COMMIT. Three processes push this same ref
+        # -- this watchdog, work/autopush.sh, and runner.py's commit() -- so two
+        # of them regularly collide, and the loser's push exits non-zero over
+        # data that is already on the remote. Alarming on that trains the reader
+        # to ignore the one alarm that matters (rule 28's whole point is that
+        # this line means data is at risk). Re-count first: if nothing is
+        # outstanding, someone else published it and there is nothing wrong.
+        left=$(git rev-list --count "origin/$branch..HEAD" 2>/dev/null || echo "?")
+        if [ "$left" = "0" ]; then
+            if [ "$prev_push" != "raced" ]; then
+                echo "$(date +%H:%M:%S) push lost a race (rc=$rc) but origin/$branch already has everything — another pusher won. Not an alarm."
+                prev_push="raced"
+            fi
+            return
+        fi
         # KEEP THE REASON. The old branch discarded git's stderr entirely, so a
         # permanently doomed push (rejected non-fast-forward, a file over the
         # 100 MB limit, an expired credential) was indistinguishable from a
@@ -518,7 +533,21 @@ while true; do
     fi
     if age=$(stalled); then
         if [ "$prev_stall" != "yes" ]; then
-            echo "$(date +%H:%M:%S) STALLED — heartbeat has not moved in ${age}s while state=$state. A job may be hung holding the lock; an idle-trigger cannot see this."
+            # THE DIAGNOSIS HAS TO MATCH THE STATE. stalled() is state-agnostic
+            # -- it only asks whether the campaign has written anything -- but
+            # this sentence always said "a job may be hung holding the lock". On
+            # a finished or between-stages campaign it therefore fired with
+            # state=IDLE and told the reader a job was hung holding a lock that
+            # gpu_state() had just measured as FREE: the opposite of the truth
+            # and the opposite of the action to take.
+            case "$state" in
+              BUSY*|OFF-CARD*)
+                echo "$(date +%H:%M:%S) STALLED — nothing under data/ or work/ has been written in ${age}s while a campaign job is alive (state=$state). That job may be hung; it holds the card and an idle-trigger cannot see this by construction." ;;
+              IDLE*)
+                echo "$(date +%H:%M:%S) STALLED — nothing written in ${age}s and the card is IDLE with no campaign job running. Nothing is hung: the campaign has stopped and the next stage has not been started. Card time is being spent doing nothing." ;;
+              *)
+                echo "$(date +%H:%M:%S) STALLED — nothing written in ${age}s while state=$state. Check the lock and the last log line before assuming which." ;;
+            esac
             prev_stall="yes"
         fi
     else

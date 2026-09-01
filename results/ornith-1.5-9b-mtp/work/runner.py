@@ -103,7 +103,6 @@ def serve(model, extra, tag):
     fh = open(os.path.join(WORK, "runner-%s.log" % tag), "w")
     p = gpu_lock.serve(args, tag=tag, stdout=fh, stderr=subprocess.STDOUT)
     for _ in range(600):
-        time.sleep(2)
         if p.poll() is not None:
             fh.close()
             return None, fh
@@ -112,6 +111,32 @@ def serve(model, extra, tag):
             return p, fh
         except Exception:
             pass
+        time.sleep(2)
+    # THE TIMEOUT MUST KILL WHAT IT ABANDONS. This returned None with the child
+    # STILL RUNNING and fh still open, and every caller only tests `if not p:
+    # continue` -- so a server that took longer than 20 minutes to answer /health
+    # stayed resident for the rest of the runner's multi-hour life while the loop
+    # immediately called serve() again for the next arm, putting a SECOND model
+    # on the card. gpu_lock cannot catch that: the runner already holds the lock,
+    # so require_lock is satisfied for the second spawn, and preflight() only
+    # refuses on host commit, which a VRAM-resident model need not trip. Rule 20
+    # is one GPU job at a time and this was the hole in it.
+    #
+    # (The sleep also moved to the END of the loop: the first two seconds used to
+    # be spent sleeping before the first health check, so a server that was ready
+    # immediately still cost 2 s and one that died instantly was noticed late.)
+    log("  %s: server never became healthy in 20 min -- killing it rather than "
+        "leaving it resident (rule 20)" % tag)
+    try:
+        p.terminate()
+        p.wait(timeout=30)
+    except Exception:
+        try:
+            p.kill()
+            p.wait(timeout=10)
+        except Exception:
+            pass
+    fh.close()
     return None, fh
 
 
@@ -416,13 +441,36 @@ def task_e1():
     out = {"_schema": "kld-full v1", "slug": SLUG, "ctx": 8192, "chunks": 36,
            "token_positions": 294912, "arms": {}}
     if not os.path.exists(base):
+        # WRITE TO A .part AND RENAME, for the same reason as stage6's 4-chunk
+        # base but at ~73 GB: llama-perplexity writes this incrementally, and
+        # `if not os.path.exists(base)` was the only completeness test on it. A
+        # SIGKILL or a reboot mid-dump left a partial file that the next run
+        # accepted, and ALL THREE quant arms were then scored against a
+        # truncated base -- a silently wrong KLD ladder rather than a missing
+        # one, and this campaign RANKS its recipes on that ladder. The rename is
+        # atomic, so `base` only ever names a file written to completion.
         log("  dumping BF16 base logits at 36 chunks (large)")
+        part = base + ".part"
+        try:
+            os.remove(part)
+        except OSError:
+            pass
         with open(os.path.join(WORK, "kld36-base.log"), "w") as fh:
-            gpu_lock.serve([ppl, "-m", paths.model_path("vendor-Ornith-1.5-9B-BF16.gguf"),
-                            "-f", corpus, "-c", "8192", "--chunks", "36",
-                            "-ngl", "99", "--kl-divergence-base", base],
-                           tag="kld36-base", stdout=fh,
-                           stderr=subprocess.STDOUT).wait()
+            rc = gpu_lock.serve([ppl, "-m", paths.model_path("vendor-Ornith-1.5-9B-BF16.gguf"),
+                                 "-f", corpus, "-c", "8192", "--chunks", "36",
+                                 "-ngl", "99", "--kl-divergence-base", part],
+                                tag="kld36-base", stdout=fh,
+                                stderr=subprocess.STDOUT).wait()
+        if rc != 0 or not os.path.exists(part):
+            try:
+                os.remove(part)
+            except OSError:
+                pass
+            raise RuntimeError(
+                "KLD base dump failed rc=%s -- leaving no .dat rather than a "
+                "partial one every later run would trust" % rc)
+        os.replace(part, base)
+        log("  base logits complete: %.1f GB" % (os.path.getsize(base) / 1073741824.0))
     for label in ("Q8_0", "Q4_K_M", "IQ2_M"):
         lp = os.path.join(WORK, "kld36-%s.log" % label)
         with open(lp, "w") as fh:
