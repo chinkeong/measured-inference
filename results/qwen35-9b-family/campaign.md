@@ -60,3 +60,38 @@ the roofline are properties of the SHAPE and are measured ONCE.
   speculative-decoding arms of the Ornith campaign therefore have no counterpart
   here and no ratio may be formed for them. Published as an asymmetry, not
   quietly dropped.
+
+## What is being measured for the anchor, and what is deliberately not
+
+Ornith-1.5-9B is the subject; Qwen3.5-9B is the **anchor**, and an anchor needs
+only what a legal comparison requires — not a second full field guide.
+
+| | why |
+|---|---|
+| **A — paired anchor sweep** | both arms in ONE sweep, fully crossed over 2 samplers, 4 reps with the first discarded (rule 12), alternating order (rule 30). This is what makes any Ornith-vs-Qwen speed claim legal, and it publishes the anchor's own absolute so a later sweep can form ratios against it. |
+| **B — rule-21 suite on Qwen3.5-9B** | the same frozen suite hash `1cdf54f8eb9d3f8f` the Ornith arm and `qwen38-27b-blind` ran, so the composite Means are comparable by construction (rule 23). |
+| ~~GPQA Diamond~~ | **NOT queued, deliberately.** It cost 7 h 55 m on Ornith and its value there was validating the harness against a published figure. Re-spending a day on the anchor buys a number this comparison does not need. Recorded as an omission rather than left to look like an oversight. |
+| ~~KLD across models~~ | **not a legal instrument here.** KL divergence asks how far a quant is from ITS OWN unquantised weights; pointed at two different models it compares distributions that were never meant to agree. A shared tokenizer is a necessary condition for that comparison, not a sufficient one. |
+| ~~speculative arms~~ | **impossible, not skipped.** Qwen3.5-9B ships no draft head, so there is no counterpart to Ornith's MTP arms and no ratio can be formed. |
+
+`work/run-to-publish.py` runs A then B unattended: resumable through
+`data/chain-state.json`, a heartbeat before and after every step, each child
+taking the GPU lock itself so rule 20 holds without the chain knowing anything
+about the card, and a checkpoint commit after each step.
+
+## Stage 7 publish target — mirrored, never auto-pushed
+
+The finished report is `results/qwen35-9b-family/index.html`, and it is mirrored
+to **`~/Workspace/chinkeong.github.io/qwen-9b/index.html`** —
+`github.com/chinkeong/chinkeong.github.io`, branch `master`. The precedent is
+`results/qwen38-27b-blind` → `qwen-27b/`, which carries `index.html`,
+`figures/`, `quant-ladder.png` and the standalone agentic reports.
+
+`scripts/report/mirror-to-pages.sh <slug> <page-dir>` does the copy. **It does
+not commit and it does not push, deliberately.** Everything else in this tree
+pushes automatically because measured data on one disk is at risk (rule 28) and
+that remote is the author's own working repo. This target is a **public
+website**: a wrong number on a public page is read, cached and cited before it
+can be corrected, so the last step stays a human decision. The script stages the
+bytes, refuses outright while `index.html` is absent or still contains
+TODO/PLACEHOLDER/FIXME, and prints the two commands that would publish.
