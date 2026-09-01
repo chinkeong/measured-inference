@@ -57,12 +57,63 @@ def log(m):
     print("[%s] %s" % (time.strftime("%H:%M:%S"), m), flush=True)
 
 
+def _remote_size(url):
+    """Content-Length from a HEAD, following redirects. None if unavailable."""
+    try:
+        r = subprocess.run(["curl", "-sIL", url], capture_output=True,
+                           text=True, timeout=120)
+        n = None
+        for line in r.stdout.splitlines():
+            if line.lower().startswith("content-length:"):
+                n = int(line.split(":", 1)[1].strip())
+        return n
+    except Exception:
+        return None
+
+
 def fetch(url, dest):
-    if os.path.exists(dest) and os.path.getsize(dest) > 1e9:
+    """Download, and only call it done when the size MATCHES the remote.
+
+    `os.path.getsize(dest) > 1e9` accepted any file over a gigabyte as a
+    finished download. Both arms here are ~3.83 GB, so a kill or reboot after
+    the first gigabyte left a partial file this gate called complete: `curl -C -`
+    was then never invoked again on it, and lines below computed `size_bytes`
+    and `bpw` from the stub. The whole experiment is "two files 0.22% apart in
+    bits, so what differs is FORMAT, not size" -- a 2.0 GB stub yields bpw 1.79
+    and would have been written into format-vs-bpw.json as a measurement (rule
+    1). It is also silent: llama-bench fails to load the truncated GGUF, tg128
+    comes back None, and the arm re-fails identically on every re-run with
+    nothing pointing at the download.
+
+    Content-Length is the check that actually answers the question. When the
+    remote will not give one, the size is recorded as UNVERIFIED rather than
+    assumed good -- an unverifiable download is not a verified one.
+    """
+    want = _remote_size(url)
+    have = os.path.getsize(dest) if os.path.exists(dest) else 0
+    if have and want and have == want:
         return True
+    if have and want and have != want:
+        log("  %s is %d bytes, remote says %d -- resuming the partial download"
+            % (os.path.basename(dest), have, want))
+    elif have and not want:
+        log("  %s exists (%d bytes) and the remote gave no Content-Length: "
+            "size UNVERIFIED, re-checking with curl -C -" % (os.path.basename(dest), have))
     log("downloading %s" % os.path.basename(dest))
     r = subprocess.run(["curl", "-sL", "-C", "-", "-o", dest, url], timeout=7200)
-    return r.returncode == 0 and os.path.getsize(dest) > 1e9
+    got = os.path.getsize(dest) if os.path.exists(dest) else 0
+    if r.returncode != 0:
+        log("  curl failed rc=%d for %s" % (r.returncode, os.path.basename(dest)))
+        return False
+    if want and got != want:
+        log("  INCOMPLETE: %s is %d bytes, remote says %d -- refusing to use it"
+            % (os.path.basename(dest), got, want))
+        return False
+    if not want and got <= 1e9:
+        log("  %s is only %d bytes and the size could not be verified"
+            % (os.path.basename(dest), got))
+        return False
+    return True
 
 
 def run(cmd, logp, timeout=7200):

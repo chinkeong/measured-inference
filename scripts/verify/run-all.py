@@ -202,6 +202,11 @@ CHECKS = (
     ("arms-lane", "scripts/verify/test-arms.py", (), 900,
      "the sweep runner stopped recording, resuming, discarding, ordering or "
      "stopping the way results/ depends on"),
+    ("gpu-lock-guards", "scripts/verify/test-gpu-lock-guards.py", (), 180,
+     "a condition gpu_lock cannot evaluate is being reported as the SAFE "
+     "answer -- an unreadable process scan reading as an idle card, or `kill` "
+     "clearing a live holder's lock, which is how a second GPU job starts on "
+     "an occupied card (rule 20)"),
     ("watchdog-state", "scripts/verify/test-watchdog-state.sh", (), 120,
      "the campaign watchdog reports the wrong GPU state, so an idle card "
      "reads as busy and hours of card time are lost with the log silent"),

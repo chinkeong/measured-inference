@@ -99,6 +99,11 @@ _held = None      # our lock payload, once acquired
 _jobs = []        # job-object handles kept alive for the life of this process
 
 
+class ServerScanFailed(RuntimeError):
+    """The llama.cpp process scan could not run. Distinct from "none found":
+    an empty list is a measurement, this is the absence of one (rule 1)."""
+
+
 class GpuBusy(RuntimeError):
     """Another GPU job holds the lock, or a foreign llama-server is live."""
 
@@ -342,15 +347,33 @@ def live_servers():
                 name = _posix_tool_name(pid, os.path.basename(bits[1].strip()))
                 if name:
                     out.append((pid, name))
-    except Exception:
-        pass
+    except Exception as e:
+        # FAIL CLOSED. This blanket swallow turned "I could not look" into
+        # "definitely nothing is running" -- and that is the exact input on
+        # which a caller starts a SECOND GPU job, which is the host-exhaustion
+        # rule 20 exists to prevent. Anything that stops `ps` producing output
+        # (a 30 s timeout, no `ps` on a minimal container, an OOM-killed or
+        # EPERM'd child) reached this line and returned []. The inner int()
+        # guard above was added for the same shape and fixed only its own half.
+        # The uncertainty is now raised, and every caller decides deliberately.
+        raise ServerScanFailed(
+            "could not enumerate running llama.cpp tools (%s: %s). This is NOT "
+            "the same as 'none are running', and must never be treated as an "
+            "idle card." % (type(e).__name__, e))
     return out
 
 
 def kill_servers():
     """Kill every llama-server on the machine. Returns the pids killed."""
     killed = []
-    for pid, _ in live_servers():
+    try:
+        found = live_servers()
+    except ServerScanFailed as e:
+        # Nothing was killed and the caller must not read that as "nothing was
+        # running". Re-raised rather than returning [], which would print
+        # "killed 0 process(es)" over a card that may still be occupied.
+        raise ServerScanFailed("%s -- so nothing was killed" % e)
+    for pid, _ in found:
         try:
             if _WINDOWS:
                 subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"],
@@ -511,9 +534,23 @@ def acquire(tag, wait_s=0, allow_foreign=False):
                     try:
                         os.unlink(LOCK_PATH)
                     except OSError:
-                        pass
-                    continue
-                cur = holder()
+                        # THE UNLINK CAN FAIL, and this used to `continue`
+                        # regardless -- jumping past both the deadline check and
+                        # the sleep below, so an unlinkable stale lockfile (a
+                        # read-only directory, a foreign owner, a vanished
+                        # mount) turned the retry into an unbounded 100%-CPU
+                        # spin that never raised, never printed, and never
+                        # honoured wait_s -- including the documented wait_s=0
+                        # fail-fast. Reproduced on this box: acquire(wait_s=0)
+                        # was still spinning when a 6 s timeout killed it.
+                        # Fall through to the deadline check instead.
+                        cur = {"pid": None, "tag": "stale lockfile",
+                               "acquired": None,
+                               "argv": "could not remove %s" % LOCK_PATH}
+                    else:
+                        continue
+                else:
+                    cur = holder()
             else:
                 with os.fdopen(fd, "w", encoding="utf-8") as fh:
                     json.dump(rec, fh, indent=2)
@@ -534,7 +571,19 @@ def acquire(tag, wait_s=0, allow_foreign=False):
         time.sleep(2)
 
     if not allow_foreign:
-        foreign = live_servers()
+        try:
+            foreign = live_servers()
+        except ServerScanFailed as e:
+            # The whole point of this check is to refuse to start an arm on top
+            # of another arm's weights. If the scan cannot run, the safe answer
+            # is to refuse, not to proceed -- proceeding is how two resident
+            # models caused the 2026-08-29 host OOM.
+            release()
+            raise GpuBusy(
+                "cannot verify the card is free: %s\n"
+                "Refusing to start rather than assuming an empty card (rule "
+                "20). Fix the scan, or pass allow_foreign=True if you have "
+                "checked by hand and accept owning that decision." % e)
         if foreign:
             release()
             raise GpuBusy(
@@ -776,7 +825,14 @@ def _cmd_status():
         print("         %s" % cur.get("argv"))
     else:
         print("         free")
-    servers = live_servers()
+    try:
+        servers = live_servers()
+    except ServerScanFailed as e:
+        # Exit NON-ZERO. Callers -- campaign-watchdog.sh among them -- read this
+        # exit code as "is the card idle", and 0 here would publish an unknown
+        # as an idle card.
+        print("servers: UNKNOWN — %s" % e)
+        return 1
     if servers:
         print("servers: %d LIVE — %s"
               % (len(servers), ", ".join("%s(%d)" % (n, p) for p, n in servers)))
@@ -786,9 +842,32 @@ def _cmd_status():
 
 
 def _cmd_kill():
+    # NAME THE HOLDER BEFORE REMOVING ITS LOCK. kill_servers() only terminates
+    # processes whose name is in SERVER_NAMES -- and the lock holder is never
+    # one of those. It is the Python launcher (bench.py, arms.py, a stage
+    # script), which this cannot see. So `kill` used to leave that launcher
+    # running, delete its lockfile underneath it, and print "cleared lock",
+    # after which the launcher never re-checks (`acquire()` returns early on
+    # `_held is not None`) and the next job acquires a lock the card is not
+    # actually free for. _cmd_release() twenty lines below has had exactly this
+    # guard all along.
+    cur = holder()
+    if cur and not ("--force" in sys.argv[1:] or "-f" in sys.argv[1:]):
+        print("refusing: the lock is held by a LIVE process that is NOT a "
+              "llama.cpp tool and that `kill` cannot stop:")
+        print("  pid %s, tag %r, since %s" % (cur.get("pid"), cur.get("tag"),
+                                              cur.get("acquired")))
+        print("  %s" % cur.get("argv"))
+        print("Stop that process first (it owns the card), then re-run. "
+              "`kill --force` removes the lockfile anyway and is how a second "
+              "GPU job gets started on a busy card -- rule 20.")
+        return 1
     killed = kill_servers()
     print("killed %d llama-server process(es)%s"
           % (len(killed), (": " + ", ".join(map(str, killed))) if killed else ""))
+    if cur:
+        print("WARNING --force over a LIVE holder: pid %s (%r) is still running "
+              "and no longer holds a lock." % (cur.get("pid"), cur.get("tag")))
     try:
         os.unlink(LOCK_PATH)
         print("cleared lock %s" % LOCK_PATH)

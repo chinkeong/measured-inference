@@ -394,6 +394,9 @@ def live_llama(gate):
     already supplied. Verified against the fixed module on 2026-08-31: same pids,
     same real names, no duplicates.
     """
+    # live_servers() raises ServerScanFailed rather than returning [] when it
+    # cannot look, so this propagates by design: the ladder must not start an
+    # arm on an unverified card (rule 20).
     found = dict((p, n) for p, n in gpu_lock.live_servers())
     if os.name == "nt":
         return sorted(found.items())

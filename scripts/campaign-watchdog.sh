@@ -252,19 +252,69 @@ print(len(json.load(open(p)).get('failed',[])) if os.path.exists(p) else 0)" "$S
 }
 
 push_if_ahead() {
-    local ahead
-    ahead=$(git rev-list --count origin/main..HEAD 2>/dev/null || echo 0)
-    if [ "${ahead:-0}" -gt 0 ]; then
-        if git push origin main >/dev/null 2>&1; then
-            # cut -c is BYTE-based in uutils coreutils, which is what this box ships, so
-            # slicing a commit subject mid-em-dash emits mojibake into the watchdog's
-            # own log. awk substr is character-safe.
-            echo "$(date +%H:%M:%S) PUSHED $ahead commit(s) to origin/main - $(git log --oneline -1 | awk '{print substr($0,1,58)}')"
-        else
-            echo "$(date +%H:%M:%S) PUSH FAILED with $ahead commit(s) unpublished — measured data is on this disk only."
+    # THE COUNT, THE PUSH AND THE PROOF MUST NAME THE SAME REF. This counted
+    # `origin/main..HEAD` and then ran `git push origin main`, which publishes
+    # the local main ref and not HEAD. On any branch that is not main it
+    # reported "PUSHED 3 commit(s)" while git said "Everything up-to-date" and
+    # exited 0, so the PUSH FAILED branch never ran and the false assurance
+    # repeated every 300 s over measured data that never left the disk (rule
+    # 28). Reproduced in a scratch repo on branch campaign/ornith.
+    #
+    # And `|| echo 0` turned "I cannot resolve the remote ref" into "there is
+    # nothing to push", which is a silent permanent no-op: the same input that
+    # means everything is safe also means nothing is known.
+    local branch upstream ahead out rc left
+    branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || branch=""
+    if [ -z "$branch" ] || [ "$branch" = "HEAD" ]; then
+        if [ "$prev_push" != "detached" ]; then
+            echo "$(date +%H:%M:%S) PUSH BLOCKED — detached HEAD, so there is no branch to publish. Commits are on this disk only."
+            prev_push="detached"
+        fi
+        return
+    fi
+    upstream="origin/$branch"
+    if git rev-parse --verify --quiet "$upstream" >/dev/null 2>&1; then
+        ahead=$(git rev-list --count "$upstream..HEAD" 2>/dev/null) || ahead=""
+    else
+        ahead=""            # unknown, NOT zero
+    fi
+    if [ -z "$ahead" ]; then
+        if [ "$prev_push" != "unknown" ]; then
+            echo "$(date +%H:%M:%S) PUSH STATE UNKNOWN — cannot resolve $upstream, so the unpublished count is UNKNOWN, not zero. Pushing anyway to find out."
+            prev_push="unknown"
+        fi
+    elif [ "$ahead" = "0" ]; then
+        prev_push=""        # clean: re-arm every alarm
+        return
+    fi
+    out=$(git push origin "$branch" 2>&1); rc=$?
+    if [ "$rc" -ne 0 ]; then
+        # KEEP THE REASON. The old branch discarded git's stderr entirely, so a
+        # permanently doomed push (rejected non-fast-forward, a file over the
+        # 100 MB limit, an expired credential) was indistinguishable from a
+        # transient network blip and retried forever with nothing to act on.
+        if [ "$prev_push" != "failed:$rc" ]; then
+            echo "$(date +%H:%M:%S) PUSH FAILED rc=$rc with ${ahead:-?} commit(s) unpublished — measured data is on this disk only. git said: $(printf '%s' "$out" | tr '\n' ' ' | awk '{print substr($0,1,180)}')"
+            prev_push="failed:$rc"
+        fi
+        return
+    fi
+    # PROVE IT LANDED. A zero exit is not proof: `git push origin main` from a
+    # non-main HEAD exits 0 having published nothing.
+    left=$(git rev-list --count "origin/$branch..HEAD" 2>/dev/null || echo "?")
+    if [ "$left" = "0" ]; then
+        if [ "$prev_push" != "ok" ]; then
+            echo "$(date +%H:%M:%S) PUSHED ${ahead:-?} commit(s) to origin/$branch, verified 0 remaining - $(git log --oneline -1 | awk '{print substr($0,1,58)}')"
+            prev_push="ok"
+        fi
+    else
+        if [ "$prev_push" != "incomplete" ]; then
+            echo "$(date +%H:%M:%S) PUSH INCOMPLETE — git exited 0 but $left commit(s) are still not on origin/$branch. Do not trust this as published."
+            prev_push="incomplete"
         fi
     fi
 }
+
 
 report_once() {
     local s; s=$(gpu_state)
@@ -403,7 +453,7 @@ trap 'rm -f "$PIDFILE"' EXIT
 trap 'rm -f "$PIDFILE"; [ -n "${SLEEP_PID:-}" ] && kill "$SLEEP_PID" 2>/dev/null; exit 0' INT TERM
 
 prev=""; prev_stall=""; orphan_seen=""; last_push=0
-offcard_since=0; offcard_warned=""; SLEEP_PID=""; prev_power=""
+offcard_since=0; offcard_warned=""; SLEEP_PID=""; prev_power=""; prev_push=""
 while true; do
     state=$(gpu_state)
     fails=$(failures)
@@ -425,6 +475,15 @@ while true; do
           HELD*)   echo "$(date +%H:%M:%S) GPU LOCK HELD by no live process — stale lock. gpu_lock.py release clears it." ;;
           BUSY*)   echo "$(date +%H:%M:%S) GPU BUSY — a campaign job holds the card." ;;
           OFF-CARD*) echo "$(date +%H:%M:%S) GPU OFF-CARD — a campaign job is alive but the card is free (download, hashing, CPU scoring). Do NOT start a second job: rule 20. Card time is being spent doing nothing." ;;
+        esac
+        # THE FAILURE COUNT DRIVES THE TRANSITION AND MUST REACH THE READER.
+        # `state` gets a " FAILED=n" suffix appended above, so a task failing
+        # changes the transition key and re-fires the case -- which then printed
+        # the SAME all-clear line as before ("GPU BUSY - a campaign job holds
+        # the card") with the failure nowhere in it. A duplicate reassuring line
+        # is how a reader learns to skim the log.
+        case "$state" in
+          *FAILED=*) echo "$(date +%H:%M:%S) TASK FAILURES: ${state#* FAILED=} recorded in runner-state.json - the line above is the GPU state, not an all-clear." ;;
         esac
         prev="$state"
         [ "${state#OFF-CARD}" != "$state" ] && offcard_since=$(date +%s) || offcard_since=0

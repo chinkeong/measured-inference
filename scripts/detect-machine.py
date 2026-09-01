@@ -1182,6 +1182,15 @@ def gpu_busy_reason():
         return None
     try:
         live = gpu_lock.live_servers()
+    except getattr(gpu_lock, "ServerScanFailed", Exception) as e:
+        # FAIL CLOSED. This gate exists to stop an idle baseline being measured
+        # while a model is resident -- its weights are in the reading. A scan
+        # that could not run is not evidence of an empty card, and returning []
+        # here published exactly that assumption as a measured idle figure
+        # (rule 1: measured, cited, or labeled-derived -- not assumed).
+        return ("could not check whether a llama.cpp process is live (%s), so "
+                "this reading cannot be certified as a desktop idle baseline. "
+                "Fix the process scan and re-run." % e)
     except Exception:                              # pragma: no cover
         live = []
     if live:

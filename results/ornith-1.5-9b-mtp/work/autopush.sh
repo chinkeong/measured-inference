@@ -20,19 +20,62 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 INTERVAL="${AUTOPUSH_INTERVAL:-300}"
 cd "$REPO" || exit 1
 fails=0
+last_beat=0
+BEAT="${AUTOPUSH_HEARTBEAT:-3600}"     # say "still alive, nothing to push" this often
 while true; do
-    ahead=$(git rev-list --count origin/main..HEAD 2>/dev/null || echo 0)
-    if [ "${ahead:-0}" -gt 0 ]; then
-        if out=$(git push origin main 2>&1); then
-            echo "[$(date +%H:%M:%S)] pushed $ahead commit(s): $(git log --oneline -1 | cut -c1-72)"
-            fails=0
-        else
-            fails=$((fails + 1))
-            echo "[$(date +%H:%M:%S)] push FAILED (attempt $fails): $(echo "$out" | tail -1)"
-            # Back off so a broken remote does not spin: 5m, 10m, 20m, capped.
-            sleep $(( INTERVAL * (fails < 3 ? fails : 4) ))
-            continue
+    # THE COUNT AND THE PUSH MUST NAME THE SAME REF. This counted
+    # `origin/main..HEAD` and pushed the `main` ref: from any branch that is not
+    # main it reported "pushed 3 commit(s)" while git said "Everything
+    # up-to-date" and exited 0, so the failure branch never ran and measured
+    # data stayed on this disk under a line claiming it had left (rule 28).
+    branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || branch=""
+    now=$(date +%s)
+    if [ -z "$branch" ] || [ "$branch" = "HEAD" ]; then
+        echo "[$(date +%H:%M:%S)] BLOCKED: detached HEAD, no branch to publish"
+        sleep "$INTERVAL"; continue
+    fi
+    if git rev-parse --verify --quiet "origin/$branch" >/dev/null 2>&1; then
+        ahead=$(git rev-list --count "origin/$branch..HEAD" 2>/dev/null) || ahead=""
+    else
+        ahead=""      # UNKNOWN. `|| echo 0` used to make this read as "nothing
+                      # to push", a silent permanent no-op: the loop stayed
+                      # alive, logged nothing and published nothing for as long
+                      # as the remote ref stayed missing.
+    fi
+    if [ -n "$ahead" ] && [ "$ahead" = "0" ]; then
+        # A SILENT LOOP AND A DEAD LOOP LOOK IDENTICAL IN A LOG. This printed
+        # nothing on a quiet iteration, so eight hours of "nothing to push" and
+        # eight hours of "the process died" were byte-identical to anyone
+        # reading autopush.log. A heartbeat costs one line an hour and makes the
+        # difference visible.
+        if [ $(( now - last_beat )) -ge "$BEAT" ]; then
+            echo "[$(date +%H:%M:%S)] alive, nothing to push (origin/$branch is current)"
+            last_beat=$now
         fi
+        sleep "$INTERVAL"; continue
+    fi
+    if out=$(git push origin "$branch" 2>&1); then
+        left=$(git rev-list --count "origin/$branch..HEAD" 2>/dev/null || echo "?")
+        if [ "$left" = "0" ]; then
+            echo "[$(date +%H:%M:%S)] pushed ${ahead:-?} commit(s) to origin/$branch, verified 0 remaining: $(git log --oneline -1 | awk '{print substr($0,1,72)}')"
+            fails=0
+            last_beat=$now
+        else
+            # A zero exit is not proof anything landed.
+            echo "[$(date +%H:%M:%S)] INCOMPLETE: git exited 0 but $left commit(s) remain unpublished on origin/$branch"
+            fails=$((fails + 1))
+        fi
+    else
+        fails=$((fails + 1))
+        # Keep the REASON, not just its last line: a non-fast-forward, an
+        # over-limit file and an expired credential are permanent and need
+        # acting on; a DNS blip is not. The old log could not tell them apart.
+        echo "[$(date +%H:%M:%S)] push FAILED (attempt $fails): $(printf '%s' "$out" | tr '\n' ' ' | awk '{print substr($0,1,200)}')"
+        # 5m, 10m, 20m, capped. `fails` resets only on a VERIFIED push, so the
+        # backoff ratchets while the remote is broken -- deliberate: a doomed
+        # push retried every 5 minutes buries every other line in this log.
+        sleep $(( INTERVAL * (fails < 3 ? fails : 4) ))
+        continue
     fi
     sleep "$INTERVAL"
 done
