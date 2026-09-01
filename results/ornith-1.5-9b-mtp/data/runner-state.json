@@ -1,10 +1,16 @@
 {
  "done": [
-  "A1",
   "A2",
   "A3",
   "B1",
   "E1"
  ],
- "started_utc": "2026-09-01T01:42:20Z"
+ "started_utc": "2026-09-01T01:42:20Z",
+ "reruns": [
+  {
+   "task": "A1",
+   "utc": "2026-09-01T12:37:50Z",
+   "why": "loop scan read `content` only; --jinja put the generation in `reasoning_content`, so the detector judged an empty string and returned clean for all three floor arms"
+  }
+ ]
 }

@@ -1,0 +1,97 @@
+The user wants a single self-contained JavaScript file implementing a red-black tree class with:
+- insert
+- delete
+- search
+- in-order iterator
+
+Code only, no explanation.
+
+Let me write a complete, correct red-black tree implementation in JavaScript.
+
+A red-black tree must maintain these properties:
+1. Every node is either red or black.
+2. The root is black.
+3. Every leaf (NIL) is black.
+4. If a node is red, then both its children are black (no two red nodes in a row).
+5. Every simple path from a node to a descendant leaf contains the same number of black nodes.
+
+Let me implement this carefully.
+
+I'll use a NIL sentinel node for simplicity, or I'll handle null. Let me use a cleaner approach with a NIL node.
+
+Let me write the implementation:
+
+```javascript
+class RedBlackTree {
+  constructor() {
+    this.root = null;
+  }
+
+  // NIL sentinel
+  _nil() {
+    return this._nilNode;
+  }
+
+  _initNil() {
+    if (!this._nilNode) {
+      this._nilNode = { color: 'black', left: null, right: null, key: null };
+    }
+    return this._nilNode;
+  }
+
+  _insertFixup(node) {
+    while (node !== this._nil() && node.parent === this._nil() || (node.parent && node.parent.color === 'red' && node.parent.parent && node.parent.parent.color === 'black')) {
+      // hmm this is getting complicated
+    }
+  }
+}
+```
+
+Let me be more careful. I'll use a standard implementation.
+
+Let me write a clean version using a NIL sentinel approach.
+
+```javascript
+class RedBlackTree {
+  constructor() {
+    this.root = null;
+    this._nil = { color: 'black', left: null, right: null, key: null };
+  }
+
+  _newNode(key, color) {
+    return { key, color: color || 'red', left: this._nil, right: this._nil, parent: null };
+  }
+
+  insert(key) {
+    const z = this._newNode(key, 'red');
+    let y = null;
+    let x = this.root;
+    while (x !== this._nil) {
+      y = x;
+      if (z.key < x.key) {
+        z.left = x.left;
+        x.left = z;
+      } else {
+        z.right = x.right;
+        x.right = z;
+      }
+      z.parent = x;
+      x = x.parent;
+    }
+    z.parent = y;
+    if (y === null) {
+      this.root = z;
+    } else if (z.key < y.key) {
+      y.left = z;
+    } else {
+      y.right = z;
+    }
+    z.color = 'red';
+    this._insertFixup(z);
+    this.root.color = 'black';
+    return z;
+  }
+
+  _insertFixup(z) {
+    while (z.parent.color === 'red'
+

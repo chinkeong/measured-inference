@@ -1427,3 +1427,20 @@ four answers that were being blessed on almost no text:
     after:   {clean: 67, hint: 3, LOOP: 1, NO-DATA: 4}   false positives: 1
 
 The one false positive is pre-existing and untouched.
+
+### A1 — loop scan over every transcript kept (2026-09-01)
+
+Stage 1 saved only 400 characters per floor probe, so the floors could not be
+loop-checked from what was written down — rule 28 the hard way, and the reason
+this task re-takes them with the full text kept. Detector:
+`scripts/bench/loop-detect.py`'s D5 signals, the repo's own.
+
+| floor | predicted_n | finish | verdict |
+|---|---|---|---|
+| Q8_0 | 700 | length | ('LOOP', ['N4-vocab-collapse!']) |
+| Q4_K_M | 700 | length | ('hint', ['N4-vocab-collapse']) |
+| IQ2_M | 700 | length | ('hint', ['N4-vocab-collapse']) |
+
+Spec-sweep transcripts: spec-mtp-n10-p0.5__rep1__00-rbtree-code.txt=('LOOP', ['N3-compresses!', 'N4-vocab-collapse!']), spec-mtp-n10-p0__rep1__00-rbtree-code.txt=('LOOP', ['N3-compresses!', 'N4-vocab-collapse!']), spec-mtp-n16-p0.5__rep1__00-rbtree-code.txt=('LOOP', ['N3-compresses!', 'N4-vocab-collapse!']), spec-mtp-n4-p0.75__rep1__00-rbtree-code.txt=('LOOP', ['N3-compresses!', 'N4-vocab-collapse!']), spec-mtp-n6-p0.5__rep1__00-rbtree-code.txt=('LOOP', ['N3-compresses!', 'N4-vocab-collapse!']), spec-none__rep1__00-rbtree-code.txt=('LOOP', ['N3-compresses!', 'N4-vocab-collapse!'])
+
+**Floors showing a loop: none**

@@ -1,0 +1,123 @@
+The user wants a single self-contained JavaScript file implementing a red-black tree class with:
+- insert
+- delete
+- search
+- in-order iterator
+
+Code only, no explanation.
+
+Let me write a complete red-black tree implementation in JavaScript. I'll use ES6 classes.
+
+Let me implement a proper red-black tree with all operations.
+
+Key components:
+- Node class with value, left, right, parent, color
+- RedBlackTree class with insert, delete, search, in-order iterator
+
+Let me write this carefully.
+
+For the iterator, I'll use a generator function that traverses in-order.
+
+Let me write it out.
+
+```javascript
+class Node {
+  constructor(value, color = 'red') {
+    this.value = value;
+    this.color = color;
+    this.left = null;
+    this.right = null;
+    this.parent = null;
+  }
+}
+
+class RedBlackTree {
+  constructor() {
+    this.root = null;
+  }
+
+  // ... methods
+}
+```
+
+Let me implement the full algorithm.
+
+For insert, I'll use the standard approach:
+1. Insert as normal BST
+2. Fix up with rebalancing (left-left, left-right, right-left, right-right cases)
+
+For delete, I'll use the standard approach:
+1. Find node to delete
+2. Replace with left subtree or right subtree
+3. Fix up with rebalancing
+
+Let me write this out carefully.
+
+Let me write the full implementation:
+
+```javascript
+class Node {
+  constructor(value, color = 'red') {
+    this.value = value;
+    this.color = color;
+    this.left = null;
+    this.right = null;
+    this.parent = null;
+  }
+}
+
+class RedBlackTree {
+  constructor() {
+    this.root = null;
+  }
+
+  search(value) {
+    let node = this.root;
+    while (node) {
+      if (value < node.value) {
+        node = node.left;
+      } else if (value > node.value) {
+        node = node.right;
+      } else {
+        return node;
+      }
+    }
+    return null;
+  }
+
+  insert(value) {
+    const node = new Node(value);
+    let parent = this.root;
+    while (parent) {
+      if (value < parent.value) {
+        if (!parent.left) {
+          parent.left = node;
+          node.parent = parent;
+          break;
+        }
+        parent = parent.left;
+      } else {
+        if (!parent.right) {
+          parent.right = node;
+          node.parent = parent;
+          break;
+        }
+        parent = parent.right;
+      }
+    }
+    if (!this.root) {
+      this.root = node;
+    } else {
+      this._fix(node);
+    }
+  }
+
+  _fix(node) {
+    let uncle = null;
+    if (node.parent && node.parent.parent) {
+      if (node.parent.parent.color === 'red') {
+        uncle = node.parent.parent.right;
+      }
+    }
+    if (
+
