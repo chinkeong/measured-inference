@@ -466,6 +466,73 @@ WSL2 Ubuntu 24.04, and three of these differ there.
 | `scripts/verify/run-all.py` | 6 of 7, `ladder-png` skipped for absent matplotlib — the honest skip, not a defect |
 | SMBIOS | `/sys/firmware/dmi/tables/DMI` is readable as root, so `ram_channels` comes out **MEASURED (2)** from the DIMM locators. Under WSL there is no such table and the field is null |
 
+### SYMPTOM: a CUDA app "hangs" for minutes on first launch, no output, no error
+
+On a box with more than one GPU, `nvidia-smi` orders devices by PCI bus and CUDA
+does NOT by default. So `CUDA_VISIBLE_DEVICES=0` can resolve to a different card
+than `nvidia-smi -i 0` describes. If the binary was built for only one
+architecture and lands on the other, CUDA JIT-compiles PTX for the unexpected
+target on the fly — minutes of silence, no console output, indistinguishable
+from a freeze.
+
+```bash
+export CUDA_DEVICE_ORDER=PCI_BUS_ID      # make CUDA agree with nvidia-smi
+```
+
+Put it in the profile, not in one script. Two consequences for this repo:
+
+- **Every number is attributed to a card.** `machine.json` describes GPU N and
+  `--gpu N` selects it, but a probe launched with a mismatched
+  `CUDA_VISIBLE_DEVICES` measures a different one, silently. `detect-machine.py`
+  now warns about this whenever it sees more than one GPU.
+- **`setup.sh --cuda` defaults to `-DCMAKE_CUDA_ARCHITECTURES=native`**, which
+  compiles for whichever card cmake found. On a mixed-GPU box, name both
+  (`--cuda-arch "86;89"`, whatever the two compute caps are) so a mismatch costs
+  a little compile time instead of a silent JIT stall. `compute_cap` in
+  `machine.json` is the value to match, per card.
+
+Do not chase a compiler or llama.cpp-version theory first. Check the device
+order.
+
+### SYMPTOM: bandwidth-bound numbers disagree between two boxes with the same card
+
+Check ECC before anything else. Datacenter parts ship with ECC ON over their
+memory and every read pays for it; consumer parts have none and report `[N/A]`.
+`machine.json` records `ecc_mode` for exactly this reason (measured, never
+changed — flipping it needs a reboot and is the operator's call).
+
+It is a rule-3 condition, not a preference: rule 10's decode estimate is
+bandwidth over file bytes, so a throughput or J/token figure taken with ECC on is
+not comparable with one taken with it off. A campaign that does not record it
+cannot say which it was holding.
+
+```bash
+nvidia-smi --query-gpu=ecc.mode.current,ecc.mode.pending --format=csv
+```
+
+### The tuning knobs that CHANGE a measurement, and therefore its conditions
+
+None of these are recommendations. Each one moves numbers, so each one has to be
+recorded beside them or the comparison is void (rule 3):
+
+| knob | what it moves | how it is recorded |
+|---|---|---|
+| board power cap (`-pl`) | J/token and, on power-bound workloads, throughput | `enforced_power_limit_w` in the power sidecar; `power_default_limit_w` in `machine.json` |
+| ECC on/off | memory bandwidth, hence every bandwidth-bound decode | `ecc_mode` in `machine.json` |
+| locked clocks (`-lgc`) | run-to-run variance, by stopping DVFS hunting | not recorded — the probe's own SM-clock column is the evidence (rule 12) |
+| persistence mode (`-pm 1`) | first-load latency | not recorded |
+
+**A power cap is not uniformly expensive, and that is worth measuring rather than
+assuming.** On a workload that never approaches the board's ceiling, capping
+costs nothing at all; on one that drives sustained high utilisation — a dense
+model under speculative decoding is the usual case — the same cap can cost a
+large fraction of throughput. `scripts/power/power-cap-arms.py` measures the
+curve; do not carry one workload's answer to another.
+
+If any of these are set persistently, target the GPU by **UUID, not index** —
+an index moves when a card changes slot, and a service that silently starts
+tuning the wrong card is worse than one that fails.
+
 ---
 
 ## WSL2

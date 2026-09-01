@@ -237,7 +237,7 @@ FIELD_ORDER = (
     "memory_topology", "board_total_mib", "gpu_name", "backend", "driver",
     "host_ram_gb", "host_mem_total_mib", "host_reserve_mib",
     "igpu_share_limit_mib", "spec_bandwidth_gbs", "cuda_arch", "compute_cap",
-    "ram_channels", "os", "arch", "power_default_limit_w",
+    "ram_channels", "ecc_mode", "os", "arch", "power_default_limit_w",
     "pl_writable_without_elevation", "elevated", "sudo_nopasswd",
     "privilege_path", "desktop_reserve_mib",
 )
@@ -1378,11 +1378,41 @@ def detect(args, log):
             p.unknown("power_default_limit_w",
                       "nvidia-smi reports no power.default_limit for this "
                       "card (it is [N/A] on cards without a settable limit)")
+        # ECC IS A BANDWIDTH CONDITION, NOT A RELIABILITY PREFERENCE.
+        # Datacenter parts ship with ECC ON over their memory and every read
+        # pays for it; consumer parts have no ECC at all and report [N/A].
+        # Rule 10's decode estimate is bandwidth over file bytes, and rule 3
+        # says a number travels with the conditions that produced it -- so a
+        # throughput or J/token figure taken with ECC on is not comparable with
+        # one taken with it off, and until now nothing in this profile said
+        # which you were holding. Recorded, never changed: flipping it needs a
+        # reboot and is the operator's call, not a detector's.
+        _ecc = nvidia_query(("ecc.mode.current", "ecc.mode.pending"),
+                            index=args.gpu)
+        ecc_cur = _ecc[0][0] if _ecc and _ecc[0] else None
+        ecc_pend = _ecc[0][1] if _ecc and _ecc[0] and len(_ecc[0]) > 1 else None
+        if ecc_cur and ecc_cur not in ("[N/A]", "N/A", ""):
+            p.measured("ecc_mode", ecc_cur,
+                       "nvidia-smi --query-gpu=ecc.mode.current",
+                       pending=ecc_pend,
+                       note=("ECC taxes every memory read. A bandwidth-bound "
+                             "decode number is not comparable across ECC "
+                             "states (rule 3)."))
+        else:
+            p.unknown("ecc_mode",
+                      "nvidia-smi reports no ecc.mode for this card, which is "
+                      "what a consumer part without ECC memory returns. Not a "
+                      "failure: there is no state to record.")
         if gpu_count > 1:
             p.note("gpu_name", warning=(
                 "%d GPUs on this box; this profile describes GPU %d only. "
                 "Rule 3: say which card produced a number, and re-run with "
-                "--gpu N for the others." % (gpu_count, args.gpu)))
+                "--gpu N for the others. ALSO: nvidia-smi orders devices by "
+                "PCI bus, CUDA does NOT by default -- so CUDA_VISIBLE_DEVICES=%d "
+                "may not be the card this profile describes. Export "
+                "CUDA_DEVICE_ORDER=PCI_BUS_ID before every launch so the two "
+                "agree, or every number here is attributed to the wrong GPU."
+                % (gpu_count, args.gpu, args.gpu)))
     else:
         rocm_mem = rocm_json(["--showmeminfo", "vram"])
         vram_total, where = _rocm_find(rocm_mem or {}, "vram", "total", "memory")

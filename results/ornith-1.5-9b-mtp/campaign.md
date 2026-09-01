@@ -1028,3 +1028,20 @@ VERDICT: orphan guard HOLDS on Linux
 ```
 
 Rule 20's third guard is now real on this platform instead of documented.
+
+### CAVEAT on the Stage-3 speculation sweep: every arm is n=1
+
+The sweep ran `repeat: 1` — one probe per arm, six arms. The ranking it produced
+(n4/p0.75 best at 1.238x, n10/p0 *slower* than no speculation at 0.967x) is
+therefore six single measurements, and rule 30's two-level effect alone spans
+~13% on this class of rig. The **categorical** finding survives that — a 0.967x
+arm and a 1.238x arm are 28% apart and the acceptance figures (0.298 against
+0.902) move in the same direction, which is two independent cheap metrics
+agreeing (rule 4). The **ordering of the middle arms** does not: n6/p0.5 at
+1.158x and n10/p0.5 at 1.123x are 3% apart on one probe each and should be read
+as a tie.
+
+Drafting-knob sweeps are known to be noisy without a clean monotonic trend, so
+single-run results from one are exactly the kind that need repeats before they
+are trusted. Recorded rather than quietly re-run: the arm file says `repeat: 1`,
+and any recipe quoting a middle arm needs `repeat: 3` first.
