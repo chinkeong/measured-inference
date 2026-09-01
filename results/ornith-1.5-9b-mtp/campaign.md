@@ -730,3 +730,12 @@ this task re-takes them with the full text kept. Detector:
 Spec-sweep transcripts: spec-mtp-n10-p0.5__rep1__00-rbtree-code.txt=('LOOP', ['N3-compresses!', 'N4-vocab-collapse!']), spec-mtp-n10-p0__rep1__00-rbtree-code.txt=('LOOP', ['N3-compresses!', 'N4-vocab-collapse!']), spec-mtp-n16-p0.5__rep1__00-rbtree-code.txt=('LOOP', ['N3-compresses!', 'N4-vocab-collapse!']), spec-mtp-n4-p0.75__rep1__00-rbtree-code.txt=('LOOP', ['N3-compresses!', 'N4-vocab-collapse!']), spec-mtp-n6-p0.5__rep1__00-rbtree-code.txt=('LOOP', ['N3-compresses!', 'N4-vocab-collapse!']), spec-none__rep1__00-rbtree-code.txt=('LOOP', ['N3-compresses!', 'N4-vocab-collapse!'])
 
 **Floors showing a loop: none**
+
+### A2 — the speculation speedup on a baseline that does not loop
+
+| arm | t/s | predicted_n | finish | loop verdict | sha |
+|---|---|---|---|---|---|
+| prose/spec-none | 118.68 | 2511 | stop | ('clean', []) | `d420d0c9a4332bd0` |
+| prose/spec-n4-p0.75 | 128.87 | 3000 | length | ('clean', []) | `b0a3b7c051b29b18` |
+| code/spec-none | 118.24 | 3000 | length | ('clean', []) | `e3b0c44298fc1c14` |
+| code/spec-n4-p0.75 | 132.32 | 3000 | length | ('clean', []) | `e3b0c44298fc1c14` |

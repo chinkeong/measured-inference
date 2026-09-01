@@ -1,0 +1,55 @@
+{
+ "_schema": "spec-rebaseline v1",
+ "slug": "ornith-1.5-9b-mtp",
+ "why": "Stage 3's baseline degenerated on the code prompt and ran to its cap, so 'vs none' compared a loop against a clean generation. This re-takes both arms on prose and on code, so the speedup is quoted where the baseline is honest.",
+ "arms": {
+  "prose/spec-none": {
+   "t_s": 118.6812910387256,
+   "predicted_n": 2511,
+   "finish": "stop",
+   "sha256": "d420d0c9a4332bd0",
+   "verdict": [
+    "clean",
+    []
+   ],
+   "draft_n": null,
+   "draft_n_accepted": null
+  },
+  "prose/spec-n4-p0.75": {
+   "t_s": 128.86884778015138,
+   "predicted_n": 3000,
+   "finish": "length",
+   "sha256": "b0a3b7c051b29b18",
+   "verdict": [
+    "clean",
+    []
+   ],
+   "draft_n": 1662,
+   "draft_n_accepted": 1511
+  },
+  "code/spec-none": {
+   "t_s": 118.23933391710473,
+   "predicted_n": 3000,
+   "finish": "length",
+   "sha256": "e3b0c44298fc1c14",
+   "verdict": [
+    "clean",
+    []
+   ],
+   "draft_n": null,
+   "draft_n_accepted": null
+  },
+  "code/spec-n4-p0.75": {
+   "t_s": 132.3172392949993,
+   "predicted_n": 3000,
+   "finish": "length",
+   "sha256": "e3b0c44298fc1c14",
+   "verdict": [
+    "clean",
+    []
+   ],
+   "draft_n": 1792,
+   "draft_n_accepted": 1600
+  }
+ }
+}
