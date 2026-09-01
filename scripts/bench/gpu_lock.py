@@ -678,6 +678,40 @@ def _rlimit_preexec(cap):
     return _apply
 
 
+# PR_SET_PDEATHSIG: the kernel kills this child when its parent dies. This is
+# the POSIX equivalent of the Windows job object's KILL_ON_JOB_CLOSE, and until
+# 2026-09-01 there was no equivalent at all -- _cap_child() returns False
+# immediately off Windows and nothing replaced it, so hole 2 in this module's
+# header ("ORPHANS OUTLIVE THEIR PARENT", the shape that hung the reference
+# machine on 2026-08-29) was closed on Windows and wide open on Linux. The
+# warning at the end of serve() is also gated on _WINDOWS, so Linux got silence
+# where Windows got a loud line.
+#
+# Measured on this box the day it was fixed: `kill <bench.py pid>` left
+# llama-server(396565) alive holding 10 GB, and the campaign watchdog's ORPHAN
+# alarm is what surfaced it. Every earlier apparent "the guarantee held" in this
+# campaign was a script's own `finally: proc.terminate()` doing the work.
+#
+# PDEATHSIG is delivered on the death of the parent THREAD that forked, which is
+# what subprocess does, and it survives execve. It does not survive the parent
+# being replaced by a setuid binary, which nothing here does.
+_PR_SET_PDEATHSIG = 1
+
+
+def _pdeathsig_preexec(also=None):
+    def _apply():
+        if also is not None:
+            also()
+        try:
+            import ctypes as _c
+            import signal as _sig
+            _c.CDLL("libc.so.6", use_errno=True).prctl(
+                _PR_SET_PDEATHSIG, _sig.SIGKILL, 0, 0, 0)
+        except Exception:
+            pass          # best effort: never block a launch over a guard
+    return _apply
+
+
 def serve(args, tag=None, cap=None, require_lock=True, **kw):
     """subprocess.Popen for a llama-server, with the three guards attached.
 
@@ -698,8 +732,14 @@ def serve(args, tag=None, cap=None, require_lock=True, **kw):
         acquire(tag or os.path.basename(sys.argv[0] or "gpu-job"))
     cap = mem_cap_bytes() if cap is None else cap
     preflight(cap)
-    if not _WINDOWS and cap and _posix_rlimit_wanted():
-        kw.setdefault("preexec_fn", _rlimit_preexec(cap))
+    if not _WINDOWS:
+        # Always attach PDEATHSIG on POSIX, with or without an RLIMIT: the
+        # orphan guard is the one that matters most and it must not depend on
+        # a cap the CUDA runtime makes unusable (see _posix_rlimit_wanted).
+        rl = (_rlimit_preexec(cap)
+              if cap and _posix_rlimit_wanted() else None)
+        if "preexec_fn" not in kw:
+            kw["preexec_fn"] = _pdeathsig_preexec(rl)
     proc = subprocess.Popen(args, **kw)
     if not _cap_child(proc, cap):
         # Non-fatal: the lock and preflight still hold. Say so, loudly, because

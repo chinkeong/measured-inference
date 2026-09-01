@@ -988,3 +988,43 @@ is not a benchmark cap.
 6 minutes. 198 questions at the reference's observed mean (~6,000 tokens) is
 ~4 h; a pathological tail is longer. The run is resumable per question, so a
 crash costs one question.
+
+### The orphan guarantee did not exist on Linux — and two of my own claims were wrong
+
+`gpu_lock.py`'s header lists three holes it was written to close after the
+2026-08-29 host hang. Hole 2 is **"ORPHANS OUTLIVE THEIR PARENT"**, and its
+stated fix is "the child is put in a Windows Job Object with
+KILL_ON_JOB_CLOSE, so it cannot outlive the process that started it, even on
+SIGKILL of the parent." `serve()`'s own docstring repeats it: "child gets a
+commit cap and CANNOT outlive this process."
+
+`_cap_child()` opens with `if not _WINDOWS or not cap: return False`. Nothing
+set `PR_SET_PDEATHSIG`. **On Linux the guarantee did not exist at all** — and the
+"could not job-cap" warning is gated on `if _WINDOWS`, so Linux got silence where
+Windows got a loud line.
+
+Measured here 2026-09-01: `kill <bench.py pid>` left `llama-server(396565)`
+alive holding 10 GB of the card. The campaign watchdog's ORPHAN alarm is what
+surfaced it — the same alarm that had produced two false positives an hour
+earlier, which is why the debounce mattered rather than deleting the check.
+
+**Two claims I made in this log today were wrong and are corrected here.** I
+twice recorded that "gpu_lock.serve()'s child-cannot-outlive-parent guarantee
+held under an abrupt kill". It did not. Every script in this campaign carries a
+`finally: proc.terminate()`, so *my own cleanup* killed those servers and I read
+the result as the guard working. The one time a process died without that
+cleanup — `bench.py` under SIGTERM — the server survived, which is the case that
+tells the truth.
+
+**FIXED**: `serve()` now attaches `prctl(PR_SET_PDEATHSIG, SIGKILL)` via
+`preexec_fn` on every POSIX launch, with or without an RLIMIT — the orphan guard
+must not depend on a cap that `_posix_rlimit_wanted()` correctly refuses to set
+for CUDA. Verified by SIGKILLing a parent with no cleanup path at all:
+
+```
+child pid 397614  alive before: True
+parent SIGKILLed -> child alive: False
+VERDICT: orphan guard HOLDS on Linux
+```
+
+Rule 20's third guard is now real on this platform instead of documented.
