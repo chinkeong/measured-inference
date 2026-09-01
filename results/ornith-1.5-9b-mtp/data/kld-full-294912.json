@@ -1,0 +1,24 @@
+{
+ "_schema": "kld-full v1",
+ "slug": "ornith-1.5-9b-mtp",
+ "ctx": 8192,
+ "chunks": 36,
+ "token_positions": 294912,
+ "arms": {
+  "Q8_0": {
+   "mean_kld": 0.016143,
+   "median_kld": 0.000821,
+   "same_top_pct": 97.633
+  },
+  "Q4_K_M": {
+   "mean_kld": 0.209331,
+   "median_kld": 0.0421,
+   "same_top_pct": 85.868
+  },
+  "IQ2_M": {
+   "mean_kld": 0.441164,
+   "median_kld": 0.1571,
+   "same_top_pct": 75.994
+  }
+ }
+}

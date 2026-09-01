@@ -1,9 +1,9 @@
 {
  "_schema": "heartbeat v1",
  "slug": "ornith-1.5-9b-mtp",
- "in_flight": "B1",
+ "in_flight": "E1",
  "note": "running",
  "pid": 383823,
- "written_utc": "2026-09-01T01:45:13Z",
+ "written_utc": "2026-09-01T01:47:51Z",
  "recovery": "read campaign.md end to end, then git log --oneline"
 }

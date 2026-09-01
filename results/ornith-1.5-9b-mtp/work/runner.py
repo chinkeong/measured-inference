@@ -82,8 +82,17 @@ def append(md):
 
 
 def commit(msg):
+    """Checkpoint, then PUBLISH it. A commit that exists only on this disk is
+    not protection against losing the machine -- and this box may be borrowed.
+    The push is best-effort and never fails a task: work/autopush.sh is the
+    safety net that retries, so a transient network error here costs nothing."""
     subprocess.run(["git", "add", "-A", "results/%s" % SLUG], cwd=REPO)
     subprocess.run(["git", "commit", "-q", "-m", msg], cwd=REPO)
+    try:
+        subprocess.run(["git", "push", "origin", "main"], cwd=REPO,
+                       capture_output=True, timeout=300)
+    except Exception:
+        pass
 
 
 # --------------------------------------------------------------- server helper

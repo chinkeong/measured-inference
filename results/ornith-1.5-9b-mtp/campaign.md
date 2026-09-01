@@ -764,3 +764,11 @@ arms and not four levels. Six reasoning prompts per arm, cap 16,384, temp 0.
 This is the gate on Stage 6. A benchmark run at a cap below the upper tail does
 not degrade gracefully: it truncates, and a truncated answer scores 0.0, which
 the report would publish as model quality.
+
+### E1 — the KLD ladder at rule 6's own position count (294,912)
+
+| arm | mean KLD vs BF16 | median KLD | same top-1 |
+|---|---|---|---|
+| Q8_0 | 0.016143 | 0.000821 | 97.633% |
+| Q4_K_M | 0.209331 | 0.0421 | 85.868% |
+| IQ2_M | 0.441164 | 0.1571 | 75.994% |
