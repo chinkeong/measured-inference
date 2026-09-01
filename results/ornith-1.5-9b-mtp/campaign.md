@@ -1201,3 +1201,66 @@ index/prompt/response/tokens/score and **not** the `truncated` flag, which lives
 only in the run JSON and the `.partial.jsonl`. It now recovers the cap from the
 sibling run JSON, and refuses to print a truncation count at all when it cannot
 — a confident zero where there is no measurement is worse than a gap.
+
+### 2026-09-01 — matched-bpw format test: the codebook explanation is dead, and it was mine
+
+The question this campaign has been carrying since Stage 1: the rule-10
+efficiency constant falls as quantisation deepens (0.82 Q8_0, 0.73 Q4_K_M, 0.54
+IQ2_M). Two explanations were live — **the IQ codebooks**, whose lookup-table
+unpacking would burn SM cycles the K-quants do not, or simply **bits per
+weight**. The 27B ladder already leaned to bpw (`Q2_K_XL`, no codebook, sat on
+the interpolated line). This settles it directly: two files of the same model at
+the same size, one of each family, in ONE sweep.
+
+| arm | family | bpw | tg128 | rule-10 k | SM %peak | DRAM %peak | KLD | same-top |
+|---|---|---|---|---|---|---|---|---|
+| Q2_K | K-quant, no codebook | 3.4196 | 125.10 t/s | 0.512 | 15.95 | 11.80 | 2.2738 | 41.1% |
+| AD-IQ3_XXS-IQ2_S | IQ, codebook/LUT | 3.4272 | **134.75 t/s** | **0.552** | 14.22 | 13.45 | **0.2454** | **80.7%** |
+
+The two files are 0.22% apart in bits per weight — as matched a pair as the
+published quant ladders allow.
+
+**The codebook arm is FASTER, by 7.7%, and its rule-10 constant is HIGHER.** The
+explanation predicted the opposite sign. It also predicted the codebook arm
+would do more compute per unit time, and the counter says it does **less**: SM
+15.95% for the no-codebook arm against 14.22% for the codebook one. There is no
+reading of this pair in which lookup-table unpacking is what pulls k down.
+
+So: **the effect is real and the explanation was wrong.** k does fall with
+quantisation depth — Stage 1 measured that, and it stands. It does not fall
+because of codebooks. This is the second time in this campaign that a real
+number arrived wearing a wrong mechanism, which is the failure AGENTS.md lists
+without a rule number, and it was caught only by building the experiment that
+could falsify it rather than the one that would illustrate it.
+
+Rule 5: the dead claim stays, dated. **"IQ2_M is dequant-bound because of its
+codebooks" — proposed 2026-09-01 from the Stage 1 constants, killed 2026-09-01
+by this pair.** What survives is the weaker, measured statement: at ~3.4 bpw
+this workload is neither cleanly bandwidth-bound nor cleanly compute-bound, both
+counters sit low, and bits per weight predicts k better than format does.
+
+**Conditions, because two of these numbers do not travel (rule 3).**
+- The KLD here is over **32,768 positions** (`-c 8192 --chunks 4`), which is a
+  SCREEN. Rule 6 ranks on **294,912**. These values may not be placed beside the
+  full-depth ladder (Q8_0 0.016143, Q4_K_M 0.209331, IQ2_M 0.441164) — that is a
+  cross-depth comparison and rule 23 forbids it. A 9× gap will not reverse at
+  greater depth, so the *direction* is safe; the *values* are not rankable.
+- The SM/DRAM percentages are **means over all sampled kernels**, where
+  `data/ncu-roofline.json` reported **hot-kernel** figures. That is why these
+  read 12–16% against the earlier 89.7%. The two sets are not comparable to each
+  other. Within this pair, measured the same way, they are.
+
+**The practical finding, which is larger than the methodological one.** At the
+same file size, Q2_K is not merely worse, it is broken for this architecture:
+**41.1% same-top against 80.7%**. And Q2_K's file is *bigger* than IQ2_M's (3.83
+GB vs 3.60 GB) while agreeing with the base model on far fewer tokens. A reader
+choosing a ~3.5 GB file for this model should take the adaptive IQ mix; there is
+no axis measured here on which Q2_K wins.
+
+**Hypothesis, explicitly not a finding.** This model is 24 recurrent
+gated-delta layers to 8 full-attention ones. A uniform K-quant that damages the
+recurrent state projections would degrade far worse than an adaptive mix that
+spends its bits where they matter. That is a plausible mechanism and it is
+exactly the kind of story that just proved wrong above, so it is written down as
+a hypothesis with a test attached — per-tensor KLD attribution — and nothing in
+the report may lean on it until that runs.

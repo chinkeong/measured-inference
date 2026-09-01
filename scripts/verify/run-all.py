@@ -202,6 +202,9 @@ CHECKS = (
     ("arms-lane", "scripts/verify/test-arms.py", (), 900,
      "the sweep runner stopped recording, resuming, discarding, ordering or "
      "stopping the way results/ depends on"),
+    ("watchdog-state", "scripts/verify/test-watchdog-state.sh", (), 120,
+     "the campaign watchdog reports the wrong GPU state, so an idle card "
+     "reads as busy and hours of card time are lost with the log silent"),
 )
 
 
@@ -224,7 +227,14 @@ def run_check(name, rel, extra, timeout, verbose):
     `output` is what main()'s skip filter reads to tell an absent dependency
     from a defect, so it has to carry the child's diagnostics in BOTH modes.
     """
-    cmd = [sys.executable, os.path.join(REPO, *rel.split("/"))] + list(extra)
+    # DISPATCH ON EXTENSION. This built every command as [sys.executable, ...],
+    # so the suite could hold Python checks and nothing else -- a shell probe
+    # registered here died with a SyntaxError that read like a broken check
+    # rather than a wrong interpreter. The tree already ships shell probes
+    # (scripts/verify/ubuntu-dryrun.sh); they belong in the same gate.
+    target = os.path.join(REPO, *rel.split("/"))
+    launcher = ["bash"] if rel.endswith(".sh") else [sys.executable]
+    cmd = launcher + [target] + list(extra)
     t0 = time.time()
     try:
         if verbose:

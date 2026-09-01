@@ -1,0 +1,38 @@
+{
+ "_schema": "format-vs-bpw v1",
+ "question": "codebooks, or bits-per-weight? matched-bpw pair, one sweep",
+ "peak_bandwidth_gbs": 936.0,
+ "params": 8953803264,
+ "arms": {
+  "Q2_K": {
+   "family": "K-quant (no codebook)",
+   "file": "Ornith-1.5-9B.Q2_K.gguf",
+   "size_bytes": 3827262496,
+   "bpw": 3.4195636273475305,
+   "tg128": 125.099915,
+   "rule10_k": 0.5115280052695382,
+   "ncu": {
+    "dram__bytes.sum.per_second": 107049119534.927,
+    "gpu__dram_throughput.avg.pct_of_peak_sustained_elapsed": 11.796,
+    "sm__throughput.avg.pct_of_peak_sustained_elapsed": 15.952
+   },
+   "mean_kld": 2.273821,
+   "same_top_pct": 41.136
+  },
+  "AD-IQ3_XXS-IQ2_S": {
+   "family": "IQ (codebook/LUT)",
+   "file": "Ornith-1.5-9B-AD-IQ3_XXS-IQ2_S.gguf",
+   "size_bytes": 3835765504,
+   "bpw": 3.4271608530173756,
+   "tg128": 134.753767,
+   "rule10_k": 0.5522263365306128,
+   "ncu": {
+    "dram__bytes.sum.per_second": 122085311372.527,
+    "gpu__dram_throughput.avg.pct_of_peak_sustained_elapsed": 13.454,
+    "sm__throughput.avg.pct_of_peak_sustained_elapsed": 14.215
+   },
+   "mean_kld": 0.245371,
+   "same_top_pct": 80.678
+  }
+ }
+}
