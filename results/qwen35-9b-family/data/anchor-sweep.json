@@ -289,7 +289,8 @@
      "verdicts": [
       "LOOP"
      ],
-     "median_predicted_n": 700
+     "median_predicted_n": 700,
+     "ratio_to_anchor": 1.0
     },
     "card": {
      "n": 3,
@@ -299,7 +300,284 @@
      "verdicts": [
       "LOOP"
      ],
-     "median_predicted_n": 700
+     "median_predicted_n": 700,
+     "ratio_to_anchor": 1.0
+    }
+   }
+  },
+  "Ornith-1.5-9B": {
+   "file": "Ornith-1.5-9B-MTP-Q8_0.gguf",
+   "size_bytes": 9786060352,
+   "probes": [
+    {
+     "rep": 0,
+     "sampler": "card",
+     "discarded": true,
+     "t_s": 78.61062302798673,
+     "predicted_n": 700,
+     "prompt_tokens": 35,
+     "finish": "length",
+     "chars": 2724,
+     "reasoning_chars": 2722,
+     "content_chars": 0,
+     "verdict": [
+      "clean",
+      []
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.1042,
+      "n3_compress": 0.4409,
+      "n4_worst_ttr": 0.5583,
+      "n_words": 432
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1965.0,
+      "power_w": 163.58,
+      "temp_c": 64.0,
+      "load1": 1.51
+     }
+    },
+    {
+     "rep": 0,
+     "sampler": "greedy",
+     "discarded": true,
+     "t_s": 83.4369431568815,
+     "predicted_n": 700,
+     "prompt_tokens": 35,
+     "finish": "length",
+     "chars": 3254,
+     "reasoning_chars": 3252,
+     "content_chars": 0,
+     "verdict": [
+      "LOOP",
+      [
+       "N4-vocab-collapse!"
+      ]
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.0986,
+      "n3_compress": 0.3045,
+      "n4_worst_ttr": 0.1667,
+      "n_words": 359
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1770.0,
+      "power_w": 348.9,
+      "temp_c": 75.0,
+      "load1": 1.47
+     }
+    },
+    {
+     "rep": 1,
+     "sampler": "card",
+     "discarded": false,
+     "t_s": 78.42318903017778,
+     "predicted_n": 700,
+     "prompt_tokens": 35,
+     "finish": "length",
+     "chars": 2765,
+     "reasoning_chars": 2763,
+     "content_chars": 0,
+     "verdict": [
+      "clean",
+      []
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.1698,
+      "n3_compress": 0.4374,
+      "n4_worst_ttr": 0.4667,
+      "n_words": 442
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1755.0,
+      "power_w": 349.34,
+      "temp_c": 77.0,
+      "load1": 1.4
+     }
+    },
+    {
+     "rep": 1,
+     "sampler": "greedy",
+     "discarded": false,
+     "t_s": 83.92707637568066,
+     "predicted_n": 700,
+     "prompt_tokens": 35,
+     "finish": "length",
+     "chars": 3254,
+     "reasoning_chars": 3252,
+     "content_chars": 0,
+     "verdict": [
+      "LOOP",
+      [
+       "N4-vocab-collapse!"
+      ]
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.0986,
+      "n3_compress": 0.3045,
+      "n4_worst_ttr": 0.1667,
+      "n_words": 359
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1755.0,
+      "power_w": 348.7,
+      "temp_c": 79.0,
+      "load1": 1.34
+     }
+    },
+    {
+     "rep": 2,
+     "sampler": "card",
+     "discarded": false,
+     "t_s": 78.77203081282367,
+     "predicted_n": 700,
+     "prompt_tokens": 35,
+     "finish": "length",
+     "chars": 2928,
+     "reasoning_chars": 2926,
+     "content_chars": 0,
+     "verdict": [
+      "LOOP",
+      [
+       "N4-vocab-collapse!"
+      ]
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.087,
+      "n3_compress": 0.374,
+      "n4_worst_ttr": 0.2667,
+      "n_words": 401
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1725.0,
+      "power_w": 349.02,
+      "temp_c": 79.0,
+      "load1": 1.36
+     }
+    },
+    {
+     "rep": 2,
+     "sampler": "greedy",
+     "discarded": false,
+     "t_s": 83.79602967458369,
+     "predicted_n": 700,
+     "prompt_tokens": 35,
+     "finish": "length",
+     "chars": 3254,
+     "reasoning_chars": 3252,
+     "content_chars": 0,
+     "verdict": [
+      "LOOP",
+      [
+       "N4-vocab-collapse!"
+      ]
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.0986,
+      "n3_compress": 0.3045,
+      "n4_worst_ttr": 0.1667,
+      "n_words": 359
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1755.0,
+      "power_w": 348.94,
+      "temp_c": 79.0,
+      "load1": 1.42
+     }
+    },
+    {
+     "rep": 3,
+     "sampler": "card",
+     "discarded": false,
+     "t_s": 78.82974703094355,
+     "predicted_n": 700,
+     "prompt_tokens": 35,
+     "finish": "length",
+     "chars": 2822,
+     "reasoning_chars": 2820,
+     "content_chars": 0,
+     "verdict": [
+      "LOOP",
+      [
+       "N4-vocab-collapse!"
+      ]
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.1379,
+      "n3_compress": 0.3554,
+      "n4_worst_ttr": 0.175,
+      "n_words": 384
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1710.0,
+      "power_w": 349.3,
+      "temp_c": 78.0,
+      "load1": 1.35
+     }
+    },
+    {
+     "rep": 3,
+     "sampler": "greedy",
+     "discarded": false,
+     "t_s": 83.06186718799573,
+     "predicted_n": 700,
+     "prompt_tokens": 35,
+     "finish": "length",
+     "chars": 3254,
+     "reasoning_chars": 3252,
+     "content_chars": 0,
+     "verdict": [
+      "LOOP",
+      [
+       "N4-vocab-collapse!"
+      ]
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.0986,
+      "n3_compress": 0.3045,
+      "n4_worst_ttr": 0.1667,
+      "n_words": 359
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1755.0,
+      "power_w": 348.56,
+      "temp_c": 78.0,
+      "load1": 1.53
+     }
+    }
+   ],
+   "done": true,
+   "summary": {
+    "greedy": {
+     "n": 3,
+     "min": 83.06,
+     "max": 83.93,
+     "median": 83.8,
+     "verdicts": [
+      "LOOP"
+     ],
+     "median_predicted_n": 700,
+     "ratio_to_anchor": 0.9956
+    },
+    "card": {
+     "n": 3,
+     "min": 78.42,
+     "max": 78.83,
+     "median": 78.77,
+     "verdicts": [
+      "LOOP",
+      "clean"
+     ],
+     "median_predicted_n": 700,
+     "ratio_to_anchor": 1.0032
     }
    }
   }
