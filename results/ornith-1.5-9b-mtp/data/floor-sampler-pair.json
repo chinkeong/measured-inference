@@ -1,0 +1,810 @@
+{
+ "_schema": "floor-sampler-pair v1",
+ "why": "the published floors were timed on generations the repaired rule-20 scan calls LOOP (Q8_0) and hint (Q4_K_M, IQ2_M); this re-takes them with BOTH samplers in one sweep",
+ "host_not_quiet": "accepted by the operator 2026-09-01: Steam, Chrome, a second Claude session and a foreign 3.9 GB test binary resident; GPU itself idle. Rule 27's -5.4% mean / -24.0% worst was measured for a busy HOST, so it applies. Per-probe SM clock, power, temperature and load1 recorded.",
+ "protocol": {
+  "reps": 4,
+  "first_discarded": "rule 12",
+  "order": "alternating (rule 30)",
+  "samplers": {
+   "greedy": {
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "top_k": 1,
+    "presence_penalty": 0.0
+   },
+   "card": {
+    "temperature": 1.0,
+    "top_p": 0.95,
+    "top_k": 20,
+    "presence_penalty": 1.5
+   }
+  }
+ },
+ "arms": {
+  "Q8_0": {
+   "probes": [
+    {
+     "rep": 0,
+     "sampler": "greedy",
+     "discarded": true,
+     "t_s": 84.46736919188653,
+     "predicted_n": 700,
+     "finish": "length",
+     "chars": 2334,
+     "reasoning_chars": 2332,
+     "content_chars": 0,
+     "verdict": [
+      "LOOP",
+      [
+       "N4-vocab-collapse!"
+      ]
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.122,
+      "n3_compress": 0.3817,
+      "n4_worst_ttr": 0.2833,
+      "n_words": 361
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1965.0,
+      "power_w": 158.21,
+      "temp_c": 62.0,
+      "load1": 1.71
+     }
+    },
+    {
+     "rep": 0,
+     "sampler": "card",
+     "discarded": true,
+     "t_s": 78.76705999863876,
+     "predicted_n": 700,
+     "finish": "length",
+     "chars": 2955,
+     "reasoning_chars": 2953,
+     "content_chars": 0,
+     "verdict": [
+      "clean",
+      []
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.0556,
+      "n3_compress": 0.4501,
+      "n4_worst_ttr": 0.5333,
+      "n_words": 490
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1755.0,
+      "power_w": 348.83,
+      "temp_c": 74.0,
+      "load1": 1.68
+     }
+    },
+    {
+     "rep": 1,
+     "sampler": "greedy",
+     "discarded": false,
+     "t_s": 83.83190731141359,
+     "predicted_n": 700,
+     "finish": "length",
+     "chars": 2334,
+     "reasoning_chars": 2332,
+     "content_chars": 0,
+     "verdict": [
+      "LOOP",
+      [
+       "N4-vocab-collapse!"
+      ]
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.122,
+      "n3_compress": 0.3817,
+      "n4_worst_ttr": 0.2833,
+      "n_words": 361
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1785.0,
+      "power_w": 349.08,
+      "temp_c": 76.0,
+      "load1": 1.57
+     }
+    },
+    {
+     "rep": 1,
+     "sampler": "card",
+     "discarded": false,
+     "t_s": 79.2813997443033,
+     "predicted_n": 700,
+     "finish": "length",
+     "chars": 2551,
+     "reasoning_chars": 2549,
+     "content_chars": 0,
+     "verdict": [
+      "hint",
+      [
+       "N4-vocab-collapse"
+      ]
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.1,
+      "n3_compress": 0.4026,
+      "n4_worst_ttr": 0.375,
+      "n_words": 389
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1725.0,
+      "power_w": 349.04,
+      "temp_c": 77.0,
+      "load1": 2.71
+     }
+    },
+    {
+     "rep": 2,
+     "sampler": "greedy",
+     "discarded": false,
+     "t_s": 83.6269748797249,
+     "predicted_n": 700,
+     "finish": "length",
+     "chars": 2334,
+     "reasoning_chars": 2332,
+     "content_chars": 0,
+     "verdict": [
+      "LOOP",
+      [
+       "N4-vocab-collapse!"
+      ]
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.122,
+      "n3_compress": 0.3817,
+      "n4_worst_ttr": 0.2833,
+      "n_words": 361
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1755.0,
+      "power_w": 348.7,
+      "temp_c": 79.0,
+      "load1": 2.66
+     }
+    },
+    {
+     "rep": 2,
+     "sampler": "card",
+     "discarded": false,
+     "t_s": 77.91240238378514,
+     "predicted_n": 700,
+     "finish": "length",
+     "chars": 2479,
+     "reasoning_chars": 2477,
+     "content_chars": 0,
+     "verdict": [
+      "LOOP",
+      [
+       "N4-vocab-collapse!"
+      ]
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.05,
+      "n3_compress": 0.4143,
+      "n4_worst_ttr": 0.225,
+      "n_words": 406
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1725.0,
+      "power_w": 348.87,
+      "temp_c": 79.0,
+      "load1": 2.47
+     }
+    },
+    {
+     "rep": 3,
+     "sampler": "greedy",
+     "discarded": false,
+     "t_s": 83.4994063658084,
+     "predicted_n": 700,
+     "finish": "length",
+     "chars": 2334,
+     "reasoning_chars": 2332,
+     "content_chars": 0,
+     "verdict": [
+      "LOOP",
+      [
+       "N4-vocab-collapse!"
+      ]
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.122,
+      "n3_compress": 0.3817,
+      "n4_worst_ttr": 0.2833,
+      "n_words": 361
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1770.0,
+      "power_w": 348.68,
+      "temp_c": 80.0,
+      "load1": 2.33
+     }
+    },
+    {
+     "rep": 3,
+     "sampler": "card",
+     "discarded": false,
+     "t_s": 78.60103206865884,
+     "predicted_n": 700,
+     "finish": "length",
+     "chars": 2857,
+     "reasoning_chars": 2855,
+     "content_chars": 0,
+     "verdict": [
+      "clean",
+      []
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.125,
+      "n3_compress": 0.4491,
+      "n4_worst_ttr": 0.5667,
+      "n_words": 475
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1710.0,
+      "power_w": 348.94,
+      "temp_c": 79.0,
+      "load1": 2.2
+     }
+    }
+   ],
+   "done": true,
+   "summary": {
+    "greedy": {
+     "n": 3,
+     "min": 83.5,
+     "max": 83.83,
+     "median": 83.63,
+     "verdicts": [
+      "LOOP"
+     ]
+    },
+    "card": {
+     "n": 3,
+     "min": 77.91,
+     "max": 79.28,
+     "median": 78.6,
+     "verdicts": [
+      "LOOP",
+      "clean",
+      "hint"
+     ]
+    }
+   }
+  },
+  "Q4_K_M": {
+   "probes": [
+    {
+     "rep": 0,
+     "sampler": "card",
+     "discarded": true,
+     "t_s": 110.42880817457547,
+     "predicted_n": 700,
+     "finish": "length",
+     "chars": 2635,
+     "reasoning_chars": 1052,
+     "content_chars": 1581,
+     "verdict": [
+      "hint",
+      [
+       "N4-vocab-collapse"
+      ]
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.1538,
+      "n3_compress": 0.419,
+      "n4_worst_ttr": 0.3583,
+      "n_words": 372
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1935.0,
+      "power_w": 135.74,
+      "temp_c": 67.0,
+      "load1": 2.08
+     }
+    },
+    {
+     "rep": 0,
+     "sampler": "greedy",
+     "discarded": true,
+     "t_s": 119.86910088399604,
+     "predicted_n": 700,
+     "finish": "length",
+     "chars": 2517,
+     "reasoning_chars": 2515,
+     "content_chars": 0,
+     "verdict": [
+      "hint",
+      [
+       "N4-vocab-collapse"
+      ]
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.2258,
+      "n3_compress": 0.3997,
+      "n4_worst_ttr": 0.325,
+      "n_words": 419
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1680.0,
+      "power_w": 344.37,
+      "temp_c": 76.0,
+      "load1": 1.92
+     }
+    },
+    {
+     "rep": 1,
+     "sampler": "card",
+     "discarded": false,
+     "t_s": 109.46319499732842,
+     "predicted_n": 700,
+     "finish": "length",
+     "chars": 2812,
+     "reasoning_chars": 2810,
+     "content_chars": 0,
+     "verdict": [
+      "hint",
+      [
+       "N4-vocab-collapse"
+      ]
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.0556,
+      "n3_compress": 0.4285,
+      "n4_worst_ttr": 0.425,
+      "n_words": 444
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1590.0,
+      "power_w": 347.14,
+      "temp_c": 77.0,
+      "load1": 1.84
+     }
+    },
+    {
+     "rep": 1,
+     "sampler": "greedy",
+     "discarded": false,
+     "t_s": 118.31537190888396,
+     "predicted_n": 700,
+     "finish": "length",
+     "chars": 2517,
+     "reasoning_chars": 2515,
+     "content_chars": 0,
+     "verdict": [
+      "hint",
+      [
+       "N4-vocab-collapse"
+      ]
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.2258,
+      "n3_compress": 0.3997,
+      "n4_worst_ttr": 0.325,
+      "n_words": 419
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1665.0,
+      "power_w": 347.88,
+      "temp_c": 79.0,
+      "load1": 1.78
+     }
+    },
+    {
+     "rep": 2,
+     "sampler": "card",
+     "discarded": false,
+     "t_s": 109.45080280363165,
+     "predicted_n": 700,
+     "finish": "length",
+     "chars": 2653,
+     "reasoning_chars": 2651,
+     "content_chars": 0,
+     "verdict": [
+      "hint",
+      [
+       "N4-vocab-collapse"
+      ]
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.04,
+      "n3_compress": 0.3984,
+      "n4_worst_ttr": 0.3167,
+      "n_words": 434
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1605.0,
+      "power_w": 348.47,
+      "temp_c": 80.0,
+      "load1": 1.71
+     }
+    },
+    {
+     "rep": 2,
+     "sampler": "greedy",
+     "discarded": false,
+     "t_s": 119.47561996565803,
+     "predicted_n": 700,
+     "finish": "length",
+     "chars": 2517,
+     "reasoning_chars": 2515,
+     "content_chars": 0,
+     "verdict": [
+      "hint",
+      [
+       "N4-vocab-collapse"
+      ]
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.2258,
+      "n3_compress": 0.3997,
+      "n4_worst_ttr": 0.325,
+      "n_words": 419
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1650.0,
+      "power_w": 349.15,
+      "temp_c": 80.0,
+      "load1": 1.6
+     }
+    },
+    {
+     "rep": 3,
+     "sampler": "card",
+     "discarded": false,
+     "t_s": 111.02812680778094,
+     "predicted_n": 700,
+     "finish": "length",
+     "chars": 2767,
+     "reasoning_chars": 2765,
+     "content_chars": 0,
+     "verdict": [
+      "clean",
+      []
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.0606,
+      "n3_compress": 0.4586,
+      "n4_worst_ttr": 0.5083,
+      "n_words": 452
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1590.0,
+      "power_w": 349.35,
+      "temp_c": 79.0,
+      "load1": 1.55
+     }
+    },
+    {
+     "rep": 3,
+     "sampler": "greedy",
+     "discarded": false,
+     "t_s": 118.58986974455165,
+     "predicted_n": 700,
+     "finish": "length",
+     "chars": 2517,
+     "reasoning_chars": 2515,
+     "content_chars": 0,
+     "verdict": [
+      "hint",
+      [
+       "N4-vocab-collapse"
+      ]
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.2258,
+      "n3_compress": 0.3997,
+      "n4_worst_ttr": 0.325,
+      "n_words": 419
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1620.0,
+      "power_w": 348.23,
+      "temp_c": 79.0,
+      "load1": 1.51
+     }
+    }
+   ],
+   "done": true,
+   "summary": {
+    "greedy": {
+     "n": 3,
+     "min": 118.32,
+     "max": 119.48,
+     "median": 118.59,
+     "verdicts": [
+      "hint"
+     ]
+    },
+    "card": {
+     "n": 3,
+     "min": 109.45,
+     "max": 111.03,
+     "median": 109.46,
+     "verdicts": [
+      "clean",
+      "hint"
+     ]
+    }
+   }
+  },
+  "IQ2_M": {
+   "probes": [
+    {
+     "rep": 0,
+     "sampler": "greedy",
+     "discarded": true,
+     "t_s": 132.66065461485425,
+     "predicted_n": 700,
+     "finish": "length",
+     "chars": 2537,
+     "reasoning_chars": 2535,
+     "content_chars": 0,
+     "verdict": [
+      "hint",
+      [
+       "N4-vocab-collapse"
+      ]
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.1897,
+      "n3_compress": 0.3106,
+      "n4_worst_ttr": 0.3333,
+      "n_words": 356
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1935.0,
+      "power_w": 145.31,
+      "temp_c": 69.0,
+      "load1": 1.4
+     }
+    },
+    {
+     "rep": 0,
+     "sampler": "card",
+     "discarded": true,
+     "t_s": 121.28150304392281,
+     "predicted_n": 700,
+     "finish": "length",
+     "chars": 2856,
+     "reasoning_chars": 2854,
+     "content_chars": 0,
+     "verdict": [
+      "clean",
+      []
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.1163,
+      "n3_compress": 0.4464,
+      "n4_worst_ttr": 0.5917,
+      "n_words": 451
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1665.0,
+      "power_w": 347.07,
+      "temp_c": 78.0,
+      "load1": 1.45
+     }
+    },
+    {
+     "rep": 1,
+     "sampler": "greedy",
+     "discarded": false,
+     "t_s": 131.5242817532356,
+     "predicted_n": 700,
+     "finish": "length",
+     "chars": 2537,
+     "reasoning_chars": 2535,
+     "content_chars": 0,
+     "verdict": [
+      "hint",
+      [
+       "N4-vocab-collapse"
+      ]
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.1897,
+      "n3_compress": 0.3106,
+      "n4_worst_ttr": 0.3333,
+      "n_words": 356
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1725.0,
+      "power_w": 346.4,
+      "temp_c": 79.0,
+      "load1": 1.41
+     }
+    },
+    {
+     "rep": 1,
+     "sampler": "card",
+     "discarded": false,
+     "t_s": 121.61051995369407,
+     "predicted_n": 700,
+     "finish": "length",
+     "chars": 2989,
+     "reasoning_chars": 2987,
+     "content_chars": 0,
+     "verdict": [
+      "clean",
+      []
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.08,
+      "n3_compress": 0.4497,
+      "n4_worst_ttr": 0.6083,
+      "n_words": 464
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1635.0,
+      "power_w": 345.15,
+      "temp_c": 80.0,
+      "load1": 1.38
+     }
+    },
+    {
+     "rep": 2,
+     "sampler": "greedy",
+     "discarded": false,
+     "t_s": 131.7797027962371,
+     "predicted_n": 700,
+     "finish": "length",
+     "chars": 2537,
+     "reasoning_chars": 2535,
+     "content_chars": 0,
+     "verdict": [
+      "hint",
+      [
+       "N4-vocab-collapse"
+      ]
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.1897,
+      "n3_compress": 0.3106,
+      "n4_worst_ttr": 0.3333,
+      "n_words": 356
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1680.0,
+      "power_w": 346.92,
+      "temp_c": 81.0,
+      "load1": 1.35
+     }
+    },
+    {
+     "rep": 2,
+     "sampler": "card",
+     "discarded": false,
+     "t_s": 121.26363999097896,
+     "predicted_n": 700,
+     "finish": "length",
+     "chars": 2704,
+     "reasoning_chars": 2702,
+     "content_chars": 0,
+     "verdict": [
+      "clean",
+      []
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.12,
+      "n3_compress": 0.4246,
+      "n4_worst_ttr": 0.5667,
+      "n_words": 427
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1635.0,
+      "power_w": 345.62,
+      "temp_c": 81.0,
+      "load1": 1.29
+     }
+    },
+    {
+     "rep": 3,
+     "sampler": "greedy",
+     "discarded": false,
+     "t_s": 132.16631173362683,
+     "predicted_n": 700,
+     "finish": "length",
+     "chars": 2537,
+     "reasoning_chars": 2535,
+     "content_chars": 0,
+     "verdict": [
+      "hint",
+      [
+       "N4-vocab-collapse"
+      ]
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.1897,
+      "n3_compress": 0.3106,
+      "n4_worst_ttr": 0.3333,
+      "n_words": 356
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1680.0,
+      "power_w": 347.16,
+      "temp_c": 82.0,
+      "load1": 1.27
+     }
+    },
+    {
+     "rep": 3,
+     "sampler": "card",
+     "discarded": false,
+     "t_s": 122.15485355834991,
+     "predicted_n": 700,
+     "finish": "length",
+     "chars": 2802,
+     "reasoning_chars": 2800,
+     "content_chars": 0,
+     "verdict": [
+      "clean",
+      []
+     ],
+     "signals": {
+      "n1_loop_frac": 0.0,
+      "n2_skeleton": 0.0769,
+      "n3_compress": 0.4058,
+      "n4_worst_ttr": 0.5083,
+      "n_words": 419
+     },
+     "telemetry": {
+      "clocks_sm_mhz": 1620.0,
+      "power_w": 347.71,
+      "temp_c": 82.0,
+      "load1": 1.25
+     }
+    }
+   ],
+   "done": true,
+   "summary": {
+    "greedy": {
+     "n": 3,
+     "min": 131.52,
+     "max": 132.17,
+     "median": 131.78,
+     "verdicts": [
+      "hint"
+     ]
+    },
+    "card": {
+     "n": 3,
+     "min": 121.26,
+     "max": 122.15,
+     "median": 121.61,
+     "verdicts": [
+      "clean"
+     ]
+    }
+   }
+  }
+ }
+}

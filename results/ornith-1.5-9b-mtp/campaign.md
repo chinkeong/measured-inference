@@ -1508,3 +1508,64 @@ flagged earlier the same day as stale and misleading because `--greedy`
 overrides it — carries `presence_penalty 1.5`. That is the model card's
 anti-degeneration preset, and it is the exact remedy for what greedy decoding
 just did to these floors.
+
+### 2026-09-01 21:55 — floors re-taken under BOTH samplers in one sweep
+
+Operator accepted the non-quiet host (Steam, Chrome, a second Claude session, a
+foreign 3.9 GB test binary; **GPU itself idle at 661 MiB / 0%**). Memory cap
+lowered to **14 GB** via `MEASURED_INFERENCE_MEM_CAP_GB` so `gpu_lock`'s
+preflight would admit the job — a condition, recorded per rule 3 as the refusal
+message requires. Every probe carries SM clock, board power, temperature and
+load1; load ran **1.25–1.78** throughout, SM 1590–1965 MHz.
+
+4 reps × 2 samplers × 3 arms, first rep discarded (rule 12), sampler order
+alternated by arm (rule 30), one server per arm so the pair is an in-sweep
+comparison.
+
+| arm | greedy | card preset | greedy verdicts | card verdicts |
+|---|---|---|---|---|
+| Q8_0 | 83.63 (83.50–83.83) | **78.60** (77.91–79.28) | LOOP ×3 | LOOP, clean, hint |
+| Q4_K_M | 118.59 (118.32–119.48) | **109.46** (109.45–111.03) | hint ×3 | clean, hint |
+| IQ2_M | 131.78 (131.52–132.17) | **121.61** (121.26–122.15) | hint ×3 | clean ×3 |
+
+**The effect: greedy reads 6.4–8.4% faster, reproducibly, in one sweep.**
+
+**The explanation is NOT that looping inflates throughput, and this is the third
+time in this campaign a real number has arrived wearing a wrong story.** Convert
+to time per token:
+
+    Q8_0    11.957 -> 12.723 ms   extra 0.765 ms
+    Q4_K_M   8.432 ->  9.136 ms   extra 0.703 ms
+    IQ2_M    7.588 ->  8.223 ms   extra 0.635 ms
+
+The extra is **near-constant at ~0.70 ms/token** while the percentage climbs
+6.4 → 8.4% purely because the base per-token time shrinks. That is the shape of
+a **fixed per-token sampling cost** — top_k 20 plus top_p 0.95 plus a presence
+penalty, over a 248,320-entry vocabulary — and there is no reason for a content
+effect from repetition to produce a constant time offset. The ~20% drift across
+arms (0.765 → 0.635) means "consistent with", not "proved"; a small content
+term is not excluded, only demoted below the dominant one.
+
+**What this does to the published floors.** The lock publishes 78.30 / 118.38 /
+131.30. Against this sweep, **Q4_K_M and IQ2_M match their GREEDY numbers** —
+they were measured under a sampler no reader will use. Under the card's own
+preset they are **109.46** and **121.61**: IQ2_M's headline drops **7.4%**.
+
+Q8_0's published 78.30 lands on the *card-sampler* median 78.60 instead. That is
+luck, not method: Stage 1 read 78.30 and the A1 re-take read 83.59, the lock
+said **"quote the lower"**, and quoting the lower happened to select the
+non-degenerate value. The instruction was right for a reason it did not know.
+
+**Q8_0 still loops under the card preset** — LOOP, clean, hint across three
+probes. So repetition on this code prompt is a property of the arm, not merely of
+greedy decoding, and the card's anti-repetition term does not fully suppress it.
+IQ2_M, the most quantised arm, was **clean on all three**.
+
+#### AMENDMENT to the RECIPE LOCK — floors restated by sampler
+
+The lock is not rewritten; it is amended, dated, with the old numbers left
+standing (rule 5). R1's floor is **78.60 t/s under the model card's preset**,
+which is what a reader following the card will get. The greedy figures stay
+published as what greedy decoding yields, labelled with their loop verdicts, and
+never as the number a reader should expect. Both travel with their sampler,
+because on this model the sampler is worth ~0.70 ms on every token (rule 3).

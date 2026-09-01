@@ -1,0 +1,73 @@
+The user wants a single self-contained JavaScript file implementing a red-black tree class with:
+- insert
+- delete
+- search
+- an in-order iterator
+
+Code only, no explanation. Let me write a complete, correct red-black tree implementation.
+
+I'll implement this using ES6 classes for clarity and correctness. Let me make sure the red-black tree operations are all correct.
+
+Red-black tree properties:
+1. Every node is either red or black.
+2. The root is black.
+3. Every leaf (NIL) is black.
+4. If a node is red, then both its children are black (no two red nodes in a row).
+5. Every simple path from a node to a descendant leaf contains the same number of black nodes.
+
+I'll use a sentinel NIL approach or just null with color tracking. Let me use the standard approach with a NIL node for correctness, but that might be complex. Actually, many implementations use null and check colors carefully. Let me implement it properly with the NIL sentinel to avoid subtle bugs, but make it clean.
+
+Actually, let me think about whether to use NIL or null. Using a NIL node is cleaner for deletion. But I'll go with a standard implementation using null leaves and being careful. Actually, for robustness, let me use the sentinel approach since it's less error-prone. Hmm, but that adds complexity to search and iteration.
+
+Let me just do a clean implementation with null-based NIL nodes (leaves are black null). This is the common approach.
+
+For insertion:
+1. Create new node as red.
+2. Insert via BST insertion.
+3. Fix violations by rotating/recoloring up the tree.
+
+For deletion:
+1. Mark node as black.
+2. Standard BST delete (case 1, 2, 3).
+3. If successor is red or both children black except one red successor → handle.
+4. Otherwise fix up.
+
+Let me write this carefully.
+
+I'll implement with a NIL sentinel to make it robust and clean. Actually, let me reconsider - using null with proper handling is fine too. Let me go with the standard textbook approach (CLRS-style) using NIL nodes for maximum correctness, but wrap things nicely.
+
+Actually, I think for readability and self-containedness, let me use a clean approach with null leaves. Let me write it out.
+
+Here's my plan:
+
+```javascript
+'use strict';
+
+class RBNode {
+  constructor(key, value) {
+    this.key = key;
+    this.value = value;
+    this.color = true; // red = true, black = false
+    this.left = null;
+    this.right = null;
+    this.parent = null;
+  }
+}
+
+class RedBlackTree {
+  constructor() {
+    this.root = null;
+  }
+
+  // Insert and maintain red-black properties. Returns the node for search/lookup.
+  insert(key, value = null) {
+    if (key === undefined || key === null) {
+      throw new Error('Cannot insert undefined/null key');
+    }
+    const z = new RBNode(key, value);
+    let y = null;
+    let x = this.root;
+
+    // BST descent, establish parent pointers.
+    while (x !== null)
+
