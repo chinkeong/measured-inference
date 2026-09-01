@@ -954,3 +954,37 @@ untested.
    up since Stage 0, so they are already attributable.
 
 **RECIPE LOCK CLOSED 2026-09-01.** Expensive work may now begin.
+
+### AMENDMENT to the RECIPE LOCK — the GPQA cap was wrong, caught at question 2
+
+The lock set `n_predict 5,407` for thinking-on arms, derived from Stage 4's
+measured appetite (max 3,605 across six reasoning prompts × 1.5). A two-question
+pilot of the real benchmark truncated immediately:
+
+```
+prompt 1/2: 1577 tok, CORRECT
+prompt 2/2: 5407 tok, wrong (TRUNCATED)
+```
+
+**Appetite is content-specific and Stage 4 sampled the wrong content.** Six
+general reasoning prompts do not bound what GPQA Diamond asks for; bench.py
+scores a truncated answer 0.0, so that question would have been published as
+model quality — the exact failure rule 16 names and the lock exists to prevent.
+The lock did not fail as a mechanism: it caught this at **question 2 of 198**,
+before hours were spent, which is what the gate is for.
+
+The repo already held the answer and this campaign did not read it forward:
+`scripts/bench/run-gpqa-anchor.ps1` records that "GPQA at xhigh spends 4,247 to
+over 16,384 output tokens per question on this rig, and a first pilot at a
+16,384 cap truncated 3 of 9", and it uses **30,000 of a 32,768 window**.
+
+**AMENDED CAP: 30,000, at `-c 32768`.** Following the measured precedent rather
+than a second guess. The run validates its own cap: rule 7 is satisfied only if
+the truncation count comes back ZERO, and the count is published either way.
+Stage 4's 5,407 remains correct for what it measured — general reasoning — and
+is not a benchmark cap.
+
+**Cost, stated before it is spent:** at ~83 t/s a 30,000-token question is
+6 minutes. 198 questions at the reference's observed mean (~6,000 tokens) is
+~4 h; a pathological tail is longer. The run is resumable per question, so a
+crash costs one question.
