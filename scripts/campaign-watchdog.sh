@@ -141,21 +141,75 @@ report_once() {
 [ "$MODE" = "--once" ] && { report_once; exit 0; }
 
 if [ "$MODE" = "--stop" ]; then
-    if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
-        kill "$(cat "$PIDFILE")" && rm -f "$PIDFILE"
-        echo "watchdog stopped"
-    else
-        rm -f "$PIDFILE"; echo "no watchdog running for $SLUG"
-    fi
+    # Stop EVERY instance, not just the one the pidfile happens to name.
+    n=$("$PY" - "$SLUG" $$ <<'PYEOF'
+import os, signal, sys
+slug, me = sys.argv[1], {int(sys.argv[2]), os.getpid(), os.getppid()}
+n = 0
+for pid in os.listdir("/proc"):
+    if not pid.isdigit() or int(pid) in me:
+        continue
+    try:
+        a = open("/proc/%s/cmdline" % pid, "rb").read().decode("latin-1").split("\x00")
+    except Exception:
+        continue
+    if len(a) >= 3 and a[0].endswith("bash") and a[1].endswith("campaign-watchdog.sh") \
+       and a[2] == slug:
+        try:
+            os.kill(int(pid), signal.SIGTERM); n += 1
+        except Exception:
+            pass
+print(n)
+PYEOF
+)
+    rm -f "$PIDFILE"
+    echo "stopped $n watchdog(s) for $SLUG"
     exit 0
 fi
 
-if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
-    echo "a watchdog is already running for $SLUG (pid $(cat "$PIDFILE")); --stop it first"
+# A PIDFILE ALONE CANNOT ANSWER "IS ONE ALREADY RUNNING". It names ONE pid, and
+# an instance that dies abnormally never runs its EXIT trap, so the file goes
+# stale; --stop then clears it, reports "no watchdog running", and the next start
+# adds another. Measured 2026-09-01: FOUR instances were live at once with an
+# EMPTY pidfile, and the two oldest -- predating the bench.py owner fix -- were
+# calling a healthy benchmark an ORPHAN. Contradictory alarms from invisible
+# duplicates are worse than no watchdog at all.
+#
+# So scan /proc for any OTHER process whose argv is literally
+# `bash <...>/campaign-watchdog.sh <slug>`. Matching argv POSITIONS cannot
+# self-match the way `pgrep -f campaign-watchdog.sh` does, which is the same
+# trap that made a waiter wait for itself earlier the same day.
+others=$("$PY" - "$SLUG" $$ <<'PYEOF'
+import os, sys
+slug, me = sys.argv[1], {int(sys.argv[2]), os.getpid(), os.getppid()}
+out = []
+for pid in os.listdir("/proc"):
+    if not pid.isdigit() or int(pid) in me:
+        continue
+    try:
+        a = open("/proc/%s/cmdline" % pid, "rb").read().decode("latin-1").split("\x00")
+    except Exception:
+        continue
+    if len(a) >= 3 and a[0].endswith("bash") and a[1].endswith("campaign-watchdog.sh") \
+       and a[2] == slug:
+        out.append(pid)
+print(" ".join(out))
+PYEOF
+)
+if [ -n "$others" ]; then
+    echo "a watchdog is already running for $SLUG (pid$( [ $(echo $others | wc -w) -gt 1 ] && echo s) $others); --stop first"
     exit 3
 fi
 mkdir -p "$(dirname "$PIDFILE")"; echo $$ > "$PIDFILE"
-trap 'rm -f "$PIDFILE"' EXIT INT TERM
+# The handler must EXIT, not merely clean up. `trap '...' TERM` without an exit
+# runs the handler and then RESUMES the script, so SIGTERM told every instance to
+# delete its own pidfile and carry on living. Measured 2026-09-01: that turned
+# --stop into a no-op, emptied the pidfile, defeated the double-start guard, and
+# left FOUR watchdogs running at once -- two of them predating the bench.py owner
+# fix and so reporting a healthy benchmark as an ORPHAN. A stop signal that does
+# not stop is the worst kind of guard: it reports success and changes nothing.
+trap 'rm -f "$PIDFILE"' EXIT
+trap 'rm -f "$PIDFILE"; exit 0' INT TERM
 
 prev=""; prev_stall=""; orphan_seen=""; last_push=0
 while true; do
