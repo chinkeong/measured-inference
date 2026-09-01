@@ -1569,3 +1569,65 @@ which is what a reader following the card will get. The greedy figures stay
 published as what greedy decoding yields, labelled with their loop verdicts, and
 never as the number a reader should expect. Both travel with their sampler,
 because on this model the sampler is worth ~0.70 ms on every token (rule 3).
+
+### 2026-09-01 22:04 — energy attribution, on the trace that was nearly lost
+
+Rule 24 work, over the recovered 23.3-hour trace (three contiguous segments,
+gaps of 18 s and 29 s at the two logger handovers, both recorded).
+**Instrumentation tier: in-band GPU board power via NVML/`nvidia-smi`. PSU,
+wall and PUE are excluded** — this is board draw, not site draw. Idle subtracted
+at the campaign's measured loaded-idle **31.12 W**.
+
+| window | span | mean W | Wh gross | Wh net | J/token net |
+|---|---|---|---|---|---|
+| GPQA anchor, 198 q | 7 h 55 m | 287.2 | 2,275.79 | 2,029.20 | 3.266 |
+| rule-21 suite, 175 prompts | 70 m | 313.4 | 366.88 | 330.45 | 3.493 |
+| floor Q8_0 | 61 s | 348.2 | 5.90 | 5.37 | **3.454** |
+| floor Q4_K_M | 43 s | 346.9 | 4.14 | 3.77 | **2.424** |
+| floor IQ2_M | 39 s | 345.0 | 3.74 | 3.40 | **2.186** |
+
+**Deployment numbers a reader can act on.** The GPQA anchor cost **2,029 Wh net
+for 142 correct answers — 14.29 Wh, or 51.4 kJ, per correct answer.** At 21.7%
+truncation, roughly **441 Wh of that produced nothing at all**: answers that hit
+the cap and were scored zero. That is the cost of rule 7's cap choice stated in
+joules rather than in apology.
+
+**The energy curve confirms the roofline result, from a different instrument.**
+Normalising energy per token by file size:
+
+| arm | J/tok net | ×Q8_0 | file GB | ×Q8_0 bytes | J/tok per GB |
+|---|---|---|---|---|---|
+| Q8_0 | 3.454 | 1.000 | 9.11 | 1.000 | 0.379 |
+| Q4_K_M | 2.424 | 0.702 | 5.38 | 0.591 | 0.451 |
+| IQ2_M | 2.186 | 0.633 | 3.60 | 0.395 | 0.607 |
+
+Cutting the file to **0.395×** buys only **0.633×** the energy per token, and
+`J/tok per GB` rises monotonically — 0.379 → 0.451 → 0.607. Deep quantisation
+returns less than the byte reduction promises, and it returns less at every
+step. That is the same shape as rule 10's efficiency constant falling 0.82 →
+0.73 → 0.54, measured by a completely different instrument on a different day.
+**Two independent cheap metrics agreeing (rule 4)** — and this time the
+agreement is about the *effect*, with the *mechanism* still open after the
+matched-bpw pair killed the codebook story.
+
+**Cross-check on Q8_0.** Three windows, three different workloads: GPQA 3.266,
+rule-21 3.493, floor probe 3.454 J/token. The floor probe sits between the two
+long runs. Nothing here rests on a single window.
+
+**And it buys a different model.** IQ2_M's 0.633× energy comes with KLD 0.441
+and agreement with BF16's argmax on only **76.0%** of tokens. The energy table
+is not a recommendation; it is one axis, and §5 of the report has to carry the
+fidelity axis beside it or a reader will read the cheapest row as the best one.
+
+**Caveats, which travel (rule 3).**
+- **Coarse windows: prefill is not separated from decode.** The tool says so
+  itself; `J/decode-token` here includes prefill energy. For the 700-token floor
+  probes off one short prompt that is small; for GPQA's long stems it is not
+  negligible, and the 3.266 is therefore an upper bound on true decode cost.
+  Separating them needs the request-event JSONL this campaign did not capture.
+- **The floor windows were derived from probe COMPLETION timestamps**, so each
+  clips its leading edge: energy is slightly under-attributed and J/token
+  slightly optimistic. The bias is systematic and identical across all three
+  arms, so the **ratios are sound and the absolutes are floors**.
+- The floor probes ran on the operator-accepted non-quiet host; the GPQA and
+  rule-21 windows did not.
