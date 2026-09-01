@@ -1,0 +1,126 @@
+{
+ "_schema": "appetite v1",
+ "slug": "ornith-1.5-9b-mtp",
+ "cap": 16384,
+ "knob": "enable_thinking (BOOLEAN on this model -- two arms, not four)",
+ "arms": {
+  "thinking-on": {
+   "probes": [
+    {
+     "q": 0,
+     "predicted_n": 1938,
+     "finish": "stop",
+     "chars": 1449,
+     "think_chars": 0,
+     "t_s": 118.95211842546207
+    },
+    {
+     "q": 1,
+     "predicted_n": 2711,
+     "finish": "stop",
+     "chars": 2120,
+     "think_chars": 0,
+     "t_s": 118.95316822545796
+    },
+    {
+     "q": 2,
+     "predicted_n": 736,
+     "finish": "stop",
+     "chars": 856,
+     "think_chars": 0,
+     "t_s": 116.12113693810207
+    },
+    {
+     "q": 3,
+     "predicted_n": 2099,
+     "finish": "stop",
+     "chars": 3311,
+     "think_chars": 0,
+     "t_s": 116.63508772593046
+    },
+    {
+     "q": 4,
+     "predicted_n": 3605,
+     "finish": "stop",
+     "chars": 6187,
+     "think_chars": 0,
+     "t_s": 117.09168174714824
+    },
+    {
+     "q": 5,
+     "predicted_n": 1460,
+     "finish": "stop",
+     "chars": 1599,
+     "think_chars": 0,
+     "t_s": 117.27527497193714
+    }
+   ],
+   "n": 6,
+   "min": 736,
+   "max": 3605,
+   "median": 2099,
+   "truncated": 0,
+   "recommended_cap": 5407,
+   "cap_rule": "rule 7: cap above the UPPER TAIL, not the median. 1.5x the observed max is the floor of a safe cap, and any truncation at all means this number is a lower bound on the appetite, not the appetite."
+  },
+  "thinking-off": {
+   "probes": [
+    {
+     "q": 0,
+     "predicted_n": 537,
+     "finish": "stop",
+     "chars": 1441,
+     "think_chars": 0,
+     "t_s": 119.13123105235552
+    },
+    {
+     "q": 1,
+     "predicted_n": 732,
+     "finish": "stop",
+     "chars": 2230,
+     "think_chars": 0,
+     "t_s": 119.76147969485888
+    },
+    {
+     "q": 2,
+     "predicted_n": 414,
+     "finish": "stop",
+     "chars": 936,
+     "think_chars": 0,
+     "t_s": 119.81874586037839
+    },
+    {
+     "q": 3,
+     "predicted_n": 837,
+     "finish": "stop",
+     "chars": 3028,
+     "think_chars": 0,
+     "t_s": 119.64387913506634
+    },
+    {
+     "q": 4,
+     "predicted_n": 1302,
+     "finish": "stop",
+     "chars": 5448,
+     "think_chars": 0,
+     "t_s": 117.0381450794411
+    },
+    {
+     "q": 5,
+     "predicted_n": 1671,
+     "finish": "stop",
+     "chars": 4157,
+     "think_chars": 0,
+     "t_s": 115.16452700859864
+    }
+   ],
+   "n": 6,
+   "min": 414,
+   "max": 1671,
+   "median": 837,
+   "truncated": 0,
+   "recommended_cap": 2506,
+   "cap_rule": "rule 7: cap above the UPPER TAIL, not the median. 1.5x the observed max is the floor of a safe cap, and any truncation at all means this number is a lower bound on the appetite, not the appetite."
+  }
+ }
+}

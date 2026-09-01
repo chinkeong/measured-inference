@@ -748,3 +748,19 @@ Same server, same flags (draft-mtp n4/p0.75), two regimes:
 |---|---|---|---|
 | novel-code | 140.63 | 0.8885 | 1500 |
 | verbatim-prose | 127.98 | 0.9171 | 1206 |
+
+## Stage 4 — APPETITE  ·  2026-09-01
+
+The effort knob on this model is `enable_thinking`, BOOLEAN, so the sweep is two
+arms and not four levels. Six reasoning prompts per arm, cap 16,384, temp 0.
+
+| arm | probes | min | median | max | truncated |
+|---|---|---|---|---|---|
+| thinking-on | 6 | 736 | 2099 | 3605 | 0 |
+| thinking-off | 6 | 414 | 837 | 1671 | 0 |
+
+**Derived caps (rule 7 — above the upper tail, never the median): {"thinking-on": 5407, "thinking-off": 2506}**
+
+This is the gate on Stage 6. A benchmark run at a cap below the upper tail does
+not degrade gracefully: it truncates, and a truncated answer scores 0.0, which
+the report would publish as model quality.
