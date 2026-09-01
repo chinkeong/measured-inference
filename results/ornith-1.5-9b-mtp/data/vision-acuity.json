@@ -1,0 +1,186 @@
+{
+ "_schema": "vision-acuity v1",
+ "question": "at what resolution can this model READ 6-digit text?",
+ "nonce": {
+  "digits": "686954",
+  "colour": "crimson"
+ },
+ "reps": 3,
+ "rungs": [
+  {
+   "w": 768,
+   "h": 768,
+   "pixels": 589824,
+   "prompt_tokens": 608,
+   "hits": 0,
+   "of": 3,
+   "answers": [
+    {
+     "correct": false,
+     "digits_seen": "202014202014202014",
+     "reply": "202014"
+    },
+    {
+     "correct": false,
+     "digits_seen": "202014202014202014",
+     "reply": "202014"
+    },
+    {
+     "correct": false,
+     "digits_seen": "202014202014202014",
+     "reply": "202014"
+    }
+   ]
+  },
+  {
+   "w": 1024,
+   "h": 1024,
+   "pixels": 1048576,
+   "prompt_tokens": 1056,
+   "hits": 0,
+   "of": 3,
+   "answers": [
+    {
+     "correct": false,
+     "digits_seen": "868054",
+     "reply": ""
+    },
+    {
+     "correct": false,
+     "digits_seen": "868054",
+     "reply": ""
+    },
+    {
+     "correct": false,
+     "digits_seen": "868054",
+     "reply": ""
+    }
+   ]
+  },
+  {
+   "w": 1280,
+   "h": 720,
+   "pixels": 921600,
+   "prompt_tokens": 952,
+   "hits": 0,
+   "of": 3,
+   "answers": [
+    {
+     "correct": false,
+     "digits_seen": "688546885468854",
+     "reply": ""
+    },
+    {
+     "correct": false,
+     "digits_seen": "688546885468854",
+     "reply": ""
+    },
+    {
+     "correct": false,
+     "digits_seen": "688546885468854",
+     "reply": ""
+    }
+   ]
+  },
+  {
+   "w": 1280,
+   "h": 1280,
+   "pixels": 1638400,
+   "prompt_tokens": 1632,
+   "hits": 0,
+   "of": 3,
+   "answers": [
+    {
+     "correct": false,
+     "digits_seen": "868954818880",
+     "reply": ""
+    },
+    {
+     "correct": false,
+     "digits_seen": "868954818880",
+     "reply": ""
+    },
+    {
+     "correct": false,
+     "digits_seen": "868954818880",
+     "reply": ""
+    }
+   ]
+  },
+  {
+   "w": 1536,
+   "h": 864,
+   "pixels": 1327104,
+   "prompt_tokens": 1328,
+   "hits": 0,
+   "of": 3,
+   "answers": [
+    {
+     "correct": false,
+     "digits_seen": "666964666964666964",
+     "reply": "666964"
+    },
+    {
+     "correct": false,
+     "digits_seen": "666964666964666964",
+     "reply": "666964"
+    },
+    {
+     "correct": false,
+     "digits_seen": "666964666964666964",
+     "reply": "666964"
+    }
+   ]
+  },
+  {
+   "w": 1600,
+   "h": 900,
+   "pixels": 1440000,
+   "prompt_tokens": 1432,
+   "hits": 3,
+   "of": 3,
+   "answers": [
+    {
+     "correct": true,
+     "digits_seen": "686954686954",
+     "reply": ""
+    },
+    {
+     "correct": true,
+     "digits_seen": "686954686954",
+     "reply": ""
+    },
+    {
+     "correct": true,
+     "digits_seen": "686954686954",
+     "reply": ""
+    }
+   ]
+  },
+  {
+   "w": 1920,
+   "h": 1080,
+   "pixels": 2073600,
+   "prompt_tokens": 2072,
+   "hits": 3,
+   "of": 3,
+   "answers": [
+    {
+     "correct": true,
+     "digits_seen": "68695468695468695468",
+     "reply": "68"
+    },
+    {
+     "correct": true,
+     "digits_seen": "68695468695468695468",
+     "reply": "68"
+    },
+    {
+     "correct": true,
+     "digits_seen": "68695468695468695468",
+     "reply": "68"
+    }
+   ]
+  }
+ ]
+}

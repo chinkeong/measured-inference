@@ -651,3 +651,31 @@ that score into knowledge and format. Rule 28 in the exact shape the rule
 describes: the field was recoverable for free during the run and at no
 price afterwards. Nothing was lost - that run reached its end - which is
 the only reason this is a library entry and not a case study.
+
+## a capability, token or field reads as ABSENT and the check truncated its own output
+
+SYMPTOM: a scan reports a capability missing -- "vision/image tokens
+present: NONE", "no matches", an empty list -- and the thing is
+demonstrably there. The scan matched correctly; the DISPLAY was sliced.
+CAUSE: `print(matches[:15])` over a 248,320-entry vocabulary whose
+control tokens (`<|vision_start|>`, `<|image_pad|>`, `<|audio_pad|>`)
+live at ids 248044-248076, i.e. at the very END. Ordinary word pieces
+that also matched the substring filled the slice, so the answer was
+248,038 entries past where the output stopped. Measured 2026-09-01: this
+nearly wrote off a modality the vendor card, the projector header and
+the model's own vocabulary all confirmed.
+FIX: when a scan is being read as EVIDENCE OF ABSENCE, print the COUNT
+before the sample, and slice from the end as well as the start --
+special/control tokens sort last in every GGUF vocabulary. Better, ask
+the structured question rather than a substring one: llama.cpp types
+control tokens as `tokenizer.ggml.token_type == 3`, and enumerating
+those 27 entries answers the modality question exactly, with no filter
+and no slice.
+EARNED BY: the general principle this repo keeps rediscovering from new
+directions -- AN ABSENCE REPORTED BY AN INSTRUMENT IS ONLY EVIDENCE IF
+THE INSTRUMENT COULD HAVE SHOWN THE PRESENCE. Same day, same lesson from
+the other end: `loop-detect.py` returned ("clean", []) for the empty
+string because every signal is 0.0 there and 0.0 fires no threshold, and
+that verdict was published for three quant arms whose generations had
+never been read. It now returns NO-DATA. A scan that cannot fail loudly
+will fail quietly, and quiet failures get published.

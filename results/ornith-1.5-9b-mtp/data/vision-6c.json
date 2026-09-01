@@ -1,0 +1,117 @@
+{
+ "_schema": "vision-6c v1",
+ "slug": "ornith-1.5-9b-mtp",
+ "rule19": "a question only answerable by seeing the image; the nonce is generated at run time so no prior, filename or training datum contains it",
+ "nonce": {
+  "digits": "686954",
+  "colour": "crimson",
+  "shape_present": "circle",
+  "shape_absent": "triangle"
+ },
+ "model": "Ornith-1.5-9B-MTP-Q8_0.gguf",
+ "mmproj": "mmproj-Ornith-1.5-9B-BF16.gguf",
+ "resolution_map": [
+  {
+   "w": 512,
+   "h": 512,
+   "pixels": 262144,
+   "file_bytes": 10491,
+   "path": "/root/Workspace/measured-inference/results/ornith-1.5-9b-mtp/work/vision-shots/nonce-512x512.png",
+   "prompt_tokens": 288,
+   "image_tokens": 265,
+   "answer": "",
+   "correct": false
+  },
+  {
+   "w": 768,
+   "h": 768,
+   "pixels": 589824,
+   "file_bytes": 17475,
+   "path": "/root/Workspace/measured-inference/results/ornith-1.5-9b-mtp/work/vision-shots/nonce-768x768.png",
+   "prompt_tokens": 608,
+   "image_tokens": 585,
+   "answer": "202014",
+   "correct": false
+  },
+  {
+   "w": 1024,
+   "h": 1024,
+   "pixels": 1048576,
+   "file_bytes": 24517,
+   "path": "/root/Workspace/measured-inference/results/ornith-1.5-9b-mtp/work/vision-shots/nonce-1024x1024.png",
+   "prompt_tokens": 1056,
+   "image_tokens": 1033,
+   "answer": "",
+   "correct": false
+  },
+  {
+   "w": 1920,
+   "h": 1080,
+   "pixels": 2073600,
+   "file_bytes": 30619,
+   "path": "/root/Workspace/measured-inference/results/ornith-1.5-9b-mtp/work/vision-shots/nonce-1920x1080.png",
+   "prompt_tokens": 2072,
+   "image_tokens": 2049,
+   "answer": "68",
+   "correct": true
+  },
+  {
+   "w": 3840,
+   "h": 2160,
+   "pixels": 8294400,
+   "file_bytes": 74759,
+   "path": "/root/Workspace/measured-inference/results/ornith-1.5-9b-mtp/work/vision-shots/nonce-3840x2160.png",
+   "prompt_tokens": 4112,
+   "image_tokens": 4089,
+   "answer": "",
+   "correct": true
+  }
+ ],
+ "rule19_arms": {
+  "A_image_nonce": {
+   "question": "What six-digit number is written in this image? Reply with the six digits only, nothing else.",
+   "answer": "",
+   "correct": false,
+   "verdict": "FAIL-blind"
+  },
+  "B_no_image": {
+   "question": "What six-digit number is written in this image? Reply with the six digits only, nothing else.",
+   "answer": "I don't see any image attached to your message. Could you please upload the image so I can help you identify the six-digit number?",
+   "claimed_the_nonce": false,
+   "refused": true,
+   "verdict": "PASS-honest"
+  },
+  "C_absent_content": {
+   "question": "Is there a red triangle in this image? Answer yes or no, then say what shape you actually see.",
+   "answer": "No, there is no red triangle in this image. What I actually see is text (\"20204\" at the top and \"creation\" at the bottom left) along with a black circle on the",
+   "said_triangle_present": false,
+   "named_circle": true,
+   "verdict": "PASS-not-fooled"
+  }
+ },
+ "critique_loop": {
+  "good": {
+   "screenshot": "results/ornith-1.5-9b-mtp/work/vision-shots/page-good.png",
+   "answer": "",
+   "names_overlap": false,
+   "names_missing_image": false,
+   "says_fine": false
+  },
+  "broken": {
+   "screenshot": "results/ornith-1.5-9b-mtp/work/vision-shots/page-broken.png",
+   "answer": "",
+   "names_overlap": true,
+   "names_missing_image": true,
+   "says_fine": false
+  },
+  "discriminator": {
+   "broken_defect_named": true,
+   "good_called_fine": false,
+   "verdict": "PASS-discriminates"
+  }
+ },
+ "text_only_baseline": {
+  "prompt_tokens": 23,
+  "answer": "4"
+ }
+}

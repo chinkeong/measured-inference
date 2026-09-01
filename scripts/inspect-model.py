@@ -1112,7 +1112,39 @@ def inspect_sibling(repo, group, token, cost):
     return hdr["kv"], None
 
 
-def find_vision(repo, groups, token, rec, cost):
+def declared_modalities(kv):
+    """Modalities the MODEL ITSELF declares, from its control tokens.
+
+    Separate from find_vision, and deliberately so: find_vision asks what
+    PROJECTOR shipped, this asks what the WEIGHTS were trained to accept. They
+    can disagree, and each disagreement means something different -- a control
+    token with no projector is a modality this machine cannot exercise, and a
+    projector with no control token is a projector for another model.
+
+    Read from `tokenizer.ggml.token_type == 3` (llama.cpp's CONTROL class)
+    rather than by substring: a substring scan over a 248,320-entry vocabulary
+    matches `image`, `patch` and `dispatch` as ordinary word pieces, and the
+    real control tokens sort LAST, so any truncated view of the matches reports
+    a false absence (reference/failure-library.md, 2026-09-01).
+    """
+    toks = kv.get("tokenizer.ggml.tokens")
+    types = kv.get("tokenizer.ggml.token_type")
+    if not toks or not types or len(toks) != len(types):
+        return None
+    ctrl = [t for t, ty in zip(toks, types) if ty == 3]
+    seen = {}
+    for name, marks in (("vision", ("<|vision_start|>", "<|image_pad|>")),
+                        ("video", ("<|video_pad|>",)),
+                        ("audio", ("<|audio_start|>", "<|audio_pad|>")),
+                        ("speech_out", ("<tts_text_bos>", "<tts_pad>")),
+                        ("grounding", ("<|box_start|>", "<|object_ref_start|>"))):
+        hit = [m for m in marks if m in ctrl]
+        if hit:
+            seen[name] = hit
+    return {"control_tokens_total": len(ctrl), "declared": seen} if seen else None
+
+
+def find_vision(repo, groups, token, rec, cost, main_embedding_length=None):
     """The mmproj sibling, its projector type, and whether this build has it."""
     cands = [g for g in groups if g["mmproj"]]
     if not cands:
@@ -1132,14 +1164,36 @@ def find_vision(repo, groups, token, rec, cost):
         return
     ptype = kv.get("clip.projector_type")
     ok, how, extra = support("projectors", ptype)
+    # THE PAIRING CHECK. A projector that EXISTS is not a projector that FITS.
+    # This recorded supported: true from file presence plus a known
+    # projector_type, which would say exactly the same thing about an mmproj
+    # built for a different model that happened to land in the same repo. The
+    # projector's output width has to equal the language model's embedding
+    # width or the two cannot be wired together at all, and that is one
+    # comparison of two numbers already in hand. Rule 19: hallucinated sight is
+    # the worst outcome, so the cheap structural check runs before the claim.
+    pdim = kv.get("clip.vision.projection_dim")
+    edim = main_embedding_length
+    if pdim is not None and edim is not None:
+        paired = (int(pdim) == int(edim))
+        pair_why = ("clip.vision.projection_dim %s %s the model's "
+                    "embedding_length %s" % (pdim, "==" if paired else "!=", edim))
+    else:
+        paired, pair_why = None, ("projection_dim or embedding_length absent, "
+                                  "so the pairing could not be checked -- this "
+                                  "is NOT a pass")
     rec.measured("vision",
                  {"mmproj_file": pick["name"],
                   "mmproj_bytes": pick["bytes"],
                   "projector_type": ptype,
                   "supported": ok,
+                  "projection_dim": pdim,
+                  "paired_to_this_model": paired,
+                  "pairing_check": pair_why,
                   "alternatives": [g["name"] for g in cands
                                    if g["name"] != pick["name"]] or None},
-                 "clip.projector_type from %s; support %s" % (pick["name"], how),
+                 "clip.projector_type from %s; support %s; %s"
+                 % (pick["name"], how, pair_why),
                  **extra)
 
 
@@ -1388,8 +1442,28 @@ def inspect_file(repo, group, groups, token, args, log):
         for k in ("vision", "drafter"):
             rec.unknown(k, "--no-siblings: the repo's other GGUFs were not read")
     else:
-        find_vision(repo, groups, token, rec, cost)
+        find_vision(repo, groups, token, rec, cost,
+                    main_embedding_length=kv.get("%s.embedding_length" % arch))
         find_drafter(repo, groups, token, rec, cost, group["name"], arch)
+
+    # WHAT THE WEIGHTS DECLARE, which is a different question from what
+    # shipped. A control token with no projector is a modality this machine
+    # cannot exercise and the report must still name -- omitting it silently is
+    # how a capability goes unmentioned forever (rule 19's logic, applied to the
+    # modalities it does not itself enumerate). Measured 2026-09-01 on
+    # Ornith-1.5-9B: the vocabulary declares audio and TTS output while the
+    # capabilities list said ["text","vision","drafter","effort"].
+    mod = declared_modalities(kv)
+    if mod:
+        rec.measured("declared_modalities", mod,
+                     "tokenizer.ggml.token_type == 3 (CONTROL) in this file's "
+                     "own header; what the weights were trained to accept, "
+                     "independent of which projectors shipped beside them")
+    else:
+        rec.unknown("declared_modalities",
+                    "the token list or its type array was not in the bytes "
+                    "read, so the model's own modality declaration is unknown "
+                    "-- absence here is not evidence of a text-only model")
 
     # --- what the stages may gate on --------------------------------------
     caps, why = [], {}
@@ -1399,9 +1473,22 @@ def inspect_file(repo, group, groups, token, args, log):
                        % (kv.get("general.type") or arch))
     else:
         caps.append("text")
+    mods = (rec.values.get("declared_modalities") or {}).get("declared") or {}
+    for m in mods:
+        if m in ("audio", "speech_out", "video") and m not in caps:
+            why[m] = ("declared in this model's control tokens (%s) but no "
+                      "projector for it was found beside the weights: the "
+                      "modality exists in the model and cannot be exercised "
+                      "from these files -- untested, not absent"
+                      % ", ".join(mods[m]))
     vis = rec.values.get("vision")
-    if vis and vis.get("supported") is not False:
+    if vis and vis.get("supported") is not False and vis.get("paired_to_this_model") is not False:
         caps.append("vision")
+    elif vis and vis.get("paired_to_this_model") is False:
+        why["vision"] = ("a projector shipped but it does NOT pair with these "
+                         "weights: %s. Loading it would be rule 19's worst "
+                         "outcome, a model that appears to see."
+                         % vis.get("pairing_check"))
     elif vis:
         why["vision"] = ("projector type %r is not in this build's table, so "
                          "the mmproj cannot be loaded"
