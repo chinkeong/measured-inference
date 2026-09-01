@@ -1,0 +1,14 @@
+{
+ "_schema": "campaign v1",
+ "slug": "qwen35-9b-family",
+ "kind": "comparison",
+ "anchor": "Qwen3.5-9B",
+ "anchor_file": "Qwen3.5-9B-MTP-Q8_0.gguf",
+ "tier": 1,
+ "corpus": "corpora/wikitext-2-raw-test.raw",
+ "models": {
+  "Qwen3.5-9B": "Qwen3.5-9B-MTP-Q8_0.gguf",
+  "Ornith-1.5-9B": "Ornith-1.5-9B-MTP-Q8_0.gguf"
+ },
+ "why_these_files": "both are plain Q8_0 from an MTP-PRESERVING conversion (block_count 33). The third-party conversions that drop the multi-token-prediction layer ship a 32-block model at 9.53 GiB instead of 9.11 GiB, and pairing one of those against the other lineage would have put two different architectures at the two ends of the comparison and published it as a model difference."
+}
