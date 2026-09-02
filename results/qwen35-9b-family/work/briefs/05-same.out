@@ -1,0 +1,3 @@
+The two models are identical in every structural dimension: 33 layers, embedding width 4096, 16 attention heads, 4 key-value heads, head size 256, context length 262,144 tokens, and the same memory cost per token. Any measurement of memory use or speed applies to both without repeating it. If you have sized a machine for one, that holds for the other.
+
+The one full-size setup measured — the 8-bit file at the full 262,144-token context, with image support and draft model loaded — used 20,336 megabytes of a 24,122-megabyte budget, leaving 3,786 megabytes spare. That figure holds for both. The chat templates differ in text but produced identical input for all 175 test questions, because those questions carry no system message.

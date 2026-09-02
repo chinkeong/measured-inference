@@ -1,0 +1,5 @@
+Use Ornith-1.5-9B for text work. Both models produce text at the same speed — 84.17 and 83.80 tokens per second, a 0.5 percent difference. What separates them is finishing: on the same 175 test questions, Ornith finished in 4,231 seconds, 41 percent of the 10,235 seconds Qwen3.5-9B took.
+
+The reason is not speed. Qwen3.5-9B often does not stop writing. It ran past the answer limit on 23 of 175 questions; Ornith did so on 9. A cut-off answer scores zero, so the extra time produces nothing.
+
+Ornith scored 68.9 out of 100 on the shared test set against Qwen3.5-9B's 61.6. That 7.3 point difference is a lean, not a verdict — each test used only 25 questions, too few to settle small differences. The stopping behaviour is the large and consistent finding. If you need image or video input, use Qwen3.5-9B; Ornith was measured only for text here.

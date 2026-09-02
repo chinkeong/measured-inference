@@ -1,0 +1,3 @@
+Both models produce about 84 tokens per second, faster than a person reads. Qwen3.5-9B measured 84.17 tokens per second against Ornith-1.5-9B's 83.80, a ratio of 0.9956. They alternated in one session, so a slow moment could not be mistaken for a property of one model. With recommended settings, which include a repetition penalty, Qwen3.5-9B measured 78.52 tokens per second and Ornith measured 78.77, a ratio of 1.0032. Those settings cost about 0.70 milliseconds per token — the sampling work, not the model.
+
+Both models repeated themselves under the simplest setting, which always takes the most likely next word. That repetition comes from the shared base model; neither model's training introduced it.

@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ornith-1.5-9B against Qwen3.5-9B on one RTX 3090: measured speed, quality and stopping</title>
+<meta name="description" content="Two 9B models of identical shape, measured on one RTX 3090 in one alternating session: same decode speed to within 0.5 percent, and one finishes the same 175 prompts in 41 percent of the wall clock.">
+<style>
+:root{
+  --bg:#fbfaf8; --fg:#1a1a1a; --muted:#5a5a5a; --rule:#e2ded8; --card:#fff;
+  --accent:#7a3b12; --good:#1c5f2e; --warn:#8a5a00; --bad:#8a2020;
+  --code-bg:#f4f1ec;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#14161a; --fg:#e8e6e3; --muted:#a2a6ad; --rule:#2c3038; --card:#1b1e24;
+    --accent:#e0975a; --good:#7ec98f; --warn:#e0b45a; --bad:#e88a8a;
+    --code-bg:#1f232a;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#14161a; --fg:#e8e6e3; --muted:#a2a6ad; --rule:#2c3038; --card:#1b1e24;
+  --accent:#e0975a; --good:#7ec98f; --warn:#e0b45a; --bad:#e88a8a;
+  --code-bg:#1f232a;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);margin:0;
+  font:16px/1.62 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+.wrap{max-width:52rem;margin:0 auto;padding:2.5rem 1.15rem 6rem}
+h1{font-size:1.95rem;line-height:1.22;margin:0 0 .5rem;letter-spacing:-.015em}
+h2{font-size:1.32rem;margin:3.2rem 0 .1rem;letter-spacing:-.01em;
+   padding-top:1.4rem;border-top:1px solid var(--rule)}
+h3{font-size:1.02rem;margin:2rem 0 .4rem;color:var(--accent)}
+.sub{color:var(--muted);font-size:1.02rem;margin:.2rem 0 1.6rem}
+.lede{font-size:1.06rem}
+p{margin:.85rem 0}
+a{color:var(--accent)}
+code,kbd{background:var(--code-bg);padding:.1em .34em;border-radius:3px;
+  font:.885em/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+pre{background:var(--code-bg);padding:.85rem 1rem;border-radius:6px;
+  overflow-x:auto;border:1px solid var(--rule)}
+pre code{background:none;padding:0}
+table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.925rem}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+th,td{text-align:left;padding:.44rem .6rem;border-bottom:1px solid var(--rule);
+  vertical-align:top}
+th{font-weight:600;color:var(--muted);font-size:.83rem;text-transform:uppercase;
+  letter-spacing:.045em}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+tr.hi td{background:color-mix(in srgb,var(--accent) 9%,transparent)}
+.box{background:var(--card);border:1px solid var(--rule);border-radius:8px;
+  padding:1rem 1.15rem;margin:1.5rem 0}
+.box h3{margin-top:0}
+.box dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:.3rem .9rem}
+.box dt{font-weight:600;white-space:nowrap}
+.box dd{margin:0;color:var(--muted)}
+.tag{display:inline-block;font-size:.74rem;letter-spacing:.05em;
+  text-transform:uppercase;padding:.1em .5em;border-radius:3px;
+  border:1px solid currentColor;vertical-align:.12em}
+.t-meas{color:var(--good)}.t-deriv{color:var(--warn)}.t-cited{color:var(--muted)}
+.good{color:var(--good)}.bad{color:var(--bad)}.warn{color:var(--warn)}
+.v2{border-left:3px solid var(--rule);padding-left:1rem;margin:1.4rem 0}
+.v2 > :first-child{margin-top:0}
+nav.toc{background:var(--card);border:1px solid var(--rule);border-radius:8px;
+  padding:.9rem 1.15rem;margin:2rem 0}
+nav.toc ol{margin:.3rem 0 0;padding-left:1.3rem}
+nav.toc li{margin:.18rem 0}
+figcaption{color:var(--muted);font-size:.86rem;margin-top:.4rem}
+.foot{color:var(--muted);font-size:.88rem;margin-top:3.5rem;
+  border-top:1px solid var(--rule);padding-top:1.2rem}
+@media (max-width:34rem){
+  .wrap{padding:1.6rem .85rem 4rem} h1{font-size:1.55rem}
+  .box dl{grid-template-columns:1fr;gap:.1rem}
+  .box dt{margin-top:.5rem}
+}
+</style>
+<div class="wrap">
+
+<h1>Ornith-1.5-9B against Qwen3.5-9B on one RTX&nbsp;3090</h1>
+<p class="sub">Two models of identical internal shape, measured on one machine.
+Same speed. One of them stops.</p>
+
+<nav class="toc" aria-label="Contents">
+  <strong>On this page</strong>
+  <ol>
+    <li><a href="#what">What is being compared</a></li>
+    <li><a href="#rec">The recommendation</a></li>
+    <li><a href="#words">Plain words</a></li>
+    <li><a href="#held">What was held constant</a></li>
+    <li><a href="#speed">Speed</a></li>
+    <li><a href="#quality">Quality</a></li>
+    <li><a href="#same">Where the two models are the same</a></li>
+    <li><a href="#prov">Provenance</a></li>
+    <li><a href="#cannot">What this comparison cannot say</a></li>
+  </ol>
+</nav>
+
+<h2 id="what">1. What is being compared</h2>
+<p class="lede">Qwen3.5-9B is the base model and the fixed reference point.
+Ornith-1.5-9B was built from it by further training. Both are 9.11&nbsp;GiB in
+the same 8-bit format with 33 layers, a context length of 262,144 tokens, the
+same attention head counts, and the same memory cost per token. Because the
+shape is identical, anything that differs between them comes from the training,
+not the design.</p>
+<p>Every number on this page was measured on one RTX&nbsp;3090 with 24&nbsp;GB of
+memory, running Ubuntu. Most measurements were taken with both models running in
+one alternating session.</p>
+
+<div class="v2">
+<p><strong>Why one session matters.</strong> This rig produces two throughput
+levels about 13&nbsp;% apart, and nothing recorded predicts which one a run
+lands on. Seven candidate causes were tested and eliminated. Numbers taken on
+different days are therefore not comparable as absolutes, so the two models were
+alternated inside a single sweep, first probe of each load discarded for clock
+ramp, and the reference model's own absolute is published so a later sweep can
+form ratios against it.</p>
+<p><strong>The file choice was the first trap.</strong> Third-party GGUF
+conversions of this architecture silently drop the multi-token-prediction layer
+— 243,290,624 parameters — leaving a 32-layer model. The file size gives it
+away: 9.79&nbsp;GB with the layer, 9.53&nbsp;GB without. Both arms here are
+plain <code>Q8_0</code> from conversions that keep it, verified at the GGUF
+header at <code>block_count&nbsp;33</code>. Pairing a 32-layer file against a
+33-layer one would have published a packaging difference as a model
+difference.</p>
+</div>
+
+<h2 id="rec">2. The recommendation</h2>
+<p class="lede">Use Ornith-1.5-9B for text work. Both models produce text at the
+same speed — 84.17 and 83.80 tokens per second, a 0.5&nbsp;percent difference.
+What separates them is finishing: on the same 175 test questions, Ornith
+finished in 4,231 seconds, 41&nbsp;percent of the 10,235 seconds Qwen3.5-9B
+took.</p>
+<p>The reason is not speed. Qwen3.5-9B often does not stop writing. It ran past
+the answer limit on 23 of 175 questions; Ornith did so on 9. A cut-off answer
+scores zero, so the extra time produces nothing.</p>
+<p>Ornith scored 68.9 out of 100 on the shared test set against Qwen3.5-9B's
+61.6. That 7.3 point difference is a lean, not a verdict — each test used only
+25 questions, too few to settle small differences. The stopping behaviour is the
+large and consistent finding. If you need image or video input, use Qwen3.5-9B;
+Ornith was measured only for text here.</p>
+
+<div class="box">
+<h3>The two numbers to take away</h3>
+<dl>
+  <dt><span class="good">41&nbsp;%</span></dt>
+  <dd>of the wall clock, for the same 175 prompts, at the same decode speed.</dd>
+  <dt><span class="bad">23 vs 9</span></dt>
+  <dd>answers that ran past the limit and scored zero. This is the mechanism.</dd>
+</dl>
+</div>
+
+<h2 id="words">3. Plain words</h2>
+<div class="box">
+<dl>
+  <dt>Token</dt><dd>A piece of a word. Models read and write in tokens, not letters.</dd>
+  <dt>Tokens per second</dt><dd>How fast text comes out. 84 is faster than a person reads.</dd>
+  <dt>Context length</dt><dd>How much text the model can hold at once. Here, 262,144 tokens.</dd>
+  <dt>Quantisation</dt><dd>Storing the model's numbers with fewer bits so the file is smaller. Both files here are 8-bit.</dd>
+  <dt>Answer limit</dt><dd>The maximum length an answer may reach before it is cut off. Here, 16,384 tokens.</dd>
+  <dt>Truncated</dt><dd>An answer that hit that limit and was cut off. It is scored zero.</dd>
+  <dt>Greedy</dt><dd>The simplest setting: always take the most likely next word.</dd>
+  <dt>Chat template</dt><dd>The wrapper that turns your question into the exact text the model sees.</dd>
+</dl>
+</div>
+
+<h2 id="held">4. What was held constant</h2>
+<p class="lede">One machine, one software build, one set of test questions, one
+set of settings. Only the model file changed.</p>
+<div class="scroll">
+<table>
+<caption class="sr-only">Held-constant conditions for every number on this page</caption>
+<tr><th>Card</th><td>NVIDIA GeForce RTX 3090, 24&nbsp;GB, driver 580.173.02, sm_86</td></tr>
+<tr><th>Backend</th><td>llama.cpp b10717, commit <code>a32af33de2b5</code>, CUDA</td></tr>
+<tr><th>Files</th><td>Both plain <code>Q8_0</code>, 9.11&nbsp;GiB, <code>block_count 33</code></td></tr>
+<tr><th>Suite</th><td>Frozen, hash <code>1cdf54f8eb9d3f8f</code> — the same hash a separate 27B campaign ran</td></tr>
+<tr><th>Sampler</th><td>Greedy, seed 42, n=25 per set, answer limit 16,384 tokens, <code>-c 32768</code></td></tr>
+<tr><th>Desktop</th><td><span class="warn">LIVE</span> on every number (GNOME, browser, 454&nbsp;MiB). A quiet machine would read higher.</td></tr>
+<tr><th>Idle power</th><td>28.09&nbsp;W cold, 31.12&nbsp;W loaded, both P8-settled</td></tr>
+</table>
+</div>
+
+<h2 id="speed">5. Speed</h2>
+<p class="lede">Both models produce about 84 tokens per second, faster than a
+person reads. Qwen3.5-9B measured 84.17 tokens per second against
+Ornith-1.5-9B's 83.80, a ratio of 0.9956. They alternated in one session, so a
+slow moment could not be mistaken for a property of one model. With recommended
+settings, which include a repetition penalty, Qwen3.5-9B measured 78.52 tokens
+per second and Ornith measured 78.77, a ratio of 1.0032. Those settings cost
+about 0.70 milliseconds per token — the sampling work, not the model.</p>
+<p>Both models repeated themselves under the simplest setting, which always
+takes the most likely next word. That repetition comes from the shared base
+model; neither model's training introduced it.</p>
+
+<figure>
+<div class="scroll">
+<table aria-label="Decode speed, one alternating sweep. Qwen3.5-9B greedy 84.17 tokens per second, ratio 1.0000 by definition as the reference. Ornith-1.5-9B greedy 83.80, ratio 0.9956. Under the model makers' recommended sampler, Qwen3.5-9B 78.52 and Ornith 78.77, ratio 1.0032. All four cells returned a LOOP verdict under greedy decoding; Ornith under the recommended sampler returned one clean verdict among three probes.">
+<tr><th>Model</th><th class="n">Greedy</th><th class="n">× ref</th><th class="n">Recommended</th><th class="n">× ref</th><th>Repetition</th></tr>
+<tr><td><strong>Qwen3.5-9B</strong> <span class="tag t-meas">reference</span></td><td class="n">84.17</td><td class="n">1.0000</td><td class="n">78.52</td><td class="n">1.0000</td><td class="bad">LOOP</td></tr>
+<tr class="hi"><td><strong>Ornith-1.5-9B</strong></td><td class="n">83.80</td><td class="n">0.9956</td><td class="n">78.77</td><td class="n">1.0032</td><td class="bad">LOOP</td></tr>
+</table>
+</div>
+<figcaption>Tokens per second, median of 3 kept probes per cell, first probe of
+each load discarded. One sweep, arms alternating, 2026-09-02. Desktop live.</figcaption>
+</figure>
+
+<div class="v2">
+<p><strong>The sampler costs a fixed time per token, not a fraction.</strong>
+Converting the greedy/recommended gap to time per token gives 0.765, 0.703 and
+0.635&nbsp;ms across three separate quantisations of the same model. A
+near-constant offset is the signature of fixed per-token sampling work — top-k
+20 plus top-p plus a presence penalty over a 248,320-entry vocabulary — and not
+of anything the model is doing differently. The percentage looks larger on
+faster files only because the base per-token time is smaller. The 20&nbsp;%
+drift across the three means <em>consistent with</em>, not proved.</p>
+<p><strong>Repetition is inherited.</strong> The Ornith field guide recorded
+<code>LOOP</code> on every greedy probe and treated it as a property of that
+model. The reference model does the same thing on the same prompt at the same
+sampler. That claim could not be made while the reference existed only as a
+citation.</p>
+</div>
+
+<h2 id="quality">6. Quality</h2>
+<p class="lede">Ornith scored higher than Qwen3.5-9B on average across five
+tests: 68.9 out of 100 against 61.6. Both models answered the same 175
+questions, on the same seven test sets, with the same settings, on the same
+machine.</p>
+<p>Ornith led on school maths (100.0 to 92.0 on GSM8K), harder maths (60.0 to
+48.0 on MATH-500), code completion (72.0 to 56.0 on MBPP), and summarising (24.3
+to 20.0 on MeetingBank). Qwen won one test, HumanEval code writing, with 92.0
+against 88.0. Each test used only 25 questions, so a difference of about 10
+points can appear from chance alone. Single tests are suggestive, not
+settled.</p>
+<p>The clearest difference was how often each model ran past the answer limit:
+23 times for Qwen, 9 for Ornith. Two further tests were scored by three
+independent judges. Ornith scored 67.6 and 79.9, Qwen 61.3 and 75.0. Six of
+Qwen's fifty judged answers were empty because they exceeded the limit, against
+one of Ornith's.</p>
+
+<figure>
+<div class="scroll">
+<table aria-label="Rule 21 benchmark suite, identical frozen suite hash, 25 questions each. GSM8K: Ornith 100.0 with 0 truncations, Qwen3.5-9B 92.0 with 2. MATH-500: Ornith 60.0 with 3, Qwen 48.0 with 13. HumanEval: Ornith 88.0 with 1, Qwen 92.0 with 0. MBPP: Ornith 72.0 with 5, Qwen 56.0 with 8. MeetingBank: Ornith 24.3, Qwen 20.0, neither truncated. Composite mean over the five scored sets: Ornith 68.9, Qwen 61.6. Total truncations 9 against 23. Wall clock 4,231 seconds against 10,235 seconds.">
+<tr><th>Test</th><th class="n">Ornith</th><th class="n">Qwen3.5-9B</th><th class="n">Trunc. O</th><th class="n">Trunc. Q</th></tr>
+<tr><td>GSM8K — school maths</td><td class="n good">100.0</td><td class="n">92.0</td><td class="n">0</td><td class="n">2</td></tr>
+<tr><td>MATH-500 — harder maths</td><td class="n good">60.0</td><td class="n">48.0</td><td class="n">3</td><td class="n bad">13</td></tr>
+<tr><td>HumanEval — writing code</td><td class="n">88.0</td><td class="n good">92.0</td><td class="n">1</td><td class="n">0</td></tr>
+<tr><td>MBPP — more code</td><td class="n good">72.0</td><td class="n">56.0</td><td class="n">5</td><td class="n bad">8</td></tr>
+<tr><td>MeetingBank — summarising</td><td class="n good">24.3</td><td class="n">20.0</td><td class="n">0</td><td class="n">0</td></tr>
+<tr class="hi"><td><strong>Mean of the five</strong></td><td class="n"><strong>68.9</strong></td><td class="n"><strong>61.6</strong></td><td class="n"><strong>9</strong></td><td class="n bad"><strong>23</strong></td></tr>
+<tr><td>Wall clock, all 175</td><td class="n good">4,231&nbsp;s</td><td class="n">10,235&nbsp;s</td><td colspan="2">Ornith took 41&nbsp;%</td></tr>
+</table>
+</div>
+<figcaption>Frozen suite <code>1cdf54f8eb9d3f8f</code>, greedy, seed 42, n=25 per
+set, answer limit 16,384 tokens. MeetingBank is ROUGE-L F1 and reads against a
+floor near 10, not against 0. 2026-09-02.</figcaption>
+</figure>
+
+<h3>The judged pair, scored separately and never folded into the mean</h3>
+<div class="scroll">
+<table aria-label="Judged benchmarks scored by a three-seat blind panel. ALPACA: Ornith 67.6 with item standard deviation 2.081 and 1 at-cap answer; Qwen3.5-9B 61.3 with standard deviation 2.965 and 5 at-cap answers. MT-Bench: Ornith 79.9 with standard deviation 1.054 and 0 at-cap; Qwen 75.0 with standard deviation 1.809 and 1 at-cap.">
+<tr><th>Test</th><th class="n">Ornith</th><th class="n">Qwen3.5-9B</th><th class="n">SD (O / Q)</th><th class="n">Empty at cap</th></tr>
+<tr><td>ALPACA</td><td class="n good">67.6</td><td class="n">61.3</td><td class="n">2.081 / 2.965</td><td class="n">1 / <span class="bad">5</span></td></tr>
+<tr><td>MT-Bench</td><td class="n good">79.9</td><td class="n">75.0</td><td class="n">1.054 / 1.809</td><td class="n">0 / 1</td></tr>
+</table>
+</div>
+<figcaption>Three blind seats, opaque salted ids, ratings 1–10 normalised to
+0–100. 50 answers, 150 ratings, 50/50 rated for both models. Published beside
+the composite mean and never folded into it, so the mean stays comparable with
+campaigns that had no judge.</figcaption>
+
+<div class="v2">
+<p><strong>Read the standard deviations, not only the means.</strong> Ornith's
+item spread is lower on both judged sets (2.081 against 2.965, and 1.054 against
+1.809). Rated higher <em>and</em> more consistently is the more trustworthy half
+of the observation at n=25.</p>
+<p><strong>A large part of the judged gap is not writing quality.</strong> An
+empty answer is rated 1 by unanimous seats. Six of Qwen's fifty judged answers
+were empty at the cap against one of Ornith's, so the 6.3 and 4.9 point gaps are
+substantially the same stopping failure the scored sets show, arriving through a
+different instrument.</p>
+</div>
+
+<h2 id="same">7. Where the two models are the same</h2>
+<p class="lede">The two models are identical in every structural dimension: 33
+layers, embedding width 4096, 16 attention heads, 4 key-value heads, head size
+256, context length 262,144 tokens, and the same memory cost per token. Any
+measurement of memory use or speed applies to both without repeating it. If you
+have sized a machine for one, that holds for the other.</p>
+<p>The one full-size setup measured — the 8-bit file at the full 262,144-token
+context, with image support and draft model loaded — used 20,336 megabytes of a
+24,122-megabyte budget, leaving 3,786 megabytes spare. That figure holds for
+both. The chat templates differ in text but produced identical input for all 175
+test questions, because those questions carry no system message.</p>
+
+<div class="v2">
+<p><strong>Measured KV slope: 33,792 bytes per token</strong>, against 32,768
+implied by the header — 3.1&nbsp;% higher, and the measured figure is the one to
+size with. The projector costs 1,130&nbsp;MiB and the draft head 2,266&nbsp;MiB,
+additive at 3,396&nbsp;MiB.</p>
+<p><strong>The templates differ but do not act.</strong> Ornith's is 7,756
+characters (<code>a4aee8af…</code>), the reference model's 7,992
+(<code>8452ca85…</code>). The only substantive difference is a 39-line
+system-message merging block. Rendering all 175 suite prompts through both gives
+<strong>175 identical, 0 different</strong> — every rule-21 prompt is a bare
+single user turn.</p>
+</div>
+
+<h2 id="prov">8. Provenance</h2>
+<div class="scroll">
+<table aria-label="Provenance of every sweep in this document, with dates and the reference model's own absolute in each.">
+<tr><th>Sweep</th><th>Date</th><th>Reference absolute</th><th>Arms</th></tr>
+<tr><td>Anchor sweep</td><td>2026-09-02</td><td class="n">84.17 / 78.52 t/s</td><td>Qwen3.5-9B, Ornith-1.5-9B</td></tr>
+<tr><td>rule-21 suite</td><td>2026-09-01/02</td><td class="n">61.6 mean</td><td>both, suite <code>1cdf54f8eb9d3f8f</code></td></tr>
+<tr><td>Judge panel</td><td>2026-09-02</td><td class="n">61.3 / 75.0</td><td>both, 3 blind seats</td></tr>
+<tr><td>Template crossover</td><td>2026-09-02</td><td colspan="2">2×2, MATH-500 + MBPP, all four cells bit-identical</td></tr>
+</table>
+</div>
+<p>Every number is tagged <span class="tag t-meas">measured</span>,
+<span class="tag t-deriv">derived</span> or <span class="tag t-cited">cited</span>
+in the campaign log. The full log, every raw result file and the scripts that
+produced them are in the repository under
+<code>results/qwen35-9b-family/</code>.</p>
+
+<h2 id="cannot">9. What this comparison cannot say</h2>
+<p class="lede">No single test is large enough to declare a winner. Each test
+used 25 questions, and about 10 points of difference can come from chance at
+that size.</p>
+<p>The comparison cannot explain why Qwen3.5-9B fails to stop generating.
+Swapping the two models' chat templates changed nothing, because both templates
+produce identical input for these questions. Training is the only remaining
+explanation, by elimination, not proof. It says nothing about tasks that use
+system instructions or tools, where the two templates genuinely differ. An agent
+harness is exactly that case.</p>
+<p>Image handling was measured only for Ornith, so there is nothing to compare.
+Speculative decoding was not compared: Ornith ships an extra small model for it
+and Qwen3.5-9B does not. The judged scores were produced by a Claude model, and
+this page was written with Claude. The spread between the three judges is
+published beside every judged number for that reason.</p>
+
+<div class="v2">
+<p><strong>The crossover had no statistical power and the control says why.</strong>
+The 2×2 returned four bit-identical cells — Qwen weights 13/8 truncations under
+either template, Ornith weights 3/5 under either. That is not evidence that
+weights cause the difference; it is a restatement of the render control, which
+found the two templates emit the same bytes for all 175 prompts. The experiment
+could not have detected a template effect under any outcome. What it does
+establish is that the confound is <em>eliminated for this suite</em>: the 23-vs-9
+gap cannot be a template artefact, because there is no template difference here
+to be an artefact of.</p>
+<p><strong>Cost recorded honestly:</strong> two GPU hours bought a result a
+three-second render comparison would have predicted, and predicted better,
+because the control also bounds where the conclusion stops applying.</p>
+</div>
+
+<p class="foot">
+Measured 2026-09-01 and 2026-09-02 on one RTX&nbsp;3090 by the
+<code>measured-inference</code> harness. Prose written by Claude Opus 4.6 against
+briefs in <code>results/qwen35-9b-family/work/briefs/</code>; all numbers,
+conditions and claims owned and verified by the orchestrating model.
+No number on this page is projected, and no number is quoted from a vendor.
+</p>
+
+</div>
+</html>

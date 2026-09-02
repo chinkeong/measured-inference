@@ -1,0 +1,5 @@
+No single test is large enough to declare a winner. Each test used 25 questions, and about 10 points of difference can come from chance at that size.
+
+The comparison cannot explain why Qwen3.5-9B fails to stop generating. Swapping the two models' chat templates changed nothing, because both templates produce identical input for these questions. Training is the only remaining explanation, by elimination, not proof. It says nothing about tasks that use system instructions or tools, where the two templates genuinely differ. An agent harness is exactly that case.
+
+Image handling was measured only for Ornith, so there is nothing to compare. Speculative decoding was not compared: Ornith ships an extra small model for it and Qwen3.5-9B does not. The judged scores were produced by a Claude model, and this page was written with Claude. The spread between the three judges is published beside every judged number for that reason.

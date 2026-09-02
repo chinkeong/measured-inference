@@ -42,10 +42,23 @@ def check(slug):
 
     # Evidence a writer ran: a brief, a captured writer output, or an explicit
     # in-page disclosure that it did not.
-    briefs = glob.glob(os.path.join(root, "work", "*brief*.md"))
-    runs = glob.glob(os.path.join(root, "work", "writer*", "*")) + \
-        glob.glob(os.path.join(root, "work", "*writer*.out")) + \
-        glob.glob(os.path.join(root, "work", "*writer*.log"))
+    # RECURSIVE. The first version globbed work/*brief*.md only, and failed
+    # this very page on its first run because the briefs were organised into
+    # work/briefs/ -- one directory deeper. A provenance check that depends on
+    # the author's choice of folder layout is checking the wrong thing.
+    # MATCH THE PATH, NOT THE FILENAME. Two false failures in a row taught this.
+    # The first version globbed work/*brief*.md and missed briefs organised into
+    # work/briefs/. Making it recursive was not enough: the files inside that
+    # directory are named 01-what.md, 02-recommend.md, and carry the word
+    # "brief" in their DIRECTORY rather than their basename. A provenance check
+    # that depends on the author's file-naming habit is checking the habit.
+    allfiles = [f for f in glob.glob(os.path.join(root, "work", "**", "*"),
+                                     recursive=True) if os.path.isfile(f)]
+    briefs = [f for f in allfiles
+              if f.endswith(".md") and "brief" in os.path.relpath(f, root).lower()]
+    runs = [f for f in allfiles
+            if re.search(r"\.(out|log|txt)$", f)
+            and re.search(r"(writer|brief|prose)", os.path.relpath(f, root), re.I)]
     html = open(page, encoding="utf-8", errors="replace").read()
     # The fallback disclosure WRITING.md section 1 already requires.
     disclosed = re.search(

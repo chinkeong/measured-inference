@@ -1,0 +1,5 @@
+Ornith scored higher than Qwen3.5-9B on average across five tests: 68.9 out of 100 against 61.6. Both models answered the same 175 questions, on the same seven test sets, with the same settings, on the same machine.
+
+Ornith led on school maths (100.0 to 92.0 on GSM8K), harder maths (60.0 to 48.0 on MATH-500), code completion (72.0 to 56.0 on MBPP), and summarising (24.3 to 20.0 on MeetingBank). Qwen won one test, HumanEval code writing, with 92.0 against 88.0. Each test used only 25 questions, so a difference of about 10 points can appear from chance alone. Single tests are suggestive, not settled.
+
+The clearest difference was how often each model ran past the answer limit: 23 times for Qwen, 9 for Ornith. Two further tests were scored by three independent judges. Ornith scored 67.6 and 79.9, Qwen 61.3 and 75.0. Six of Qwen's fifty judged answers were empty because they exceeded the limit, against one of Ornith's.
