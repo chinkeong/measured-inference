@@ -47,7 +47,6 @@ def main():
                "--rule21", "--suite", SUITE,
                "--datasets", "MATH-500,MBPP",
                "--transcripts", "--ctx", "32768",
-               "--label", name,
                "--server-args",
                "-ngl 99 --jinja --chat-template-file %s" % os.path.join(TPL, tpl)]
         with open(lp, "w") as fh:
