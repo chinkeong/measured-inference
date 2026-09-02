@@ -54,6 +54,29 @@ log present, no work done. Observed 2026-08-27.
 Write the brief to a FILE and pass its path. A long prompt inlined into the
 command line is the same trap with a longer fuse.
 
+**On POSIX, and as root, two things change.** Verified 2026-09-02 on Ubuntu:
+
+```bash
+timeout 300 claude --model claude-opus-4-6 \
+  -p "Read the brief at $S/section-brief.md. Print ONLY the prose to stdout." \
+  < /dev/null > "$S/section.out" 2>&1
+```
+
+- **`--dangerously-skip-permissions` is REFUSED when running as root** —
+  *"cannot be used with root/sudo privileges for security reasons"*, exit 1. The
+  PowerShell recipe above carries that flag, so a straight port fails on the
+  first call. Drop it.
+- **Which means the writer cannot be given file-write permission
+  non-interactively — so do not ask it for files.** Have it print the prose to
+  **stdout** and let the orchestrator write the artefact. This is the better
+  arrangement anyway and it is what §6 already says: 4.6 is the writer, not the
+  adjudicator. The orchestrator owning every byte that lands on disk is the
+  mechanism that makes §6 true rather than merely stated.
+- **Redirect stdin (`< /dev/null`)** or the CLI waits 3 s and warns.
+
+The artefact check in §5 is unchanged and matters more here, not less: a run
+that prints an apology to stdout also exits 0.
+
 ## 3. One writer per file at a time.
 
 Two writing processes editing one file will both win and both lose.

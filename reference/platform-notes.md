@@ -901,3 +901,27 @@ self-test is the first member of `scripts/verify/run-all.py`.
 - **Apple Silicon**: `sudo powermetrics --samplers gpu_power,cpu_power -i 1000`.
 - If no counter is readable without installing something on a borrowed machine,
   **mark the energy work unmeasured** rather than estimating from TDP.
+
+## `--dangerously-skip-permissions cannot be used with root/sudo privileges`
+
+SYMPTOM: the prose-writer invocation in `methodology/WRITING.md` §2 exits 1
+immediately with `--dangerously-skip-permissions cannot be used with
+root/sudo privileges for security reasons`, and no artefact is produced.
+Often preceded by `Warning: no stdin data received in 3s`.
+CAUSE: two Linux-side differences from the Windows recipe that file was
+written against. The campaign runs as root on this box, and the CLI
+refuses that flag under root. Separately, the CLI waits on stdin when it
+is a terminal.
+FIX: drop the flag and redirect stdin:
+  timeout 300 claude --model claude-opus-4-6 \
+    -p "Read the brief at <path>. Print ONLY the prose to stdout." \
+    < /dev/null > out.txt 2>&1
+Without the flag the writer cannot be granted file-write permission
+non-interactively, so DO NOT ask it for files -- have it print prose to
+stdout and let the orchestrator write the artefact. That is the better
+arrangement regardless: WRITING.md §6 says the writer may not decide what
+is true, and the orchestrator owning every byte on disk is what makes
+that mechanical rather than merely stated.
+VERIFIED 2026-09-02: `claude --model claude-opus-4-6 -p ... < /dev/null`
+returns MODEL_OK, and a three-sentence brief-by-path returned exactly the
+three requested sentences with no additions.
