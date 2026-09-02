@@ -250,3 +250,42 @@ more trustworthy half of the observation.
 it**, exactly as in the Ornith campaign — the reference `qwen38-27b-blind` Mean
 is a mean of five with both excluded, and adding them would silently redefine
 the metric (rule 23).
+
+## The template crossover — pre-registered before it ran  ·  2026-09-02
+
+The campaign's headline is that Ornith finishes the same 175 prompts in 41% of
+the wall clock at identical decode speed, and that the whole gap is termination.
+The two arms run their **own** chat templates, so weights and template are
+confounded, and this repo has already published two mechanisms in this campaign
+that were wrong in exactly that way. So the confound gets cut rather than
+footnoted.
+
+**Design: a 2×2 crossover, scoped to where the effect lives.** MATH-500 and MBPP
+carry **21 of Qwen's 23 truncations and 8 of Ornith's 9**, so 50 prompts per arm
+answers the question at a quarter of a full-suite crossover.
+
+| | Qwen template | Ornith template |
+|---|---|---|
+| **Qwen weights** | 13 + 8 truncations (measured) | **new arm** |
+| **Ornith weights** | **new arm** | 3 + 5 truncations (measured) |
+
+If truncation follows the TEMPLATE, both new arms swap their truncation counts.
+If it follows the WEIGHTS, neither moves. Nothing else separates them.
+
+**What the templates actually differ by, read before running.** Qwen's is 7,992
+chars (sha `8452ca85…`), Ornith's 7,756 (sha `a4aee8af…`). The difference is a
+**39-line system-message merging block** that Qwen has and Ornith does not —
+Qwen merges two consecutive `system`/`developer` messages into one; Ornith
+does not. `system` appears 14 times in Qwen's template against 8 in Ornith's.
+
+**The reasoning machinery is IDENTICAL in both**: `enable_thinking` 1/1,
+`<think>` 4/4, `reasoning` 7/7. Nothing in either template controls thinking
+differently.
+
+**PRE-REGISTERED PREDICTION, written before the run.** Rule-21 prompts are
+single user messages with **no system message**, so the block the two templates
+differ by should never fire. The prediction is therefore that **the crossover
+shows no effect and termination is a property of the weights** — Ornith's
+post-training, not its packaging. Recording it now so the result cannot be read
+back onto a story chosen afterwards, which is the failure this campaign has
+already made twice.
