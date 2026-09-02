@@ -202,6 +202,10 @@ CHECKS = (
     ("arms-lane", "scripts/verify/test-arms.py", (), 900,
      "the sweep runner stopped recording, resuming, discarding, ordering or "
      "stopping the way results/ depends on"),
+    ("writer-provenance", "scripts/verify/writer-provenance.py", (), 120,
+     "a published page's prose bypassed methodology/WRITING.md without saying "
+     "so -- section 1 allows the fallback writer, it does not allow using it "
+     "silently, and the orchestrating model is the one it drifts on"),
     ("gpu-lock-guards", "scripts/verify/test-gpu-lock-guards.py", (), 180,
      "a condition gpu_lock cannot evaluate is being reported as the SAFE "
      "answer -- an unreadable process scan reading as an idle card, or `kill` "
