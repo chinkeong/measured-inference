@@ -118,7 +118,7 @@ much electricity it uses, and what it does with images.</p>
 <h2 id="recipes">3. The recipes</h2>
 <p class="lede">For the best quality, load the 8-bit file with all layers on the graphics card, the full 262,144-token context, and image support. Turn speculative decoding off. This produces 78.60 tokens per second, faster than a person reads. It uses 20,336 megabytes of a 24,122-megabyte budget with image support and the small helper model loaded, leaving 3,786 megabytes free.</p>
 <p>The 8-bit file is the right choice because it stays close to the original unshrunk model, disagreeing on only 2.4 percent of words. The 4-bit file disagrees on 14.1 percent, and the 2-bit file on 24.0 percent. Smaller files run faster but they produce different answers.</p>
-<p>If speed matters more, the 4-bit file with speculative decoding on reaches 148.03 tokens per second, 1.238 times faster than without it. But speculative decoding changes the answer. It is not the same answer produced faster. This was confirmed by running the same question twice with the setting on and twice with it off. The repeats matched exactly, so the difference is the setting, not chance.</p>
+<p>If speed matters more, the 4-bit file with speculative decoding on reaches 148.03 tokens per second, 1.238 times faster than without it. But speculative decoding changes the answer. You do not get the same answer faster; you get a different answer. This was confirmed by running the same question twice with the setting on and twice with it off. The repeats matched exactly, so the difference is the setting, not chance.</p>
 
 <figure>
 <div class="scroll">
@@ -129,7 +129,7 @@ much electricity it uses, and what it does with images.</p>
   <td class="n">78.60 t/s</td><td>20,336 of 24,122 MiB</td></tr>
 <tr><td><strong>R2 — speed</strong></td><td>Q4_K_M, 5.38 GiB</td>
   <td><code>--spec-type draft-mtp -md &lt;head&gt; --spec-draft-n-max 4 --spec-draft-p-min 0.75</code></td>
-  <td class="n">148.03 t/s</td><td class="bad">different answers</td></tr>
+  <td class="n">148.03 t/s</td><td class="bad">a different answer, not a faster one</td></tr>
 </table>
 </div>
 <figcaption>R1's floor is under the model card's own sampler. Measured
@@ -143,11 +143,26 @@ predictor.</strong> R2 accepts 0.902 of drafted tokens. More drafting is not
 more speed: at draft length 10 with no probability floor, acceptance falls to
 0.298 and throughput drops to 115.64 tokens per second — <em>slower than no
 speculation at all</em>, at 0.967&nbsp;× the baseline.</p>
-<p><strong>Why R1 turns speculation off.</strong> Speculation is not
-output-preserving on this model, at 4-bit and at full precision. Determinism was
-ruled out first: repeats with the setting fixed were bit-identical, so the
-difference is the setting. R2 is "1.238&nbsp;× faster at a different answer",
-never "the same answer faster".</p>
+<p><strong>Why R1 turns speculation off, in full.</strong> Speculative decoding
+is supposed to be free: a small draft model proposes the next few tokens, the
+big model verifies them, and rejected guesses are resampled from the big model's
+own distribution, so the text that comes out is identical to not using it. That
+is the entire reason to use it.</p>
+<p>On this model it is not identical. Same prompt, same seed, temperature 0:</p>
+<pre><code>speculation OFF   sha256 26feb103…   16,407 chars   4,096 tokens   finish=length
+speculation ON    sha256 363a2a00…    4,100 chars   1,135 tokens   finish=stop</code></pre>
+<p>Each setting reproduces <em>itself</em> exactly — both repeats of each
+configuration are bit-identical — so this is not sampling noise, it is the flag.
+The practical consequences are that a benchmark taken with speculation off does
+not describe a deployment with it on; that any comparison where one arm uses it
+is confounded; and that the flag belongs in your recorded configuration beside
+temperature and seed, not beside thread count.</p>
+<p>In this particular sample the speculative run was the better one — it
+finished the task in 1,135 tokens and stopped cleanly, while the
+non-speculative run ran to the 4,096-token cap without finishing. That is one
+sample. <em>Different</em> is measured; <em>better</em> is not, and is not
+claimed. The mechanism is also unknown: the draft path or the extra head's
+interaction with sampling are candidates, neither established.</p>
 </div>
 
 <h2 id="file">4. Which file to download</h2>
