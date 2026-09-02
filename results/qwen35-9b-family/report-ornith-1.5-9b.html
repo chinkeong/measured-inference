@@ -120,22 +120,61 @@ much electricity it uses, and what it does with images.</p>
 <p>The 8-bit file is the right choice because it stays close to the original unshrunk model, disagreeing on only 2.4 percent of words. The 4-bit file disagrees on 14.1 percent, and the 2-bit file on 24.0 percent. Smaller files run faster but they produce different answers.</p>
 <p>If speed matters more, the 4-bit file with speculative decoding on reaches 148.03 tokens per second, 1.238 times faster than without it. But speculative decoding changes the answer. You do not get the same answer faster; you get a different answer. This was confirmed by running the same question twice with the setting on and twice with it off. The repeats matched exactly, so the difference is the setting, not chance.</p>
 
+<h3>R1 — quality. The default recommendation.</h3>
+<pre><code>llama-server \
+  -m Ornith-1.5-9B-MTP-Q8_0.gguf \
+  --mmproj mmproj-Ornith-1.5-9B-BF16.gguf \
+  -ngl 99 -c 262144 --spec-type none \
+  --jinja --host 127.0.0.1 --port 8080</code></pre>
+<p><strong>78.60 tokens per second.</strong> At the full 262,144-token window
+with the image projector loaded and no draft head, this uses 18,070&nbsp;MiB of
+a 24,122&nbsp;MiB budget, leaving 6,052&nbsp;MiB free. Loading the draft head as
+well — which R1 does not — takes it to 20,336&nbsp;MiB and 3,786&nbsp;MiB
+free.</p>
+
+<h3>R2 — speed. Read the warning first.</h3>
+<pre><code>llama-server \
+  -m Ornith-1.5-9B-MTP-Q4_K_M.gguf \
+  -md mtp-Ornith-1.5-9B-head-Q8_0.gguf \
+  --spec-type draft-mtp --spec-draft-n-max 4 --spec-draft-p-min 0.75 \
+  -ngl 99 --spec-draft-ngl 99 -c 262144 \
+  --jinja --host 127.0.0.1 --port 8080</code></pre>
+<p><strong>148.03 tokens per second</strong>, 1.238&nbsp;× the same file without
+speculation, acceptance 0.902. <span class="bad">This gives a different answer,
+not a faster one</span> — see the note below before using it for anything you
+need to reproduce.</p>
+
 <figure>
 <div class="scroll">
-<table aria-label="Two locked recipes. R1 quality: the 8-bit file, all layers offloaded, full 262,144-token context, image support resident, speculative decoding off, 78.60 tokens per second, 20,336 megabytes used of a 24,122 megabyte budget. R2 speed: the 4-bit file with speculative decoding at draft length 4 and probability floor 0.75, 148.03 tokens per second, 1.238 times the same file without it, acceptance rate 0.902 — but the output is not preserved.">
-<tr><th>Recipe</th><th>File</th><th>Flags</th><th class="n">Speed</th><th>Cost</th></tr>
-<tr class="hi"><td><strong>R1 — quality</strong></td><td>Q8_0, 9.11 GiB</td>
-  <td><code>-ngl 99 -c 262144 --mmproj &lt;file&gt; --spec-type none</code></td>
-  <td class="n">78.60 t/s</td><td>20,336 of 24,122 MiB</td></tr>
-<tr><td><strong>R2 — speed</strong></td><td>Q4_K_M, 5.38 GiB</td>
-  <td><code>--spec-type draft-mtp -md &lt;head&gt; --spec-draft-n-max 4 --spec-draft-p-min 0.75</code></td>
-  <td class="n">148.03 t/s</td><td class="bad">a different answer, not a faster one</td></tr>
+<table aria-label="The five files this campaign measured, with their exact names and sizes. Ornith-1.5-9B-MTP-Q8_0.gguf 9.11 gibibytes, the R1 weights. Ornith-1.5-9B-MTP-Q4_K_M.gguf 5.38 gibibytes, the R2 weights. Ornith-1.5-9B-MTP-IQ2_M.gguf 3.60 gibibytes, measured and screened out. mmproj-Ornith-1.5-9B-BF16.gguf 0.86 gibibytes, the image projector, costing 1,130 mebibytes resident. mtp-Ornith-1.5-9B-head-Q8_0.gguf 2.26 gibibytes, the draft head, costing 2,266 mebibytes resident.">
+<tr><th>File</th><th class="n">Size</th><th>What it is</th><th class="n">Resident cost</th></tr>
+<tr class="hi"><td><code>Ornith-1.5-9B-MTP-Q8_0.gguf</code></td><td class="n">9.11 GiB</td><td>R1 weights — the recommendation</td><td class="n">—</td></tr>
+<tr><td><code>Ornith-1.5-9B-MTP-Q4_K_M.gguf</code></td><td class="n">5.38 GiB</td><td>R2 weights</td><td class="n">—</td></tr>
+<tr><td><code>Ornith-1.5-9B-MTP-IQ2_M.gguf</code></td><td class="n">3.60 GiB</td><td>measured, then screened out — see §4</td><td class="n">—</td></tr>
+<tr><td><code>mmproj-Ornith-1.5-9B-BF16.gguf</code></td><td class="n">0.86 GiB</td><td>image projector, needed for pictures</td><td class="n">1,130 MiB</td></tr>
+<tr><td><code>mtp-Ornith-1.5-9B-head-Q8_0.gguf</code></td><td class="n">2.26 GiB</td><td>draft head, only for R2</td><td class="n">2,266 MiB</td></tr>
 </table>
 </div>
-<figcaption>R1's floor is under the model card's own sampler. Measured
-2026-09-01/02, desktop live. <code>-ngl 99</code> always: the output projection
-counts as one more layer than the layer count suggests.</figcaption>
+<figcaption>Names as run on this machine. All five come from
+<code>protoLabsAI/Ornith-1.5-9B-MTP-GGUF</code>, which is the only source that
+ships a separate multi-token-prediction head and keeps that layer in the weights
+(<code>block_count 33</code>). Conversions that drop it are 32 layers and about
+0.26&nbsp;GB smaller at the same nominal quantisation — the size gives it away.
+Measured 2026-09-01/02, desktop live.</figcaption>
 </figure>
+
+<div class="v2">
+<p><strong><code>-ngl 99</code> always</strong>, not the layer count. The output
+projection counts as one more layer than <code>block_count</code> suggests, so
+an exact number leaves one layer on the processor and costs more than it
+saves.</p>
+<p><strong><code>--spec-draft-ngl 99</code> is separate</strong> and easy to
+forget: without it the draft head runs on the processor and the speedup
+disappears into the drafting.</p>
+<p><strong>The projector and the draft head are additive</strong>, not shared:
+1,130 plus 2,266 is 3,396&nbsp;MiB. R1 loads only the projector, which is why it
+fits the full window with room for a desktop.</p>
+</div>
 
 <div class="v2">
 <p><strong>Acceptance is the speedup; mean draft length is the throughput
@@ -206,19 +245,30 @@ size the adaptive mix also held 80.7&nbsp;% top-token agreement against
 </div>
 
 <h2 id="memory">5. The memory map</h2>
-<p class="lede">The 8-bit file at the full 262,144-token context, with image
-support and the small helper model both loaded, uses 20,336 megabytes of a
-24,122 megabyte budget. That leaves 3,786 megabytes free, which is enough to run
-a desktop alongside it.</p>
+<p class="lede">The recommended setup — the 8-bit file at the full
+262,144-token context with image support, and no draft model — uses 18,070
+megabytes of a 24,122 megabyte budget, leaving 6,052 megabytes free. Loading the
+draft model as well takes it to 20,336 megabytes and 3,786 megabytes free. Both
+fit on a 24 gigabyte card with a desktop running.</p>
+<figure>
 <div class="scroll">
-<table aria-label="Memory components measured on this card. KV cache 33,792 bytes per token measured, against 32,768 implied by the file header, 3.1 percent higher. Image projector 1,130 mebibytes. Draft head 2,266 mebibytes. Projector and draft head are additive at 3,396 mebibytes.">
-<tr><th>Component</th><th class="n">Cost</th><th>Note</th></tr>
-<tr><td>KV cache</td><td class="n">33,792 B/token</td><td>measured; the header implies 32,768, which is 3.1&nbsp;% low — size with the measured figure</td></tr>
-<tr><td>Image projector</td><td class="n">1,130 MiB</td><td>on/off, resident when loaded</td></tr>
-<tr><td>Draft head</td><td class="n">2,266 MiB</td><td>on/off</td></tr>
-<tr class="hi"><td>Both together</td><td class="n">3,396 MiB</td><td>additive, not shared</td></tr>
+<table aria-label="Memory budget built from measured components. Base 8-bit weights at 32,768 context 9,548 mebibytes. KV cache for the remaining 229,376 tokens 7,392 mebibytes at a measured 33,792 bytes per token. Image projector 1,130 mebibytes. Recipe R1 total 18,070 mebibytes of a 24,122 budget, 6,052 free. Adding the draft head at 2,266 mebibytes gives 20,336 and 3,786 free.">
+<tr><th>Component</th><th class="n">MiB</th><th>How it was measured</th></tr>
+<tr><td>Q8_0 weights, 32,768 context</td><td class="n">9,548</td><td>bare server, settled, n=9</td></tr>
+<tr><td>+ KV for 229,376 more tokens</td><td class="n">7,392</td><td>measured slope, 33,792 B/token</td></tr>
+<tr><td>+ image projector</td><td class="n">1,130</td><td>paired on/off probe</td></tr>
+<tr class="hi"><td><strong>= R1, full window, no draft head</strong></td><td class="n"><strong>18,070</strong></td><td><span class="good">6,052 MiB free</span></td></tr>
+<tr><td>+ draft head (R2 only)</td><td class="n">2,266</td><td>paired on/off probe</td></tr>
+<tr><td>= everything resident</td><td class="n">20,336</td><td>3,786 MiB free</td></tr>
 </table>
 </div>
+<figcaption>Budget is 24,122&nbsp;MiB: the 24,576&nbsp;MiB board less 454&nbsp;MiB
+held by the desktop. The components are additive by measurement, not assumption
+— 9,548 + 1,130 + 2,266 = 12,944, which is exactly the measured
+projector-and-draft-head pair. The KV figure is measured; the file header
+implies 32,768 bytes per token, which is 3.1&nbsp;% low, and sizing with the
+header would under-count a full window by about 230&nbsp;MiB.</figcaption>
+</figure>
 
 <h2 id="energy">6. Electricity</h2>
 <p class="lede">Every number here was measured from the graphics card itself, with the card's idle draw of 31.12 watts subtracted. What remains is the cost of the work, not the cost of the machine being switched on. Producing one word costs 3.454 joules at 8-bit precision, 2.424 joules at 4-bit, and 2.186 joules at 2-bit. The saving is smaller than the file size suggests: the 2-bit quantisation is 39.5 percent the size of the 8-bit one but uses 63.3 percent of the energy.</p>
