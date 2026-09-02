@@ -1,0 +1,5 @@
+The 8-bit file is the closest to the original model. Over 294,912 words of text, it picks the same next word 97.6 percent of the time. The 4-bit file agrees 85.9 percent of the time and the 2-bit file 76.0 percent. The files are 9.11, 5.38 and 3.60 gigabytes respectively.
+
+A common ranking method called perplexity put them in the opposite order, scoring the 4-bit file best and the 8-bit file worst. That ranking is wrong here. The 4-bit file scored better than the original model it was made from, which is not possible for a copy. A shrunk file cannot know more than its source. Perplexity measures how confident a model sounds, not how close it stays to the original.
+
+If the answer matters, use the 8-bit file. If speed matters more than exactness, the 4-bit file is a real trade and not a free one.

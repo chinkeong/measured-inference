@@ -1,0 +1,5 @@
+The model does not pretend to see. When a question mentioned an image but none was attached, it said it saw nothing and asked for one. Asked whether a red triangle appeared in a picture containing a black circle, it said no and named the circle.
+
+It misreads small text confidently. A test image contained a six-digit number at several sizes. At 1,536 by 864 pixels and below, it got the number wrong every time in three tries at each size. At 1,600 by 900 pixels and above, it got the number right every time. When wrong it never said so. It returned the same wrong answer all three times, so running it twice produces agreement that looks like confirmation but is not.
+
+Send screenshots at 1,600 by 900 pixels or wider. An image costs about 1,010 pixels per token up to about 2 million pixels. Above that the image is shrunk, so a 4K screenshot costs the same as a 2K one with half the detail per token.

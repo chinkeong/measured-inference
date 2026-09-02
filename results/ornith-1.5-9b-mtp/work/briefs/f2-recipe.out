@@ -1,0 +1,5 @@
+For the best quality, load the 8-bit file with all layers on the graphics card, the full 262,144-token context, and image support. Turn speculative decoding off. This produces 78.60 tokens per second, faster than a person reads. It uses 20,336 megabytes of a 24,122-megabyte budget with image support and the small helper model loaded, leaving 3,786 megabytes free.
+
+The 8-bit file is the right choice because it stays close to the original unshrunk model, disagreeing on only 2.4 percent of words. The 4-bit file disagrees on 14.1 percent, and the 2-bit file on 24.0 percent. Smaller files run faster but they produce different answers.
+
+If speed matters more, the 4-bit file with speculative decoding on reaches 148.03 tokens per second, 1.238 times faster than without it. But speculative decoding changes the answer. It is not the same answer produced faster. This was confirmed by running the same question twice with the setting on and twice with it off. The repeats matched exactly, so the difference is the setting, not chance.

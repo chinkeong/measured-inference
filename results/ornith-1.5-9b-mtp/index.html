@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ornith-1.5-9B on a 24 GB RTX 3090: measured settings, speeds, energy and sight</title>
+<meta name="description" content="Measured settings for Ornith-1.5-9B on one RTX 3090: which file to download, the memory map at the full 262,144-token window, energy per token by quantisation, and where its vision stops being able to read.">
+<style>
+:root{
+  --bg:#fbfaf8; --fg:#1a1a1a; --muted:#5a5a5a; --rule:#e2ded8; --card:#fff;
+  --accent:#7a3b12; --good:#1c5f2e; --warn:#8a5a00; --bad:#8a2020;
+  --code-bg:#f4f1ec;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#14161a; --fg:#e8e6e3; --muted:#a2a6ad; --rule:#2c3038; --card:#1b1e24;
+    --accent:#e0975a; --good:#7ec98f; --warn:#e0b45a; --bad:#e88a8a;
+    --code-bg:#1f232a;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#14161a; --fg:#e8e6e3; --muted:#a2a6ad; --rule:#2c3038; --card:#1b1e24;
+  --accent:#e0975a; --good:#7ec98f; --warn:#e0b45a; --bad:#e88a8a;
+  --code-bg:#1f232a;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);margin:0;
+  font:16px/1.62 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+.wrap{max-width:52rem;margin:0 auto;padding:2.5rem 1.15rem 6rem}
+h1{font-size:1.95rem;line-height:1.22;margin:0 0 .5rem;letter-spacing:-.015em}
+h2{font-size:1.32rem;margin:3.2rem 0 .1rem;letter-spacing:-.01em;
+   padding-top:1.4rem;border-top:1px solid var(--rule)}
+h3{font-size:1.02rem;margin:2rem 0 .4rem;color:var(--accent)}
+.sub{color:var(--muted);font-size:1.02rem;margin:.2rem 0 1.6rem}
+.lede{font-size:1.06rem}
+p{margin:.85rem 0}
+a{color:var(--accent)}
+code,kbd{background:var(--code-bg);padding:.1em .34em;border-radius:3px;
+  font:.885em/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+pre{background:var(--code-bg);padding:.85rem 1rem;border-radius:6px;
+  overflow-x:auto;border:1px solid var(--rule)}
+pre code{background:none;padding:0}
+table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.925rem}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+th,td{text-align:left;padding:.44rem .6rem;border-bottom:1px solid var(--rule);
+  vertical-align:top}
+th{font-weight:600;color:var(--muted);font-size:.83rem;text-transform:uppercase;
+  letter-spacing:.045em}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+tr.hi td{background:color-mix(in srgb,var(--accent) 9%,transparent)}
+.box{background:var(--card);border:1px solid var(--rule);border-radius:8px;
+  padding:1rem 1.15rem;margin:1.5rem 0}
+.box h3{margin-top:0}
+.box dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:.3rem .9rem}
+.box dt{font-weight:600;white-space:nowrap}
+.box dd{margin:0;color:var(--muted)}
+.tag{display:inline-block;font-size:.74rem;letter-spacing:.05em;
+  text-transform:uppercase;padding:.1em .5em;border-radius:3px;
+  border:1px solid currentColor;vertical-align:.12em}
+.t-meas{color:var(--good)}.t-deriv{color:var(--warn)}.t-cited{color:var(--muted)}
+.good{color:var(--good)}.bad{color:var(--bad)}.warn{color:var(--warn)}
+.v2{border-left:3px solid var(--rule);padding-left:1rem;margin:1.4rem 0}
+.v2 > :first-child{margin-top:0}
+nav.toc{background:var(--card);border:1px solid var(--rule);border-radius:8px;
+  padding:.9rem 1.15rem;margin:2rem 0}
+nav.toc ol{margin:.3rem 0 0;padding-left:1.3rem}
+nav.toc li{margin:.18rem 0}
+figcaption{color:var(--muted);font-size:.86rem;margin-top:.4rem}
+.foot{color:var(--muted);font-size:.88rem;margin-top:3.5rem;
+  border-top:1px solid var(--rule);padding-top:1.2rem}
+@media (max-width:34rem){
+  .wrap{padding:1.6rem .85rem 4rem} h1{font-size:1.55rem}
+  .box dl{grid-template-columns:1fr;gap:.1rem}
+  .box dt{margin-top:.5rem}
+}
+</style><div class="wrap">
+<h1>Ornith-1.5-9B on a 24&nbsp;GB RTX&nbsp;3090</h1>
+<p class="sub">Measured settings, speeds, energy and sight. Companion to the
+<a href="index.html">9B comparison</a>.</p>
+
+<nav class="toc" aria-label="Contents">
+  <strong>On this page</strong>
+  <ol>
+    <li><a href="#what">What this page is</a></li>
+    <li><a href="#words">Plain words</a></li>
+    <li><a href="#recipes">The recipes</a></li>
+    <li><a href="#file">Which file to download</a></li>
+    <li><a href="#memory">The memory map</a></li>
+    <li><a href="#energy">Electricity</a></li>
+    <li><a href="#vision">Images</a></li>
+    <li><a href="#bench">Benchmarks, and how much to trust them</a></li>
+    <li><a href="#trouble">Troubleshooting</a></li>
+    <li><a href="#sources">Sources and instruments</a></li>
+  </ol>
+</nav>
+
+<h2 id="what">1. What this page is</h2>
+<p class="lede">This page reports measured settings for Ornith-1.5-9B, a
+9-billion-parameter text and image model, on one NVIDIA RTX&nbsp;3090 graphics
+card with 24&nbsp;gigabytes of memory, running Ubuntu with the desktop active.
+Every number was recorded on that machine, not estimated. The page covers which
+file to download, how much memory each setup needs, how fast the model runs, how
+much electricity it uses, and what it does with images.</p>
+
+<h2 id="words">2. Plain words</h2>
+<div class="box">
+<dl>
+  <dt>Token</dt><dd>A piece of a word. Models read and write in tokens.</dd>
+  <dt>Quantisation</dt><dd>Storing the model's numbers with fewer bits so the file is smaller. 8-bit, 4-bit and 2-bit files are measured here.</dd>
+  <dt>Context</dt><dd>How much text the model holds at once. This model's maximum is 262,144 tokens.</dd>
+  <dt>KV cache</dt><dd>Memory the model uses to remember the conversation so far. It grows with the context.</dd>
+  <dt>Speculative decoding</dt><dd>A small helper model guesses the next few tokens and the big model checks them. Faster when the guesses are good.</dd>
+  <dt>Truncated</dt><dd>An answer that hit the length limit and was cut off. It is scored zero.</dd>
+  <dt>Greedy</dt><dd>The simplest setting: always take the most likely next token.</dd>
+</dl>
+</div>
+
+<h2 id="recipes">3. The recipes</h2>
+<p class="lede">For the best quality, load the 8-bit file with all layers on the graphics card, the full 262,144-token context, and image support. Turn speculative decoding off. This produces 78.60 tokens per second, faster than a person reads. It uses 20,336 megabytes of a 24,122-megabyte budget with image support and the small helper model loaded, leaving 3,786 megabytes free.</p>
+<p>The 8-bit file is the right choice because it stays close to the original unshrunk model, disagreeing on only 2.4 percent of words. The 4-bit file disagrees on 14.1 percent, and the 2-bit file on 24.0 percent. Smaller files run faster but they produce different answers.</p>
+<p>If speed matters more, the 4-bit file with speculative decoding on reaches 148.03 tokens per second, 1.238 times faster than without it. But speculative decoding changes the answer. It is not the same answer produced faster. This was confirmed by running the same question twice with the setting on and twice with it off. The repeats matched exactly, so the difference is the setting, not chance.</p>
+
+<figure>
+<div class="scroll">
+<table aria-label="Two locked recipes. R1 quality: the 8-bit file, all layers offloaded, full 262,144-token context, image support resident, speculative decoding off, 78.60 tokens per second, 20,336 megabytes used of a 24,122 megabyte budget. R2 speed: the 4-bit file with speculative decoding at draft length 4 and probability floor 0.75, 148.03 tokens per second, 1.238 times the same file without it, acceptance rate 0.902 — but the output is not preserved.">
+<tr><th>Recipe</th><th>File</th><th>Flags</th><th class="n">Speed</th><th>Cost</th></tr>
+<tr class="hi"><td><strong>R1 — quality</strong></td><td>Q8_0, 9.11 GiB</td>
+  <td><code>-ngl 99 -c 262144 --mmproj &lt;file&gt; --spec-type none</code></td>
+  <td class="n">78.60 t/s</td><td>20,336 of 24,122 MiB</td></tr>
+<tr><td><strong>R2 — speed</strong></td><td>Q4_K_M, 5.38 GiB</td>
+  <td><code>--spec-type draft-mtp -md &lt;head&gt; --spec-draft-n-max 4 --spec-draft-p-min 0.75</code></td>
+  <td class="n">148.03 t/s</td><td class="bad">different answers</td></tr>
+</table>
+</div>
+<figcaption>R1's floor is under the model card's own sampler. Measured
+2026-09-01/02, desktop live. <code>-ngl 99</code> always: the output projection
+counts as one more layer than the layer count suggests.</figcaption>
+</figure>
+
+<div class="v2">
+<p><strong>Acceptance is the speedup; mean draft length is the throughput
+predictor.</strong> R2 accepts 0.902 of drafted tokens. More drafting is not
+more speed: at draft length 10 with no probability floor, acceptance falls to
+0.298 and throughput drops to 115.64 tokens per second — <em>slower than no
+speculation at all</em>, at 0.967&nbsp;× the baseline.</p>
+<p><strong>Why R1 turns speculation off.</strong> Speculation is not
+output-preserving on this model, at 4-bit and at full precision. Determinism was
+ruled out first: repeats with the setting fixed were bit-identical, so the
+difference is the setting. R2 is "1.238&nbsp;× faster at a different answer",
+never "the same answer faster".</p>
+</div>
+
+<h2 id="file">4. Which file to download</h2>
+<p class="lede">The 8-bit file is the closest to the original model. Over 294,912 words of text, it picks the same next word 97.6 percent of the time. The 4-bit file agrees 85.9 percent of the time and the 2-bit file 76.0 percent. The files are 9.11, 5.38 and 3.60 gigabytes respectively.</p>
+<p>A common ranking method called perplexity put them in the opposite order, scoring the 4-bit file best and the 8-bit file worst. That ranking is wrong here. The 4-bit file scored better than the original model it was made from, which is not possible for a copy. A shrunk file cannot know more than its source. Perplexity measures how confident a model sounds, not how close it stays to the original.</p>
+<p>If the answer matters, use the 8-bit file. If speed matters more than exactness, the 4-bit file is a real trade and not a free one.</p>
+
+<figure>
+<div class="scroll">
+<table aria-label="Quantisation ladder ranked by KL divergence from the BF16 original over 294,912 token positions. Q8_0: 9.11 gigabytes, KL divergence 0.016143, agrees with the original's top choice 97.6 percent of the time, 83.63 tokens per second greedy. Q4_K_M: 5.38 gigabytes, 0.209331, 85.9 percent, 118.59 tokens per second. IQ2_M: 3.60 gigabytes, 0.441164, 76.0 percent, 131.78 tokens per second. Perplexity ranked the same three files in the opposite order: Q4_K_M 7.9544, IQ2_M 8.6629, Q8_0 9.0519, against the BF16 original at 9.0355.">
+<tr><th>File</th><th class="n">Size</th><th class="n">KL div.</th><th class="n">Same top token</th><th class="n">Speed</th><th class="n">Perplexity</th></tr>
+<tr class="hi"><td><strong>Q8_0</strong></td><td class="n">9.11 GiB</td><td class="n good">0.016143</td><td class="n good">97.6 %</td><td class="n">83.63</td><td class="n">9.0519 <span class="bad">(ranked 3rd)</span></td></tr>
+<tr><td>Q4_K_M</td><td class="n">5.38 GiB</td><td class="n">0.209331</td><td class="n">85.9 %</td><td class="n">118.59</td><td class="n">7.9544 <span class="bad">(ranked 1st)</span></td></tr>
+<tr><td>IQ2_M</td><td class="n">3.60 GiB</td><td class="n bad">0.441164</td><td class="n bad">76.0 %</td><td class="n">131.78</td><td class="n">8.6629</td></tr>
+<tr><td><em>BF16 original</em></td><td class="n">17.14 GiB</td><td class="n">—</td><td class="n">100 %</td><td class="n">—</td><td class="n">9.0355</td></tr>
+</table>
+</div>
+<figcaption>KL divergence over 294,912 token positions against the BF16 original.
+Perplexity over the same corpus. 2026-09-01.</figcaption>
+</figure>
+
+<div class="v2">
+<p><strong>The perplexity inversion, stated precisely.</strong> Q4_K_M scores
+7.9544 against the BF16 original's 9.0355 — 1.08 <em>better</em> than the
+weights it was made from. A quantisation cannot beat its source. Low perplexity
+here is a differently-shaped distribution, not a better model. Ranking this
+ladder by perplexity would have crowned Q4_K_M and screened out Q8_0 at the
+first gate.</p>
+<p><strong>The fidelity knee is BRACKETED, not resolved</strong> — it lies
+between 3.36 and 5.03 bits per weight on this ladder. The rungs measured are too
+far apart to place it more tightly, and that is reported as a bracket rather
+than interpolated to a false precision.</p>
+<p><strong>Format is not the axis; bits per weight is.</strong> Two files of the
+same model at the same size — <code>Q2_K</code> at 3.4196 bits per weight and an
+adaptive IQ mix at 3.4272 — were measured in one sweep. The codebook file was
+<em>faster</em> (134.75 against 125.10 tokens per second) and did <em>less</em>
+compute per unit time (SM 14.22&nbsp;% against 15.95&nbsp;%). Both signs are
+opposite to the "codebooks cost throughput" story, which is retired. At that
+size the adaptive mix also held 80.7&nbsp;% top-token agreement against
+<code>Q2_K</code>'s 41.1&nbsp;%, on a <em>larger</em> file.</p>
+</div>
+
+<h2 id="memory">5. The memory map</h2>
+<p class="lede">The 8-bit file at the full 262,144-token context, with image
+support and the small helper model both loaded, uses 20,336 megabytes of a
+24,122 megabyte budget. That leaves 3,786 megabytes free, which is enough to run
+a desktop alongside it.</p>
+<div class="scroll">
+<table aria-label="Memory components measured on this card. KV cache 33,792 bytes per token measured, against 32,768 implied by the file header, 3.1 percent higher. Image projector 1,130 mebibytes. Draft head 2,266 mebibytes. Projector and draft head are additive at 3,396 mebibytes.">
+<tr><th>Component</th><th class="n">Cost</th><th>Note</th></tr>
+<tr><td>KV cache</td><td class="n">33,792 B/token</td><td>measured; the header implies 32,768, which is 3.1&nbsp;% low — size with the measured figure</td></tr>
+<tr><td>Image projector</td><td class="n">1,130 MiB</td><td>on/off, resident when loaded</td></tr>
+<tr><td>Draft head</td><td class="n">2,266 MiB</td><td>on/off</td></tr>
+<tr class="hi"><td>Both together</td><td class="n">3,396 MiB</td><td>additive, not shared</td></tr>
+</table>
+</div>
+
+<h2 id="energy">6. Electricity</h2>
+<p class="lede">Every number here was measured from the graphics card itself, with the card's idle draw of 31.12 watts subtracted. What remains is the cost of the work, not the cost of the machine being switched on. Producing one word costs 3.454 joules at 8-bit precision, 2.424 joules at 4-bit, and 2.186 joules at 2-bit. The saving is smaller than the file size suggests: the 2-bit quantisation is 39.5 percent the size of the 8-bit one but uses 63.3 percent of the energy.</p>
+<p>A 198-question science exam cost 2,029 watt-hours and produced 142 correct answers, which is 14.29 watt-hours per correct answer. About 441 of those watt-hours produced nothing at all, because those answers ran past the length limit and were scored zero.</p>
+
+<figure>
+<div class="scroll">
+<table aria-label="Energy per token by quantisation, net of 31.12 watts idle. Q8_0 3.454 joules per token at 9.11 gigabytes. Q4_K_M 2.424 joules, 0.702 times Q8_0, at 5.38 gigabytes which is 0.591 times the bytes. IQ2_M 2.186 joules, 0.633 times Q8_0, at 3.60 gigabytes which is 0.395 times the bytes. Joules per token per gigabyte rises monotonically from 0.379 to 0.451 to 0.607.">
+<tr><th>File</th><th class="n">J / token</th><th class="n">× Q8_0 energy</th><th class="n">× Q8_0 bytes</th><th class="n">J/token per GiB</th></tr>
+<tr class="hi"><td>Q8_0</td><td class="n">3.454</td><td class="n">1.000</td><td class="n">1.000</td><td class="n">0.379</td></tr>
+<tr><td>Q4_K_M</td><td class="n">2.424</td><td class="n">0.702</td><td class="n">0.591</td><td class="n">0.451</td></tr>
+<tr><td>IQ2_M</td><td class="n">2.186</td><td class="n good">0.633</td><td class="n">0.395</td><td class="n bad">0.607</td></tr>
+</table>
+</div>
+<figcaption>In-band GPU board power via NVML. PSU, wall and datacentre overhead
+excluded. Idle 31.12&nbsp;W subtracted over covered seconds. 2026-09-01.</figcaption>
+</figure>
+
+<div class="v2">
+<p><strong>Two independent instruments agree on the shape.</strong> Cutting the
+file to 0.395&nbsp;× the bytes buys only 0.633&nbsp;× the energy per token, and
+joules-per-token-per-gigabyte rises at every step: 0.379 → 0.451 → 0.607. That
+is the same curve as the bandwidth-efficiency constant falling 0.82 → 0.73 →
+0.54 across the same three files, measured on a different day by a different
+method. The agreement is about the <em>effect</em>; the mechanism remains open
+after the matched-size pair above retired the codebook explanation.</p>
+<p><strong>Cross-check on Q8_0.</strong> Three windows, three workloads: 3.266,
+3.493 and 3.454&nbsp;J/token. Nothing here rests on one window. The first is an
+upper bound — coarse windows do not separate prefill from decode.</p>
+</div>
+
+<h2 id="vision">7. Images</h2>
+<p class="lede">The model does not pretend to see. When a question mentioned an image but none was attached, it said it saw nothing and asked for one. Asked whether a red triangle appeared in a picture containing a black circle, it said no and named the circle.</p>
+<p>It misreads small text confidently. A test image contained a six-digit number at several sizes. At 1,536 by 864 pixels and below, it got the number wrong every time in three tries at each size. At 1,600 by 900 pixels and above, it got the number right every time. When wrong it never said so. It returned the same wrong answer all three times, so running it twice produces agreement that looks like confirmation but is not.</p>
+<p>Send screenshots at 1,600 by 900 pixels or wider. An image costs about 1,010 pixels per token up to about 2 million pixels. Above that the image is shrunk, so a 4K screenshot costs the same as a 2K one with half the detail per token.</p>
+
+<figure>
+<div class="scroll">
+<table aria-label="Text acuity threshold, three repeats per rung with one nonce. At 768 by 768, 1,280 by 720, 1,024 by 1,024 and 1,536 by 864 the model read the six-digit number correctly zero times out of three. At 1,600 by 900 and 1,920 by 1,080 it read it correctly three times out of three. At 1,280 by 1,280, which has more pixels and more image tokens than 1,600 by 900, it still failed all three times.">
+<tr><th>Resolution</th><th class="n">Pixels</th><th class="n">Image tokens</th><th class="n">Read correctly</th><th>What it read instead</th></tr>
+<tr><td>768 × 768</td><td class="n">589,824</td><td class="n">585</td><td class="n bad">0 / 3</td><td>202014</td></tr>
+<tr><td>1,280 × 720</td><td class="n">921,600</td><td class="n">929</td><td class="n bad">0 / 3</td><td>688546</td></tr>
+<tr><td>1,024 × 1,024</td><td class="n">1,048,576</td><td class="n">1,033</td><td class="n bad">0 / 3</td><td>868054</td></tr>
+<tr><td>1,536 × 864</td><td class="n">1,327,104</td><td class="n">1,305</td><td class="n bad">0 / 3</td><td>666964</td></tr>
+<tr class="hi"><td><strong>1,600 × 900</strong></td><td class="n">1,440,000</td><td class="n">1,409</td><td class="n good">3 / 3</td><td>686954 ✓</td></tr>
+<tr><td>1,280 × 1,280</td><td class="n">1,638,400</td><td class="n">1,609</td><td class="n bad">0 / 3</td><td>868954</td></tr>
+<tr><td>1,920 × 1,080</td><td class="n">2,073,600</td><td class="n">2,049</td><td class="n good">3 / 3</td><td>686954 ✓</td></tr>
+</table>
+</div>
+<figcaption>One nonce generated at run time, so no prior or training datum
+contains it. Three repeats per rung, greedy. 2026-09-01.</figcaption>
+</figure>
+
+<div class="v2">
+<p><strong>The threshold is sharp and it is not a pixel count.</strong>
+1,280&nbsp;×&nbsp;1,280 carries 1,638,400 pixels and 1,609 image tokens —
+<em>more of both</em> than 1,600&nbsp;×&nbsp;900 — and fails every repeat. Any
+explanation must account for that inversion. The patch grid (patch 16,
+merge&nbsp;2, canonical image size 768) and how a given aspect ratio is resized
+onto it are the obvious suspects, and they are recorded here as suspects, not
+findings.</p>
+<p><strong>The rendering critique loop works and discriminates.</strong> Two
+pages were rendered and screenshotted, one correct and one deliberately broken
+with overlapping text and an image that fails to load. The model named both real
+defects on the broken page and did not report them on the good one.</p>
+<p><strong>A consumer-side warning.</strong> The visible reply field came back
+empty on most vision replies, with the whole answer in the reasoning channel.
+Any client that reads only the standard content field will see nothing at
+all.</p>
+</div>
+
+<h2 id="bench">8. Benchmarks, and how much to trust them</h2>
+<p class="lede">On a standard seven-test suite this model scored 68.9 out of 100
+across the five tests that can be scored automatically. On a 198-question
+graduate science exam it scored 71.7 out of 100, against a published figure of
+86.4. The gap is almost entirely one thing: 43 of the 198 answers ran past the
+length limit and were scored zero.</p>
+<p>Among the 155 questions it did finish, it answered 142 correctly, which is
+91.6&nbsp;percent. Both numbers are true and neither should be quoted alone.</p>
+
+<figure>
+<div class="scroll">
+<table aria-label="GPQA Diamond decomposition. Of 198 questions, 43 were truncated at the 30,000 token cap, 21.7 percent. Of the 155 that finished, zero were unreadable to the answer extractor, giving a format tax of 0.0 percentage points. Strict accuracy 71.7 percent; accuracy among completed answers 91.6 percent.">
+<tr><th>Measure</th><th class="n">Count</th><th class="n">Rate</th><th>Meaning</th></tr>
+<tr><td>Truncated</td><td class="n bad">43</td><td class="n">21.7 %</td><td>never reached an answer; scored zero</td></tr>
+<tr><td>Unreadable answer</td><td class="n good">0</td><td class="n">0.0 %</td><td>of the 155 that finished</td></tr>
+<tr class="hi"><td>Format tax</td><td class="n">—</td><td class="n good">0.0 pp</td><td>no points lost to answer formatting</td></tr>
+<tr><td>Published score</td><td class="n">142 / 198</td><td class="n">71.7 %</td><td>the number to quote</td></tr>
+<tr><td>Among completed</td><td class="n">142 / 155</td><td class="n">91.6 %</td><td>never quote this alone</td></tr>
+</table>
+</div>
+<figcaption>Cap 30,000 tokens, greedy, seed 42. The decomposition is computed
+from the saved generations at no additional GPU cost.</figcaption>
+</figure>
+
+<div class="v2">
+<p><strong>A finding about the instrument, not the model.</strong> This model
+emitted <em>zero</em> bare-letter answers: it always writes "Answer: X" after
+prose. Under the definition model cards use when quoting a "format compliance"
+percentage — the reply <em>is</em> a single letter — it scores 0&nbsp;%. Under
+this harness's extractor it is 100&nbsp;% parseable. Same 198 generations, two
+defensible readings, 0 against 100. Any published compliance percentage is a
+property of the grader's definition at least as much as of the model.</p>
+<p><strong>Sample size.</strong> The seven-test suite uses 25 questions per set.
+At that size roughly 10 points of difference can arise from chance alone, so a
+single set's score is suggestive and the composite is the better-powered figure.
+Categorical findings — a model truncates, or it does not — survive small n;
+point differences do not.</p>
+</div>
+
+<h2 id="trouble">9. Troubleshooting</h2>
+<div class="scroll">
+<table aria-label="Failure modes with their measured signatures and fixes.">
+<tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr>
+<tr><td>Answers run to the length limit and stop mid-sentence</td><td>Greedy decoding degenerates into repetition on this model</td><td>Use the model card's sampler, which includes a repetition penalty. Raising the cap alone does not help: one prompt truncated at 16,384 <em>and</em> at 32,768.</td></tr>
+<tr><td>Your client shows an empty reply</td><td>The answer is in the reasoning channel, not the content field</td><td>Read both fields. This affects vision replies especially.</td></tr>
+<tr><td>The model reads a number off a screenshot wrongly, confidently</td><td>Below the acuity threshold</td><td>Send at 1,600 × 900 or wider. There is no uncertainty signal to warn you.</td></tr>
+<tr><td>A 2-bit file gives strange answers</td><td>It disagrees with the original on one token in four</td><td>Expected. Use 8-bit if the answer matters.</td></tr>
+<tr><td>Speculative decoding changed your output</td><td>It is not output-preserving on this model</td><td>Expected, and measured at both 4-bit and full precision. Turn it off when reproducibility matters.</td></tr>
+</table>
+</div>
+
+<h2 id="sources">10. Sources and instruments</h2>
+<div class="scroll">
+<table aria-label="Instrument register: what measured each class of number.">
+<tr><th>Measurement</th><th>Instrument</th><th>Tier</th></tr>
+<tr><td>Throughput</td><td>llama.cpp server timings, median of 3 kept probes, first discarded</td><td><span class="tag t-meas">measured</span></td></tr>
+<tr><td>Fidelity</td><td>KL divergence vs BF16, 294,912 token positions</td><td><span class="tag t-meas">measured</span></td></tr>
+<tr><td>Memory</td><td>nvidia-smi resident, paired on/off probes</td><td><span class="tag t-meas">measured</span></td></tr>
+<tr><td>Energy</td><td>NVML board power at 500 ms, idle-subtracted</td><td><span class="tag t-meas">measured</span></td></tr>
+<tr><td>Roofline</td><td>Nsight Compute per-kernel counters</td><td><span class="tag t-meas">measured</span></td></tr>
+<tr><td>Judged quality</td><td>Three blind Claude seats, spread published</td><td><span class="tag t-deriv">correlated instrument</span></td></tr>
+<tr><td>Peak bandwidth 936 GB/s</td><td>NVIDIA published specification</td><td><span class="tag t-cited">cited</span></td></tr>
+</table>
+</div>
+
+<p class="foot">
+Measured 2026-08-31 to 2026-09-02 on one RTX&nbsp;3090 by the
+<code>measured-inference</code> harness. Prose written by Claude Opus 4.6
+against briefs in <code>results/ornith-1.5-9b-mtp/work/briefs/</code>; all
+numbers, conditions and claims owned and verified by the orchestrating model.
+The judged-quality rows were produced by a Claude model and this page was
+written with one, which is a correlated instrument and is why inter-rater spread
+is published beside those numbers. Nothing on this page is projected.
+</p>
+</div>
+</html>

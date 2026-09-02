@@ -44,11 +44,33 @@ fi
 
 mkdir -p "$DEST"
 cp -v "$SRC/index.html" "$DEST/index.html"
-for extra in figures data/plots *.png; do
-    if [ -e "$SRC/$extra" ]; then
-        cp -rv "$SRC/$extra" "$DEST/" 2>/dev/null || true
-    fi
+# GLOB IN $SRC, NOT IN THE CALLER'S DIRECTORY. `for extra in *.png` expands
+# against the working directory -- the repo root -- so it matched nothing, was
+# left as the literal string, and `[ -e "$SRC/*.png" ]` was false. Every PNG was
+# silently skipped from the day this script was written, and adding
+# report-*.html to the same list inherited the same silence: the index shipped
+# with a link to a page that was never copied. Expand inside $SRC instead.
+shopt -s nullglob
+for extra in "$SRC"/figures "$SRC"/data/plots "$SRC"/*.png "$SRC"/report-*.html; do
+    [ -e "$extra" ] || continue
+    cp -rv "$extra" "$DEST/"
 done
+shopt -u nullglob
+
+# AND VERIFY EVERY LOCAL LINK RESOLVES. A mirror that drops half a publication
+# is worse than one that refuses, because the index then links to 404s.
+missing=0
+while IFS= read -r href; do
+    case "$href" in http*|"#"*|"") continue ;; esac
+    if [ ! -e "$DEST/${href%%#*}" ]; then
+        echo "BROKEN LINK: index.html -> $href is not in $DEST"
+        missing=$((missing + 1))
+    fi
+done < <(grep -o 'href="[^"]*"' "$DEST/index.html" | sed 's/href="//;s/"$//' | sort -u)
+if [ "$missing" -gt 0 ]; then
+    echo "REFUSED: $missing local link(s) point at files that were not mirrored."
+    exit 1
+fi
 echo
 echo "mirrored -> $DEST"
 echo "  $(du -sh "$DEST" | cut -f1) staged, $(find "$DEST" -type f | wc -l) file(s)"

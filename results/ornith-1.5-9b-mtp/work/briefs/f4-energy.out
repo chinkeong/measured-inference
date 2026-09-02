@@ -1,0 +1,3 @@
+Every number here was measured from the graphics card itself, with the card's idle draw of 31.12 watts subtracted. What remains is the cost of the work, not the cost of the machine being switched on. Producing one word costs 3.454 joules at 8-bit precision, 2.424 joules at 4-bit, and 2.186 joules at 2-bit. The saving is smaller than the file size suggests: the 2-bit quantisation is 39.5 percent the size of the 8-bit one but uses 63.3 percent of the energy.
+
+A 198-question science exam cost 2,029 watt-hours and produced 142 correct answers, which is 14.29 watt-hours per correct answer. About 441 of those watt-hours produced nothing at all, because those answers ran past the length limit and were scored zero.
