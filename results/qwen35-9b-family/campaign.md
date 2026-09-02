@@ -289,3 +289,57 @@ shows no effect and termination is a property of the weights** — Ornith's
 post-training, not its packaging. Recording it now so the result cannot be read
 back onto a story chosen afterwards, which is the failure this campaign has
 already made twice.
+
+### The crossover result — and why the experiment was the wrong instrument
+
+**The 2×2, all four cells, MATH-500 + MBPP truncations (and scores):**
+
+| | Qwen template | Ornith template |
+|---|---|---|
+| **Qwen weights** | 13 / 8 · (48.0, 56.0) | **13 / 8 · (48.0, 56.0)** |
+| **Ornith weights** | **3 / 5 · (60.0, 72.0)** | 3 / 5 · (60.0, 72.0) |
+
+Not similar — **bit-identical**, truncation counts and scores alike. Neither
+swapped arm moved by a single item.
+
+**PRE-REGISTERED PREDICTION: half held, half does not follow, and the half that
+does not follow is the half that mattered.**
+
+- *"The crossover shows no effect"* — **HELD.**
+- *"Therefore termination is a property of the weights"* — **DOES NOT FOLLOW**,
+  and calling it confirmed would have been the fourth time this campaign
+  mistook a real effect for a demonstrated mechanism.
+
+**Why, from a control that took three seconds and should have run first.**
+Rendering every suite prompt through both templates:
+
+    identical renders: 175    different: 0    (of 175 suite prompts)
+
+Every rule-21 prompt is a bare single user turn with no system message and no
+tools, and the only thing the two templates differ by is a 39-line
+system-message merging block. **So the templates emit the same bytes for this
+entire suite.** The crossover could not have detected a template effect here
+under any outcome. It was a valid experiment with **zero power**, and its
+identical results are a restatement of the control, not independent evidence.
+
+**What this DOES establish, which is what the run was for.** The template
+confound is **eliminated for the rule-21 suite** — the 23-vs-9 truncation gap
+cannot be a template artifact, because there is no template difference to be an
+artifact of. The confound is cut. That was the question.
+
+**What it does NOT establish.** That the weights *cause* the termination
+difference. Weights are now the only remaining candidate among {weights,
+template} *for this input class*, which is elimination, not demonstration. And
+it says nothing about workloads that DO carry system messages or tools — where
+the templates genuinely differ and where an agentic harness lives. A tool-using
+or system-prompted comparison would need this run again, properly powered.
+
+**The methodological cost, recorded because it is the useful part.** Two hours
+of GPU time bought a result a three-second render comparison would have
+predicted exactly, and would have predicted *better* — because the render
+comparison also says WHY, and bounds where the conclusion stops applying. The
+lesson is not "don't run the control experiment"; it is **run the cheap
+falsification of your experiment's power BEFORE spending the GPU hours on the
+experiment** (rule 25's own logic: cheap probes buy the map, and the map decides
+which expensive hours are worth it). The control was cheap, available from the
+start, and I ran it afterwards.
