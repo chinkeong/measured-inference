@@ -28,6 +28,11 @@ WHAT IT RUNS, cheapest first, and the question each one answers:
   openvino-quant   is the arithmetic behind every bpw_effective right? Replays
                    the 600 per-tensor records in results/openvino-groundtruth/
                    through scripts/lib/openvino_quant.py (rules 1 and 3)
+  gguf-shape       would a candidate GGUF entering a roster have the anchor's
+                   SHAPE? Builds 33-block and 32-block headers in memory and
+                   asserts the gate still catches a silently dropped MTP layer
+                   - the conversion trap this repository has hit three times,
+                   which no model card and no filename declares (rules 3, 30)
   ladder-png       can the renderer of the published quant-ladder figure still
                    be pointed somewhere else? Four --out cases in a temporary
                    directory; loads no source and draws nothing. It needs
@@ -185,6 +190,11 @@ CHECKS = (
     ("openvino-quant", "scripts/verify/test-openvino-quant.py", (), 300,
      "a published bits-per-weight for an OpenVINO run is computed from a "
      "table that no longer matches the run that checked it"),
+    ("gguf-shape", "scripts/verify/gguf-shape-gate.py", ("--self-test",), 120,
+     "the gate that keeps a silently MTP-stripped GGUF out of a roster has "
+     "stopped catching one - a 32-block file measured against 33-block arms "
+     "publishes a different model's numbers as a comparison, and the file "
+     "size is the only other tell (rule 30)"),
     ("ladder-png", "scripts/quant-ladder/make-ladder-png.py", ("--self-test",),
      300,
      "the renderer of the published quant-ladder figure cannot draw it "

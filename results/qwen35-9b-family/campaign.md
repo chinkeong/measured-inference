@@ -343,3 +343,56 @@ falsification of your experiment's power BEFORE spending the GPU hours on the
 experiment** (rule 25's own logic: cheap probes buy the map, and the map decides
 which expensive hours are worth it). The control was cheap, available from the
 start, and I ran it afterwards.
+
+---
+
+## Stage 7 complete / published
+
+Recorded 2026-09-03. Every step this campaign defined has run and the artefact
+is live.
+
+| step | outcome |
+|---|---|
+| download-gate | `Qwen3.5-9B-Q8_0.gguf` byte-exact against Content-Length, 9,786,061,152 |
+| A-anchor-sweep | OK 2026-09-02 01:13:46 — commit `e2d7e86` |
+| B-rule21-qwen | OK 2026-09-02 04:04:35, suite `1cdf54f8eb9d3f8f` — commit `9a67433` |
+| judge panel | 12 packets, 150 ratings, 0 missing, 0 partial — commit `fdfcc7e` |
+| template crossover | both cells, plus the 3 s render control that showed zero power — commits `039aa8f`, `c291533`, `9e40d49` |
+| Stage 7 | `index.html`, nine sections — commit `2c90dd9`, corrections `b9cbcd7` / `4582f99` / `6c9b3bc` |
+| mirror | staged, committed and **pushed** to `chinkeong.github.io/qwen-9b/` at 2026-09-02 21:14:51 +0800, `origin/master` `0a0aa1e` |
+
+GPQA Diamond was never queued for the anchor and that remains deliberate, not an
+oversight: it cost 7 h 55 m on the Ornith arm and buys this comparison nothing.
+
+**Why this entry exists at all.** AGENTS.md's "RESUMING A CRASHED CAMPAIGN" tells
+an agent to list `results/*/campaign.md` and, if the last entry is not "Stage 7
+complete / published", to resume rather than interview. This log's last dated
+section was the template crossover, written about ten hours before Stage 7
+landed, so for a day this finished and published campaign read as one that died
+mid-flight. A session on 2026-09-03 did exactly that and spent a turn
+reconstructing state that was never lost.
+
+**One correction shipped with this entry.** The GPQA decomposition figcaption in
+`report-ornith-1.5-9b.html` — and in its source, `results/ornith-1.5-9b-mtp/index.html`
+— read "Cap 30,000 tokens, greedy, seed 42". The run was not greedy. The run
+JSON's `settings` block records `temperature 1.0`, `top_p 0.95`, `top_k 20`,
+`presence_penalty 0.0`, which is the model card's general preset, and
+`campaign.md` line 1162 had it right the whole time; only the caption was wrong.
+A wrong condition line on a published page is a rule 3 defect, and this one was
+live on the public site. Corrected in all three copies. The mirror is re-staged;
+the push, as always, is a human's to make.
+
+**Roster note for whoever adds the next arm.** A candidate was screened on
+2026-09-03 and rejected before any GPU time:
+`Jackrong/Qwopus3.5-9B-v3-GGUF` is **TIER 1 illegal** — `block_count 32`, no
+`nextn_predict_layers`, 427 tensors against the anchor's 442, the 15 missing
+being exactly all of `blk.32`. That is the MTP silent-drop trap for the third
+time in this repository. Its own `config.json` declares
+`mtp_num_hidden_layers: 1` against `num_hidden_layers: 32`, so the upstream
+weights have the layer and the GGUF conversion lost it; the repo ships no BF16,
+so it cannot be repaired in place. Nothing on its model card would have caught
+it. `Jackrong/DeepSeek-V4-Pro-Qwen3.5-9B-MTP-GGUF` screened **TIER 1 legal** —
+442 tensors, zero differences from the anchor in names, shapes or per-tensor
+quant types. Both verdicts came from the header, not from the file size;
+`scripts/verify/gguf-shape-gate.py` is the gate that now makes that check
+routine.

@@ -1864,3 +1864,43 @@ ever destroyed the evidence.
 
 `loop-detect.py`'s NO-DATA guard, added this morning, is what caught it here: it
 refused the empty string instead of returning `clean`.
+
+---
+
+## Stage 7 complete / published — with one debt named, not closed
+
+Recorded 2026-09-03. The field guide is `results/ornith-1.5-9b-mtp/index.html`
+and it is published, mirrored into `chinkeong.github.io/qwen-9b/` as
+`report-ornith-1.5-9b.html` and pushed. `work/heartbeat.json` reads
+`"in_flight": null`, note `"runner finished"`; no llama.cpp or bench process is
+alive and the card is idle.
+
+**This entry exists for the same reason `qwen38-27b-blind`'s does.** Without the
+words "Stage 7 complete / published" as the last entry, AGENTS.md's resume rule
+tells the next agent this campaign died mid-stage. It did not. On 2026-09-03 a
+session read both this log and `qwen35-9b-family`'s as crashed runs and
+reconstructed state that was never lost.
+
+**One thing is genuinely owed, and closing the log does not close it.**
+Rule 7's remedy on the GPQA-Diamond anchor — *raise the cap and rerun that arm
+only* — is recorded at line 1184 as "we have not done it", and it is still not
+done. The published 71.7 (142/198) stands with 43 answers, 21.7 %, truncated at
+exactly the 30,000-token cap, burning 1,290,000 tokens — 57.7 % of everything
+the run generated — for zero points. Among the 155 that finished the score is
+142/155 = 91.6 %, which rule 7 forbids quoting alone, and both figures ship
+labelled. A resuming agent should treat this as the one open action on this
+campaign and nothing else: it is a re-run of a single arm at a higher cap, not a
+resumed stage.
+
+**Correction shipped 2026-09-03.** The GPQA decomposition figcaption in
+`index.html` read "Cap 30,000 tokens, greedy, seed 42". The anchor did not run
+greedy — the run JSON records `temperature 1.0`, `top_p 0.95`, `top_k 20`,
+`presence_penalty 0.0` (the model card's general preset), and line 1162 of this
+log states it correctly. Only the caption was wrong, and it was wrong on the
+live public page: a rule 3 defect, since the conditions travel with the number.
+Corrected here, in `results/qwen35-9b-family/report-ornith-1.5-9b.html`, and in
+the site mirror. Two other narrative figures in this log overstate the anchor's
+wall clock as "~10 h" (lines 1120, 1162); the machine record is
+`elapsed_s = 28,525.4` = **7 h 55 m 25 s**, and the power trace agrees. The
+prose is left as written — this log is appended to, not rewritten — and the
+correct figure is here.
