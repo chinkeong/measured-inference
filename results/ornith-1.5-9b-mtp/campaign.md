@@ -1865,6 +1865,104 @@ ever destroyed the evidence.
 `loop-detect.py`'s NO-DATA guard, added this morning, is what caught it here: it
 refused the empty string instead of returning `clean`.
 
+### 2026-09-04 — the cap was set inside the long mode, and the re-run is priced without buying it
+
+Rule 7's remedy on the GPQA anchor — *raise the cap and rerun that arm* — has
+been owed since 2026-09-01 with no cap named. Two guesses had already failed:
+the recipe lock's 5,407 (Stage 4's measured max × 1.5) broke at question 2 of a
+two-question pilot, and the amendment's 30,000 was exceeded by 21.7 % of the
+run. A third guess was not necessary. **The 43 truncated rows are not missing
+data, they are right-censored observations**, and they were already on disk.
+
+`work/appetite-censored.py`, zero GPU cost, off
+`data/gpqa-format-decomposition.json`.
+
+**What the data say with no assumption at all.** Kaplan-Meier is exact up to
+30,000 and undefined above it, because every censored point sits at that one
+value and the largest finished answer (29,989) is below it:
+
+    25 % of questions finish by   1,183 tokens
+    50 %                          3,533
+    75 %                         24,102
+    90 %                         unreachable
+    S(30,000) = 0.217
+
+Non-parametrically the run says "21.7 % need more than 30k" and nothing whatever
+about how much more. Everything past that line is extrapolation pinned by a
+single constraint.
+
+**The appetite is bimodal, and that is why the cap failed.** Every
+single-family fit is rejected against the finished set — lognormal is the best
+by AIC and still fails KS at D = 0.1726, p = 0.0002. A two-component lognormal
+mixture is not rejected, and it is decisively better:
+
+| | weight | median | sigma |
+|---|---|---|---|
+| short mode | 0.474 | 1,230 tokens | 0.57 |
+| long mode | 0.526 | 23,077 tokens | 1.21 |
+
+ΔAIC −59.8 against the best single family; KS D = 0.0440, p = 0.9119.
+
+**The 30,000 cap was not slightly too low. It was set inside the body of the
+long mode**, just past its median, so it cut roughly the top 40 % of that mode
+off. Both earlier guesses were derived from a mean, and a distribution this
+bimodal has no useful mean — the observed mean of 11,297 tokens/question falls
+in the empty middle where almost no question lives (84 finished answers under
+2,500 tokens, 15 over 20,000, a thin 56 between).
+
+**What a cap would have to be, and why zero truncation is not purchasable.**
+
+| target truncation | cap (mixture) | single-family range |
+|---|---|---|
+| 10 % | 66,935 | 44,932 .. 61,813 |
+| 5 % | 113,143 | 63,018 .. 142,173 |
+| 1 % | 285,955 | 107,148 .. 895,227 |
+
+The amendment made rule 7 self-validating: satisfied only if truncation returns
+ZERO. At a 0.1 % target the families spread 68×, and a bootstrap on the best one
+alone is 3.1× wide at the 1 % target. **Cost is not the blocker — identifiability
+is.** `E[min(T, cap)]` is dominated by the bulk, so a 200,000-token cap still
+costs only ~15 GPU hours against the 7.9 the run actually took; the mixture's
+own 10 % cap of 66,935 costs 11.7 h. The reason not to spend is not the price.
+
+**What the re-run would find, from the existing rows.** Accuracy of finished
+answers degrades monotonically with generation length:
+
+| tokens | n | correct | accuracy |
+|---|---|---|---|
+| 0–2,500 | 84 | 81 | 96.4 % |
+| 2,500–10,000 | 34 | 32 | 94.1 % |
+| 10,000–20,000 | 22 | 18 | 81.8 % |
+| 20,000–30,000 | 15 | 11 | 73.3 % |
+
+The 43 truncated answers ran longer than every one of those. Scoring them at the
+longest finished bucket's rate projects the re-run at **173.5/198 = 87.6 %**,
+with a 95 % floor of 81.5 % and a ceiling of 91.7 %. **The vendor publishes
+86.4.** So the re-run's most likely result is a number statistically
+indistinguishable from the published one — which is exactly the conclusion this
+campaign already reached and published on 2026-09-01, that 71.7 and 86.4 are the
+same model measured with and without a cap.
+
+**Decision: rule 7's remedy stays owed and is deliberately not paid.** It is now
+owed with a price attached rather than as an open question. 12–16 GPU hours
+would move the headline from "71.7, with 91.6 % among completed, both labelled"
+to "≈87.6 ± 6" and change no conclusion. Under rule 30 the new figure could not
+be compared against the old one across sweeps anyway, so paying the debt unlocks
+no comparison; it only tidies the headline of a closed campaign. If a later
+campaign runs GPQA on this model for its own reasons, **start at a 66,935 cap**,
+expect ~10 % truncation, and expect that raising it further buys progressively
+less because the long mode's tail is where the extrapolation is weakest.
+
+**Two caveats that travel with all of the above.** The tail is an extrapolation
+constrained by one number, S(30,000) = 0.217, plus an assumed shape; the mixture
+is not rejected by the data but the data cannot see past 30,000, and no fit can
+invent that. And the accuracy gradient is **confounded, not causal** — harder
+questions produce both longer generations and wrong answers, so this is "hard
+questions cost more and score worse", not "thinking longer causes errors". The
+useful consequence is narrower and it is the one that matters here: truncation
+is not a random 21.7 % tax. It preferentially removes questions the model was
+going to get wrong, which is why the recovered score lands near the vendor's
+figure rather than above it.
 ---
 
 ## Stage 7 complete / published — with one debt named, not closed
@@ -1884,7 +1982,9 @@ reconstructed state that was never lost.
 **One thing is genuinely owed, and closing the log does not close it.**
 Rule 7's remedy on the GPQA-Diamond anchor — *raise the cap and rerun that arm
 only* — is recorded at line 1184 as "we have not done it", and it is still not
-done. The published 71.7 (142/198) stands with 43 answers, 21.7 %, truncated at
+done -- now deliberately, with a price attached: see the 2026-09-04 entry, which
+fits the censored appetite, names 66,935 as the cap to start from, and projects
+the re-run at 87.6 % against a published 86.4. The published 71.7 (142/198) stands with 43 answers, 21.7 %, truncated at
 exactly the 30,000-token cap, burning 1,290,000 tokens — 57.7 % of everything
 the run generated — for zero points. Among the 155 that finished the score is
 142/155 = 91.6 %, which rule 7 forbids quoting alone, and both figures ship
