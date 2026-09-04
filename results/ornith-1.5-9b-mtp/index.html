@@ -381,11 +381,45 @@ Categorical findings — a model truncates, or it does not — survive small n;
 point differences do not.</p>
 </div>
 
+<div class="v2">
+<p><strong>The cap sat inside the long mode's own median.</strong> Generation
+lengths on GPQA Diamond follow a two-component lognormal mixture &mdash; a short
+mode (weight 0.474, median 1,230 tokens) and a long mode (weight 0.526, median
+23,077 tokens) &mdash; not rejected by a Kolmogorov-Smirnov test against the 155
+finished answers (D = 0.0440, p = 0.9119), while every single-distribution
+family is rejected, the best of them at D = 0.1726, p = 0.0002. The
+Kaplan-Meier quartiles are 1,183 / 3,533 / 24,102 tokens; survival at 30,000 is
+0.217; above 30,000 the data say nothing at all. The 30,000-token cap cut
+through the middle of the long mode, and the observed mean of 11,297 tokens per
+question falls in the sparse region where 84 answers finished under 2,500
+tokens, 15 ran past 20,000, and only 56 fell between &mdash; a distribution with
+two modes has no useful mean. For 10&nbsp;% truncation the mixture projects a
+cap of 66,935 tokens, costing about 11.7 GPU hours against the 7.9 hours
+the run actually took, because expected cost per question is dominated by the
+short mode; for 5&nbsp;%, 113,143; at a 0.1&nbsp;% target the candidate families
+disagree by a factor of 68. The tail beyond 30,000 is an extrapolation: it rests
+on one measured constraint &mdash; survival 0.217 at the cap &mdash; plus an
+assumed distributional shape, and no fit can see past the cap.</p>
+<p><strong>Projected recovery lands on the published score.</strong> Among the
+155 finished answers, accuracy falls with generation length: 96.4&nbsp;% under
+2,500 tokens (81 of 84), 94.1&nbsp;% at 2,500&ndash;10,000 (32 of 34),
+81.8&nbsp;% at 10,000&ndash;20,000 (18 of 22), and 73.3&nbsp;% at
+20,000&ndash;30,000 (11 of 15); all 43 truncated answers ran longer than every
+finished one. Scoring the 43 at the longest finished bucket's 73.3&nbsp;% rate
+puts a re-run at 173.5 of 198 &mdash; 87.6&nbsp;%, with a 95&nbsp;% floor of
+81.5&nbsp;% and a ceiling of 91.7&nbsp;%. The vendor publishes 86.4. The
+gradient is confounded, not causal: hard questions produce both longer
+generations and more wrong answers, so the cap does not remove a random
+21.7&nbsp;% of questions but preferentially removes ones the model was going to
+get wrong &mdash; which is why the projected recovery lands near the published
+figure rather than above it.</p>
+</div>
+
 <h2 id="trouble">9. Troubleshooting</h2>
 <div class="scroll">
 <table aria-label="Failure modes with their measured signatures and fixes.">
 <tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr>
-<tr><td>Answers run to the length limit and stop mid-sentence</td><td>Greedy decoding degenerates into repetition on this model</td><td>Use the model card's sampler, which includes a repetition penalty. Raising the cap alone does not help: one prompt truncated at 16,384 <em>and</em> at 32,768.</td></tr>
+<tr><td>Answers run to the length limit and stop mid-sentence</td><td>Two distinct mechanisms truncate. Greedy decoding degenerates into repetition — one prompt truncated at 16,384 <em>and</em> at 32,768, and a larger cap does not help. Under the model card's sampler the repetition loop stops, but long reasoning genuinely exhausts the cap: 43 of 198 GPQA Diamond answers exceeded a 30,000-token cap.</td><td>Use the model card's sampler to stop the repetition loop. For genuinely long answers, raise the cap — <a href="#bench">section 8</a> gives the number.</td></tr>
 <tr><td>Your client shows an empty reply</td><td>The answer is in the reasoning channel, not the content field</td><td>Read both fields. This affects vision replies especially.</td></tr>
 <tr><td>The model reads a number off a screenshot wrongly, confidently</td><td>Below the acuity threshold</td><td>Send at 1,600 × 900 or wider. There is no uncertainty signal to warn you.</td></tr>
 <tr><td>A 2-bit file gives strange answers</td><td>It disagrees with the original on one token in four</td><td>Expected. Use 8-bit if the answer matters.</td></tr>
@@ -403,6 +437,7 @@ point differences do not.</p>
 <tr><td>Energy</td><td>NVML board power at 500 ms, idle-subtracted</td><td><span class="tag t-meas">measured</span></td></tr>
 <tr><td>Roofline</td><td>Nsight Compute per-kernel counters</td><td><span class="tag t-meas">measured</span></td></tr>
 <tr><td>Judged quality</td><td>Three blind Claude seats, spread published</td><td><span class="tag t-deriv">correlated instrument</span></td></tr>
+<tr><td>Appetite and cap</td><td>Right-censored MLE over the 198 saved generations, two-component lognormal mixture</td><td><span class="tag t-deriv">modelled extrapolation</span></td></tr>
 <tr><td>Peak bandwidth 936 GB/s</td><td>NVIDIA published specification</td><td><span class="tag t-cited">cited</span></td></tr>
 </table>
 </div>
